@@ -1,0 +1,21 @@
+-- Add the missing StudentProfile."photoUrl" column.
+--
+-- Schema drift: prisma/schema.prisma declares `photoUrl String?` on
+-- StudentProfile (added with the "student profile photo upload" feature,
+-- commit 48b03f1), but no migration ever created the column. The baseline adds
+-- photoUrl to TeacherProfile and ParentProfile only.
+--
+-- Impact: any database built by running the migrations — a fresh dev machine,
+-- CI, a preview branch, or a rebuilt production — is missing the column, and
+-- every read/write of it fails at runtime:
+--
+--     P2022: The column `StudentProfile.photoUrl` does not exist
+--            in the current database.
+--
+-- That breaks GET/PATCH /api/student/profile (the upload endpoint) and the
+-- student ID-card page. Environments where the column was added by hand, or by
+-- `prisma db push`, kept working — which is why this went unnoticed.
+--
+-- IF NOT EXISTS keeps this safe to apply on those already-patched databases.
+
+ALTER TABLE "StudentProfile" ADD COLUMN IF NOT EXISTS "photoUrl" TEXT;

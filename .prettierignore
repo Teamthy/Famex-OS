@@ -1,0 +1,28 @@
+node_modules
+.next
+out
+prisma/migrations
+*.md
+package-lock.json
+mobile
+
+# Scratch delivery artifacts, not source. These blocked a commit at the
+# pre-commit prettier gate; they are gitignored now, but a stray copy on disk
+# should not be able to stop a commit again.
+*.cjs
+*.ps1
+*.bak
+*.bak-audit
+
+# Scratch delivery artifacts, not source. These blocked a commit at the
+# pre-commit prettier gate; they are gitignored now, but a stray copy on disk
+# should not be able to stop a commit again.
+*.cjs
+*.ps1
+*.bak
+*.bak-*
+
+# Playwright output
+test-results
+playwright-report
+blob-report

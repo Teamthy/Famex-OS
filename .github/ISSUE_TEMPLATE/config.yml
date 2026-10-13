@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security issues
+    url: https://github.com/Teamthy/ykay_eduport-/security
+    about: Please report security vulnerabilities via the SECURITY.md policy, not a public issue.

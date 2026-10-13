@@ -1,0 +1,116 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+.next/
+out/
+build/
+dist/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.history/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Backups and scratch data
+_backups/
+.data/
+screens/
+deliverables/
+
+# PowerShell ingest scripts (development artifacts)
+*.ps1
+
+# Scratch Node scripts (apply-drop*.cjs, push.cjs, ykay.cjs and friends).
+# Same category as the *.ps1 artifacts above: one-shot delivery helpers, not
+# source. They were committed once and broke the prettier pre-commit gate,
+# since .prettierignore does not cover them either.
+*.cjs
+
+# Backups written by apply scripts before they overwrite a file.
+*.bak
+*.bak-audit
+
+# Phase notes (development artifacts)
+PHASE*_NOTES.md
+TRANSFORMATION_*.md
+PRODUCTION_CUTOVER.md
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# Vercel
+.vercel
+
+!mobile/
+!mobile/**
+# ...but NOT its secrets. `!mobile/**` re-includes everything under mobile/,
+# which silently overrode the .env rules above — `git check-ignore` showed
+# mobile/.env.local as tracked-in-waiting. Re-exclude them explicitly.
+mobile/.env
+mobile/.env.local
+mobile/.env.*.local
+
+*.patch
+*.zip
+public/Screenshot *.png
+
+# Agent delivery scripts — tooling for applying changes, not part of the app.
+# These were being swept into commits by `git add -A`.
+ykay-*.ps1
+ykay-*.cmd
+
+# Scratch Node scripts (apply-drop*.cjs, push.cjs, ykay.cjs and friends).
+# Same category as the *.ps1 artifacts above: one-shot delivery helpers, not
+# source. They were committed once and broke the prettier pre-commit gate,
+# since .prettierignore did not cover them either.
+*.cjs
+
+# Backups written by apply scripts before they overwrite a file.
+# Every suffix used so far — a missing one gets swept in by `git add -A`,
+# which is exactly how 7 *.bak-audit files reached the remote.
+*.bak
+*.bak-*
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# --- added by CLEANUP_COMMITTED_CRUFT.ps1 ---
+# Applier-script backups (never commit these)
+.apply-backup-*/
+apply-backup-*/
+
+# Git bundles used to transfer work between machines
+*.bundle
+
+# Local Lighthouse CI scratch (autorun output)
+.lighthouseci/

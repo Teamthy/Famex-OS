@@ -1,0 +1,29 @@
+#!/bin/sh
+# Ykay College pre-commit gate.
+#
+# CI runs `prettier --check .`, so a stray format breaks the build AFTER you
+# have pushed. This catches it in the two seconds before the commit instead.
+#
+# Deliberately fast: formatting and the client/server boundary only. Running
+# the full test suite here would make people reach for --no-verify, and a hook
+# that gets bypassed is worse than no hook.
+#
+# Enable once per clone:   git config core.hooksPath .githooks
+
+set -e
+
+echo "pre-commit: prettier"
+npx prettier --check . || {
+  echo ""
+  echo "Formatting issues. Fix with:  npx prettier --write ."
+  exit 1
+}
+
+echo "pre-commit: client/server boundary"
+npx tsx scripts/check-client-boundary.ts || {
+  echo ""
+  echo "A client component reaches server-only code. This WILL fail the Vercel build."
+  exit 1
+}
+
+echo "pre-commit: ok"

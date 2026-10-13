@@ -1,0 +1,63 @@
+/** Ykay College — brand colours (mirrors web globals.css). */
+export const Colors = {
+  brand: {
+    green: "#4EC54D",
+    greenDark: "#3AA93A",
+    greenLight: "#62D35E",
+    orange: "#FF6E00",
+    orangeDark: "#E65F00",
+    orangeLight: "#FF9133",
+    navy: "#0C1824",
+    navyDark: "#050C14",
+    navyLight: "#1A2E4D",
+    white: "#FFFFFF",
+  },
+  background: {
+    primary: "#050C14",
+    secondary: "#071019",
+    tertiary: "#09131D",
+    elevated: "#0C1824",
+    overlay: "rgba(0, 0, 0, 0.75)",
+  },
+  surface: {
+    card: "rgba(255, 255, 255, 0.03)",
+    cardHover: "rgba(255, 255, 255, 0.06)",
+    input: "rgba(255, 255, 255, 0.03)",
+    disabled: "rgba(255, 255, 255, 0.02)",
+  },
+  border: {
+    subtle: "rgba(255, 255, 255, 0.08)",
+    default: "rgba(255, 255, 255, 0.15)",
+    strong: "rgba(255, 255, 255, 0.25)",
+    focus: "#62D35E",
+    error: "#EF4444",
+  },
+  text: {
+    primary: "#F1F5F9",
+    secondary: "#CBD5E1",
+    muted: "#94A3B8",
+    inverse: "#0C1824",
+    disabled: "#475569",
+    link: "#62D35E",
+  },
+  status: {
+    successBg: "rgba(34, 197, 94, 0.15)",
+    successText: "#86EFAC",
+    successBorder: "#22C55E",
+    warningBg: "rgba(245, 158, 11, 0.15)",
+    warningText: "#FCD34D",
+    warningBorder: "#F59E0B",
+    errorBg: "rgba(239, 68, 68, 0.15)",
+    errorText: "#FCA5A5",
+    errorBorder: "#EF4444",
+    infoBg: "rgba(59, 130, 246, 0.15)",
+    infoText: "#93C5FD",
+    infoBorder: "#3B82F6",
+  },
+  success: "#22C55E",
+  warning: "#F59E0B",
+  danger: "#EF4444",
+  info: "#3B82F6",
+} as const;
+
+export type Colors = typeof Colors;

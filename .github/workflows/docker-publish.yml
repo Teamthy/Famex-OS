@@ -1,0 +1,102 @@
+name: Docker Publish
+
+# Builds and publishes the production image to GitHub Container Registry.
+#
+# The image runs the standalone Next.js build (see Dockerfile) with a non-root
+# user, a healthcheck, and no secrets baked in. Publishing to GHCR means a host
+# (VPS, Render, Fly.io, etc.) can deploy by pulling the tagged image, without
+# a source checkout or a local build.
+#
+# C-008: publishes for push to main are GATED on the CI workflow succeeding.
+# This workflow used to trigger directly on push and build independently, so a
+# commit whose audit/tests/RLS checks failed could still ship an image as long
+# as the Docker build itself passed. Now:
+#
+#   - push to main -> runs only AFTER "CI" completes on that exact commit,
+#     and only if its conclusion is success (workflow_run gate below).
+#   - a tag like v1.2.3 -> publishes directly. Tags are deliberate human
+#     release actions cut from a commit that already passed CI on main.
+#   - workflow_dispatch -> manual publish, for tested hotfix scenarios.
+#
+# Requires the GITHUB_TOKEN (built in) to have read/write packages permission —
+# enabled by default for the repository's Actions. No extra secrets needed.
+
+on:
+  # NOTE: `branches` filters the *source* workflow's ref, not this one.
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  # IMAGE_NAME is derived as lowercase, since GHCR names must be lowercase.
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    name: Build & push image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: "Gate: publish only when CI passed on this commit"
+        if: github.event_name == 'workflow_run'
+        run: |
+          if [[ "${{ github.event.workflow_run.conclusion }}" != "success" ]]; then
+            echo "::error::CI concluded with '${{ github.event.workflow_run.conclusion }}' — refusing to publish the image."
+            exit 1
+          fi
+
+      - name: Checkout (the exact commit CI validated)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract image tag
+        id: meta
+        run: |
+          # Tag style: "1.2.3" for v1.2.3; "main" for CI-gated main publishes.
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            TAG="${GITHUB_REF_NAME#v}"
+          elif [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            TAG="main"
+          else
+            TAG="${GITHUB_REF_NAME//[^a-zA-Z0-9._-]/-}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "IMAGE=${{ env.IMAGE_NAME }}:$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image summary
+        run: |
+          echo "Published ${{ env.REGISTRY }}/${{ steps.meta.outputs.IMAGE }}"
+          echo "Pull: docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}"

@@ -1,0 +1,341 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install mobile dependencies
+        # tests/mobile/*.test.ts import from mobile/ (e.g. mobile/lib/practiceBank.ts,
+        # mobile/src/theme/colors.ts). mobile/tsconfig.json "extends":
+        # "expo/tsconfig.base", which cannot resolve until mobile/node_modules
+        # exists — so without this step vitest fails to transform those two
+        # suites and the whole job goes red on a fresh checkout.
+        #
+        # These tests cannot move to the `mobile` job: that job has no vitest
+        # (mobile/package.json ships no test runner), and the suites are part of
+        # the root `npx vitest run` invocation below.
+        working-directory: mobile
+        run: npm ci
+
+      - name: Audit dependencies
+        # Blocking. The previous exemption ("only fixes are toolchain majors")
+        # was stale — the outstanding brace-expansion and undici advisories
+        # were both fixable in-place via the lockfile with no API change.
+        # Runs through scripts/audit-deps.mjs: npm has no per-advisory ignore
+        # flag, so the script filters the audit report and enforces the
+        # scoped, dated exclusions listed there (each with a reason and a
+        # review date). If a future advisory genuinely has no safe fix, add
+        # it there — never silence the whole step.
+        run: npm run audit:deps
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Check code formatting
+        run: npx prettier --check .
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        # Explicit heap: tsc peaks well above Node's default on a project this
+        # size, and an OOM here reads as a mysterious CI failure rather than a
+        # type error.
+        run: npx tsc --noEmit
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Run tests
+        run: npx vitest run
+
+      - name: Dead-UI & orphan-page checks
+        # No database needed — fail on unreachable portal pages or dead UI.
+        run: |
+          npx tsx scripts/check-dead-ui.ts
+          npx tsx scripts/check-orphan-pages.ts
+
+  schema-drift:
+    name: Schema Drift
+    runs-on: ubuntu-latest
+    # Builds a throwaway Postgres from the migration history and asserts it
+    # matches schema.prisma. Catches the class of bug where a model or column
+    # is declared and used in code but never migrated — which shipped twice
+    # (DeviceToken, StudentProfile.photoUrl) and only failed on environments
+    # built from scratch, never on a dev machine patched with `prisma db push`.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply migrations to a clean database
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
+      - name: Assert no schema drift
+        run: npm run check:drift
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
+      - name: Verify RLS tenant isolation
+        # RLS is silently bypassed for a superuser, so create a non-superuser app
+        # role and verify isolation as that role — otherwise the check proves nothing.
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+        run: |
+          PGPASSWORD=ci psql -h localhost -U ci -d ci -c \
+            "CREATE ROLE rls_app LOGIN PASSWORD 'rls_app_pw'; \
+             GRANT USAGE ON SCHEMA public TO rls_app; \
+             GRANT ALL ON ALL TABLES IN SCHEMA public TO rls_app; \
+             GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO rls_app;"
+          DATABASE_URL="postgresql://rls_app:rls_app_pw@localhost:5432/ci" npx tsx scripts/verify-rls.ts
+
+      - name: Verify RLS coverage
+        run: npm run verify:rls:coverage
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
+      - name: Report tenant-route coverage (C-007 ratchet)
+        # Non-blocking visibility: which tenant-model routes use withSchool(),
+        # which rely on app-level schoolId filters, and which have neither.
+        # The policy stays fail-open until this list is empty — then flip the
+        # RLS policies to fail-closed and add --strict here.
+        #
+        # The `--max-uncovered 18` ratchet IS enforcing: it fails if a new
+        # tenant route lands without a schoolId filter, so the list can only
+        # shrink. Baseline measured 2026-09-07 at commit a222c48. Lower it as
+        # routes are fixed. See docs/TENANCY_RLS_STATUS.md.
+        run: npm run check:tenant-coverage -- --max-uncovered 18
+
+      - name: Verify admissions operations loop
+        run: npm run verify:admissions
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
+  e2e:
+    name: Browser E2E
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    # Authenticated journeys in a real browser against a real database.
+    #
+    # This is the layer the unit suite structurally cannot cover: every test
+    # under tests/lib mocks Prisma, so nothing there exercises middleware, a
+    # response header, or hydration. Two production bugs proved the gap —
+    # `camera=()` silently disabling the QR scanner, and lib/session losing an
+    # export while 633 unit tests stayed green and only the build failed.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+      DIRECT_URL: "postgresql://ci:ci@localhost:5432/ci"
+      AUTH_SECRET: "ci-e2e-secret-that-is-at-least-32-characters-long"
+      NEXT_PUBLIC_SITE_URL: "http://127.0.0.1:3100"
+      PAYSTACK_PUBLIC_KEY: "pk_test_ci"
+      PAYSTACK_SECRET_KEY: "sk_test_ci"
+      # Not a real credential: it seeds a throwaway CI database that is
+      # destroyed with the runner.
+      SEED_PASSWORD: "CiE2ePassword123!"
+      E2E_PASSWORD: "CiE2ePassword123!"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install chromium --with-deps
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      - name: Seed the database
+        run: npx tsx prisma/seed-all.ts
+
+      - name: Build
+        run: npx next build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Run browser E2E
+        run: npx playwright test
+        env:
+          CI: "true"
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  load:
+    name: Load test
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    # Answers the only performance question a school has: when every parent
+    # opens results at once, does it stay up? Fails on any 5xx or a p95 above
+    # the budget, so a regression shows up here rather than on results day.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+      DIRECT_URL: "postgresql://ci:ci@localhost:5432/ci"
+      AUTH_SECRET: "ci-load-secret-that-is-at-least-32-characters-long"
+      NEXT_PUBLIC_SITE_URL: "http://127.0.0.1:3100"
+      PAYSTACK_PUBLIC_KEY: "pk_test_ci"
+      PAYSTACK_SECRET_KEY: "sk_test_ci"
+      SEED_PASSWORD: "CiLoadPassword123!"
+      BASE_URL: "http://127.0.0.1:3100"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      - name: Seed the database
+        run: npx tsx prisma/seed-all.ts
+
+      - name: Build
+        run: npx next build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Start the server
+        run: |
+          node scripts/e2e-server.mjs 3100 &
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://127.0.0.1:3100/login || true)
+            [ "$code" = "200" ] && { echo "ready after ${i}s"; exit 0; }
+            sleep 1
+          done
+          echo "server never became ready"; exit 1
+
+      - name: Run load test
+        run: npm run loadtest -- --users 40 --seconds 30
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Build
+        run: npx next build
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+          AUTH_SECRET: "ci-test-secret-that-is-at-least-32-chars-long"
+          NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
+          PAYSTACK_PUBLIC_KEY: "pk_test_ci"
+          PAYSTACK_SECRET_KEY: "sk_test_ci"
+
+  mobile:
+    name: Mobile (Expo)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        # mobile/package-lock.json is committed, so use a deterministic `npm ci`.
+        run: npm ci
+
+      - name: Type check (Expo)
+        # The root tsc config excludes mobile/, so mobile TypeScript is only
+        # checked here. Must stay green — a mobile type regression must block CI.
+        run: npm run typecheck
+
+      - name: Validate Expo project (expo-doctor)
+        # Verifies Expo SDK / package compatibility + app.json config.
+        run: npx --yes expo-doctor@latest

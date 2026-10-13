@@ -1,0 +1,9 @@
+[
+  {
+    "AllowedHeaders": ["content-type"],
+    "AllowedMethods": ["PUT"],
+    "AllowedOrigins": ["http://localhost:3000", "https://ykaycollege.edu.ng"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3000
+  }
+]

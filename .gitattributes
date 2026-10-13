@@ -1,0 +1,59 @@
+# Normalise line endings across Windows / macOS / Linux checkouts.
+#
+# Why this file exists:
+#   .prettierrc sets "endOfLine": "lf", but without a .gitattributes Git on
+#   Windows (core.autocrlf=true) rewrites LF -> CRLF on checkout. Prettier then
+#   reports those files as unformatted even though the committed blob is clean,
+#   so `prettier --check` fails locally while CI (Linux) passes. Pinning eol=lf
+#   keeps the working tree byte-identical to the blob on every platform.
+#
+# Safe to add: every blob in this repo is already LF, so this introduces no
+# content churn — it only fixes what lands on disk at checkout time.
+
+# Default: treat as text, check out with LF everywhere.
+* text=auto eol=lf
+
+# Explicit text types (belt and braces).
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.js    text eol=lf
+*.jsx   text eol=lf
+*.mjs   text eol=lf
+*.cjs   text eol=lf
+*.json  text eol=lf
+*.css   text eol=lf
+*.md    text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.sql   text eol=lf
+*.prisma text eol=lf
+*.svg   text eol=lf
+*.html  text eol=lf
+*.txt   text eol=lf
+.env.example text eol=lf
+Dockerfile text eol=lf
+
+# Windows-only tooling keeps CRLF — PowerShell is happiest that way.
+*.ps1   text eol=crlf
+*.cmd   text eol=crlf
+*.bat   text eol=crlf
+
+# Binary — never touch, never diff as text.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.pdf   binary
+*.zip   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.eot   binary
+*.mp4   binary
+*.webm  binary
+
+# Generated — collapse in PR diffs.
+package-lock.json linguist-generated=true -diff

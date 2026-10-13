@@ -1,0 +1,14 @@
+[Unit]
+Description=Run EduPortal notification dispatcher every minute
+# Vercel Hobby crons run once a day, but the dispatcher is designed for a
+# 60-second tick (25 jobs/run, leased + backoff; docker-compose.prod.yml
+# already loops it every minute). Run this timer on the OCI box instead.
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+AccuracySec=10s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

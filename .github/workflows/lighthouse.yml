@@ -1,0 +1,78 @@
+name: Lighthouse budgets
+
+# Performance + a11y budget gate on the public pages. Mirrors the Browser E2E
+# job's database setup (home + admissions render tenant-aware content), builds
+# the production standalone server, and runs Lighthouse CI against it with the
+# budgets in lighthouserc.json. Chrome is preinstalled on ubuntu-latest.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lighthouse:
+    name: Lighthouse CI (budgets)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+      DIRECT_URL: "postgresql://ci:ci@localhost:5432/ci"
+      AUTH_SECRET: "ci-lighthouse-secret-that-is-at-least-32-characters-long"
+      NEXT_PUBLIC_SITE_URL: "http://127.0.0.1:3000"
+      PAYSTACK_PUBLIC_KEY: "pk_test_ci"
+      PAYSTACK_SECRET_KEY: "sk_test_ci"
+      SEED_PASSWORD: "CiLightPassword123!"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      - name: Build
+        run: npx next build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Run Lighthouse CI
+        run: |
+          set +e
+          npx --yes @lhci/cli@0.14.x autorun
+          code=$?
+          set -e
+          # Surface the numbers where they can always be read back (run
+          # annotations), because raw step logs are easy to lose track of.
+          node scripts/lighthouse-report-summary.mjs || true
+          exit $code
+        env:
+          LHCI_NAME: ykay-college
+        # lighthouserc.json points at the seeded standalone server via
+        # e2e-server.mjs, so budgets measure the real production artefact.
+
+      - name: Upload Lighthouse reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          retention-days: 7

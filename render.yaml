@@ -1,0 +1,64 @@
+# Render Blueprint — Ykay College EduPortal production web service.
+#
+# Create a Render PostgreSQL database separately, in the same region as this
+# web service. Set DATABASE_URL in the Render dashboard to that database's
+# Internal Database URL; do not use the temporary sandbox PGlite database.
+#
+# Boot flow (docker-entrypoint.sh): prisma migrate deploy → optional CBT bank
+# seed (idempotent, SEED_CBT_ON_BOOT=true) → optional super-admin ensure →
+# node server.js. /api/health gates traffic.
+
+services:
+  - type: web
+    name: ykay-college
+    runtime: docker
+    repo: https://github.com/Teamthy/ykay_eduport-
+    plan: starter # $7/mo; free services sleep after 15 min idle
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      # ── Data (Render PostgreSQL — create separately in the same region) ──
+      - key: DATABASE_URL
+        sync: false # Render PostgreSQL Internal Database URL; never commit it
+      # ── Boot behaviour ───────────────────────────────────────────────────
+      - key: SEED_CBT_ON_BOOT
+        value: "true" # idempotent: skips stems that already exist
+      - key: SUPER_ADMIN_EMAIL
+        sync: false # set to provision/ensure the first super admin at boot
+      - key: SUPER_ADMIN_PASSWORD
+        sync: false # set privately for initial provisioning/rotation only
+      - key: SUPER_ADMIN_NAME
+        sync: false
+      # ── App ──────────────────────────────────────────────────────────────
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: AUTH_SECRET
+        sync: false # required; generate a fresh 32+ character secret
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false # https://<your-render-host-or-custom-domain>
+      - key: APP_URL
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false # use live keys only for production; test keys for staging
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false # required in production for distributed rate limiting
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      # Email (transactional) — required for password resets/invites.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      # Optional auth names retained for integrations that still use them.
+      - key: SESSION_SECRET
+        sync: false
+      - key: NEXTAUTH_SECRET
+        sync: false
+      # File uploads on container disk are ephemeral; configure S3-compatible
+      # storage before handling real admission documents.

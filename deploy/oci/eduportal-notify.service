@@ -1,0 +1,13 @@
+[Unit]
+Description=Dispatch EduPortal pending notifications (one tick)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# /opt/ykay/eduportal-cron.env must contain:
+#   EDUPORTAL_JOBS_URL=https://<your-vercel-app>/api/jobs/dispatch-notifications
+#   JOBS_SECRET=<same value as Vercel CRON_SECRET / JOBS_SECRET, 16+ chars>
+EnvironmentFile=/opt/ykay/eduportal-cron.env
+ExecStart=/usr/bin/curl -fsS --max-time 55 -X POST -H "Authorization: Bearer ${JOBS_SECRET}" "${EDUPORTAL_JOBS_URL}"
+TimeoutStartSec=70

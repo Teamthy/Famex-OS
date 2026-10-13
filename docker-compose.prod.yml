@@ -1,0 +1,107 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ykay_college}
+      POSTGRES_USER: ${POSTGRES_USER:-ykay}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ykay} -d ${POSTGRES_DB:-ykay_college}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # NOTE (C-005): the Next.js app rate-limits through Upstash's REST API
+    # only — it does not speak redis:// to this service yet. This container is
+    # provisioned for future queue/session use; distributed rate limiting is
+    # enabled by setting UPSTASH_REDIS_REST_URL/TOKEN. Without them,
+    # security-critical limiters (login, password reset, payments, admissions)
+    # fail closed unless ALLOW_MEMORY_RATE_LIMITS=true is set for an accepted
+    # single-instance deployment (one `app` container only).
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-ykay}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-ykay_college}}
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?set NEXT_PUBLIC_SITE_URL}
+      PAYSTACK_PUBLIC_KEY: ${PAYSTACK_PUBLIC_KEY:?set PAYSTACK_PUBLIC_KEY}
+      PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY:?set PAYSTACK_SECRET_KEY}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM}
+      JOBS_SECRET: ${JOBS_SECRET:?set JOBS_SECRET}
+      UPSTASH_REDIS_REST_URL: ${UPSTASH_REDIS_REST_URL}
+      UPSTASH_REDIS_REST_TOKEN: ${UPSTASH_REDIS_REST_TOKEN}
+      # Explicit risk acceptance for single-instance deployments: without
+      # Upstash, security-critical limiters fail closed unless this is "true".
+      ALLOW_MEMORY_RATE_LIMITS: ${ALLOW_MEMORY_RATE_LIMITS:-false}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_REGION: ${S3_REGION}
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      # C-006: admission-document malware scanning. Point at an HTTP scanner
+      # (e.g. clamav-rest in front of ClamAV — see lib/malware.ts for the
+      # expected response contract). Unset uploads are marked scanStatus=SKIPPED.
+      MALWARE_SCANNER_URL: ${MALWARE_SCANNER_URL}
+    healthcheck:
+      test:
+        ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  cron:
+    image: curlimages/curl:8.10.1
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      JOBS_SECRET: ${JOBS_SECRET:?set JOBS_SECRET}
+    command: >
+      sh -c 'while true; do
+        curl -fsS -X POST http://app:3000/api/jobs/dispatch-notifications -H "x-jobs-secret: $$JOBS_SECRET" || true;
+        sleep 60;
+      done'
+
+  backup:
+    image: prodrigestivill/postgres-backup-local:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: ${POSTGRES_DB:-ykay_college}
+      POSTGRES_USER: ${POSTGRES_USER:-ykay}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      SCHEDULE: "@daily"
+      BACKUP_KEEP_DAYS: 14
+    volumes:
+      - ./backups:/backups
+
+volumes:
+  postgres_data:
+  redis_data:
