@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminFinanceContext } from "@/lib/finance";
-import { assertNotImpersonating } from "@/lib/session";
 import { currentSessionLabel, currentTermLabel, currentTermWindow } from "@/lib/gradebook";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
@@ -81,8 +80,6 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const context = await getAdminFinanceContext();
   if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const impersonating = assertNotImpersonating(context.user);
-  if (impersonating) return impersonating;
 
   let input: z.infer<typeof upsertSchema>;
   try {

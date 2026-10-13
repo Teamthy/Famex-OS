@@ -2,7 +2,7 @@ import { EnrolmentOutcome, UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireRole, assertNotImpersonating } from "@/lib/session";
+import { requireRole } from "@/lib/session";
 import { buildPlan, commitPromotion, summarisePlan } from "@/lib/promotion";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
  * every student in the school at once, and a coordinator or bursar has no
  * reason to be able to trigger it.
  */
-const PROMOTION_ROLES = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.SUPER_ADMIN];
+const PROMOTION_ROLES = [UserRole.ADMIN, UserRole.DIRECTOR];
 
 /**
  * GET /api/admin/promotion?fromSessionId=…
@@ -85,8 +85,6 @@ const commitSchema = z.object({
 export async function POST(request: NextRequest) {
   const user = await requireRole(PROMOTION_ROLES);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const impersonating = assertNotImpersonating(user);
-  if (impersonating) return impersonating;
 
   let input: z.infer<typeof commitSchema>;
   try {

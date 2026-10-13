@@ -27,7 +27,6 @@ const OVERSIGHT_ROLES: string[] = [
   UserRole.ADMIN,
   UserRole.DIRECTOR,
   UserRole.COORDINATOR,
-  UserRole.SUPER_ADMIN,
 ];
 
 /** Students this user is entitled to discuss. Empty array = no access at all. */

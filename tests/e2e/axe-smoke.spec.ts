@@ -12,9 +12,9 @@ import AxeBuilder from "@axe-core/playwright";
 const PAGES = [
   { path: "/", name: "home" },
   { path: "/admissions", name: "admissions" },
-  { path: "/virtual", name: "virtual gateway" },
+  { path: "/portal", name: "portal hub" },
   { path: "/download", name: "download" },
-  { path: "/it-education", name: "it education" },
+  { path: "/academics", name: "academics" },
   { path: "/faq", name: "faq" },
 ];
 

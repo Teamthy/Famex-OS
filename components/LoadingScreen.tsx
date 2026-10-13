@@ -62,7 +62,7 @@ export default function LoadingScreen() {
                 server (the splash shows on first paint). */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/ykay-logo-280.webp"
+              src="/logo-280.webp"
               alt="Ykay College Logo"
               width={140}
               height={140}

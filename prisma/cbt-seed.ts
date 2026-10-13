@@ -1,9 +1,9 @@
 /**
  * CBT seed — the shared question bank (cbt-bank.csv).
  *
- * 5,000+ NERDC-aligned questions (JSS1–SS3 + BECE/WAEC/NECO/JAMB),
- * single source of truth for BOTH sites: this file and the Go seed in the
- * YK-Virtual repo read the same CSV layout, so both banks stay in sync.
+ * 5,000+ NERDC-aligned questions (JSS1–SS3 + BECE/WAEC/NECO/JAMB), the single
+ * source of truth for this install's bank. (W7 grows this to 15,000 items and
+ * adds schoolId tagging + blueprint assembly — F4-07, F4-08, F4-13.)
  *
  * Run: npm run cbt:seed
  * Safe to re-run: upserts subjects by slug, skips questions whose stem

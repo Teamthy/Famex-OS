@@ -1,7 +1,7 @@
 /**
  * Security forensics helper — records security-relevant events
- * (failed logins, authorization denials, impersonation, payment voids, etc.)
- * so that super-admins have full visibility into platform security posture.
+ * (failed logins, authorization denials, payment voids, etc.) so that school
+ * administrators have full visibility into the install's security posture.
  */
 
 import { prisma } from "@/lib/prisma";

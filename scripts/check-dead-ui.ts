@@ -29,7 +29,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const ROOT = process.cwd();
-const PORTALS = ["teacher", "admin", "student", "parent", "it-portal", "super-admin"];
+const PORTALS = ["teacher", "admin", "student", "parent"];
 
 /**
  * Known-good pages that trip a heuristic for a legitimate reason.
@@ -40,8 +40,6 @@ const ALLOWED: Record<string, string> = {
   "app/parent/messages/page.tsx": "delegates to <MessagesInbox>",
   "app/student/messages/page.tsx": "delegates to <MessagesInbox>",
   "app/admin/messages/page.tsx": "delegates to <MessagesInbox>",
-  "app/super-admin/portals/page.tsx":
-    "a static launcher: links to other portals, no data of its own",
   "app/teacher/evaluations/page.tsx": "redirect shim",
   "app/teacher/evaluations/create/page.tsx": "redirect shim",
   "app/student/e-exams/page.tsx": "redirect shim",

@@ -76,7 +76,7 @@ type Response = {
 };
 
 export default function StudentReportCardsPage() {
-  const { address } = useSchoolProfile();
+  const { address, name: schoolName } = useSchoolProfile();
   const [data, setData] = useState<Response | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -129,6 +129,7 @@ export default function StudentReportCardsPage() {
   const downloadSelected = () => {
     if (!selected || !data) return;
     generateReportCardPDF({
+      schoolName,
       schoolAddress: address,
       studentName: data.student.displayName,
       studentClass: selected.classNameSnapshot,

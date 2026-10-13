@@ -36,7 +36,6 @@ if (!PASSWORD) {
 
 /** Seeded accounts, one per role. */
 const ACCOUNTS: Record<string, string> = {
-  SUPER_ADMIN: "superadmin@ykaycollege.com",
   ADMIN: "admin@ykaycollege.com",
   DIRECTOR: "director@ykaycollege.com",
   BURSAR: "bursar@ykaycollege.com",
@@ -45,19 +44,14 @@ const ACCOUNTS: Record<string, string> = {
   TEACHER: "teacher1@ykaycollege.com",
   STUDENT: "student1@ykaycollege.com",
   PARENT: "parent1@ykaycollege.com",
-  IT_STUDENT: "itstudent@ykaycollege.com",
 };
 
 /** Which role should be able to reach a given path prefix. */
 function roleForPath(p: string): string | null {
-  if (p.startsWith("/super-admin") || p.startsWith("/api/super-admin")) return "SUPER_ADMIN";
   if (p.startsWith("/admin") || p.startsWith("/api/admin")) return "ADMIN";
   if (p.startsWith("/teacher") || p.startsWith("/api/teacher")) return "TEACHER";
   if (p.startsWith("/student") || p.startsWith("/api/student")) return "STUDENT";
   if (p.startsWith("/parent") || p.startsWith("/api/parent")) return "PARENT";
-  // /api/it/instructor is for staff who teach IT, not IT students.
-  if (p === "/api/it/instructor") return "TEACHER";
-  if (p.startsWith("/it-portal") || p.startsWith("/api/it")) return "IT_STUDENT";
   if (p.startsWith("/staff") || p.startsWith("/api/staff")) return "TEACHER";
   // /change-password is reachable by any signed-in role; use a student session.
   if (p === "/change-password") return "STUDENT";
@@ -65,22 +59,20 @@ function roleForPath(p: string): string | null {
 }
 
 /** Paths inside a protected prefix that are intentionally public. */
-const PUBLIC_EXCEPTIONS = new Set(["/it-portal/auth", "/staff/activate"]);
+const PUBLIC_EXCEPTIONS = new Set(["/staff/activate"]);
 
 /** Routes that are legitimately not GET-testable, with the reason. */
 /**
  * Public by design. Verified individually:
- *   /portal          - sign-in hub, titled "EduPortal - Sign In"
- *   /onboarding      - platform school self-signup
- *   /api/it/catalog  - public IT course catalogue (feeds marketing pages)
- *   /login, /signup  - auth entry points
+ *   /portal          - sign-in hub
+ *   /onboarding      - first-run school setup wizard (renders for anyone; the
+ *                      write API behind it is ADMIN-gated)
+ *   /login           - auth entry point
  */
 const INTENTIONALLY_PUBLIC = new Set([
   "/portal",
   "/onboarding",
-  "/api/it/catalog",
   "/login",
-  "/signup",
   "/reset-password",
 ]);
 
@@ -89,11 +81,7 @@ const SKIP: Record<string, string> = {
   "/api/payments/paystack/webhook": "POST + signature only",
   "/api/jobs/dispatch-notifications": "cron, bearer-guarded",
   "/api/internal/security-event": "internal, secret-guarded",
-  "/api/super-admin/impersonate": "mutates session",
   "/api/push/register": "POST only",
-  "/api/platform/signup": "POST only",
-  "/api/it/signup": "POST only",
-  "/api/it/enroll": "POST only",
   "/api/onboarding": "POST only",
   "/api/auth/change-password": "POST only",
   "/api/auth/password-reset/request": "POST only",
@@ -112,9 +100,7 @@ const SKIP: Record<string, string> = {
   "/api/admin/admissions/paper": "POST only",
   "/api/admin/admissions/record-fee": "POST only",
   "/api/teacher/questions/bulk": "POST only",
-  "/api/super-admin/broadcast": "POST only",
   "/api/auth/login": "POST only",
-  "/api/it/progress": "POST only",
   "/api/staff/activate": "POST only",
   "/api/parent/fees/payments": "POST only",
   "/api/parent/fees/payment-intents": "POST only",

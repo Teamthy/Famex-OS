@@ -18,7 +18,6 @@ export const FEE_ADMIN_ROLES: UserRole[] = [
   UserRole.ADMIN,
   UserRole.DIRECTOR,
   UserRole.BURSAR,
-  UserRole.SUPER_ADMIN,
 ];
 
 export type StructureItemInput = {

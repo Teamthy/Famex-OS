@@ -58,52 +58,54 @@ const dmSans = localFont({
   fallback: ["system-ui", "sans-serif"],
 });
 
-export const metadata: Metadata = {
-  // Derived from env so a preview deployment does not advertise production
-  // URLs. The literal was ykaycollege.com — a domain the school does not own,
-  // which made every canonical link and social card point at the wrong site.
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://ykaycollege.edu.ng"),
-  title: {
-    default: "Ykay College & Leadership Academy — Excellence in Education",
-    template: "%s | Ykay College",
-  },
-  description:
-    "A premium day secondary school (JSS1–SS3). NERDC-aligned curriculum, digital learning, leadership development.",
-  keywords: "Ykay College, secondary school, NERDC, WAEC, BECE, JSS, SS",
-  openGraph: {
-    title: "Ykay College & Leadership Academy",
-    description: "Excellence in education for JSS1 to SS3.",
-    siteName: "Ykay College",
-    locale: "en_NG",
-    type: "website",
-    url: process.env.NEXT_PUBLIC_SITE_URL || "https://ykaycollege.edu.ng",
-    images: [{ url: "/ykay-logo.png", width: 800, height: 800, alt: "Ykay College Logo" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Ykay College & Leadership Academy",
-    description: "Excellence in education for JSS1 to SS3.",
-    images: ["/ykay-logo.png"],
-  },
-  robots: { index: true, follow: true },
-  icons: {
-    icon: [
-      { url: "/ykay-logo.png", sizes: "any", type: "image/png" },
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-    ],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
-    shortcut: "/icons/icon-192.png",
-  },
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Ykay College",
-  },
-};
+export function generateMetadata(): Metadata {
+  // Token-driven (F0-21, W1): the school name and canonical URL come from brand
+  // tokens (env → per-tenant branding), never a hard-coded literal. The logo
+  // asset paths stay the committed set until the brand-asset registry (F0-24).
+  const { schoolName, siteUrl } = getSchoolBrandTokens();
+  return {
+    metadataBase: new URL(siteUrl),
+    title: {
+      default: `${schoolName} — Excellence in Education`,
+      template: `%s | ${schoolName}`,
+    },
+    description: `A premium day secondary school (JSS1–SS3). NERDC-aligned curriculum, digital learning, leadership development. Powered by ${PRODUCT_NAME}.`,
+    keywords: "secondary school, NERDC, WAEC, BECE, JSS, SS",
+    openGraph: {
+      title: schoolName,
+      description: "Excellence in education for JSS1 to SS3.",
+      siteName: schoolName,
+      locale: "en_NG",
+      type: "website",
+      url: siteUrl,
+      images: [{ url: "/logo.png", width: 800, height: 800, alt: `${schoolName} logo` }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: schoolName,
+      description: "Excellence in education for JSS1 to SS3.",
+      images: ["/logo.png"],
+    },
+    robots: { index: true, follow: true },
+    icons: {
+      icon: [
+        { url: "/logo.png", sizes: "any", type: "image/png" },
+        { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      ],
+      apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+      shortcut: "/icons/icon-192.png",
+    },
+    manifest: "/manifest",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "black-translucent",
+      title: schoolName,
+    },
+  };
+}
 
 export const viewport: Viewport = {
-  themeColor: "#0c1824",
+  themeColor: DEFAULT_BRANDING.primaryColor,
   width: "device-width",
   initialScale: 1,
 };
@@ -112,8 +114,8 @@ import { headers } from "next/headers";
 import { getSession } from "@/lib/session";
 import { resolveTenantFromHost } from "@/lib/tenant";
 import { getTenantBranding, DEFAULT_BRANDING } from "@/lib/branding";
+import { PRODUCT_NAME, getSchoolBrandTokens } from "@/lib/brand";
 import { prisma } from "@/lib/prisma";
-import { DEFAULT_SLUG } from "@/lib/tenant";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // ── Resolve branding (per tenant) ──
@@ -135,27 +137,29 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   const branding = schoolId ? await getTenantBranding(schoolId) : null;
 
-  // AUD-F5: the schema.org structured-data block below used to hardcode YKAY
-  // College's identity on EVERY tenant's pages — in the HTML itself and fed
-  // to search engines. Describe the resolved school instead; the YKAY values
-  // remain the platform defaults for the default/unmatched case so tenant A's
-  // markup is unchanged.
+  // AUD-F5 / W1: the schema.org structured-data block below must never hardcode
+  // one school's identity — not in the HTML and not fed to search engines. It
+  // describes the resolved school (or brand-token fallback) only, and publishes
+  // contacts solely when THIS school has configured them.
   const school = schoolId
     ? await prisma.school.findUnique({
         where: { id: schoolId },
         select: { slug: true, name: true, address: true, phone: true, email: true },
       })
     : null;
-  const isPlatformDefaultSchool = !school || school.slug === DEFAULT_SLUG;
+  // W1: single-school install — identity comes from the resolved School row,
+  // falling back to brand tokens (env). No hard-coded school name, contacts or
+  // platform-default branch (F0-21, F0-23).
+  const tokens = getSchoolBrandTokens();
   // Empty until the school confirms its address (School profile in the admin area).
   const publicAddress = confirmedSchoolAddress(school?.address);
-  const schoolName = school?.name ?? "Ykay College & Leadership Academy";
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://ykaycollege.edu.ng";
+  const schoolName = school?.name ?? tokens.schoolName;
+  const siteUrl = tokens.siteUrl;
 
   const primary = branding?.primaryColor ?? DEFAULT_BRANDING.primaryColor;
   const secondary = branding?.secondaryColor ?? DEFAULT_BRANDING.secondaryColor;
   const accent = branding?.accentColor ?? DEFAULT_BRANDING.accentColor;
-  const faviconUrl = branding?.faviconUrl ?? "/ykay-logo.png";
+  const faviconUrl = branding?.faviconUrl ?? "/logo.png";
 
   return (
     <html
@@ -170,7 +174,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* Inject per-tenant brand palette as CSS variable overrides.
             Only navy / navy-light / green are driven by tenant branding so the
             nuanced green-dark/light + full orange shades in globals.css are
-            preserved (gives Ykay its proper depth, not flat blue). */}
+            preserved (gives the palette its proper depth, not a flat fill). */}
         <style
           dangerouslySetInnerHTML={{
             __html: `:root{--color-brand-navy:${primary};--color-brand-navy-light:${secondary};--color-brand-green:${accent};}`,
@@ -182,7 +186,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             __html: `
           (function() {
             try {
-              var saved = localStorage.getItem('ykay-theme');
+              var saved = localStorage.getItem('famex-theme');
               // Default to dark unless user explicitly chose light
               var resolved = (saved === 'light') ? 'light' : 'dark';
               document.documentElement.setAttribute('data-theme', resolved);
@@ -202,11 +206,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               "@type": "School",
               name: schoolName,
               alternateName: schoolName.split("&")[0].trim(),
-              description: isPlatformDefaultSchool
-                ? "Premium day secondary school (JSS1 to SS3) — NERDC-aligned academics, IT education and leadership training."
-                : `${schoolName} — school portal powered by YKAY EDUportal.`,
+              description: `${schoolName} — a NERDC-aligned day secondary school (JSS1 to SS3). Powered by ${PRODUCT_NAME}.`,
               url: siteUrl,
-              logo: `${siteUrl.replace(/\/$/, "")}/ykay-logo.png`,
+              logo: `${siteUrl.replace(/\/$/, "")}/logo.png`,
               // Published only once the school has confirmed its address.
               ...(publicAddress
                 ? {
@@ -217,18 +219,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     },
                   }
                 : {}),
-              telephone: school?.phone ?? "+2347015374411",
-              // AUD-F5: never publish another school's email — omit the field
-              // when this school has none.
-              ...(school?.email
-                ? { email: school.email }
-                : isPlatformDefaultSchool
-                  ? { email: "info@ykaycollege.com" }
-                  : {}),
-              // Platform-default extras (no per-tenant source for these).
-              ...(isPlatformDefaultSchool
-                ? { openingHours: "Mo-Fr 07:30-14:30", sameAs: ["https://virtual.ykaycollege.com"] }
-                : {}),
+              // AUD-F5 / W1: publish only what THIS school has configured —
+              // never another install's phone or email as a fallback.
+              ...(school?.phone ? { telephone: school.phone } : {}),
+              ...(school?.email ? { email: school.email } : {}),
             }),
           }}
         />
@@ -239,7 +233,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <ToastProvider>
               <AmbientBackdrop />
               <MotionProvider>
-                <SchoolProfileProvider value={{ name: schoolName, address: publicAddress }}>
+                <SchoolProfileProvider
+                  value={{
+                    name: schoolName,
+                    address: publicAddress,
+                    phone: school?.phone ?? null,
+                    email: school?.email ?? null,
+                  }}
+                >
                   <div className="relative z-10">{children}</div>
                 </SchoolProfileProvider>
               </MotionProvider>

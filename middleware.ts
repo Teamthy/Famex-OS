@@ -9,8 +9,6 @@ const protectedPrefixes = [
   "/teacher",
   "/student",
   "/parent",
-  "/it-portal",
-  "/super-admin",
   "/change-password",
   "/staff",
 ];
@@ -22,24 +20,20 @@ const protectedPrefixes = [
  * to /login was an unescapable loop: no account to log in with, and the only
  * page that would create one sat behind the login. Staff onboarding could
  * never complete.
- *
- * /it-portal/auth is the IT-student sign-in/registration page, same reasoning.
  */
-const publicPaths = ["/it-portal/auth", "/staff/activate"];
+const publicPaths = ["/staff/activate"];
 const encoder = new TextEncoder();
 
 function destinationFor(role: string) {
-  if (role === "SUPER_ADMIN") return "/super-admin";
   if (["ADMIN", "DIRECTOR", "COORDINATOR", "BURSAR"].includes(role)) return "/admin";
   if (["TEACHER", "HOD"].includes(role)) return "/teacher/dashboard";
   if (role === "PARENT") return "/parent/dashboard";
-  if (role === "IT_STUDENT") return "/it-portal/dashboard";
   return "/student/dashboard";
 }
 
 /**
  * Logs an auth denial to the security forensics endpoint (fire-and-forget).
- * This gives super-admins visibility into who is being denied and why.
+ * This gives administrators visibility into who is being denied and why.
  */
 function logDenial(
   eventType: string,
@@ -112,51 +106,7 @@ async function routeRequest(request: NextRequest) {
     return applyCors(preflight, request);
   }
 
-  // ── Read-only super-admin impersonation ──
-  // Block every mutating API request while impersonating (except the endpoints
-  // that manage the impersonation/session themselves). This is the single,
-  // global enforcement point — no route needs to remember to check.
-  if (
-    pathname.startsWith("/api/") &&
-    method !== "GET" &&
-    method !== "HEAD" &&
-    method !== "OPTIONS" &&
-    pathname !== "/api/super-admin/impersonate" &&
-    pathname !== "/api/auth/logout"
-  ) {
-    // Read the session from EITHER transport. getRawSession() in lib/session.ts
-    // accepts a signed cookie (web) or `Authorization: Bearer <same JWT>`
-    // (mobile / API clients), so an impersonation guard that only inspects the
-    // cookie leaves the Bearer path open: a super-admin who lifts the
-    // impersonation JWT out of the response and replays it as a Bearer token
-    // reaches every route except the handful that also call
-    // assertNotImpersonating(). Checking both closes that.
-    const authHeader = request.headers.get("authorization") || "";
-    const bearer = authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
-    const impToken = request.cookies.get("ykay_session")?.value || bearer;
-    const impSecret = process.env.AUTH_SECRET;
-    if (impToken && impSecret && impSecret.length >= 32) {
-      try {
-        const { payload } = await jwtVerify(impToken, encoder.encode(impSecret));
-        if (payload.impersonatedBy) {
-          // CORS headers on the error too — otherwise the browser blocks the
-          // 403 and the caller sees an opaque "Failed to fetch" instead of the
-          // actual reason.
-          return applyCors(
-            NextResponse.json(
-              { error: "Writes are not permitted while impersonating. End impersonation first." },
-              { status: 403 },
-            ),
-            request,
-          );
-        }
-      } catch {
-        // invalid/expired token — let the route's own auth reject it
-      }
-    }
-  }
-
-  // Every /api/* response that passes through here needs the CORS headers,
+  // Every API response that passes through here needs the CORS headers,
   // because next.config.ts no longer supplies them. `/api/auth/login` lands on
   // this line — it is not a protected prefix — so this is the branch the
   // mobile login actually returns through.
@@ -193,18 +143,14 @@ async function routeRequest(request: NextRequest) {
     const teacherPath = pathname.startsWith("/teacher");
     const parentPath = pathname.startsWith("/parent");
     const studentPath = pathname.startsWith("/student");
-    const itPath = pathname.startsWith("/it-portal");
     const staffPath = pathname.startsWith("/staff");
-    const superPath = pathname.startsWith("/super-admin");
 
     const allowed =
       changePasswordPath ||
-      (superPath && role === "SUPER_ADMIN") ||
-      (adminPath && ["ADMIN", "DIRECTOR", "COORDINATOR", "BURSAR", "SUPER_ADMIN"].includes(role)) ||
+      (adminPath && ["ADMIN", "DIRECTOR", "COORDINATOR", "BURSAR"].includes(role)) ||
       (teacherPath && ["TEACHER", "HOD", "ADMIN", "DIRECTOR"].includes(role)) ||
       (parentPath && role === "PARENT") ||
       (studentPath && role === "STUDENT") ||
-      (itPath && ["IT_STUDENT", "STUDENT", "ADMIN", "DIRECTOR"].includes(role)) ||
       (staffPath &&
         ["TEACHER", "HOD", "ADMIN", "DIRECTOR", "COORDINATOR", "BURSAR"].includes(role));
 
@@ -227,11 +173,8 @@ async function routeRequest(request: NextRequest) {
 
 function redirectToLogin(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  const url = new URL(
-    pathname.startsWith("/it-portal") ? "/it-portal/auth" : "/login",
-    request.url,
-  );
-  if (!pathname.startsWith("/it-portal")) url.searchParams.set("next", pathname);
+  const url = new URL("/login", request.url);
+  url.searchParams.set("next", pathname);
   return NextResponse.redirect(url);
 }
 

@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 
-const PORTAL_PREFIXES = ["/admin", "/teacher", "/student", "/parent", "/it-portal"];
+const PORTAL_PREFIXES = ["/admin", "/teacher", "/student", "/parent"];
 
 interface NotificationItem {
   id: string;

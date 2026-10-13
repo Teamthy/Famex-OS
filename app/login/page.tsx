@@ -6,9 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { safeNextPath } from "@/lib/safe-redirect";
 import { LockKeyhole, ShieldCheck, AlertCircle, GraduationCap, User, Users } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
+import { useSchoolProfile } from "@/components/SchoolProfileContext";
 
 const destinations: Record<string, string> = {
-  SUPER_ADMIN: "/super-admin",
   ADMIN: "/admin",
   DIRECTOR: "/admin",
   COORDINATOR: "/admin-admissions",
@@ -17,7 +17,6 @@ const destinations: Record<string, string> = {
   TEACHER: "/teacher/dashboard",
   PARENT: "/parent/dashboard",
   STUDENT: "/student/dashboard",
-  IT_STUDENT: "/it-portal/dashboard",
 };
 
 const portalContext: Record<string, { heading: string; sub: string; icon: typeof GraduationCap }> =
@@ -29,7 +28,7 @@ const portalContext: Record<string, { heading: string; sub: string; icon: typeof
     },
     student: {
       heading: "STUDENT SIGN IN",
-      sub: "Sign in with the student credentials issued by Ykay College.",
+      sub: "Sign in with the student credentials issued by your school.",
       icon: User,
     },
     parent: {
@@ -43,6 +42,10 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refresh } = useAuth();
+  // F0-21: the school name is a brand token resolved by the root layout —
+  // never a literal in this file.
+  const schoolProfile = useSchoolProfile();
+  const schoolName = schoolProfile.name || "your school";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -87,7 +90,7 @@ function LoginForm() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/home/ykay-students.png"
-            alt="Ykay College students"
+            alt="Students on campus"
             className="absolute inset-0 h-full w-full object-cover object-top"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-brand-navy via-brand-navy/85 to-brand-navy/45" />
@@ -101,16 +104,16 @@ function LoginForm() {
             <div>
               <ContextIcon className="text-brand-green" size={42} />
               <h1 className="mt-5 font-display text-4xl tracking-widest text-white">
-                EDUPORTAL
+                FAMEX OS
                 <br />
                 <span className="text-brand-green">SECURE ACCESS</span>
               </h1>
               <p className="mt-5 max-w-sm text-sm leading-7 text-white/85">
-                Sign in with the credentials issued to you by Ykay College. For account help,
+                Sign in with the credentials issued to you by {schoolName}. For account help,
                 contact the school administration.
               </p>
               <p className="mt-8 max-w-sm rounded-2xl border border-white/15 bg-black/35 p-4 text-xs leading-6 text-white/85">
-                New to Ykay College?{" "}
+                New to {schoolName}?{" "}
                 <Link href="/admissions" className="font-bold text-brand-orange hover:underline">
                   Apply for admission
                 </Link>{" "}
@@ -122,13 +125,6 @@ function LoginForm() {
                   Track your application
                 </Link>{" "}
                 with your Application ID.
-              </p>
-              <p className="mt-4 max-w-sm rounded-2xl border border-white/15 bg-black/35 p-4 text-xs leading-6 text-white/85">
-                YK-Virtual uses these same College credentials. After you sign in here,{" "}
-                <Link href="/sso/virtual" className="font-bold text-brand-green hover:underline">
-                  continue to YK-Virtual
-                </Link>{" "}
-                — or tap “Continue with Ykay College” on the Virtual login page.
               </p>
             </div>
           </div>

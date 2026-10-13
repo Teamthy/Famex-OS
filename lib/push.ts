@@ -132,14 +132,14 @@ export async function pushUsers(
   userIds: string[],
   payload: PushPayload,
   /**
-   * The tenant these users belong to.
+   * The school these users belong to.
    *
-   * Optional because the super-admin broadcast legitimately spans schools —
-   * passing one id there would be wrong, not safer. Everything else should
-   * pass it: the lookup is by userId alone, with no schoolId in the WHERE
-   * clause, so a bad id list would happily push into another school. With a
-   * scope, Postgres refuses that at the row level even if the caller's
-   * filtering is buggy.
+   * Callers should always pass it: the token lookup is by userId alone, with no
+   * schoolId in the WHERE clause, so a bad id list would happily push into
+   * another school. With a scope, Postgres refuses that at the row level even if
+   * the caller's filtering is buggy. It stays optional only so a school-wide
+   * broadcast that has already resolved its own user list is not forced to
+   * thread an id it does not need.
    */
   schoolId?: string,
 ): Promise<void> {

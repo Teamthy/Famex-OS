@@ -6,6 +6,7 @@ import AdminSidebar from "@/components/AdminSidebar";
 import PortalTopbar from "@/components/PortalTopbar";
 import { useToast } from "@/components/Toast";
 import QrImage from "@/components/QrImage";
+import { useSchoolProfile } from "@/components/SchoolProfileContext";
 
 type Student = {
   id: string;
@@ -21,6 +22,9 @@ type Student = {
  */
 export default function AdminIDCardsPage() {
   const { toast } = useToast();
+  // F0-21: ID cards carry the resolved school's name, never a brand literal.
+  const schoolName = useSchoolProfile().name || "School";
+  const schoolToken = schoolName.split(/\s+/)[0].toUpperCase();
   const [students, setStudents] = useState<Student[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [search, setSearch] = useState("");
@@ -78,7 +82,7 @@ export default function AdminIDCardsPage() {
   function qrPayload(student: Student) {
     return JSON.stringify({
       v: 1,
-      school: "YKAY",
+      school: schoolToken,
       sid: student.studentId,
       n: student.displayName,
       c: student.className,
@@ -113,7 +117,7 @@ export default function AdminIDCardsPage() {
         doc.roundedRect(x, y, cardW, cardH, 3, 3, "F");
         doc.setTextColor(78, 197, 77);
         doc.setFontSize(8);
-        doc.text("YKAY COLLEGE", x + 4, y + 8);
+        doc.text(schoolName.toUpperCase().slice(0, 30), x + 4, y + 8);
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(12);
         doc.text(s.displayName.slice(0, 28), x + 4, y + 18);
@@ -126,7 +130,7 @@ export default function AdminIDCardsPage() {
         doc.text("Student Identity Card", x + 4, y + 48);
         i += 1;
       }
-      doc.save(`ykay-id-cards-${Date.now()}.pdf`);
+      doc.save(`id-cards-${Date.now()}.pdf`);
       toast("PDF downloaded. QR images are on the print sheet for scanning.", "success");
     } catch {
       toast("PDF export failed. Use Print instead.", "error");
@@ -226,8 +230,8 @@ export default function AdminIDCardsPage() {
                   className="relative overflow-hidden rounded-2xl border border-white/10 bg-brand-navy p-4 text-white shadow-lg"
                   style={{ minHeight: 180 }}
                 >
-                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-green">
-                    Ykay College
+                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-green truncate">
+                    {schoolName}
                   </div>
                   <div className="mt-3 font-display text-xl tracking-wide">{s.displayName}</div>
                   <div className="mt-1 font-mono text-xs text-white/70">{s.studentId}</div>
@@ -259,7 +263,7 @@ export default function AdminIDCardsPage() {
                 className="relative border border-black p-4"
                 style={{ height: 200 }}
               >
-                <div className="text-xs font-bold">YKAY COLLEGE & LEADERSHIP ACADEMY</div>
+                <div className="text-xs font-bold uppercase">{schoolName}</div>
                 <div className="mt-3 text-lg font-bold">{s.displayName}</div>
                 <div className="font-mono text-sm">{s.studentId}</div>
                 <div className="text-sm">{s.className}</div>

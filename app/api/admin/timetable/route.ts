@@ -7,7 +7,7 @@ import { UserRole } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
-const ADMIN_ROLES = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SUPER_ADMIN];
+const ADMIN_ROLES = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR];
 
 const slotSchema = z.object({
   classId: z.string().min(1),

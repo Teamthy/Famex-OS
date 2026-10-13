@@ -17,11 +17,9 @@ import type { ReactNode } from "react";
 import { Reveal } from "@/components/Reveal";
 
 const ServiceInfo = dynamic(() => import("@/components/ServiceInfo"));
-const ITFlagshipSection = dynamic(() => import("@/components/ITFlagshipSection"));
 const AdmissionsBanner = dynamic(() => import("@/components/AdmissionsBanner"));
 const Services = dynamic(() => import("@/components/Services"));
 const Groups = dynamic(() => import("@/components/Groups"));
-const VirtualBridge = dynamic(() => import("@/components/VirtualBridge"));
 const FindUs = dynamic(() => import("@/components/FindUs"));
 
 /** Sections between the hero and the marquee. */
@@ -30,9 +28,6 @@ export function HomeSectionsTop() {
     <>
       <Reveal variant="up" className="cv-auto">
         <ServiceInfo />
-      </Reveal>
-      <Reveal variant="left" delay={60} className="cv-auto">
-        <ITFlagshipSection />
       </Reveal>
       <Reveal variant="right" delay={60} className="cv-auto">
         <AdmissionsBanner />
@@ -54,9 +49,6 @@ export function HomeSectionsBottom({ children }: { children: ReactNode }) {
         <Groups />
       </Reveal>
       {children}
-      <Reveal variant="left" delay={60} className="cv-auto">
-        <VirtualBridge />
-      </Reveal>
       <Reveal variant="right" delay={60} className="cv-auto">
         <FindUs />
       </Reveal>

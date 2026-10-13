@@ -13,7 +13,7 @@ import {
   User,
   Bell,
   ClipboardCheck,
-  TrendingUp,
+  IdCard,
   GraduationCap,
   LoaderCircle,
   ChevronRight,
@@ -22,7 +22,6 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  MonitorSmartphone,
   CircleHelp,
 } from "lucide-react";
 
@@ -398,32 +397,6 @@ export default function StudentDashboardPage() {
                     </div>
                   </div>
 
-                  {/* IT Education cross-link */}
-                  <Link
-                    href="/it-portal/dashboard"
-                    className="group flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-brand-orange/25 bg-gradient-to-br from-brand-navy to-brand-navy-light p-6 transition-all hover:border-brand-orange"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-orange text-brand-navy">
-                        <MonitorSmartphone size={26} />
-                      </div>
-                      <div>
-                        <div className="text-[10px] font-bold uppercase tracking-widest text-brand-orange">
-                          Ykay IT Hub
-                        </div>
-                        <div className="mt-1 font-display text-xl text-white">
-                          Build Digital Skills — Python, AI, Cybersecurity
-                        </div>
-                        <p className="mt-1 text-xs text-white/60">
-                          Enroll free with your student account and earn certificates.
-                        </p>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-orange px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-brand-navy group-hover:gap-2 transition-all">
-                      Start Learning <ChevronRight size={14} />
-                    </span>
-                  </Link>
-
                   {/* Quick links */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[
@@ -446,9 +419,9 @@ export default function StudentDashboardPage() {
                         color: "text-brand-orange",
                       },
                       {
-                        title: "Performance",
-                        icon: TrendingUp,
-                        href: "/student/report-cards",
+                        title: "ID Card",
+                        icon: IdCard,
+                        href: "/student/id-card",
                         color: "text-purple-500",
                       },
                     ].map((item) => (

@@ -17,7 +17,6 @@ const linkGroups = {
     { label: "Testimonials", href: "/testimonials" },
     { label: "News & Events", href: "/news-events" },
     { label: "Gallery", href: "/gallery" },
-    { label: "Ykay Virtual", href: "/virtual" },
   ],
   "Get Started": [
     { label: "Admissions", href: "/admissions" },
@@ -32,18 +31,10 @@ const linkGroups = {
   ],
 };
 
-// Tenant contact for the footer. Callers that have a resolved School pass
-// its values; when `contact` is omitted every field falls back to the
-// platform defaults (YKAY College) so existing pages render identically.
-// An explicitly EMPTY string hides the row — a school without a public
-// email address must never be shown another school's (audit finding AUD-F5:
-// every tenant's footer used to hardcode YKAY College's contact details).
-const DEFAULT_CONTACT = {
-  phone: "0701 537 4411",
-  phoneHref: "+2347015374411",
-  email: "info@ykaycollege.com",
-} as const;
-
+// AUD-F5 / W1: the footer must never show one school's contact details as a
+// fallback for another's. Every field comes from the caller's `contact` prop or
+// the resolved School profile (F0-21). An empty value HIDES the row rather than
+// inventing a phone number or email the school never published.
 export type FooterContact = {
   address?: string;
   phone?: string;
@@ -53,12 +44,13 @@ export type FooterContact = {
 };
 
 export default function Footer({ contact = {} }: { contact?: FooterContact }) {
-  // The school's confirmed address (School profile). Empty until the school sets it.
+  // Brand tokens from the resolved School profile — no school-name literals here.
   const profile = useSchoolProfile();
+  const schoolName = profile.name || "School";
   const address = contact.address ?? profile.address ?? "";
-  const phone = contact.phone ?? DEFAULT_CONTACT.phone;
-  const phoneHref = contact.phoneHref ?? phone ?? DEFAULT_CONTACT.phoneHref;
-  const email = contact.email ?? DEFAULT_CONTACT.email;
+  const phone = contact.phone ?? profile.phone ?? "";
+  const phoneHref = contact.phoneHref ?? phone;
+  const email = contact.email ?? profile.email ?? "";
   return (
     <footer className="w-full bg-[var(--footer-bg)] border-t border-[var(--footer-border)] pt-16 pb-8">
       <div className="mx-auto max-w-7xl px-6">
@@ -67,35 +59,34 @@ export default function Footer({ contact = {} }: { contact?: FooterContact }) {
             <div className="flex items-center gap-3 mb-4">
               <div className="w-16 h-16 rounded-2xl bg-white p-2 flex items-center justify-center">
                 <Image
-                  src="/ykay-logo.png"
-                  alt="Ykay College Logo"
+                  src="/logo.png"
+                  alt={`${schoolName} logo`}
                   width={60}
                   height={60}
                   className="object-contain"
                 />
               </div>
-              <div>
-                <h2 className="font-display text-2xl tracking-[3px] text-white">YKAY COLLEGE</h2>
-                <p className="text-[10px] font-bold tracking-widest uppercase text-brand-green">
-                  & LEADERSHIP ACADEMY
-                </p>
+              <div className="min-w-0">
+                <h2 className="font-display text-2xl tracking-[3px] text-white uppercase truncate">
+                  {schoolName}
+                </h2>
               </div>
             </div>
             <p className="text-sm text-[var(--footer-text-body)] leading-relaxed mb-6">
-              A premium day secondary school. Raising future leaders through excellence in
+              A NERDC-aligned day secondary school raising future leaders through excellence in
               education.
             </p>
             <div className="flex gap-3">
               <a
                 href="#"
-                aria-label="Ykay College on Facebook"
+                aria-label={`${schoolName} on Facebook`}
                 className="w-9 h-9 rounded-full bg-white/5 hover:bg-brand-green text-brand-navy-dark flex items-center justify-center transition-colors"
               >
                 <Facebook size={16} aria-hidden="true" />
               </a>
               <a
                 href="#"
-                aria-label="Ykay College on Instagram"
+                aria-label={`${schoolName} on Instagram`}
                 className="w-9 h-9 rounded-full bg-white/5 hover:bg-brand-green text-brand-navy-dark flex items-center justify-center transition-colors"
               >
                 <Instagram size={16} aria-hidden="true" />
@@ -164,8 +155,7 @@ export default function Footer({ contact = {} }: { contact?: FooterContact }) {
 
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-6 border-t border-[var(--footer-border)]">
           <p className="text-xs text-[var(--footer-text-body)]">
-            © {new Date().getFullYear()} Ykay Training College & Leadership Academy. All rights
-            reserved.
+            © {new Date().getFullYear()} {schoolName}. All rights reserved.
           </p>
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}

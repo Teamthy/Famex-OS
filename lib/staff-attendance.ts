@@ -7,7 +7,6 @@ export const STAFF_ATTENDANCE_ADMIN_ROLES = [
   UserRole.ADMIN,
   UserRole.DIRECTOR,
   UserRole.COORDINATOR,
-  UserRole.SUPER_ADMIN,
 ];
 
 export const STAFF_SELF_ROLES = [

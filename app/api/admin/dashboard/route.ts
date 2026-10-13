@@ -30,7 +30,6 @@ export async function GET() {
     releasedReports,
     openInvoices,
     todayEntries,
-    itEnrollmentCount,
     recentActivity,
   ] = await Promise.all([
     prisma.studentProfile.count({ where: { schoolId, isActive: true } }),
@@ -52,7 +51,6 @@ export async function GET() {
       where: { session: { schoolId, sessionDate: { gte: startOfDay } } },
       select: { status: true },
     }),
-    prisma.itEnrollment.count({ where: { schoolId, status: "ACTIVE" } }),
     prisma.auditLog.findMany({
       where: { schoolId },
       orderBy: { createdAt: "desc" },
@@ -88,7 +86,6 @@ export async function GET() {
       attendanceRateToday: todayEntries.length
         ? Math.round((presentToday / todayEntries.length) * 100)
         : null,
-      itEnrollments: itEnrollmentCount,
     },
     activity: recentActivity.map((entry) => ({
       action: entry.action,

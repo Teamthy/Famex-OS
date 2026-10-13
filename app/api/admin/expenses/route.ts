@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminFinanceContext } from "@/lib/finance";
-import { assertNotImpersonating } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
 
@@ -63,8 +62,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const context = await getAdminFinanceContext();
   if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const impersonating = assertNotImpersonating(context.user);
-  if (impersonating) return impersonating;
 
   let input: z.infer<typeof createSchema>;
   try {
@@ -106,8 +103,6 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const context = await getAdminFinanceContext();
   if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const impersonating = assertNotImpersonating(context.user);
-  if (impersonating) return impersonating;
   const id = request.nextUrl.searchParams.get("id")?.trim();
   if (!id) return NextResponse.json({ error: "Expense id required." }, { status: 400 });
 

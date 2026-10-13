@@ -4,7 +4,7 @@ import { resolveCurrentLabels } from "@/lib/academic-session";
 import { FEE_ADMIN_ROLES, structureTotal, upsertFeeStructure } from "@/lib/fee-structures";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
-import { assertNotImpersonating, requireRole } from "@/lib/session";
+import { requireRole } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -95,8 +95,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const user = await requireRole(FEE_ADMIN_ROLES);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const impersonating = assertNotImpersonating(user);
-  if (impersonating) return impersonating;
 
   let input: z.infer<typeof upsertSchema>;
   try {
@@ -148,8 +146,6 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const user = await requireRole(FEE_ADMIN_ROLES);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const impersonating = assertNotImpersonating(user);
-  if (impersonating) return impersonating;
 
   const id = request.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing structure id." }, { status: 400 });

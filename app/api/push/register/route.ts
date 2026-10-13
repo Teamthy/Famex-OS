@@ -15,7 +15,6 @@ const schema = z.object({
 export async function POST(request: NextRequest) {
   const user = await requireRole([
     UserRole.STUDENT,
-    UserRole.IT_STUDENT,
     UserRole.PARENT,
     UserRole.TEACHER,
     UserRole.HOD,

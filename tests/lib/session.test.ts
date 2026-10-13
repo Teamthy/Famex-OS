@@ -46,25 +46,6 @@ describe("signSession and verifySession", () => {
     expect(user!.mustChangePassword).toBe(true);
   });
 
-  it("includes impersonatedBy claim", async () => {
-    const { signSession } = await import("@/lib/session");
-    const { jwtVerify } = await import("jose");
-
-    const token = await signSession({
-      id: "target_user",
-      schoolId: "school_1",
-      role: "STUDENT" as any,
-      name: "Student",
-      email: "student@school.com",
-      impersonatedBy: "super_admin_1",
-    });
-
-    // Decode the raw JWT to verify the claim
-    const encoder = new TextEncoder();
-    const { payload } = await jwtVerify(token, encoder.encode(process.env.AUTH_SECRET));
-    expect(payload.impersonatedBy).toBe("super_admin_1");
-  });
-
   it("returns null for invalid tokens", async () => {
     const { verifySession } = await import("@/lib/session");
 
