@@ -45,7 +45,7 @@ Read in this order before any work:
 
 | WS | Scope (short) | Status |
 |---|---|---|
-| **W1** | Strip EDUos platform + Ykay arms; single-school boot; brand tokens; Licence & Usage; re-cut audit | ✅ **DONE** — commit `a9451cd`, **PR #1 OPEN** (not merged) |
+| **W1** | Strip EDUos platform + Ykay arms; single-school boot; brand tokens; Licence & Usage; re-cut audit | ✅ **MERGED into main** — PR #1, 2026-10-14 (commits `a9451cd`, `ccaab0b` + this handoff commit). Gates green at merge; DB gates environment-blocked and stated in the PR. |
 | **W2** | Module registry drives nav/routes/entitlements; settings framework; first-run wizard; `check:modules` | ⬅️ **NEXT** |
 | W3 | Double-entry ledger → Fees & Billing; bursar dashboard; gateway reconciliation | pending |
 | W4 | Notification spine + WhatsApp Business (categories, receipts, cost) | pending |
@@ -60,7 +60,7 @@ Read in this order before any work:
 
 ---
 
-## 4. What W1 delivered (commit `a9451cd`, PR #1)
+## 4. What W1 delivered (commit `a9451cd` + `ccaab0b`, merged via PR #1)
 
 - **Platform strip (F0-26/27/28/30):** deleted `app/super-admin/**` + its 10 API routes (impersonation, broadcast, cross-school console), `app/signup/**` + `/api/platform/signup`, `Plan/PlanTier/Subscription` models + `seed-plans.ts`. Boot no longer seeds a super-admin; first ADMIN comes from `npm run db:seed` (`prisma/seed-all.ts`), then the W2 wizard. `app/page.tsx` boots to the school home (PlatformLanding + PLATFORM_MODE gone).
 - **Ykay arms retired (F0-29):** deleted `app/it-portal/**`, `app/it-education/**`, `lib/it-education.ts`, IT API routes, IT cert PDF, `it_education` module key, IT seeds/nav/stats; deleted `app/virtual/**` + `VirtualBridge` (YK-Virtual SSO bridge).
