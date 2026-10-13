@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
 import { requireRole } from "@/lib/session";
 
-const roles = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SUPER_ADMIN];
+const roles = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR];
 const updateSchema = z.object({
   applicationId: z.string().min(1),
   status: z.enum(["PENDING_REVIEW", "DOCUMENTS_REQUESTED", "APPROVED", "DECLINED", "WAITLISTED"]),

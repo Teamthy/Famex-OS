@@ -68,8 +68,7 @@ export default function AcademicsPage() {
               />
               <p className="mt-4 max-w-2xl text-base text-[var(--text-secondary)] md:text-lg">
                 A rigorous, NERDC-aligned curriculum spanning Junior Secondary (JSS1–JSS3) and
-                Senior Secondary (SS1–SS3) — with Science, Arts, Commercial, and flagship IT
-                pathways.
+                Senior Secondary (SS1–SS3) — with Science, Arts, and Commercial pathways.
               </p>
             </div>
           </section>
@@ -110,16 +109,10 @@ export default function AcademicsPage() {
 
             <div className="mt-10 flex flex-wrap gap-3">
               <Link
-                href="/it-education"
+                href="/admissions"
                 className="inline-flex items-center gap-2 rounded-full bg-brand-green px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy"
               >
-                Explore IT programmes <ArrowRight size={14} />
-              </Link>
-              <Link
-                href="/admissions"
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--border-default)] px-6 py-3 text-xs font-bold uppercase tracking-widest text-[var(--text-primary)]"
-              >
-                Apply for admission
+                Apply for admission <ArrowRight size={14} />
               </Link>
             </div>
 
@@ -145,8 +138,8 @@ export default function AcademicsPage() {
                     text: "Branded PDF release with QR verification for authenticity.",
                   },
                   {
-                    label: "IT pathway",
-                    text: "Optional certification tracks via the Ykay IT Hub portal.",
+                    label: "Digital skills",
+                    text: "Digital literacy woven through the curriculum for every student.",
                   },
                 ].map((item) => (
                   <div key={item.label} className="rounded-2xl bg-[var(--surface-disabled)] p-5">

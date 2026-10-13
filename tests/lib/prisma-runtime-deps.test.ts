@@ -535,7 +535,7 @@ describe("the deployment wiring that keeps the fix alive", () => {
 
 describe("the boot seeds are self-contained", () => {
   // The esbuild RUN spans several backslash-continued lines, so join those
-  // first and then split the two invocations apart — otherwise the flags, which
+  // first and then split the invocations apart — otherwise the flags, which
   // live on the continuation lines, are not on the same line as the command.
   const seedCommands = REAL_DOCKERFILE.replace(/\\\r?\n\s*/g, " ")
     .split("\n")
@@ -543,22 +543,14 @@ describe("the boot seeds are self-contained", () => {
     .map((line) => line.trim())
     .filter((line) => line.includes("npx esbuild"));
 
-  it("inlines bcryptjs instead of expecting it in the runner's node_modules", () => {
-    // The super-admin seed imports bcryptjs, and nothing copies bcryptjs into
-    // the runner: Next's standalone tracer inlines it into server chunks rather
-    // than emitting it to node_modules. Marking it external left the bundle with
-    // a bare import that resolved to nothing at boot — and because the
-    // entrypoint treats seed failures as non-fatal, a fresh database came up
-    // with no super admin and no way to log in.
-    expect(seedCommands).toHaveLength(2);
-    for (const command of seedCommands) {
-      expect(command, `bcryptjs must not be external: ${command}`).not.toContain(
-        "--external:bcryptjs",
-      );
-    }
-    expect(fs.readFileSync(path.join(REPO_ROOT, "prisma/seed-super-admin.ts"), "utf8")).toContain(
-      'from "bcryptjs"',
-    );
+  it("bundles exactly the CBT boot seed", () => {
+    // W1: the EDUos platform super-admin boot seed was stripped with the
+    // cross-tenant console (F0-27). The shared CBT bank seed is the only bundle
+    // the entrypoint runs at boot, so there must be exactly one esbuild command
+    // and it must target prisma/cbt-seed.ts.
+    expect(seedCommands).toHaveLength(1);
+    expect(seedCommands.join("\n")).toContain("prisma/cbt-seed.ts");
+    expect(seedCommands.join("\n")).not.toContain("seed-super-admin");
   });
 
   it("still externalises @prisma/client, which needs the generated client at runtime", () => {
@@ -571,8 +563,14 @@ describe("the boot seeds are self-contained", () => {
     }
   });
 
-  it("bundles both seeds the entrypoint runs", () => {
-    expect(seedCommands.join("\n")).toContain("prisma/cbt-seed.ts");
-    expect(seedCommands.join("\n")).toContain("prisma/seed-super-admin.ts");
+  it("does not mark bcryptjs external in any boot seed", () => {
+    // Nothing copies bcryptjs into the runner: Next's standalone tracer inlines
+    // it into server chunks rather than emitting it to node_modules. Any boot
+    // seed that hashes a password must bundle bcryptjs, not externalise it.
+    for (const command of seedCommands) {
+      expect(command, `bcryptjs must not be external: ${command}`).not.toContain(
+        "--external:bcryptjs",
+      );
+    }
   });
 });

@@ -12,6 +12,7 @@ import {
   GraduationCap,
   HelpCircle,
   IdCard,
+  KeyRound,
   LayoutDashboard,
   Lock,
   LogOut,
@@ -24,6 +25,7 @@ import {
   Users,
 } from "lucide-react";
 import { useAuth } from "./AuthProvider";
+import { useSchoolProfile } from "./SchoolProfileContext";
 import Image from "next/image";
 
 const ADMIN_NAV = [
@@ -56,11 +58,18 @@ const ADMIN_NAV = [
   { label: "Notifications", href: "/admin/notifications", icon: Send },
   { label: "School Profile", href: "/admin/school-profile", icon: MapPin },
   { label: "View Questions", href: "/admin/questions", icon: HelpCircle },
+  // W1: the EDUos "Subscriptions" (SaaS plan management) nav concept is
+  // repurposed for a single school — Licence & Usage (F20). Full usage metering
+  // lands in W12; this shows licence identity and the enabled module switches.
+  { label: "Licence & Usage", href: "/admin/licence", icon: KeyRound },
 ];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  // F0-21: the school name is a brand token, never a literal in the chrome.
+  const school = useSchoolProfile();
+  const schoolName = school.name || "School";
 
   return (
     <aside className="hidden w-[280px] shrink-0 lg:block">
@@ -68,17 +77,19 @@ export default function AdminSidebar() {
         <div className="rounded-2xl border border-white/10 bg-brand-navy p-4">
           <div className="flex items-center gap-3">
             <Image
-              src="/ykay-logo.png"
-              alt="Ykay"
+              src="/logo.png"
+              alt={`${schoolName} logo`}
               width={36}
               height={36}
               className="h-9 w-9 object-contain"
             />
-            <div>
+            <div className="min-w-0">
               <div className="text-[9px] font-bold uppercase tracking-widest text-brand-green">
                 Admin workspace
               </div>
-              <div className="font-display text-sm tracking-[1px] text-white">YKAY COLLEGE</div>
+              <div className="truncate font-display text-sm tracking-[1px] text-white uppercase">
+                {schoolName}
+              </div>
             </div>
           </div>
         </div>

@@ -158,12 +158,6 @@ export default function SSCommercialPage() {
                 Apply for admission <ArrowRight size={14} />
               </Link>
               <Link
-                href="/it-education"
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--border-default)] px-6 py-3 text-xs font-bold uppercase tracking-widest text-[var(--text-primary)]"
-              >
-                Explore IT programmes
-              </Link>
-              <Link
                 href="/academics"
                 className="inline-flex items-center gap-2 rounded-full border border-[var(--border-default)] px-6 py-3 text-xs font-bold uppercase tracking-widest text-[var(--text-primary)]"
               >

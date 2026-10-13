@@ -45,12 +45,9 @@ export type SessionUser = {
   email: string;
   mustChangePassword?: boolean;
   tokenVersion?: number;
-  impersonatedBy?: string;
 };
 
-export async function signSession(
-  user: SessionUser & { impersonatedBy?: string; tokenVersion?: number },
-) {
+export async function signSession(user: SessionUser & { tokenVersion?: number }) {
   const claims: Record<string, unknown> = {
     schoolId: user.schoolId,
     role: user.role,
@@ -59,9 +56,6 @@ export async function signSession(
     mustChangePassword: Boolean(user.mustChangePassword),
     tokenVersion: user.tokenVersion ?? 0,
   };
-  if (user.impersonatedBy) {
-    claims.impersonatedBy = user.impersonatedBy;
-  }
 
   return new SignJWT(claims)
     .setProtectedHeader({ alg: "HS256" })
@@ -90,8 +84,6 @@ export async function verifySession(token: string): Promise<SessionUser | null> 
       email: payload.email,
       mustChangePassword: payload.mustChangePassword === true,
       tokenVersion: typeof payload.tokenVersion === "number" ? payload.tokenVersion : 0,
-      impersonatedBy:
-        typeof payload.impersonatedBy === "string" ? payload.impersonatedBy : undefined,
     };
   } catch {
     return null;
@@ -349,18 +341,4 @@ export async function revokeAllSessions(userId: string): Promise<void> {
   });
 }
 
-/**
- * Impersonation write-guard. Super-admin impersonation is READ-ONLY by design.
- * Call this at the top of any mutating (POST/PUT/PATCH/DELETE) handler to block
- * writes performed while impersonating another user. Returns a 403 response when
- * the session is impersonating, otherwise null.
- */
-export function assertNotImpersonating(user: { impersonatedBy?: string }) {
-  if (user.impersonatedBy) {
-    return NextResponse.json(
-      { error: "Writes are not permitted while impersonating. End impersonation first." },
-      { status: 403 },
-    );
-  }
-  return null;
-}
+

@@ -10,7 +10,6 @@ export async function GET() {
     UserRole.ADMIN,
     UserRole.DIRECTOR,
     UserRole.COORDINATOR,
-    UserRole.SUPER_ADMIN,
   ]);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

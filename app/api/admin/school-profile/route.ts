@@ -9,7 +9,7 @@ import { requireRole } from "@/lib/session";
 export const dynamic = "force-dynamic";
 
 /** Only people who speak for the school can change its address. Teachers and bursars cannot. */
-const EDIT_ROLES = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.SUPER_ADMIN];
+const EDIT_ROLES = [UserRole.ADMIN, UserRole.DIRECTOR];
 
 const updateSchema = z.object({
   address: z

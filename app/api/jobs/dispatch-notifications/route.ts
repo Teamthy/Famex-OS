@@ -15,7 +15,7 @@ async function authorize(request: NextRequest) {
     (s): s is string => typeof s === "string" && s.length >= 16,
   );
   if (accepted.some((s) => header === `Bearer ${s}`)) return true;
-  const user = await requireRole([UserRole.ADMIN, UserRole.DIRECTOR, UserRole.SUPER_ADMIN]);
+  const user = await requireRole([UserRole.ADMIN, UserRole.DIRECTOR]);
   return Boolean(user);
 }
 

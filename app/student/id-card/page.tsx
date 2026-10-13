@@ -37,7 +37,7 @@ type Profile = {
 };
 
 export default function IDCardPage() {
-  const { address } = useSchoolProfile();
+  const { address, name: schoolName, phone: schoolPhone, email: schoolEmail } = useSchoolProfile();
   const { toast } = useToast();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,7 +70,11 @@ export default function IDCardPage() {
     .slice(0, 2)
     .join("")
     .toUpperCase();
-  const qrPayload = profile?.studentId ? `YKAY|${profile.studentId}|${name}` : null;
+  // F0-21: the card's QR identifies THIS school + student. The school token is
+  // derived from the resolved profile, never a hard-coded brand prefix.
+  const schoolToken = (schoolName || "SCHOOL").split(/\s+/)[0].toUpperCase();
+  const qrPayload = profile?.studentId ? `${schoolToken}|${profile.studentId}|${name}` : null;
+  const schoolContact = [schoolPhone, schoolEmail].filter(Boolean).join(" · ");
 
   return (
     <>
@@ -95,18 +99,15 @@ export default function IDCardPage() {
                   <div className="bg-brand-navy p-5 text-center">
                     <div className="flex items-center justify-center gap-3 mb-2">
                       <Image
-                        src="/ykay-logo.png"
+                        src="/logo.png"
                         alt="Logo"
                         width={40}
                         height={40}
                         className="w-10 h-10 object-contain"
                       />
-                      <div>
-                        <div className="font-display text-lg text-white tracking-widest">
-                          YKAY COLLEGE
-                        </div>
-                        <div className="text-[8px] text-brand-green font-bold tracking-widest">
-                          &amp; LEADERSHIP ACADEMY
+                      <div className="min-w-0">
+                        <div className="font-display text-lg text-white tracking-widest uppercase truncate">
+                          {schoolName || "SCHOOL"}
                         </div>
                       </div>
                     </div>
@@ -160,11 +161,11 @@ export default function IDCardPage() {
                     <div className="text-[8px] text-gray-400">Scan QR to verify identity</div>
                   </div>
 
-                  <div className="bg-brand-green p-3 text-center">
-                    <div className="text-white text-[10px] font-bold">
-                      0701 537 4411 · info@ykaycollege.com
+                  {schoolContact ? (
+                    <div className="bg-brand-green p-3 text-center">
+                      <div className="text-white text-[10px] font-bold">{schoolContact}</div>
                     </div>
-                  </div>
+                  ) : null}
                 </div>
               </div>
 

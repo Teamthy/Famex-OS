@@ -3,7 +3,7 @@ import { z } from "zod";
 import { NoCurrentTermError, requireCurrentLabels } from "@/lib/academic-session";
 import { FEE_ADMIN_ROLES, generateInvoices, planInvoiceGeneration } from "@/lib/fee-structures";
 import { prisma } from "@/lib/prisma";
-import { assertNotImpersonating, requireRole } from "@/lib/session";
+import { requireRole } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -53,8 +53,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const user = await requireRole(FEE_ADMIN_ROLES);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const impersonating = assertNotImpersonating(user);
-  if (impersonating) return impersonating;
 
   let input: z.infer<typeof generateSchema>;
   try {

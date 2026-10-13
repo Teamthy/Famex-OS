@@ -87,15 +87,8 @@ const limiterConfig = {
   // Authentication — brute-force / credential-stuffing protection
   login: { maxRequests: 10, windowMs: 900_000, prefix: "ykay:auth:login" }, // 10 attempts per 15 min
   loginStrict: { maxRequests: 3, windowMs: 900_000, prefix: "ykay:auth:login-strict" }, // 3 failures per 15 min (per email — FAILURES only, see checkRateLimit)
-  // Federated College SSO (YK-Virtual → /api/auth/verify-credentials). This
-  // is a server-to-server call: in production EVERY federated sign-in arrives
-  // from YK-Virtual's backend IP, so sharing the per-IP "login" bucket with
-  // the human login page capped the whole integration at ~10 sign-ins per
-  // 15 min (audit finding AUD-F8 — one classroom could take College SSO
-  // down). Budget per College user instead, with a wide per-IP ceiling for
-  // the machine caller.
-  collegeAuth: { maxRequests: 30, windowMs: 900_000, prefix: "ykay:auth:college-user" }, // 30 federated sign-ins per College user per 15 min
-  collegeAuthIp: { maxRequests: 120, windowMs: 900_000, prefix: "ykay:auth:college-ip" }, // blanket per calling IP (the Virtual backend)
+  // Federated College SSO was retired with YK Virtual (W1); its limiters are
+  // removed. Auth brute-force protection is covered by login/loginStrict below.
   passwordReset: { maxRequests: 3, windowMs: 3_600_000, prefix: "ykay:auth:pw-reset" }, // 3 resets per hour
   changePassword: { maxRequests: 5, windowMs: 3_600_000, prefix: "ykay:auth:pw-change" }, // 5 changes per hour
   signup: { maxRequests: 5, windowMs: 3_600_000, prefix: "ykay:signup" }, // 5 signups per hour
@@ -111,7 +104,6 @@ const limiterConfig = {
   announcement: { maxRequests: 30, windowMs: 3_600_000, prefix: "ykay:teacher:announcement" },
   newsPost: { maxRequests: 30, windowMs: 3_600_000, prefix: "ykay:admin:news" },
   message: { maxRequests: 60, windowMs: 3_600_000, prefix: "ykay:messages" },
-  broadcast: { maxRequests: 20, windowMs: 3_600_000, prefix: "ykay:super-admin:broadcast" },
   // Public practice-CBT funnel (quiz draw, per-question check, attempt save).
   // Deliberately generous for a legitimate practice session; non-critical so
   // the public page keeps working on the in-memory fallback, but it bounds
@@ -156,16 +148,6 @@ const redisLimiters: Record<string, Ratelimit | null> = redis
         limiter: Ratelimit.slidingWindow(3, "15 m"),
         prefix: "ykay:auth:login-strict",
       }),
-      collegeAuth: new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(30, "15 m"),
-        prefix: "ykay:auth:college-user",
-      }),
-      collegeAuthIp: new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(120, "15 m"),
-        prefix: "ykay:auth:college-ip",
-      }),
       passwordReset: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(3, "1 h"),
@@ -206,11 +188,6 @@ const redisLimiters: Record<string, Ratelimit | null> = redis
         limiter: Ratelimit.slidingWindow(60, "1 h"),
         prefix: "ykay:messages",
       }),
-      broadcast: new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(20, "1 h"),
-        prefix: "ykay:super-admin:broadcast",
-      }),
       cbt: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(240, "1 h"),
@@ -235,8 +212,6 @@ export type RateLimitKind = keyof typeof limiterConfig;
 const DISTRIBUTED_REQUIRED: ReadonlySet<RateLimitKind> = new Set<RateLimitKind>([
   "login",
   "loginStrict",
-  "collegeAuth",
-  "collegeAuthIp",
   "passwordReset",
   "changePassword",
   "signup",

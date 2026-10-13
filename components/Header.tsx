@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Menu, X, Sun, Moon, ChevronDown } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
+import { useSchoolProfile } from "./SchoolProfileContext";
 import LiveClock from "./LiveClock";
 import dynamic from "next/dynamic";
 import { afterLoad } from "@/lib/after-lcp";
@@ -35,10 +36,7 @@ const navLinks = [
   {
     label: "Academics",
     href: "/academics",
-    dropdown: [
-      { label: "Academic Programs", href: "/academics" },
-      { label: "IT Education", href: "/it-education" },
-    ],
+    dropdown: [{ label: "Academic Programs", href: "/academics" }],
   },
   { label: "Admissions", href: "/admissions" },
   { label: "Campus Life", href: "/campus-life" },
@@ -46,7 +44,6 @@ const navLinks = [
   { label: "FAQ", href: "/faq" },
   { label: "Contact", href: "/contact" },
   { label: "CBT", href: "/login?next=/student/exams" },
-  { label: "Virtual", href: "/virtual" },
   { label: "Portal", href: "/portal" },
 ];
 
@@ -55,6 +52,8 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const { resolvedTheme, toggleTheme } = useTheme();
+  // F0-21: the school name in the chrome is a brand token, never a literal.
+  const schoolName = useSchoolProfile().name || "School";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -69,19 +68,16 @@ export default function Header() {
       <nav className="mx-auto flex w-full items-center justify-between gap-4 px-6 py-3 md:px-10">
         <Link href="/" className="shrink-0 flex items-center gap-3">
           <Image
-            src="/ykay-logo.png"
-            alt="Ykay College Logo"
+            src="/logo.png"
+            alt={`${schoolName} logo`}
             width={50}
             height={50}
             className="h-12 w-12 object-contain"
             priority
           />
           <div className="hidden sm:block leading-tight">
-            <div className="font-display text-lg md:text-xl tracking-[2px] text-[var(--nav-text)]">
-              YKAY COLLEGE
-            </div>
-            <div className="text-[9px] tracking-widest text-brand-green font-bold">
-              & LEADERSHIP ACADEMY
+            <div className="font-display text-lg md:text-xl tracking-[2px] text-[var(--nav-text)] uppercase truncate max-w-[45vw]">
+              {schoolName}
             </div>
           </div>
         </Link>

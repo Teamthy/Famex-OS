@@ -76,10 +76,9 @@ describe("reachableStudentIds — STUDENT", () => {
   it("still returns nothing for roles with no messaging relationship", async () => {
     const { reachableStudentIds } = await import("@/lib/messaging");
 
-    // BURSAR handles money, not pastoral conversations; IT_STUDENT is an
-    // external course learner with no school profile at all.
+    // BURSAR handles money, not pastoral conversations, and has no student
+    // relationship of its own — so it reaches no student threads.
     expect(await reachableStudentIds({ ...STUDENT, role: "BURSAR" })).toEqual([]);
-    expect(await reachableStudentIds({ ...STUDENT, role: "IT_STUDENT" })).toEqual([]);
   });
 });
 

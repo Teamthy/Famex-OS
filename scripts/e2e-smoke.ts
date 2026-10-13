@@ -21,15 +21,6 @@ const PUBLIC_PAGES: Check[] = [
   { name: "Home", path: "/" },
   { name: "About", path: "/about" },
   { name: "Academics", path: "/academics" },
-  { name: "IT Education hub", path: "/it-education" },
-  { name: "IT Python", path: "/it-education/python" },
-  { name: "IT AI", path: "/it-education/ai" },
-  { name: "IT Cybersecurity", path: "/it-education/cybersecurity" },
-  { name: "IT Digital Literacy", path: "/it-education/digital-literacy" },
-  { name: "IT Word", path: "/it-education/microsoft-word" },
-  { name: "IT Excel", path: "/it-education/microsoft-excel" },
-  { name: "IT PowerPoint", path: "/it-education/microsoft-powerpoint" },
-  { name: "IT Excel Expert", path: "/it-education/excel-expert" },
   { name: "Admissions", path: "/admissions" },
   { name: "Admissions status", path: "/admissions/status" },
   { name: "Campus life", path: "/campus-life" },
@@ -41,14 +32,12 @@ const PUBLIC_PAGES: Check[] = [
   { name: "Testimonials", path: "/testimonials" },
   { name: "Login", path: "/login" },
   { name: "Portal hub", path: "/portal" },
-  { name: "IT portal auth", path: "/it-portal/auth" },
   { name: "Privacy", path: "/privacy-policy" },
   { name: "Robots", path: "/robots.txt" },
   { name: "Sitemap", path: "/sitemap.xml" },
 ];
 
 const PUBLIC_APIS: Check[] = [
-  { name: "IT catalog API", path: "/api/it/catalog", expectStatus: [200] },
   { name: "News API", path: "/api/news", expectStatus: [200] },
   { name: "Auth me (anon)", path: "/api/auth/me", expectStatus: [200, 401] },
 ];
@@ -59,8 +48,6 @@ const PROTECTED_REDIRECTS: Check[] = [
   { name: "Student guard", path: "/student/dashboard", expectStatus: [200, 307, 302, 401] },
   { name: "Parent guard", path: "/parent/dashboard", expectStatus: [200, 307, 302, 401] },
   { name: "Staff attendance guard", path: "/staff/attendance", expectStatus: [200, 307, 302, 401] },
-  { name: "IT dashboard guard", path: "/it-portal/dashboard", expectStatus: [200, 307, 302, 401] },
-  { name: "Super admin guard", path: "/super-admin", expectStatus: [200, 307, 302, 401] },
 ];
 
 function argValue(flag: string) {

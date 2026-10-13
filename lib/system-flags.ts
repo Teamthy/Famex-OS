@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { PRODUCT_NAME } from "@/lib/brand";
 
 export type SystemFlags = {
   maintenanceMode: boolean;
@@ -9,8 +10,7 @@ export type SystemFlags = {
 
 const DEFAULT_FLAGS: SystemFlags = {
   maintenanceMode: false,
-  maintenanceMessage:
-    "Ykay EduPortal is undergoing scheduled maintenance. Please try again shortly.",
+  maintenanceMessage: `${PRODUCT_NAME} is undergoing scheduled maintenance. Please try again shortly.`,
   updatedAt: null,
   updatedByUserId: null,
 };
@@ -66,7 +66,7 @@ export async function writeSystemFlags(
   };
 }
 
-/** Env + runtime flags for super-admin system panel (never exposes secret values). */
+/** Env + runtime flags for the admin system panel (never exposes secret values). */
 export function readPublicSystemConfig() {
   const present = (key: string) => Boolean(process.env[key] && String(process.env[key]).trim());
   return {

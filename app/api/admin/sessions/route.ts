@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
-import { requireRole, assertNotImpersonating } from "@/lib/session";
+import { requireRole } from "@/lib/session";
 import {
   createSession,
   ensureEnrolments,
@@ -14,7 +14,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const ADMIN_ROLES = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.SUPER_ADMIN];
+const ADMIN_ROLES = [UserRole.ADMIN, UserRole.DIRECTOR];
 
 /**
  * GET /api/admin/sessions
@@ -80,8 +80,6 @@ const createSchema = z.object({
 export async function POST(request: NextRequest) {
   const user = await requireRole(ADMIN_ROLES);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const impersonating = assertNotImpersonating(user);
-  if (impersonating) return impersonating;
 
   let input: z.infer<typeof createSchema>;
   try {
@@ -163,8 +161,6 @@ const patchSchema = z.discriminatedUnion("action", [
 export async function PATCH(request: NextRequest) {
   const user = await requireRole(ADMIN_ROLES);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const impersonating = assertNotImpersonating(user);
-  if (impersonating) return impersonating;
 
   let input: z.infer<typeof patchSchema>;
   try {

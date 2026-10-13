@@ -15,7 +15,6 @@ export const SUBJECT_ADMIN_ROLES: UserRole[] = [
   UserRole.ADMIN,
   UserRole.DIRECTOR,
   UserRole.COORDINATOR,
-  UserRole.SUPER_ADMIN,
 ];
 
 /** Roles allowed to change which subjects a student takes. */

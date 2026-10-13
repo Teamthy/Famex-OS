@@ -1,6 +1,6 @@
-# Ykay College EduPortal
+# Famex OS
 
-[![CI](https://github.com/Teamthy/ykay_eduport-/actions/workflows/ci.yml/badge.svg)](https://github.com/Teamthy/ykay_eduport-/actions/workflows/ci.yml)
+[![CI](https://github.com/Teamthy/Famex-OS/actions/workflows/ci.yml/badge.svg)](https://github.com/Teamthy/Famex-OS/actions/workflows/ci.yml)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![Expo](https://img.shields.io/badge/Expo-RN-000)
@@ -8,25 +8,32 @@
 ![tests](https://img.shields.io/badge/tests-663%2B%20passing-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
-A full-stack digital education platform for **Ykay College & Leadership Academy**:
-a polished public website, role-based school portals, IT education, CBT exam
-preparation, an admissions pipeline, and a companion Expo mobile app — all backed
-by a multi-tenant Postgres schema with row-level security.
+A single-school operating system for a Nigerian secondary school — one install,
+one school, ~3,000 users over a 5-year horizon. A polished public website,
+role-based school portals, CBT examination, an admissions pipeline, fees and
+results, and a companion Expo mobile app — all backed by a Postgres schema with
+row-level security and integer-kobo money.
 
-This is a production-quality reference implementation: 130 API routes, 60+
-database models, multi-tenancy, payments, offline-first mobile, and a CI
-pipeline that verifies schema drift, tenant isolation, and load behavior.
+Famex OS is rebuilt from a school EduPortal base with the SaaS platform layer
+removed: there is no cross-school console, no plan/subscription tier and no
+vendor-branded chrome. The school's name, colours, logo and contacts are brand
+tokens (`lib/brand.ts`), never literals.
+
+This is a production-quality reference implementation: 140+ API routes, 60
+database models, payments, offline-first mobile, and a CI pipeline that verifies
+schema drift, tenant isolation, and load behavior.
 
 ---
 
 ## Highlights
 
-- **Six role portals** — Admin/Director/Coordinator/Bursar, Teacher/HOD,
-  Student, Parent, IT Student, and Super Admin — behind a single JWT session
-  with per-route authorization and session revocation.
-- **Multi-tenant architecture** — subdomain/custom-domain tenant resolution plus
+- **Role portals** — Admin/Director/Coordinator/Bursar, Teacher/HOD, Student and
+  Parent — behind a single JWT session with per-route authorization and session
+  revocation.
+- **Single-school with tenant hygiene** — `schoolId` on every business table plus
   **PostgreSQL Row-Level Security** as a DB-level isolation backstop (with a CI
-  coverage guard that fails if any tenant table is left unprotected).
+  coverage guard that fails if any tenant table is left unprotected), so a second
+  campus can be added later without a rewrite.
 - **Payments** — Paystack integration with signature-verified webhooks,
   idempotency, and refund/transfer workflows.
 - **Admissions** — draft → document upload (presigned S3) → application fee →

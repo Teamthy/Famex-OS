@@ -42,15 +42,16 @@ RUN npm run build
 #
 # bcryptjs does NOT stay external. It is zero-dependency pure JS, and nothing
 # copies it into the runner: Next's standalone tracer inlines it into the server
-# chunks rather than emitting it to node_modules, so the seed's bare
-# `import bcrypt from "bcryptjs"` had nothing to resolve from /app/prisma at
-# boot. On a fresh database that silently cost the super-admin seed (the
-# entrypoint treats seed failures as non-fatal), leaving nobody able to log in.
-# Inlining it costs ~45kb and stops depending on the tracer's choices.
+# chunks rather than emitting it to node_modules, so a seed's bare
+# `import bcrypt from "bcryptjs"` would have nothing to resolve from /app/prisma
+# at boot. Inlining it costs ~45kb and stops depending on the tracer's choices.
+#
+# W1: the EDUos platform super-admin seed (seed-super-admin.ts) was stripped with
+# the cross-tenant console (F0-27). A single-school Famex install provisions its
+# first ADMIN through the school seed / first-run wizard, not a platform super
+# admin. Only the shared CBT bank seed is bundled at boot.
 RUN npx esbuild prisma/cbt-seed.ts --bundle --platform=node --format=esm \
-      --external:@prisma/client --outfile=/out-seeds/cbt-seed.mjs \
- && npx esbuild prisma/seed-super-admin.ts --bundle --platform=node --format=esm \
-      --external:@prisma/client --outfile=/out-seeds/seed-super-admin.mjs
+      --external:@prisma/client --outfile=/out-seeds/cbt-seed.mjs
 
 # Stage everything the Prisma CLI itself requires, derived from the lockfile.
 #

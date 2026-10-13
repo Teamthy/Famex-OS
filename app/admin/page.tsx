@@ -16,7 +16,6 @@ import {
   AlertCircle,
   ArrowRight,
   CheckCircle2,
-  MonitorSmartphone,
   UserCheck,
   Wallet,
 } from "lucide-react";
@@ -47,7 +46,6 @@ type DashboardResponse = {
     attendanceMarkedToday: number;
     presentToday: number;
     attendanceRateToday: number | null;
-    itEnrollments: number;
   };
   activity: Array<{
     action: string;
@@ -285,12 +283,6 @@ export default function AdminDashboardPage() {
                             : "—",
                         icon: UserCheck,
                         color: "text-brand-green",
-                      },
-                      {
-                        label: "IT Enrollments",
-                        value: data.stats.itEnrollments,
-                        icon: MonitorSmartphone,
-                        color: "text-brand-orange",
                       },
                     ].map((stat) => (
                       <div

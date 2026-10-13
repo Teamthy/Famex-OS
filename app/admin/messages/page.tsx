@@ -9,7 +9,7 @@ import { MessageCircle } from "lucide-react";
  * School office messages.
  *
  * Admins had no messaging page at all, despite `reachableStudentIds()` already
- * granting oversight roles (ADMIN, DIRECTOR, COORDINATOR, SUPER_ADMIN) access
+ * granting oversight roles (ADMIN, DIRECTOR, COORDINATOR) access
  * to every student in the school. The capability existed in the library and
  * the API; there was simply no way to reach it.
  *

@@ -86,7 +86,7 @@ type Response = {
 };
 
 export default function ParentReportCardsPage() {
-  const { address } = useSchoolProfile();
+  const { address, name: schoolName } = useSchoolProfile();
   const [data, setData] = useState<Response | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -141,6 +141,7 @@ export default function ParentReportCardsPage() {
     child?: { displayName?: string; studentId?: string } | null,
   ) => {
     generateReportCardPDF({
+      schoolName,
       schoolAddress: address,
       studentName: child?.displayName || data?.selectedChild?.displayName || "Student",
       studentClass: report.classNameSnapshot,

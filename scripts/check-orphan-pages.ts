@@ -44,7 +44,6 @@ const ALLOWED_ORPHANS = new Set([
   "/logout",
   "/change-password",
   "/download",
-  "/it-portal/auth",
   // Landing/marketing routes reached from the public site shell.
   "/",
   // Pure redirect shims kept so old links and bookmarks resolve.
@@ -63,7 +62,7 @@ const ALLOWED_ORPHANS = new Set([
 ]);
 
 /** Portal areas where an unreachable page means a lost feature. */
-const PORTAL_PREFIXES = ["/teacher", "/admin", "/student", "/parent", "/it-portal", "/super-admin"];
+const PORTAL_PREFIXES = ["/teacher", "/admin", "/student", "/parent"];
 
 function pageRoutes(dir: string, out: string[] = []): string[] {
   if (!existsSync(dir)) return out;

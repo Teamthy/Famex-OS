@@ -23,7 +23,7 @@ const schema = z.object({
 
 /** POST /api/onboarding — save initial school profile + branding. */
 export async function POST(request: NextRequest) {
-  const user = await requireRole(["ADMIN", "SUPER_ADMIN"] as never);
+  const user = await requireRole(["ADMIN"] as never);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {

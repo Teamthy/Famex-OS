@@ -1,23 +1,19 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { AnimatedText } from "@/components/AnimatedText";
-import {
-  GraduationCap,
-  User,
-  Users,
-  MonitorSmartphone,
-  ArrowRight,
-  LockKeyhole,
-  Sparkles,
-} from "lucide-react";
+import { GraduationCap, User, Users, ArrowRight, LockKeyhole } from "lucide-react";
+import { PRODUCT_NAME, getSchoolBrandTokens } from "@/lib/brand";
 
-export const metadata = {
-  title: "EduPortal — Sign In",
-  description:
-    "Access the Ykay College EduPortal: staff, student, parent, and IT education portals.",
-};
+export function generateMetadata(): Metadata {
+  const { schoolName } = getSchoolBrandTokens();
+  return {
+    title: `${schoolName} — Sign In`,
+    description: `Access the ${schoolName} portal: staff, student, and parent sign-in. Powered by ${PRODUCT_NAME}.`,
+  };
+}
 
 const portals = [
   {
@@ -41,16 +37,6 @@ const portals = [
     accent: false,
   },
   {
-    label: "IT Education",
-    title: "Digital Skills Academy",
-    desc: "Learn Python, AI, cybersecurity, and Microsoft Office. Free accounts for Ykay students and external learners.",
-    icon: MonitorSmartphone,
-    href: "/it-portal/auth",
-    cta: "Sign In / Sign Up",
-    features: ["Python", "AI", "Cybersecurity", "Certifications"],
-    accent: true,
-  },
-  {
     label: "Parent Portal",
     title: "Child Monitoring & Fees",
     desc: "Follow your child's attendance and results, get alerts, and pay school fees securely.",
@@ -63,6 +49,7 @@ const portals = [
 ];
 
 export default function PortalPage() {
+  const { schoolName } = getSchoolBrandTokens();
   return (
     <>
       <Header />
@@ -75,15 +62,14 @@ export default function PortalPage() {
                 <LockKeyhole size={12} /> Secure Access
               </span>
               <h1 className="font-display text-white leading-[0.82] text-[clamp(3rem,11vw,9.5rem)]">
-                <AnimatedText heavy stagger={0.034} text="YKAY" delay={0.0} />
+                <AnimatedText heavy stagger={0.034} text="SCHOOL" delay={0.0} />
                 <span className="text-brand-green">
-                  <AnimatedText heavy stagger={0.034} text="EDUPORTAL" delay={0.1} />
+                  <AnimatedText heavy stagger={0.034} text="PORTAL" delay={0.1} />
                 </span>
               </h1>
               <p className="text-white/60 font-body max-w-2xl mx-auto mt-6 text-base md:text-lg">
                 One digital ecosystem for the whole school community. Choose your portal below and
-                sign in with the credentials issued by Ykay College — or join our IT Education
-                academy.
+                sign in with the credentials issued by your school.
               </p>
             </div>
           </section>
@@ -93,22 +79,12 @@ export default function PortalPage() {
         <Reveal>
           <section className="py-20 px-6">
             <div className="mx-auto max-w-7xl">
-              <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-6">
+              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {portals.map((portal) => (
                   <div
                     key={portal.label}
-                    className={`group relative flex flex-col p-8 rounded-[2rem] bg-[var(--surface-card)] border shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)] hover:-translate-y-1 transition-all duration-300 overflow-hidden ${
-                      portal.accent
-                        ? "border-brand-green/50 ring-1 ring-brand-green/20"
-                        : "border-[var(--border-subtle)] hover:border-brand-green"
-                    }`}
+                    className="group relative flex flex-col p-8 rounded-[2rem] bg-[var(--surface-card)] border border-[var(--border-subtle)] shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)] hover:-translate-y-1 hover:border-brand-green transition-all duration-300 overflow-hidden"
                   >
-                    {portal.accent ? (
-                      <span className="absolute top-4 right-4 inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-brand-navy bg-brand-orange px-2.5 py-1 rounded-full">
-                        <Sparkles size={10} /> Open Enrollment
-                      </span>
-                    ) : null}
-
                     <div className="w-14 h-14 rounded-2xl bg-brand-green/10 flex items-center justify-center text-brand-green group-hover:bg-brand-green group-hover:text-brand-navy transition-colors mb-6">
                       <portal.icon size={26} strokeWidth={1.75} />
                     </div>
@@ -136,11 +112,7 @@ export default function PortalPage() {
 
                     <Link
                       href={portal.href}
-                      className={`inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-xs font-bold uppercase tracking-widest transition-all ${
-                        portal.accent
-                          ? "bg-brand-orange text-brand-navy hover:bg-brand-orange-dark shadow-[var(--btn-secondary-shadow)]"
-                          : "bg-brand-green text-brand-navy hover:bg-brand-green-dark shadow-[var(--btn-primary-shadow)]"
-                      }`}
+                      className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-xs font-bold uppercase tracking-widest transition-all bg-brand-green text-brand-navy hover:bg-brand-green-dark shadow-[var(--btn-primary-shadow)]"
                     >
                       {portal.cta} <ArrowRight size={14} />
                     </Link>
@@ -157,7 +129,7 @@ export default function PortalPage() {
                   password reset option or contact the school office.
                 </p>
                 <p className="font-body text-white/60 max-w-2xl mx-auto mb-6">
-                  Not yet part of Ykay College?{" "}
+                  Not yet part of {schoolName}?{" "}
                   <Link href="/admissions" className="font-bold text-brand-orange hover:underline">
                     Apply for admission online
                   </Link>{" "}

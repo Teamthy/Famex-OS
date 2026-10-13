@@ -5,7 +5,7 @@ import { requireRole } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-const ADMIN_ROLES = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SUPER_ADMIN];
+const ADMIN_ROLES = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR];
 
 /**
  * GET /api/admin/staff/[id]

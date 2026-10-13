@@ -49,9 +49,6 @@ if (!DEFAULT_PASSWORD || DEFAULT_PASSWORD.length < 12) {
 }
 
 const USERS = [
-  // ── Platform Admin ──
-  { email: "superadmin@ykaycollege.com", name: "Platform Developer", role: UserRole.SUPER_ADMIN },
-
   // ── School Administration ──
   { email: "admin@ykaycollege.com", name: "Adebayo Ogundimu", role: UserRole.ADMIN },
   { email: "director@ykaycollege.com", name: "Dr. Folake Adeyemi", role: UserRole.DIRECTOR },
@@ -63,9 +60,6 @@ const USERS = [
   { email: "teacher1@ykaycollege.com", name: "Mr. Emeka Nwosu", role: UserRole.TEACHER },
   { email: "teacher2@ykaycollege.com", name: "Mrs. Amina Sule", role: UserRole.TEACHER },
   { email: "teacher3@ykaycollege.com", name: "Mr. Kolawole Adeyemi", role: UserRole.TEACHER },
-
-  // ── IT Student ──
-  { email: "itstudent@ykaycollege.com", name: "Chidi Okonkwo", role: UserRole.IT_STUDENT },
 ];
 
 const TEACHERS = [
@@ -540,7 +534,7 @@ async function main() {
   console.log("📋 Test Login Directory (password value is not printed):\n");
   console.log("   Password: the operator-supplied SEED_PASSWORD (same for all seeded accounts)\n");
   console.log(
-    "   ⚠️ Demo only: this shared password also opens SUPER_ADMIN. Use only on an isolated test database; do not distribute it with privileged account emails.\n",
+    "   ⚠️ Demo only: this shared password opens every seeded admin account. Use only on an isolated test database; do not distribute it with privileged account emails.\n",
   );
   console.log(
     "   ┌─────────────────────────────────────┬──────────────────────────────┬─────────────────┐",
@@ -574,13 +568,10 @@ async function main() {
     `\n   Session: ${session.label} · ${session.terms.find((t) => t.isCurrent)?.label ?? "—"}`,
   );
   console.log("\n   Portal URLs:");
-  console.log("   • Super Admin:  /super-admin");
   console.log("   • Admin:        /admin");
   console.log("   • Teacher:      /teacher/dashboard");
   console.log("   • Student:      /student/dashboard  (student1@…student6@ykaycollege.com)");
   console.log("   • Parent:       /parent/dashboard");
-  console.log("   • IT Portal:    /it-portal/dashboard");
-  console.log("   • Instructor:   /it-portal/instructor");
   console.log("");
 }
 

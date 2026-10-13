@@ -1,14 +1,19 @@
 import { prisma } from "@/lib/prisma";
 
 /**
- * Per-tenant module / feature flags.
+ * Per-school module / feature flags.
  *
- * Not all schools have IT education, CBT exams, or staff QR attendance.
- * Each school's enabled modules are stored as a JSON map on School.modules:
- *   { "admissions": true, "it_education": false, "exams": true, ... }
+ * Not every school runs the same arms — some have no CBT exams, no staff QR
+ * attendance, no expenses/budgets tracking. Each school's enabled modules are
+ * stored as a JSON map on School.modules:
+ *   { "admissions": true, "exams": false, "budgets": true, ... }
  *
  * When a module key is absent or true → enabled.
  * When explicitly false → disabled.
+ *
+ * F0-17 / F0-25: from W2 this list is the single switchboard that drives nav,
+ * route guards and entitlement together, so the three can never drift apart.
+ * (W1 dropped the retired it_education module — the IT Education arm was removed.)
  */
 
 export const MODULE_KEYS = [
@@ -23,13 +28,12 @@ export const MODULE_KEYS = [
   "notifications",
   "expenses",
   "budgets",
-  "it_education",
 ] as const;
 
 export type ModuleKey = (typeof MODULE_KEYS)[number];
 
-/** Modules enabled by default for a new tenant — everything EXCEPT it_education. */
-export const DEFAULT_ENABLED: ModuleKey[] = MODULE_KEYS.filter((m) => m !== "it_education");
+/** Modules enabled by default for a school — every module unless switched off. */
+export const DEFAULT_ENABLED: ModuleKey[] = [...MODULE_KEYS];
 
 /**
  * Resolve the set of enabled modules for a school.

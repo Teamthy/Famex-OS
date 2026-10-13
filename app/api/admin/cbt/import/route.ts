@@ -12,7 +12,7 @@ import { requireRoleOr503 } from "@/lib/session";
  * skipped, so re-uploading a file is safe.
  */
 export async function POST(req: NextRequest) {
-  const denied = await requireRoleOr503(["ADMIN", "SUPER_ADMIN"]);
+  const denied = await requireRoleOr503(["ADMIN"]);
   if (denied) return denied;
 
   const { csv } = (await req.json()) as { csv?: string };

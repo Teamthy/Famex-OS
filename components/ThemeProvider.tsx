@@ -20,7 +20,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("ykay-theme");
+      const saved = localStorage.getItem("famex-theme");
       // Only use saved theme if user explicitly chose one
       if (saved === "light" || saved === "dark") {
         setThemeState(saved as Theme);
@@ -38,7 +38,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.setAttribute("data-theme", theme);
     setResolvedTheme(theme);
     try {
-      localStorage.setItem("ykay-theme", theme);
+      localStorage.setItem("famex-theme", theme);
     } catch {}
   }, [theme]);
 

@@ -13,151 +13,16 @@ const BRAND = {
   bg: [245, 247, 250] as [number, number, number],
 };
 
-/**
- * Generate a branded Ykay College IT Certificate PDF
- */
-/** Header line under the school name. The address is included only once the school has confirmed it. */
+/** Header line under the school name — the confirmed address, or empty (F0-21). */
 function schoolTagline(address?: string | null) {
-  return address ? `Leadership Academy · ${address}` : "Leadership Academy";
+  return address ?? "";
 }
-
-export function generateCertificatePDF(data: {
-  studentName: string;
-  courseTitle: string;
-  certification: string;
-  certificateNumber: string;
-  issuedAt: string;
-  level: string;
-  schoolAddress?: string | null;
-}) {
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-  const W = 297,
-    H = 210;
-
-  // Full navy background
-  doc.setFillColor(...BRAND.navy);
-  doc.rect(0, 0, W, H, "F");
-
-  // Decorative green border
-  doc.setDrawColor(...BRAND.green);
-  doc.setLineWidth(2);
-  doc.rect(10, 10, W - 20, H - 20);
-  doc.setLineWidth(0.5);
-  doc.rect(14, 14, W - 28, H - 28);
-
-  // Corner accents
-  const cornerSize = 20;
-  doc.setFillColor(...BRAND.green);
-  doc.triangle(10, 10, 10 + cornerSize, 10, 10, 10 + cornerSize, "F");
-  doc.triangle(W - 10, 10, W - 10 - cornerSize, 10, W - 10, 10 + cornerSize, "F");
-  doc.triangle(10, H - 10, 10 + cornerSize, H - 10, 10, H - 10 - cornerSize, "F");
-  doc.triangle(W - 10, H - 10, W - 10 - cornerSize, H - 10, W - 10, H - 10 - cornerSize, "F");
-
-  // School name
-  doc.setTextColor(...BRAND.white);
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text("YKAY COLLEGE & LEADERSHIP ACADEMY", W / 2, 35, { align: "center" });
-
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(...BRAND.gray);
-  if (data.schoolAddress) {
-    doc.text(data.schoolAddress, W / 2, 42, { align: "center" });
-  }
-
-  // Green divider
-  doc.setDrawColor(...BRAND.green);
-  doc.setLineWidth(1);
-  doc.line(80, 48, W - 80, 48);
-
-  // Certificate title
-  doc.setTextColor(...BRAND.green);
-  doc.setFontSize(28);
-  doc.setFont("helvetica", "bold");
-  doc.text("CERTIFICATE", W / 2, 65, { align: "center" });
-
-  doc.setFontSize(12);
-  doc.setTextColor(...BRAND.white);
-  doc.text("OF COMPLETION", W / 2, 73, { align: "center" });
-
-  // Awarded to
-  doc.setFontSize(10);
-  doc.setTextColor(...BRAND.gray);
-  doc.text("This is to certify that", W / 2, 88, { align: "center" });
-
-  // Student name
-  doc.setFontSize(24);
-  doc.setTextColor(...BRAND.white);
-  doc.setFont("helvetica", "bold");
-  doc.text(data.studentName, W / 2, 100, { align: "center" });
-
-  // Green underline
-  const nameWidth = doc.getTextWidth(data.studentName);
-  doc.setDrawColor(...BRAND.green);
-  doc.setLineWidth(0.5);
-  doc.line((W - nameWidth) / 2, 103, (W + nameWidth) / 2, 103);
-
-  // Description
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(...BRAND.gray);
-  doc.text("has successfully completed the IT education programme in", W / 2, 114, {
-    align: "center",
-  });
-
-  // Course title
-  doc.setFontSize(16);
-  doc.setTextColor(...BRAND.greenLight);
-  doc.setFont("helvetica", "bold");
-  doc.text(data.courseTitle, W / 2, 124, { align: "center" });
-
-  // Certification
-  doc.setFontSize(10);
-  doc.setTextColor(...BRAND.white);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Credential: ${data.certification}`, W / 2, 134, { align: "center" });
-  doc.text(`Level: ${data.level}`, W / 2, 140, { align: "center" });
-
-  // Certificate number and date
-  doc.setFontSize(8);
-  doc.setTextColor(...BRAND.gray);
-  doc.text(`Certificate No: ${data.certificateNumber}`, 40, H - 35);
-  doc.text(
-    `Date Issued: ${new Date(data.issuedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`,
-    W - 40,
-    H - 35,
-    { align: "right" },
-  );
-
-  // Signature lines
-  doc.setDrawColor(...BRAND.lightGray);
-  doc.setLineWidth(0.3);
-  doc.line(40, H - 28, 100, H - 28);
-  doc.line(W - 100, H - 28, W - 40, H - 28);
-
-  doc.setFontSize(7);
-  doc.setTextColor(...BRAND.gray);
-  doc.text("Director, IT Education", 70, H - 24, { align: "center" });
-  doc.text("School Director", W - 70, H - 24, { align: "center" });
-
-  // Footer
-  doc.setFontSize(6);
-  doc.setTextColor(80, 80, 80);
-  doc.text(
-    "This certificate was digitally issued by Ykay College & Leadership Academy. Verify at ykaycollege.edu.ng/verify",
-    W / 2,
-    H - 15,
-    { align: "center" },
-  );
-
-  doc.save(`YKAY-Certificate-${data.certificateNumber}.pdf`);
-}
-
 /**
- * Generate a branded Ykay College Report Card PDF
+ * Generate a school Report Card PDF.
+ * F0-21: the school name is a brand token passed by the caller, never a literal.
  */
 export function generateReportCardPDF(data: {
+  schoolName?: string | null;
   schoolAddress?: string | null;
   studentName: string;
   studentClass: string;
@@ -195,7 +60,7 @@ export function generateReportCardPDF(data: {
   doc.setTextColor(...BRAND.white);
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text("YKAY COLLEGE", W / 2, 15, { align: "center" });
+  doc.text((data.schoolName || "School").toUpperCase(), W / 2, 15, { align: "center" });
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.text(schoolTagline(data.schoolAddress), W / 2, 21, { align: "center" });
@@ -348,155 +213,9 @@ export function generateReportCardPDF(data: {
   // Footer
   doc.setFontSize(6);
   doc.setTextColor(...BRAND.gray);
-  doc.text(`Generated by Ykay College EduPortal · ${new Date().toLocaleDateString()}`, W / 2, 290, {
+  doc.text(`Generated by ${data.schoolName || "School"} · ${new Date().toLocaleDateString()}`, W / 2, 290, {
     align: "center",
   });
 
-  doc.save(`YKAY-ReportCard-${data.studentId}-${data.term}.pdf`);
-}
-
-/**
- * Generate a branded Ykay College Payment Receipt PDF
- */
-export function generateReceiptPDF(data: {
-  schoolAddress?: string | null;
-  receiptNo: string;
-  date: string;
-  studentName: string;
-  studentClass: string;
-  studentId: string;
-  parentName: string;
-  feeItems: { label: string; amount: number }[];
-  totalPaid: number;
-  paymentMethod: string;
-  paymentReference: string;
-}) {
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const W = 210;
-  let Y = 0;
-
-  // Header
-  doc.setFillColor(...BRAND.navy);
-  doc.rect(0, 0, W, 50, "F");
-
-  doc.setTextColor(...BRAND.white);
-  doc.setFontSize(20);
-  doc.setFont("helvetica", "bold");
-  doc.text("YKAY COLLEGE", W / 2, 18, { align: "center" });
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.text(schoolTagline(data.schoolAddress), W / 2, 25, { align: "center" });
-
-  // Green badge
-  doc.setFillColor(78, 197, 77, 0.2);
-  doc.roundedRect(W / 2 - 25, 32, 50, 8, 4, 4, "F");
-  doc.setTextColor(...BRAND.green);
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "bold");
-  doc.text("OFFICIAL RECEIPT", W / 2, 38, { align: "center" });
-
-  // Green accent
-  doc.setFillColor(...BRAND.green);
-  doc.rect(0, 50, W, 2, "F");
-
-  Y = 60;
-
-  // Receipt number and date
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...BRAND.green);
-  doc.text(data.receiptNo, 20, Y);
-  doc.setTextColor(...BRAND.navy);
-  doc.text(data.date, W - 20, Y, { align: "right" });
-
-  Y += 10;
-
-  // Student & parent info
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(...BRAND.gray);
-  const info = [
-    ["Student:", data.studentName],
-    ["Class:", data.studentClass],
-    ["Student ID:", data.studentId],
-    ["Parent:", data.parentName],
-  ];
-  info.forEach(([label, value], i) => {
-    const col = i % 2;
-    const row = Math.floor(i / 2);
-    const x = 20 + col * 90;
-    const y = Y + row * 7;
-    doc.setFont("helvetica", "bold");
-    doc.text(label, x, y);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...BRAND.navy);
-    doc.text(value, x + doc.getTextWidth(label) + 3, y);
-    doc.setTextColor(...BRAND.gray);
-  });
-
-  Y += 20;
-
-  // Fee items table
-  doc.setFillColor(...BRAND.navy);
-  doc.rect(20, Y, W - 40, 8, "F");
-  doc.setTextColor(...BRAND.white);
-  doc.setFontSize(7);
-  doc.setFont("helvetica", "bold");
-  doc.text("DESCRIPTION", 25, Y + 5.5);
-  doc.text("AMOUNT (₦)", W - 25, Y + 5.5, { align: "right" });
-  Y += 10;
-
-  data.feeItems.forEach((item, i) => {
-    if (i % 2 === 0) {
-      doc.setFillColor(245, 247, 250);
-      doc.rect(20, Y - 2, W - 40, 7, "F");
-    }
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...BRAND.navy);
-    doc.text(item.label, 25, Y + 3);
-    doc.text(item.amount.toLocaleString("en-NG"), W - 25, Y + 3, { align: "right" });
-    Y += 7;
-  });
-
-  // Total line
-  doc.setDrawColor(...BRAND.green);
-  doc.setLineWidth(0.5);
-  doc.line(20, Y, W - 20, Y);
-  Y += 6;
-
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...BRAND.green);
-  doc.text("TOTAL PAID", 25, Y + 3);
-  doc.text(`₦${data.totalPaid.toLocaleString("en-NG")}`, W - 25, Y + 3, { align: "right" });
-
-  Y += 15;
-
-  // Payment details
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(...BRAND.gray);
-  doc.text(`Payment Method: ${data.paymentMethod}`, 20, Y);
-  doc.text(`Reference: ${data.paymentReference}`, 20, Y + 6);
-
-  // Footer
-  doc.setFontSize(6);
-  doc.setTextColor(150, 150, 150);
-  doc.text(
-    "This is a computer-generated receipt from Ykay College EduPortal. No signature required.",
-    W / 2,
-    280,
-    { align: "center" },
-  );
-  doc.text(`Generated: ${new Date().toISOString()}`, W / 2, 285, { align: "center" });
-
-  // Green checkmark
-  doc.setTextColor(...BRAND.green);
-  doc.setFontSize(20);
-  doc.text("✓", W / 2, 260, { align: "center" });
-  doc.setFontSize(8);
-  doc.text("Payment Confirmed", W / 2, 267, { align: "center" });
-
-  doc.save(`YKAY-Receipt-${data.receiptNo}.pdf`);
+  doc.save(`ReportCard-${data.studentId}-${data.term}.pdf`);
 }

@@ -8,7 +8,6 @@ datasource db {
 }
 
 enum UserRole {
-  SUPER_ADMIN
   ADMIN
   DIRECTOR
   BURSAR
@@ -17,7 +16,6 @@ enum UserRole {
   TEACHER
   PARENT
   STUDENT
-  IT_STUDENT
 }
 
 enum ApplicationStatus {
@@ -106,11 +104,6 @@ enum ReportCardStatus {
   RELEASED
 }
 
-enum ItEnrollmentStatus {
-  ACTIVE
-  COMPLETED
-}
-
 enum NotificationKind {
   ATTENDANCE_ALERT
   FEE_REMINDER
@@ -187,7 +180,6 @@ model School {
   feePayments             FeePayment[]
   feePaymentAttempts      FeePaymentAttempt[]
   reportCards             ReportCard[]
-  itEnrollments           ItEnrollment[]
   notificationJobs        NotificationJob[]
   userNotifications       UserNotification[]
   notificationPreferences NotificationPreference[]
@@ -202,7 +194,6 @@ model School {
   expenses                Expense[]
   budgets                 Budget[]
   staffAttendanceEvents   StaffAttendanceEvent[]
-  subscription            Subscription?
   branding                TenantBranding?
   messageThreads          MessageThread[]
   messages                Message[]
@@ -238,7 +229,6 @@ model User {
   parentProfile               ParentProfile?
   requestedCorrectionRequests AttendanceCorrectionRequest[] @relation("CorrectionRequester")
   reviewedCorrectionRequests  AttendanceCorrectionRequest[] @relation("CorrectionReviewer")
-  itEnrollments               ItEnrollment[]
   userNotifications           UserNotification[]
   newsPosts                   NewsPost[]
   messageParticipants         MessageParticipant[]
@@ -718,84 +708,6 @@ model ReportCardSubject {
   reportCard ReportCard @relation(fields: [reportCardId], references: [id], onDelete: Cascade)
 
   @@index([reportCardId, sortOrder])
-}
-
-model ItCourse {
-  id            String   @id @default(cuid())
-  slug          String   @unique
-  title         String
-  tagline       String
-  description   String
-  level         String
-  certification String
-  durationWeeks Int
-  sortOrder     Int      @default(0)
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  modules     ItModule[]
-  enrollments ItEnrollment[]
-
-  @@index([isActive, sortOrder])
-}
-
-model ItModule {
-  id              String   @id @default(cuid())
-  courseId        String
-  title           String
-  summary         String
-  content         String
-  durationMinutes Int      @default(45)
-  sortOrder       Int      @default(0)
-  createdAt       DateTime @default(now())
-
-  course   ItCourse           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  progress ItModuleProgress[]
-
-  @@index([courseId, sortOrder])
-}
-
-model ItEnrollment {
-  id          String             @id @default(cuid())
-  schoolId    String
-  userId      String
-  courseId    String
-  status      ItEnrollmentStatus @default(ACTIVE)
-  enrolledAt  DateTime           @default(now())
-  completedAt DateTime?
-
-  school      School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course      ItCourse           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  progress    ItModuleProgress[]
-  certificate ItCertificate?
-
-  @@unique([userId, courseId])
-  @@index([schoolId, status])
-  @@index([courseId, status])
-}
-
-model ItModuleProgress {
-  id           String   @id @default(cuid())
-  enrollmentId String
-  moduleId     String
-  completedAt  DateTime @default(now())
-
-  enrollment ItEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-  module     ItModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-
-  @@unique([enrollmentId, moduleId])
-  @@index([moduleId])
-}
-
-model ItCertificate {
-  id                String   @id @default(cuid())
-  enrollmentId      String   @unique
-  certificateNumber String   @unique
-  issuedAt          DateTime @default(now())
-
-  enrollment ItEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
 }
 
 model NotificationJob {
@@ -1427,50 +1339,6 @@ model SystemFlags {
 enum SchoolStatus {
   ACTIVE
   SUSPENDED
-}
-
-enum PlanTier {
-  FREE
-  BASIC
-  PREMIUM
-  ENTERPRISE
-}
-
-enum SubscriptionStatus {
-  TRIALING
-  ACTIVE
-  PAST_DUE
-  CANCELED
-}
-
-/// A sellable plan tier. `studentLimit` null = unlimited.
-model Plan {
-  id           String   @id @default(cuid())
-  tier         PlanTier @unique
-  name         String
-  priceKobo    Int      @default(0)
-  studentLimit Int?
-  features     Json?
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  subscriptions Subscription[]
-}
-
-/// A school's subscription to a plan. One per school.
-model Subscription {
-  id                       String             @id @default(cuid())
-  schoolId                 String             @unique
-  planId                   String
-  status                   SubscriptionStatus @default(TRIALING)
-  currentPeriodEnd         DateTime?
-  paystackSubscriptionCode String?
-  createdAt                DateTime           @default(now())
-  updatedAt                DateTime           @updatedAt
-
-  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Restrict)
 }
 
 /// Per-tenant branding (logo, palette, fonts, hero image). One row per school.

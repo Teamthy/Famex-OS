@@ -2,7 +2,6 @@ import { FeePaymentMethod, PaymentStatus } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { getParentFinanceContext } from "@/lib/finance";
-import { assertNotImpersonating } from "@/lib/session";
 import { postCompletedFeePayment } from "@/lib/fee-payment-service";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
@@ -28,8 +27,6 @@ export async function POST(request: NextRequest) {
       { status: 404 },
     );
   }
-  const impersonating = assertNotImpersonating(context.user);
-  if (impersonating) return impersonating;
 
   let input: z.infer<typeof schema>;
   try {

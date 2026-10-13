@@ -8,7 +8,7 @@ import { requireRole } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-const ADMIN_ROLES = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SUPER_ADMIN];
+const ADMIN_ROLES = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR];
 
 function slugify(title: string) {
   return `${title

@@ -70,8 +70,8 @@ export async function GET() {
   // Probe the role sets that matter, using the SAME function the routes use,
   // so this can never disagree with the real check.
   const [asAdmin, asSubjectAdmin] = await Promise.all([
-    checkRole([UserRole.ADMIN, UserRole.DIRECTOR, UserRole.SUPER_ADMIN]),
-    checkRole([UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SUPER_ADMIN]),
+    checkRole([UserRole.ADMIN, UserRole.DIRECTOR]),
+    checkRole([UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR]),
   ]);
 
   return NextResponse.json({
@@ -82,7 +82,6 @@ export async function GET() {
       role: session.role,
       schoolId: session.schoolId,
       tokenVersion: session.tokenVersion ?? 0,
-      impersonatedBy: session.impersonatedBy ?? null,
       mustChangePassword: Boolean(session.mustChangePassword),
     },
     database: dbState,
@@ -92,9 +91,6 @@ export async function GET() {
       admin: asAdmin.ok ? "OK" : asAdmin.reason,
       subjectAdmin: asSubjectAdmin.ok ? "OK" : asSubjectAdmin.reason,
     },
-    // Impersonated sessions are blocked from every write by middleware — but
-    // that returns 403, not 401, so it is ruled in or out here explicitly.
-    writesBlockedByImpersonation: Boolean(session.impersonatedBy),
     message: asSubjectAdmin.ok
       ? "This session can use /api/admin/subjects. A 401 from it means the cookie is not reaching that request."
       : explainDenial(asSubjectAdmin.reason),
