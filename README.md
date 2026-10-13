@@ -25,6 +25,18 @@ schema drift, tenant isolation, and load behavior.
 
 ---
 
+##  Session handoff (read first)
+
+**[`docs/famex/HANDOFF.md`](docs/famex/HANDOFF.md)** is the living record of what
+has been built, what is decided, and what the next session does. Every session
+MUST read it at start and **update it before creating or merging any pull
+request** (protocol in its §0). Governing specs:
+[`08-feature-catalogue.md`](docs/famex/08-feature-catalogue.md),
+[`09-master-build-prompt-go.md`](docs/famex/09-master-build-prompt-go.md),
+[`10-scope-additions.md`](docs/famex/10-scope-additions.md).
+
+---
+
 ## Highlights
 
 - **Role portals** — Admin/Director/Coordinator/Bursar, Teacher/HOD, Student and
