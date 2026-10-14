@@ -46,7 +46,7 @@ Read in this order before any work:
 | WS | Scope (short) | Status |
 |---|---|---|
 | **W1** | Strip EDUos platform + Ykay arms; single-school boot; brand tokens; Licence & Usage; re-cut audit | ✅ **MERGED into main** — PR #1, 2026-10-14 (commits `a9451cd`, `ccaab0b` + this handoff commit). Gates green at merge; DB gates environment-blocked and stated in the PR. |
-| **W2** | Module registry drives nav/routes/entitlements; settings framework; first-run wizard; `check:modules` | ✅ **implemented — PR open** (branch `arena/9abf8aef-famex-os`, 2026-10-14). Gates green; DB gates environment-blocked and stated in the PR. |
+| **W2** | Module registry drives nav/routes/entitlements; settings framework; first-run wizard; `check:modules` | ✅ **merged** — PR #2, merge commit `74f236c` (branch `arena/9abf8aef-famex-os`, 2026-10-14). All CI jobs green except the pre-existing red `Lighthouse budgets` workflow (also red on the W1 merge). |
 | W3 | Double-entry ledger → Fees & Billing; bursar dashboard; gateway reconciliation | ⬅️ **NEXT** |
 | W4 | Notification spine + WhatsApp Business (categories, receipts, cost) | pending |
 | W5 | Admissions funnel, classes/streams, timetable, attendance, GPS clock-in | pending |
