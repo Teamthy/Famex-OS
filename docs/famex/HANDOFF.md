@@ -110,7 +110,8 @@ Run from repo root. Latest (**W2 close, 2026-10-14**, branch `arena/9abf8aef-fam
 | client boundary | `npm run check:boundary` | `Checking 152 client component(s)…` / `No client component reaches a server-only module.` |
 | prisma schema | `npx prisma validate` | `The schema at prisma/schema.prisma is valid 🚀` (needs a dummy `DATABASE_URL`) |
 | tenant coverage | `npm run check:tenant-coverage` | exit 0 — 13 UNCOVERED, all pre-existing teacher/auth routes; CI's `--max-uncovered 18` still satisfied |
-| DB gates | `check:drift`, `check:readiness`, migration apply, seeds, `npx playwright test`, `verify:rls:coverage`, `verify:admissions` | **environment-blocked**: no Postgres in the sandbox and the Prisma engines are stubbed (`check:drift` prints `DATABASE_URL is required`). The W2 migration is **committed, not applied** — apply it on deploy before seeding. |
+| DB gates | `check:drift`, migration apply, `verify:rls` + `verify:rls:coverage`, `verify:admissions`, `db:seed*`, `npx playwright test` | **Blocked in the local sandbox** (no Postgres, Prisma engines stubbed → `check:drift` prints `DATABASE_URL is required`). **Run for real by CI on this PR** (Postgres 17 service): "Apply migrations to a clean database" ✓, "Assert no schema drift" ✓, "Verify RLS tenant isolation" ✓, "Verify RLS coverage" ✓, "Verify admissions operations loop" ✓, Build ✓, Browser E2E ✓, Load test ✓, Mobile ✓ — all green. `check:readiness` needs a *seeded* school and still has no CI step; apply the migration and seed on deploy before opening a term. |
+| Lighthouse budgets | GitHub `Lighthouse budgets` workflow | Red on `main` and on W1's PR too (`Run Lighthouse CI` exits 1, no `.lighthouseci/` report) — pre-existing, not a W2 regression. |
 
 Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only lowers; gate fails if it grows).
 
