@@ -1,5 +1,6 @@
 import { FeeInvoiceStatus, Prisma, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { postInvoiceAccrual } from "@/lib/ledger-postings";
 
 /**
  * Fee structures and invoice generation.
@@ -286,31 +287,49 @@ export async function generateInvoices(params: {
       : null;
 
     try {
-      await prisma.feeInvoice.create({
-        data: {
-          schoolId: params.schoolId,
-          studentProfileId: row.studentProfileId,
-          parentProfileId: parentOf.get(row.studentProfileId) ?? null,
-          invoiceNumber: buildInvoiceNumber(plan.term.sessionLabel, plan.term.index, sequence),
-          title: structure.title,
-          termLabel: plan.term.label,
-          termId: params.termId,
-          status: FeeInvoiceStatus.UNPAID,
-          totalAmount: total,
-          amountPaid: 0,
-          balanceDue: total,
-          dueDate,
-          items: {
-            createMany: {
-              data: structure.items.map((item) => ({
-                label: item.label,
-                amount: item.amount,
-                mandatory: item.mandatory,
-                sortOrder: item.sortOrder,
-              })),
+      // The invoice and its ledger accrual (F5-08: fees receivable up, fee
+      // income up) are one transaction. A billed family that is missing from
+      // the ledger is an arrears report that cannot be trusted, and RLS/route
+      // bugs aside, the only way to guarantee they agree is to write them
+      // together.
+      await prisma.$transaction(async (tx) => {
+        const invoice = await tx.feeInvoice.create({
+          data: {
+            schoolId: params.schoolId,
+            studentProfileId: row.studentProfileId,
+            parentProfileId: parentOf.get(row.studentProfileId) ?? null,
+            invoiceNumber: buildInvoiceNumber(plan.term.sessionLabel, plan.term.index, sequence),
+            title: structure.title,
+            termLabel: plan.term.label,
+            termId: params.termId,
+            status: FeeInvoiceStatus.UNPAID,
+            totalAmount: total,
+            amountPaid: 0,
+            balanceDue: total,
+            dueDate,
+            items: {
+              createMany: {
+                data: structure.items.map((item) => ({
+                  label: item.label,
+                  amount: item.amount,
+                  mandatory: item.mandatory,
+                  sortOrder: item.sortOrder,
+                })),
+              },
             },
           },
-        },
+        });
+
+        await postInvoiceAccrual(tx, {
+          schoolId: params.schoolId,
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          totalNaira: total,
+          termLabel: plan.term.label,
+          studentProfileId: row.studentProfileId,
+          actorUserId: params.actorUserId,
+          postedAt: invoice.issuedAt,
+        });
       });
       created += 1;
       totalBilled += total;

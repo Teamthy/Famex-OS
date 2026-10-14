@@ -7,12 +7,17 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { computeInvoiceStatus, generateUniqueReceiptNumber } from "@/lib/finance";
+import { postPaymentReceipt } from "@/lib/ledger-postings";
 
 /**
  * Atomically post a completed school-fee payment.
  * - Unique payment.reference makes retries idempotent.
  * - Invoice balance is reserved with updateMany (optimistic concurrency).
  * - Never trusts the browser for "paid"; only call after Paystack verify or bursar approval.
+ * - Posts the ledger journal (F5-08) IN THE SAME TRANSACTION: cash/bank up,
+ *   fees receivable down. A payment that is not in the ledger does not exist,
+ *   and a posting that fails rolls the payment back with it — the two can
+ *   never disagree.
  */
 export async function postCompletedFeePayment(input: {
   attemptId?: string;
@@ -74,6 +79,19 @@ export async function postCompletedFeePayment(input: {
         receiptNumber: await generateUniqueReceiptNumber(),
         providerData: input.providerData,
       },
+    });
+
+    // Rule 10: the document and its posting commit together.
+    await postPaymentReceipt(tx, {
+      schoolId: input.schoolId,
+      paymentId: payment.id,
+      receiptNumber: payment.receiptNumber,
+      reference: input.reference,
+      amountNaira: input.amount,
+      method: input.method,
+      studentProfileId: input.studentProfileId,
+      actorUserId: input.actorUserId ?? null,
+      paidAt: payment.paidAt,
     });
 
     if (input.attemptId) {

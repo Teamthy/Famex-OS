@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { LoaderCircle, Plus, Trash2, Wallet } from "lucide-react";
+import { Ban, LoaderCircle, Plus, Wallet } from "lucide-react";
 import AdminSidebar from "@/components/AdminSidebar";
 import PortalTopbar from "@/components/PortalTopbar";
 import { useToast } from "@/components/Toast";
@@ -15,6 +15,9 @@ type Expense = {
   vendor: string | null;
   paymentMethod: string | null;
   reference: string | null;
+  /** W3: voided rows are kept and hidden from the live list (Rule 9). */
+  voidedAt?: string | null;
+  voidReason?: string | null;
 };
 
 const CATEGORIES = [
@@ -87,15 +90,38 @@ export default function AdminExpensesPage() {
     }
   }
 
-  async function remove(id: string) {
-    if (!confirm("Delete this expense record?")) return;
-    const r = await fetch(`/api/admin/expenses?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+  /**
+   * Void, not delete (Rule 9). The record stays with who voided it and why,
+   * and the ledger posting is cancelled by a counter-entry — so last term's
+   * spending still explains itself a year later.
+   */
+  async function voidExpense(id: string) {
+    if (
+      !confirm(
+        "Void this expense? It stays on record, and the ledger is corrected by a counter-entry.",
+      )
+    )
+      return;
+    const reason = window.prompt(
+      "Why is this being voided? (recorded with your name)",
+      "Entered in error",
+    );
+    if (reason === null) return;
+    const r = await fetch(
+      `/api/admin/expenses?id=${encodeURIComponent(id)}&reason=${encodeURIComponent(reason || "Entered in error")}`,
+      { method: "DELETE" },
+    );
     const j = await r.json();
     if (!r.ok) {
-      toast(j.error || "Delete failed.", "error");
+      toast(j.error || "Void failed.", "error");
       return;
     }
-    toast("Expense deleted.", "success");
+    toast(
+      j.reversalJournal
+        ? `Expense voided — counter-entry ${j.reversalJournal}.`
+        : "Expense voided.",
+      "success",
+    );
     await load();
   }
 
@@ -166,11 +192,12 @@ export default function AdminExpensesPage() {
                       <td className="p-4 font-semibold">₦{e.amount.toLocaleString()}</td>
                       <td className="p-4">
                         <button
-                          onClick={() => void remove(e.id)}
+                          onClick={() => void voidExpense(e.id)}
                           className="text-red-500 hover:text-red-600"
-                          aria-label="Delete"
+                          aria-label="Void expense"
+                          title="Void (the record is kept)"
                         >
-                          <Trash2 size={16} />
+                          <Ban size={16} />
                         </button>
                       </td>
                     </tr>

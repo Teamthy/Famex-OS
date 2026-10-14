@@ -148,6 +148,17 @@ jobs:
         env:
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
 
+      - name: Verify the ledger (money loop)
+        # W3: provisions the chart of accounts, raises an invoice, takes a
+        # payment, reconciles the ledger against the documents to the kobo,
+        # proves a repeated posting is one journal, proves the DATABASE refuses
+        # an unbalanced journal (deferred constraint trigger), reverses by
+        # counter-entry, and voids an expenditure. Unit tests mock Prisma and
+        # cannot prove any of that.
+        run: npm run verify:ledger
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
   e2e:
     name: Browser E2E
     runs-on: ubuntu-latest

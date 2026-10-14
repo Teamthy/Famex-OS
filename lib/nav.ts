@@ -174,6 +174,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       live("Generate Invoices", "/admin/fees/generate", "W3"),
       live("Transfer Review", "/admin/fees/transfers", "W3"),
       live("Finances", "/admin/finances", "W3"),
+      live("General Ledger", "/admin/finances/ledger", "W3"),
       live("Expenditures", "/admin/expenses", "W3", { moduleKey: "expenses" }),
       live("Budget Planner", "/admin/budgets", "W3", { moduleKey: "budgets" }),
       planned("Payment Records", "W3"),

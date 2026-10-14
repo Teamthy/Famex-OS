@@ -5,6 +5,15 @@
  * without a real database connection.
  */
 import { vi } from "vitest";
+import { DEFAULT_CHART_OF_ACCOUNTS } from "../lib/ledger-accounts";
+
+/** The provisioned chart, with ids, as a freshly-onboarded school would have it. */
+const DEFAULT_LEDGER_ACCOUNTS = DEFAULT_CHART_OF_ACCOUNTS.map((account) => ({
+  code: account.code,
+  name: account.name,
+  type: account.type,
+  systemKey: account.systemKey,
+}));
 
 // Mock Prisma client
 const mockPrisma = {
@@ -186,6 +195,41 @@ const mockPrisma = {
     updateMany: vi.fn(),
     upsert: vi.fn(),
   },
+  /**
+   * ── W3 ledger (F5-08) ────────────────────────────────────────────────────
+   * Every money path posts a journal inside its own transaction, so the mock
+   * has to behave like a PROVISIONED school: the chart of accounts already
+   * exists (nothing is missing, so `ensureLedgerAccounts` is one read) and a
+   * journal create returns a real-looking row. Without this, a fee payment
+   * test would fail on the posting rather than on the behaviour it is testing.
+   *
+   * Tests that assert on the posting override these — see
+   * tests/lib/ledger.test.ts, tests/lib/ledger-postings.test.ts and
+   * tests/lib/fee-payment-service.test.ts.
+   */
+  ledgerAccount: {
+    findMany: vi.fn(),
+    findFirst: vi.fn(),
+    create: vi.fn(),
+    createMany: vi.fn(),
+    count: vi.fn(),
+    update: vi.fn(),
+  },
+  ledgerJournal: {
+    findFirst: vi.fn(),
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    count: vi.fn(),
+    create: vi.fn(),
+  },
+  ledgerLine: {
+    findMany: vi.fn(),
+    groupBy: vi.fn(),
+    aggregate: vi.fn(),
+    count: vi.fn(),
+    create: vi.fn(),
+    createMany: vi.fn(),
+  },
   feeStructure: {
     findFirst: vi.fn(),
     findUnique: vi.fn(),
@@ -328,6 +372,57 @@ vi.mock("next/headers", () => ({
     }),
   ),
 }));
+
+/**
+ * ── Ledger mock defaults ────────────────────────────────────────────────────
+ * Set through `mockResolvedValue` (a persistent implementation), because
+ * `vi.clearAllMocks()` — which nearly every test file calls in `beforeEach` —
+ * clears calls but NOT implementations. Apply them once at load, and again
+ * from `resetLedgerMocks()` in a file that overrides them.
+ */
+function applyLedgerDefaults() {
+  mockPrisma.ledgerAccount.findMany.mockResolvedValue(
+    DEFAULT_LEDGER_ACCOUNTS.map((account) => ({
+      id: `acct_${account.code}`,
+      ...account,
+      isActive: true,
+    })),
+  );
+  mockPrisma.ledgerAccount.findFirst.mockResolvedValue(null);
+  mockPrisma.ledgerAccount.create.mockResolvedValue(null);
+  mockPrisma.ledgerAccount.createMany.mockResolvedValue({ count: 0 });
+  mockPrisma.ledgerAccount.count.mockResolvedValue(0);
+  mockPrisma.ledgerAccount.update.mockResolvedValue({});
+
+  mockPrisma.ledgerJournal.findFirst.mockResolvedValue(null);
+  mockPrisma.ledgerJournal.findUnique.mockResolvedValue(null);
+  mockPrisma.ledgerJournal.findMany.mockResolvedValue([]);
+  mockPrisma.ledgerJournal.count.mockResolvedValue(0);
+  mockPrisma.ledgerJournal.create.mockImplementation(
+    async (args: { data?: Record<string, unknown> }) => ({
+      id: "jrn_1",
+      number: "JRN-2026-000001",
+      postedAt: new Date("2026-10-14T09:00:00.000Z"),
+      description: args?.data?.description ?? "",
+      sourceType: args?.data?.sourceType ?? "FEE_PAYMENT",
+      sourceId: args?.data?.sourceId ?? null,
+    }),
+  );
+
+  mockPrisma.ledgerLine.findMany.mockResolvedValue([]);
+  mockPrisma.ledgerLine.groupBy.mockResolvedValue([]);
+  mockPrisma.ledgerLine.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
+  mockPrisma.ledgerLine.count.mockResolvedValue(0);
+  mockPrisma.ledgerLine.create.mockResolvedValue({});
+  mockPrisma.ledgerLine.createMany.mockResolvedValue({ count: 0 });
+}
+
+applyLedgerDefaults();
+
+/** Re-apply the ledger defaults after a test replaced them. */
+export function resetLedgerMocks() {
+  applyLedgerDefaults();
+}
 
 // Export for use in tests
 export { mockPrisma };

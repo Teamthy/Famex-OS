@@ -5,7 +5,7 @@
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![Expo](https://img.shields.io/badge/Expo-RN-000)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791)
-![tests](https://img.shields.io/badge/tests-663%2B%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-898%20passing-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
 A single-school operating system for a Nigerian secondary school — one install,
@@ -19,9 +19,10 @@ removed: there is no cross-school console, no plan/subscription tier and no
 vendor-branded chrome. The school's name, colours, logo and contacts are brand
 tokens (`lib/brand.ts`), never literals.
 
-This is a production-quality reference implementation: 140+ API routes, 60
-database models, payments, offline-first mobile, and a CI pipeline that verifies
-schema drift, tenant isolation, and load behavior.
+This is a production-quality reference implementation: 140+ API routes, 70
+database models, a double-entry ledger, payments, offline-first mobile, and a CI
+pipeline that verifies schema drift, tenant isolation, ledger reconciliation and
+load behavior.
 
 ---
 
@@ -46,6 +47,11 @@ request** (protocol in its §0). Governing specs:
   **PostgreSQL Row-Level Security** as a DB-level isolation backstop (with a CI
   coverage guard that fails if any tenant table is left unprotected), so a second
   campus can be added later without a rewrite.
+- **Double-entry ledger** — every naira posted twice (`LedgerAccount` /
+  `LedgerJournal` / signed-kobo `LedgerLine`), invoices and payments posting
+  inside their own transactions, corrections by counter-entry (never a delete),
+  a trial balance and per-account statements at `/admin/finances/ledger`, and a
+  Postgres constraint trigger that refuses an unbalanced journal.
 - **Payments** — Paystack integration with signature-verified webhooks,
   idempotency, and refund/transfer workflows.
 - **Admissions** — draft → document upload (presigned S3) → application fee →
@@ -71,7 +77,7 @@ request** (protocol in its §0). Governing specs:
 | Rate limiting | Upstash Redis (in-memory fallback) |
 | Mobile | Expo / React Native, expo-router, nativewind |
 | Error tracking | Sentry (server / edge / client) |
-| Testing | Vitest, Playwright, custom load tester |
+| Testing | Vitest, Playwright, custom load tester, `verify:ledger` (real-DB money loop) |
 | CI/CD | GitHub Actions (lint, audit, typecheck, drift, RLS, E2E, load, build) |
 
 ## Architecture
