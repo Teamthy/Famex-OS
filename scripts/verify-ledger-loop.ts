@@ -9,7 +9,8 @@
  *
  *   1. provision the chart of accounts
  *   2. raise an invoice  → fees receivable up, fee income up (accrual)
- *   3. take a payment    → cash up, receivable down
+ *   3. take a payment    → invoice drawn down, cash up, receivable down —
+ *                          all three in ONE transaction, as the real path does
  *   4. reconcile         → the ledger receivable equals what the documents say
  *                          is outstanding, to the kobo
  *   5. idempotency       → the same posting key twice is ONE journal
@@ -20,10 +21,15 @@
  *                          is refused
  *   8. expenditure       → posted, then voided by counter-entry, netting zero
  *
+ * The payment step mirrors lib/fee-payment-service.ts rather than calling it:
+ * that service pulls in the request-scoped session layer, which a plain script
+ * cannot load. The mirrored writes are only half the proof — the reconciliation
+ * against the documents in step 4 is what shows the two sides cannot disagree.
+ *
  * Throwaway school, cleans up after itself. Exits non-zero on any failure so it
  * can gate a merge or a deploy.
  */
-import { PrismaClient } from "@prisma/client";
+import { FeeInvoiceStatus, FeePaymentMethod, FeePaymentStatus, PrismaClient } from "@prisma/client";
 import { ensureLedgerAccounts, postJournal, reverseJournal, trialBalance } from "@/lib/ledger";
 import { postExpenseSpend, postInvoiceAccrual, postPaymentReceipt } from "@/lib/ledger-postings";
 
@@ -151,41 +157,86 @@ async function main() {
   // ── 3. Payment ──────────────────────────────────────────────────────────
   console.log("\nPayment receipt");
   const paymentNaira = 25_000;
-  const payment = await prisma.feePayment.create({
-    data: {
+  // The document side and the ledger side are written in ONE transaction, the
+  // way lib/fee-payment-service.ts does it: reserve the invoice balance, record
+  // the payment, post the journal. If the posting throws, the payment and the
+  // invoice write roll back with it — they can never disagree.
+  const payment = await prisma.$transaction(async (tx) => {
+    const reserved = await tx.feeInvoice.updateMany({
+      where: {
+        id: invoice.id,
+        schoolId: SCHOOL,
+        balanceDue: { gte: paymentNaira },
+        status: {
+          in: [FeeInvoiceStatus.UNPAID, FeeInvoiceStatus.PARTIAL, FeeInvoiceStatus.OVERDUE],
+        },
+      },
+      data: {
+        amountPaid: { increment: paymentNaira },
+        balanceDue: { decrement: paymentNaira },
+      },
+    });
+    if (reserved.count !== 1) throw new Error("the invoice balance did not reserve");
+
+    const created = await tx.feePayment.create({
+      data: {
+        schoolId: SCHOOL,
+        invoiceId: invoice.id,
+        studentProfileId: STUDENT_ID,
+        amount: paymentNaira,
+        method: FeePaymentMethod.CASH,
+        status: FeePaymentStatus.COMPLETED,
+        reference: "LVC-PAY-1",
+        receiptNumber: "LVC-RCP-1",
+      },
+    });
+
+    await postPaymentReceipt(tx, {
       schoolId: SCHOOL,
-      invoiceId: invoice.id,
+      paymentId: created.id,
+      receiptNumber: created.receiptNumber,
+      reference: created.reference,
+      amountNaira: paymentNaira,
+      method: created.method,
       studentProfileId: STUDENT_ID,
-      amount: paymentNaira,
-      method: "CASH",
-      status: "COMPLETED",
-      reference: "LVC-PAY-1",
-      receiptNumber: "LVC-RCP-1",
-    },
+    });
+
+    return created;
   });
-  await postPaymentReceipt(prisma, {
-    schoolId: SCHOOL,
-    paymentId: payment.id,
-    receiptNumber: payment.receiptNumber,
-    reference: payment.reference,
-    amountNaira: paymentNaira,
-    method: payment.method,
-    studentProfileId: STUDENT_ID,
-  });
+
   check("cash in the bursary", await balanceOf("cash"), 2_500_000);
   check("receivable drawn down", await balanceOf("fees_receivable"), 7_500_000);
 
   // ── 4. Reconcile the ledger against the documents ───────────────────────
   console.log("\nReconciliation");
-  const outstandingAggregate = await prisma.feeInvoice.aggregate({
+  const invoiceAggregate = await prisma.feeInvoice.aggregate({
     where: { schoolId: SCHOOL },
-    _sum: { balanceDue: true },
+    _sum: { balanceDue: true, totalAmount: true },
   });
-  const documentsSayKobo = (outstandingAggregate._sum.balanceDue ?? 0) * 100;
+  const receivedAggregate = await prisma.feePayment.aggregate({
+    where: { schoolId: SCHOOL, status: FeePaymentStatus.COMPLETED },
+    _sum: { amount: true },
+  });
+  const cashReceivedAggregate = await prisma.feePayment.aggregate({
+    where: { schoolId: SCHOOL, status: FeePaymentStatus.COMPLETED, method: FeePaymentMethod.CASH },
+    _sum: { amount: true },
+  });
+  // Documents are whole naira; the ledger is kobo. One conversion, at the boundary.
+  check("the invoice document itself was drawn down", invoiceAggregate._sum.balanceDue, 75_000);
   check(
-    "ledger receivable matches the invoices to the kobo",
+    "ledger receivable matches what the invoices say is outstanding",
     await balanceOf("fees_receivable"),
-    documentsSayKobo,
+    (invoiceAggregate._sum.balanceDue ?? 0) * 100,
+  );
+  check(
+    "and matches invoiced-less-received to the kobo",
+    await balanceOf("fees_receivable"),
+    ((invoiceAggregate._sum.totalAmount ?? 0) - (receivedAggregate._sum.amount ?? 0)) * 100,
+  );
+  check(
+    "ledger cash matches the cash payments on record",
+    await balanceOf("cash"),
+    (cashReceivedAggregate._sum.amount ?? 0) * 100,
   );
 
   const ledger = await trialBalance(prisma, SCHOOL);
@@ -337,8 +388,11 @@ async function main() {
 
   const finalLedger = await trialBalance(prisma, SCHOOL);
   checkTrue("ledger still balanced at the end", finalLedger.balanced);
+  // The payment was reversed by counter-entry, so the student owes the full
+  // invoice again. The document-level half of that (a refund/reversal that also
+  // restores the invoice) is F5-13; here the books are what is being proved.
   check(
-    "final receivable equals what is still owed",
+    "reversal puts the receivable back to the full invoice",
     await balanceOf("fees_receivable"),
     10_000_000,
   );
