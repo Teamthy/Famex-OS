@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import { requireRole } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +19,10 @@ function slugify(title: string) {
 }
 
 export async function GET() {
-  const user = await requireRole(ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("news", ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   const posts = await prisma.newsPost.findMany({
     take: 500,
@@ -54,8 +56,10 @@ const createSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const user = await requireRole(ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("news", ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   const limit = await enforceRateLimit("newsPost", user.id);
   if (!limit.success) {
@@ -112,8 +116,10 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(request: NextRequest) {
-  const user = await requireRole(ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("news", ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   let payload: z.infer<typeof patchSchema>;
   try {

@@ -5,6 +5,7 @@ import { getAdminFinanceContext } from "@/lib/finance";
 import { createInAppNotification, queueNotificationJob } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
+import { requireModule } from "@/lib/module-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +19,8 @@ const schema = z.object({
 export async function POST(request: NextRequest) {
   const context = await getAdminFinanceContext();
   if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const moduleCheck = await requireModule("fees");
+  if (!moduleCheck.ok) return moduleCheck.response;
 
   let input: z.infer<typeof schema>;
   try {

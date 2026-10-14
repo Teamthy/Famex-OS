@@ -120,6 +120,22 @@ enum SubjectCategory {
   ELECTIVE
 }
 
+/// F0-18 / 10-scope-additions §4 — Famex runs pre-school → SS3, so a class,
+/// its grading and its report template all depend on which STAGE it sits in.
+enum SchoolStage {
+  EARLY_YEARS
+  PRIMARY
+  JUNIOR_SECONDARY
+  SENIOR_SECONDARY
+}
+
+/// How a stage is graded. PERCENTAGE = scored subjects; DESCRIPTOR =
+/// developmental ratings with narrative comments (early years).
+enum GradingMode {
+  PERCENTAGE
+  DESCRIPTOR
+}
+
 enum GradebookStatus {
   OPEN
   SUBMITTED
@@ -162,6 +178,9 @@ model School {
   customDomain String?      @unique
   status       SchoolStatus @default(ACTIVE)
   modules      Json?
+  /// School-wide settings framework (F0-18) — academic, result and fee
+  /// defaults. Typed and validated in lib/settings.ts, never read raw.
+  settings     Json?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -203,6 +222,8 @@ model School {
   studentEnrolments       StudentEnrolment[]
   timetableSlots          TimetableSlot[]
   contactEnquiries        ContactEnquiry[]
+  stageConfigs            StageConfig[]
+  gradeBands              GradeBand[]
 }
 
 model User {
@@ -297,15 +318,19 @@ model ParentProfile {
 }
 
 model SchoolClass {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   schoolId    String
   level       String
   arm         String
   displayName String
-  isActive    Boolean  @default(true)
+  /// Which stage this class sits in (pre-school → SS3). Derived from `level`
+  /// on write; kept as a column so reports, fee lines and timetables can group
+  /// without parsing level strings.
+  stage       SchoolStage @default(JUNIOR_SECONDARY)
+  isActive    Boolean     @default(true)
   capacity    Int?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   school             School                   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   students           StudentProfile[]
@@ -318,6 +343,7 @@ model SchoolClass {
 
   @@unique([schoolId, displayName])
   @@index([schoolId, level, arm])
+  @@index([schoolId, stage])
 }
 
 model StudentProfile {
@@ -1684,4 +1710,59 @@ model ContactEnquiry {
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([schoolId, createdAt])
+}
+
+/// Per-stage academic and result configuration (F0-18).
+///
+/// One row per stage the school actually runs. Grading is per-stage because a
+/// school with a pre-school and a senior school cannot grade both the same
+/// way: descriptors are not percentages, and a 100-mark pass mark is
+/// meaningless in KG.
+model StageConfig {
+  id             String      @id @default(cuid())
+  schoolId       String
+  stage          SchoolStage
+  /// Whether the school runs this stage at all. Switched off stages are
+  /// hidden from class creation and the wizard, but their history is kept.
+  isOffered      Boolean     @default(true)
+  gradingMode    GradingMode @default(PERCENTAGE)
+  /// Top of the scale: 100 for percentage stages, 4 for descriptor ratings.
+  maxScore       Int         @default(100)
+  passMark       Int         @default(40)
+  /// Whether class positions are computed and printed for this stage.
+  usesPositions  Boolean     @default(true)
+  /// Whether this stage normally sits computer-based exams (F4-08 note:
+  /// early years assessment is largely non-CBT, so this defaults off there).
+  usesCbt        Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, stage])
+  @@index([schoolId, isOffered])
+}
+
+/// Grade bands for one stage (F0-18). Validated to cover the stage's whole
+/// scale with no gaps and no overlaps before they are saved — a gap silently
+/// drops scores out of the broadsheet.
+model GradeBand {
+  id        String      @id @default(cuid())
+  schoolId  String
+  stage     SchoolStage
+  grade     String
+  minScore  Int
+  maxScore  Int
+  remark    String
+  /// Cumulative-average points (WAEC A1=1 … F9=9); null when the stage has none.
+  points    Int?
+  /// Display order, ascending from the weakest band.
+  order     Int
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, stage, grade])
+  @@index([schoolId, stage, order])
 }

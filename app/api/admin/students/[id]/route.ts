@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { PEOPLE_ADMIN_ROLES } from "@/lib/people";
-import { requireRole } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 import { getClientIp } from "@/lib/requests";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const user = await requireRole(PEOPLE_ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("users", PEOPLE_ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
   const { id } = await context.params;
   const student = await prisma.studentProfile.findFirst({
     where: { id, schoolId: user.schoolId },
@@ -95,8 +97,10 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const user = await requireRole(PEOPLE_ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("users", PEOPLE_ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
   const { id } = await context.params;
   let input: z.infer<typeof patchSchema>;
   try {

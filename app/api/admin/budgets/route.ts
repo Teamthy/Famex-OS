@@ -4,6 +4,7 @@ import { getAdminFinanceContext } from "@/lib/finance";
 import { currentSessionLabel, currentTermLabel, currentTermWindow } from "@/lib/gradebook";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
+import { requireModule } from "@/lib/module-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +20,8 @@ const upsertSchema = z.object({
 export async function GET() {
   const context = await getAdminFinanceContext();
   if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const moduleCheck = await requireModule("budgets");
+  if (!moduleCheck.ok) return moduleCheck.response;
 
   const sessionLabel = currentSessionLabel();
   const termLabel = currentTermLabel();
@@ -80,6 +83,8 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const context = await getAdminFinanceContext();
   if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const moduleCheck = await requireModule("budgets");
+  if (!moduleCheck.ok) return moduleCheck.response;
 
   let input: z.infer<typeof upsertSchema>;
   try {

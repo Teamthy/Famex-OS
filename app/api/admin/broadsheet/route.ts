@@ -1,15 +1,17 @@
 import { UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 
 export const dynamic = "force-dynamic";
 
 const ADMIN_ROLES = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR];
 
 export async function GET(request: NextRequest) {
-  const user = await requireRole(ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("report_cards", ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   const classId = request.nextUrl.searchParams.get("classId");
 

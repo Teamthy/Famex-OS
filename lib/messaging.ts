@@ -23,11 +23,7 @@ export type MessagingActor = {
   role: string;
 };
 
-const OVERSIGHT_ROLES: string[] = [
-  UserRole.ADMIN,
-  UserRole.DIRECTOR,
-  UserRole.COORDINATOR,
-];
+const OVERSIGHT_ROLES: string[] = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR];
 
 /** Students this user is entitled to discuss. Empty array = no access at all. */
 export async function reachableStudentIds(user: MessagingActor): Promise<string[]> {

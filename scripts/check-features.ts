@@ -165,9 +165,13 @@ function main(): void {
   console.log(`Citations: ${cited.size} distinct feature id(s) referenced in code.`);
 
   if (unknown.size) {
-    console.error(`\ncheck:features FAILED — ${unknown.size} cited id(s) are not in the catalogue:`);
+    console.error(
+      `\ncheck:features FAILED — ${unknown.size} cited id(s) are not in the catalogue:`,
+    );
     for (const [id, files] of [...unknown.entries()].sort()) {
-      console.error(`  ✗ ${id} — cited in: ${files.slice(0, 4).join(", ")}${files.length > 4 ? ", …" : ""}`);
+      console.error(
+        `  ✗ ${id} — cited in: ${files.slice(0, 4).join(", ")}${files.length > 4 ? ", …" : ""}`,
+      );
     }
     console.error(
       "\nA cited id must exist in docs/famex/08-feature-catalogue.md. Fix the citation,\n" +

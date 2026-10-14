@@ -69,12 +69,7 @@ const PUBLIC_EXCEPTIONS = new Set(["/staff/activate"]);
  *                      write API behind it is ADMIN-gated)
  *   /login           - auth entry point
  */
-const INTENTIONALLY_PUBLIC = new Set([
-  "/portal",
-  "/onboarding",
-  "/login",
-  "/reset-password",
-]);
+const INTENTIONALLY_PUBLIC = new Set(["/portal", "/onboarding", "/login", "/reset-password"]);
 
 const SKIP: Record<string, string> = {
   "/api/auth/logout": "mutates session",
@@ -82,7 +77,7 @@ const SKIP: Record<string, string> = {
   "/api/jobs/dispatch-notifications": "cron, bearer-guarded",
   "/api/internal/security-event": "internal, secret-guarded",
   "/api/push/register": "POST only",
-  "/api/onboarding": "POST only",
+  "/api/onboarding/provision": "POST only (GET is the ADMIN resume state)",
   "/api/auth/change-password": "POST only",
   "/api/auth/password-reset/request": "POST only",
   "/api/auth/password-reset/confirm": "POST only",

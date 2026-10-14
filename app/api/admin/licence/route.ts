@@ -1,8 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { getClientIp } from "@/lib/requests";
 import { requireRole } from "@/lib/session";
-import { getEnabledModules, MODULE_KEYS } from "@/lib/modules";
+import { getEnabledModules, MODULE_KEYS, MODULES } from "@/lib/modules";
+import { isModuleKey, mergeModuleSwitches } from "@/lib/module-registry";
 import { readPublicSystemConfig } from "@/lib/system-flags";
 import { PRODUCT_NAME } from "@/lib/brand";
 
@@ -49,7 +52,15 @@ export async function GET() {
       schoolStatus: school?.status ?? null,
       provisionedAt: school?.createdAt ? school.createdAt.toISOString() : null,
     },
-    modules: MODULE_KEYS.map((key) => ({ key, enabled: enabled.has(key) })),
+    // Every module, labelled from the registry (lib/module-registry.ts) so the
+    // name shown here is the same name the sidebar and the guard use.
+    modules: MODULE_KEYS.map((key) => ({
+      key,
+      enabled: enabled.has(key),
+      label: MODULES[key].label,
+      summary: MODULES[key].summary,
+      release: MODULES[key].release,
+    })),
     // Meters land with the full Licence & Usage build (F20, W12). null = "not
     // measured yet", which the UI renders as an explanatory empty state.
     usage: {
@@ -60,5 +71,86 @@ export async function GET() {
     },
     integrations: config.configured,
     serverTime: new Date().toISOString(),
+  });
+}
+
+const patchSchema = z.object({
+  /** Partial switch map: { fees: false, exams: true }. Unknown keys are refused. */
+  modules: z.record(z.string(), z.boolean()),
+});
+
+/**
+ * PATCH /api/admin/licence — flip this school's module switches (F0-25).
+ *
+ * Server-authoritative and audited (Rule 9): the switches are entitlement, not
+ * preference. A key that is not in the registry is refused rather than stored,
+ * because a stored unknown key is nav drift waiting to happen (banned move:
+ * a module with no School.modules entry, and its mirror).
+ *
+ * The response returns the RESOLVED list, so the client never has to
+ * re-implement "absent means enabled".
+ */
+export async function PATCH(request: NextRequest) {
+  const user = await requireRole(LICENCE_ROLES);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  let input: z.infer<typeof patchSchema>;
+  try {
+    input = patchSchema.parse(await request.json());
+  } catch {
+    return NextResponse.json(
+      { error: "Send a switch map, e.g. { fees: false }." },
+      { status: 422 },
+    );
+  }
+
+  const unknown = Object.keys(input.modules).filter((key) => !isModuleKey(key));
+  if (unknown.length > 0) {
+    return NextResponse.json(
+      {
+        error: `Unknown module key(s): ${unknown.join(", ")}. Add them to lib/module-registry.ts first.`,
+      },
+      { status: 422 },
+    );
+  }
+
+  const school = await prisma.school.findUnique({
+    where: { id: user.schoolId },
+    select: { modules: true },
+  });
+  const before = mergeModuleSwitches(school?.modules ?? null, {});
+  const after = mergeModuleSwitches(school?.modules ?? null, input.modules);
+
+  const changed = MODULE_KEYS.filter((key) => before[key] !== after[key]);
+
+  await prisma.school.update({
+    where: { id: user.schoolId },
+    data: { modules: after },
+  });
+
+  if (changed.length > 0) {
+    await prisma.auditLog.create({
+      data: {
+        schoolId: user.schoolId,
+        actorUserId: user.id,
+        action: "MODULE_SWITCHES_UPDATED",
+        entityType: "School",
+        entityId: user.schoolId,
+        ipAddress: getClientIp(request),
+        metadata: { changed: changed.map((key) => `${key}=${after[key]}`) },
+      },
+    });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    changed,
+    modules: MODULE_KEYS.map((key) => ({
+      key,
+      enabled: after[key] === true,
+      label: MODULES[key].label,
+      summary: MODULES[key].summary,
+      release: MODULES[key].release,
+    })),
   });
 }

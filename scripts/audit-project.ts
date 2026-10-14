@@ -229,9 +229,11 @@ const PUBLIC_ROUTES = [
   "/api/jobs/dispatch-notifications",
   "/api/platform/signup",
   "/api/it/signup",
-  "/api/onboarding",
   "/api/staff/activate",
   "/api/mobile/config",
+  // Public contact form (marketing site): rate-limited, writes the enquiry and
+  // alerts the office afterwards. It never returns school data to the caller.
+  "/api/contact",
   // Public IT course catalogue: active courses and an enrolment count, no
   // personal data. Unauthenticated on purpose — it is the shop window that
   // the marketing pages render.
@@ -241,6 +243,7 @@ const PUBLIC_ROUTES = [
   // one question, or submit an attempt for SERVER-SIDE grading. No personal
   // data is stored unless the caller chooses to include a name.
   "/api/cbt/subjects",
+  "/api/cbt/topics",
   "/api/cbt/quiz",
   "/api/cbt/check",
   "/api/cbt/attempts",
@@ -255,9 +258,12 @@ for (const file of routeFiles) {
   // guarded routes as unguarded on the first run — an alarming number that
   // was entirely my own blind spot, and exactly the kind of false alarm that
   // makes a security check worthless.
+  // requireModule()/requireAnyModule() are the Rule-13 guard (auth → role →
+  // module entitlement) and call requireRole internally, so they count.
   const guarded =
-    /requireRole|getSession|checkRole|requireSuperAdmin|verifyWebhook/.test(text) ||
-    /\bget[A-Z][A-Za-z]*(Context|Profile|Admin|User)\s*\(/.test(text);
+    /requireRole|requireModule|requireAnyModule|getSession|checkRole|requireSuperAdmin|verifyWebhook/.test(
+      text,
+    ) || /\bget[A-Z][A-Za-z]*(Context|Profile|Admin|User)\s*\(/.test(text);
   if (!guarded) unguarded.push(endpoint);
 }
 if (unguarded.length) {

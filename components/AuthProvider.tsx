@@ -6,6 +6,12 @@ type User = { id: string; name: string; email: string; role: string };
 
 type Value = {
   user: User | null;
+  /**
+   * Module keys this school has switched on (F0-17), or null when the answer
+   * does not apply to this role / has not arrived yet. The admin sidebar
+   * renders from this, so nav and entitlement can never disagree.
+   */
+  modules: string[] | null;
   loading: boolean;
   refresh: () => Promise<void>;
   /**
@@ -25,6 +31,7 @@ const Context = createContext<Value | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [modules, setModules] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -32,7 +39,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refresh = async () => {
     try {
       const r = await fetch("/api/auth/me", { cache: "no-store", credentials: "include" });
-      setUser(r.ok ? (await r.json()).user : null);
+      if (r.ok) {
+        const body = (await r.json()) as { user: User | null; modules: string[] | null };
+        setUser(body.user);
+        setModules(body.modules ?? null);
+      } else {
+        setUser(null);
+        setModules(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -51,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // stranding them on a page they can no longer use.
     }
     setUser(null);
+    setModules(null);
     window.location.assign("/login");
   }, []);
 
@@ -61,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => setConfirming(true), []);
 
   return (
-    <Context.Provider value={{ user, loading, refresh, logout, logoutImmediately }}>
+    <Context.Provider value={{ user, modules, loading, refresh, logout, logoutImmediately }}>
       {children}
       <ConfirmDialog
         open={confirming}

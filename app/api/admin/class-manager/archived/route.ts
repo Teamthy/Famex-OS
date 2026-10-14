@@ -6,11 +6,7 @@ import { requireRole } from "@/lib/session";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const user = await requireRole([
-    UserRole.ADMIN,
-    UserRole.DIRECTOR,
-    UserRole.COORDINATOR,
-  ]);
+  const user = await requireRole([UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR]);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const students = await prisma.studentProfile.findMany({

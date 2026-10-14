@@ -3,11 +3,7 @@ import bcrypt from "bcryptjs";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
-export const PEOPLE_ADMIN_ROLES = [
-  UserRole.ADMIN,
-  UserRole.DIRECTOR,
-  UserRole.COORDINATOR,
-];
+export const PEOPLE_ADMIN_ROLES = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR];
 export const STAFF_ROLES = [
   UserRole.ADMIN,
   UserRole.DIRECTOR,

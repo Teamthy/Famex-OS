@@ -1,7 +1,7 @@
 import { UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +18,10 @@ const ADMIN_ROLES = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR];
  * Scoped by schoolId so one tenant cannot read another's staff by id.
  */
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
-  const user = await requireRole(ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("users", ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   const { id } = await context.params;
 

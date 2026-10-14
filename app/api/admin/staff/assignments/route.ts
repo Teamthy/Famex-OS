@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
-import { requireRole } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +15,10 @@ const ADMIN_ROLES = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR];
  * they teach) and the school's active classes for the assignment UI.
  */
 export async function GET() {
-  const user = await requireRole(ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("users", ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   const [rows, classes] = await Promise.all([
     prisma.teacherProfile.findMany({
@@ -78,8 +80,10 @@ const postSchema = z.object({
  * constraint [teacherProfileId, classId, role] via upsert.
  */
 export async function POST(request: NextRequest) {
-  const user = await requireRole(ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("users", ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   let payload: z.infer<typeof postSchema>;
   try {

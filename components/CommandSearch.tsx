@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
+import { PRODUCT_NAME } from "@/lib/brand";
+import { useSchoolProfile } from "@/components/SchoolProfileContext";
 
 const SEARCHABLE = [
-  { title: "Homepage", desc: "Ykay College main page", url: "/", type: "Page" },
+  { title: "Homepage", desc: "Main school website", url: "/", type: "Page" },
   { title: "About Us", desc: "School history and vision", url: "/about", type: "Page" },
   {
     title: "Director's Message",
@@ -36,6 +38,7 @@ const SEARCHABLE = [
 export default function CommandSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const school = useSchoolProfile();
   const router = useRouter();
 
   useEffect(() => {
@@ -147,7 +150,7 @@ export default function CommandSearch() {
 
             {/* Footer */}
             <div className="p-3 border-t border-white/10 text-[10px] text-white/60 flex justify-between items-center bg-brand-navy">
-              <span>Search anything on Ykay College</span>
+              <span>Search anything on {school.name || PRODUCT_NAME}</span>
               <span className="flex items-center gap-1">
                 <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white/60 font-mono">⌘</kbd>
                 <span>+</span>

@@ -1,6 +1,7 @@
 import { FeePaymentStatus } from "@prisma/client";
 import { getAdminFinanceContext } from "@/lib/finance";
 import { prisma } from "@/lib/prisma";
+import { requireModule } from "@/lib/module-guard";
 import { jsonNoStore } from "@/lib/requests";
 
 function startOfDay(now: Date) {
@@ -26,6 +27,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const context = await getAdminFinanceContext();
   if (!context) return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
+
+  // Rule 13: auth → role (inside getAdminFinanceContext) → module entitlement.
+  const moduleCheck = await requireModule("fees");
+  if (!moduleCheck.ok) return moduleCheck.response;
 
   const schoolId = context.user.schoolId;
 

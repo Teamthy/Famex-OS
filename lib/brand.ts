@@ -1,4 +1,4 @@
-import { DEFAULT_BRANDING } from "@/lib/branding";
+import { DEFAULT_BRANDING } from "@/lib/branding-defaults";
 
 /**
  * Brand tokens — the ONE place the product and school identity is read from

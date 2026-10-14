@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
-import { requireRole } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 
 const allowedRoles = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR];
 const updateSchema = z.object({
@@ -13,8 +13,10 @@ const updateSchema = z.object({
 });
 
 export async function GET() {
-  const user = await requireRole(allowedRoles);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("attendance", allowedRoles);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   const requests = await prisma.attendanceCorrectionRequest.findMany({
     take: 500,
@@ -61,8 +63,10 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
-  const user = await requireRole(allowedRoles);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("attendance", allowedRoles);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   try {
     const payload = updateSchema.parse(await request.json());

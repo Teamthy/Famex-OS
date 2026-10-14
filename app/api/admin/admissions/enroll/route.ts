@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PEOPLE_ADMIN_ROLES, oneTimeSecret, passwordHash, uniqueStudentNumber } from "@/lib/people";
 import { getClientIp } from "@/lib/requests";
 import { sendParentWelcomeEmail } from "@/lib/email";
-import { requireRole } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 import { logger } from "@/lib/logger";
 import {
   completeReservedIdempotency,
@@ -23,8 +23,10 @@ const schema = z.object({
   placementNote: z.string().trim().max(500).optional(),
 });
 export async function POST(request: NextRequest) {
-  const user = await requireRole(PEOPLE_ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("admissions", PEOPLE_ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
   const key = request.headers.get("idempotency-key")?.trim();
   if (!key || key.length < 16)
     return NextResponse.json(

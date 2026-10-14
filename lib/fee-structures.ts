@@ -14,11 +14,7 @@ import { prisma } from "@/lib/prisma";
  * ever issued — including paid ones.
  */
 
-export const FEE_ADMIN_ROLES: UserRole[] = [
-  UserRole.ADMIN,
-  UserRole.DIRECTOR,
-  UserRole.BURSAR,
-];
+export const FEE_ADMIN_ROLES: UserRole[] = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.BURSAR];
 
 export type StructureItemInput = {
   label: string;
