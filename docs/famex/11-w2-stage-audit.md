@@ -33,6 +33,10 @@ now fixed, and what deliberately remains for W6.
 3. `School.settings` JSON — the typed settings framework (F0-18).
 4. `StageConfig` — one row per stage a school runs.
 5. `GradeBand` — per-stage grade bands.
+6. **RLS for both new tables** (`eduos_apply_tenant_rls`): the policy backfill
+   loops over the tables that existed when it ran, so a table added later is
+   uncovered — `verify:rls:coverage` caught exactly that on this PR's first CI
+   run, which is the guard working.
 
 No existing school is given stage rows by the migration: defaults are seeded on
 first read of a settings screen (`lib/settings.ensureStageConfig`), so a

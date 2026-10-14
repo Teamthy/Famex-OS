@@ -14,6 +14,8 @@
 --   3. School.settings — the typed settings framework (lib/settings.ts).
 --   4. StageConfig — per-stage grading mode, scale, pass mark, positions, CBT.
 --   5. GradeBand — per-stage grade bands (validated to cover the scale).
+--   6. RLS (tenant isolation) on both new tables — a table created after the
+--      2026-08 backfill loop is not covered by it.
 --
 -- Existing schools are NOT given stage rows here: the settings API seeds a
 -- stage's defaults on first read (lib/settings.ts `ensureStageConfig`), so a
@@ -89,3 +91,13 @@ CREATE INDEX "GradeBand_schoolId_stage_order_idx" ON "GradeBand"("schoolId", "st
 
 ALTER TABLE "GradeBand" ADD CONSTRAINT "GradeBand_schoolId_fkey"
     FOREIGN KEY ("schoolId") REFERENCES "School"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- 6. Tenant isolation (RLS) for the two new tenant tables.
+--
+-- The 2026-08 backfill migration applied the policy by looping over the tables
+-- that existed AT THAT TIME, so a table added later is not covered — that is
+-- how DeviceToken shipped without a policy and was cross-tenant readable. The
+-- helper it left behind makes this a two-liner; `verify:rls:coverage` fails the
+-- build if either table is missing ENABLE/FORCE RLS or `eduos_tenant_isolation`.
+SELECT eduos_apply_tenant_rls('StageConfig');
+SELECT eduos_apply_tenant_rls('GradeBand');

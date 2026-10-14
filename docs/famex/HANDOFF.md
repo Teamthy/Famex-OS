@@ -172,7 +172,7 @@ Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only
 - **New admin page ⇒ add it to `lib/nav.ts`.** `check:orphans` now scans `lib/` too, so the registry counts as a link — but `check:modules` still fails a page that no row reaches.
 - **Module guard tests:** `tests/setup.ts` mocks `prisma.school.findUnique` to a school with `modules: null` (all enabled). A route under a switched-off module answers 403; if a test needs the 503 path, resolve `findUnique` with a rejected promise.
 - **`lib/module-registry.ts` must stay prisma-free** and `lib/stages.ts`/`lib/stage-types.ts` must stay `@prisma/client`-free — client components import them; `check:boundary` fails otherwise.
-- **W2 migration is unapplied locally** (`20261014090000_w2_school_stages_and_settings`): 2 enums, `SchoolClass.stage` + backfill, `School.settings`, `StageConfig`, `GradeBand`. Re-run `PRISMA_*` stub generate after any schema change (recipe in §6).
+- **W2 migration is unapplied locally** (`20261014090000_w2_school_stages_and_settings`): 2 enums, `SchoolClass.stage` + backfill, `School.settings`, `StageConfig`, `GradeBand`, and **RLS (`eduos_apply_tenant_rls`) on both new tables** — the 2026-08 policy backfill only covers tables that existed then, so a new tenant table needs the explicit call or `verify:rls:coverage` fails the build (it caught this on the first CI run of the PR). Re-run `PRISMA_*` stub generate after any schema change (recipe in §6).
 
 ---
 
