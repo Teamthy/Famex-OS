@@ -4,7 +4,7 @@ import { resolveCurrentLabels } from "@/lib/academic-session";
 import { FEE_ADMIN_ROLES, structureTotal, upsertFeeStructure } from "@/lib/fee-structures";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
-import { requireRole } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -32,8 +32,10 @@ const upsertSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  const user = await requireRole(FEE_ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("fees", FEE_ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   const requestedTermId = request.nextUrl.searchParams.get("termId");
   const current = await resolveCurrentLabels(user.schoolId);
@@ -93,8 +95,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const user = await requireRole(FEE_ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("fees", FEE_ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   let input: z.infer<typeof upsertSchema>;
   try {
@@ -144,8 +148,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const user = await requireRole(FEE_ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("fees", FEE_ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   const id = request.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing structure id." }, { status: 400 });

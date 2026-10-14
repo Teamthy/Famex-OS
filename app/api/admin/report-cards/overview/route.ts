@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
-import { requireRole } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 import { PAGE_LIMITS, getPagination, paginatedResponse } from "@/lib/pagination";
 import { createInAppNotification, queueNotificationJob } from "@/lib/notifications";
 
@@ -26,8 +26,10 @@ const updateSchema = z.object({
  * the fees overview. Same numbers, bounded work.
  */
 export async function GET(request: NextRequest) {
-  const user = await requireRole(allowedRoles);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("report_cards", allowedRoles);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   const { page, pageSize, skip, take } = getPagination(request, PAGE_LIMITS.STANDARD);
 
@@ -95,8 +97,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const user = await requireRole(allowedRoles);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("report_cards", allowedRoles);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   try {
     const payload = updateSchema.parse(await request.json());

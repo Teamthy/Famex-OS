@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { Bell, LogOut, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
+import { PRODUCT_NAME } from "@/lib/brand";
 export default function PortalTopbar({ title = "Workspace" }: { title?: string }) {
   const { user, logout } = useAuth();
   return (
@@ -11,7 +12,9 @@ export default function PortalTopbar({ title = "Workspace" }: { title?: string }
           href="/portal"
           className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-green"
         >
-          <ShieldCheck size={17} /> Ykay EduPortal
+          {/* F0-21: the product name is a brand token. It used to be a literal
+              here, which is why this bar still said the old brand after W1. */}
+          <ShieldCheck size={17} /> {PRODUCT_NAME}
         </Link>
         <div className="hidden text-sm font-semibold text-[var(--text-primary)] md:block">
           {title}

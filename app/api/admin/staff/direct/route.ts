@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { PEOPLE_ADMIN_ROLES, STAFF_ROLES, oneTimeSecret, passwordHash } from "@/lib/people";
 import { getClientIp } from "@/lib/requests";
-import { requireRole } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 
 export const runtime = "nodejs";
 
@@ -16,8 +16,10 @@ const schema = z.object({
 
 /** Admin creates a staff account immediately and receives a one-time temporary password. Staff cannot self-register. */
 export async function POST(request: NextRequest) {
-  const user = await requireRole(PEOPLE_ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("users", PEOPLE_ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   let input: z.infer<typeof schema>;
   try {

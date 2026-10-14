@@ -340,5 +340,3 @@ export async function revokeAllSessions(userId: string): Promise<void> {
     data: { tokenVersion: { increment: 1 } },
   });
 }
-
-

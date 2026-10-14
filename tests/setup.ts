@@ -170,6 +170,15 @@ const mockPrisma = {
     findUnique: vi.fn(),
     upsert: vi.fn(),
     update: vi.fn(),
+    create: vi.fn(),
+    createMany: vi.fn(),
+    count: vi.fn(async () => 0),
+  },
+  tenantBranding: {
+    findUnique: vi.fn(),
+    upsert: vi.fn(),
+    update: vi.fn(),
+    create: vi.fn(),
   },
   studentSubject: {
     findMany: vi.fn(),
@@ -188,9 +197,47 @@ const mockPrisma = {
     deleteMany: vi.fn(),
     createMany: vi.fn(),
   },
+  school: {
+    findUnique: vi.fn(async (): Promise<unknown> => ({
+      id: "school_1",
+      name: "Test School",
+      slug: "test-school",
+      // `modules: null` resolves to "every module enabled", which is what a
+      // school that has never touched its switches gets in production.
+      modules: null,
+      settings: null,
+      address: "1 Test Road",
+      phone: "+2340000000000",
+      email: null,
+      motto: null,
+      status: "ACTIVE",
+    })),
+    findFirst: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    upsert: vi.fn(),
+    count: vi.fn(),
+  },
+  stageConfig: {
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    upsert: vi.fn(),
+  },
+  gradeBand: {
+    findMany: vi.fn(),
+    count: vi.fn(async () => 0),
+    createMany: vi.fn(),
+    deleteMany: vi.fn(),
+    groupBy: vi.fn(async () => []),
+  },
   schoolClass: {
     findFirst: vi.fn(),
     findMany: vi.fn(),
+    create: vi.fn(),
+    count: vi.fn(async () => 0),
   },
   admissionApplication: {
     findFirst: vi.fn(),

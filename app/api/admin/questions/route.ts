@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ExamQuestionType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { PEOPLE_ADMIN_ROLES } from "@/lib/people";
-import { requireRole } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +11,10 @@ export const dynamic = "force-dynamic";
  * (joined to its exam for subject / class / title). Supports ?subject=&type=&q=.
  */
 export async function GET(request: NextRequest) {
-  const user = await requireRole(PEOPLE_ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("exams", PEOPLE_ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   const sp = request.nextUrl.searchParams;
   const subject = sp.get("subject")?.trim() || null;

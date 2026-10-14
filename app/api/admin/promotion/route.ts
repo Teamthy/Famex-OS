@@ -2,7 +2,7 @@ import { EnrolmentOutcome, UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 import { buildPlan, commitPromotion, summarisePlan } from "@/lib/promotion";
 
 export const dynamic = "force-dynamic";
@@ -23,8 +23,10 @@ const PROMOTION_ROLES = [UserRole.ADMIN, UserRole.DIRECTOR];
  * not resolve, so an admin reviews before anything is written.
  */
 export async function GET(request: NextRequest) {
-  const user = await requireRole(PROMOTION_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("report_cards", PROMOTION_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   const fromSessionId = request.nextUrl.searchParams.get("fromSessionId")?.trim();
 
@@ -83,8 +85,10 @@ const commitSchema = z.object({
  * off; it deliberately does not reimplement any of that logic.
  */
 export async function POST(request: NextRequest) {
-  const user = await requireRole(PROMOTION_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("report_cards", PROMOTION_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   let input: z.infer<typeof commitSchema>;
   try {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { badgePayload, ensureTeacherBadge, getStaffAttendanceAdmin } from "@/lib/staff-attendance";
 import { prisma } from "@/lib/prisma";
+import { requireModule } from "@/lib/module-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,6 +10,8 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const user = await getStaffAttendanceAdmin();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const moduleCheck = await requireModule("staff_attendance");
+  if (!moduleCheck.ok) return moduleCheck.response;
 
   const teachers = await prisma.teacherProfile.findMany({
     take: 500,

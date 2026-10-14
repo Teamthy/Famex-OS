@@ -10,7 +10,7 @@ import { GRADEBOOK_ADMIN_ROLES, waecGrade } from "@/lib/gradebook";
 import { indexFeeBalances, tallyAttendance } from "@/lib/report-cards";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
-import { requireRole } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -38,8 +38,10 @@ function defaultTeacherRemark(average: number) {
 }
 
 export async function GET(request: NextRequest) {
-  const user = await requireRole(GRADEBOOK_ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("report_cards", GRADEBOOK_ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   // Read path: fall back to the calendar so the screen still renders, but say
   // so, because "ready to generate" means nothing if the term is a guess.
@@ -87,8 +89,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const user = await requireRole(GRADEBOOK_ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("report_cards", GRADEBOOK_ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   let payload: z.infer<typeof generateSchema>;
   try {

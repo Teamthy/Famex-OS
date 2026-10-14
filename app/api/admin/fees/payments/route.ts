@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getAdminFinanceContext, generatePaymentReference } from "@/lib/finance";
 import { postCompletedFeePayment } from "@/lib/fee-payment-service";
 import { getClientIp } from "@/lib/requests";
+import { requireModule } from "@/lib/module-guard";
 
 export const runtime = "nodejs";
 
@@ -25,6 +26,8 @@ const reviewSchema = z.object({
 export async function GET() {
   const context = await getAdminFinanceContext();
   if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const moduleCheck = await requireModule("fees");
+  if (!moduleCheck.ok) return moduleCheck.response;
 
   const transfers = await prisma.feePaymentAttempt.findMany({
     take: 500,
@@ -47,6 +50,8 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const context = await getAdminFinanceContext();
   if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const moduleCheck = await requireModule("fees");
+  if (!moduleCheck.ok) return moduleCheck.response;
 
   let body: unknown;
   try {

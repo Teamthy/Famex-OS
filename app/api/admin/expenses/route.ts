@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getAdminFinanceContext } from "@/lib/finance";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
+import { requireModule } from "@/lib/module-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +22,8 @@ const createSchema = z.object({
 export async function GET(request: NextRequest) {
   const context = await getAdminFinanceContext();
   if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const moduleCheck = await requireModule("expenses");
+  if (!moduleCheck.ok) return moduleCheck.response;
 
   const limit = Math.min(Number(request.nextUrl.searchParams.get("limit") || 100), 300);
   const category = request.nextUrl.searchParams.get("category")?.trim();
@@ -62,6 +65,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const context = await getAdminFinanceContext();
   if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const moduleCheck = await requireModule("expenses");
+  if (!moduleCheck.ok) return moduleCheck.response;
 
   let input: z.infer<typeof createSchema>;
   try {
@@ -103,6 +108,8 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const context = await getAdminFinanceContext();
   if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const moduleCheck = await requireModule("expenses");
+  if (!moduleCheck.ok) return moduleCheck.response;
   const id = request.nextUrl.searchParams.get("id")?.trim();
   if (!id) return NextResponse.json({ error: "Expense id required." }, { status: 400 });
 

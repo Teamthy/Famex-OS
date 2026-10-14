@@ -98,7 +98,15 @@ function main() {
     // A dynamic segment is always entered from a link that builds it.
     .filter((route) => !route.includes("["));
 
-  const files = [...sourceFiles(join(ROOT, "app")), ...sourceFiles(join(ROOT, "components"))];
+  // lib/ is scanned too: since W2 the admin sidebar renders from the nav
+  // registry (lib/nav.ts), so a route linked there IS reachable even though no
+  // component contains the literal. Missing this would flag every admin page
+  // as an orphan the moment the sidebar became data-driven.
+  const files = [
+    ...sourceFiles(join(ROOT, "app")),
+    ...sourceFiles(join(ROOT, "components")),
+    ...sourceFiles(join(ROOT, "lib")),
+  ];
 
   // Index every file's text once — this runs on every push, so it must be fast.
   const contents = new Map<string, string>();

@@ -41,6 +41,7 @@
     "check:boundary": "tsx scripts/check-client-boundary.ts",
     "check:orphans": "tsx scripts/check-orphan-pages.ts",
     "check:dead-ui": "tsx scripts/check-dead-ui.ts",
+    "check:modules": "tsx scripts/check-modules.ts",
     "check:readiness": "tsx scripts/check-term-readiness.ts",
     "check:mobile": "tsx scripts/check-mobile-parity.ts",
     "audit": "tsx scripts/audit-project.ts",

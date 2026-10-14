@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
-import { requireRole } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +23,10 @@ const schema = z.object({ classId: z.string().trim().min(1).optional() });
  * so a successful release always has a retryable paper trail.
  */
 export async function POST(request: NextRequest) {
-  const user = await requireRole(allowedRoles);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("report_cards", allowedRoles);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   let payload: z.infer<typeof schema>;
   try {

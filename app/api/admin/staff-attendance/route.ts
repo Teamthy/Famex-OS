@@ -11,6 +11,7 @@ import {
 } from "@/lib/staff-attendance";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
+import { requireModule } from "@/lib/module-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,6 +25,8 @@ const scanSchema = z.object({
 export async function GET(request: NextRequest) {
   const user = await getStaffAttendanceAdmin();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const moduleCheck = await requireModule("staff_attendance");
+  if (!moduleCheck.ok) return moduleCheck.response;
 
   const dateParam = request.nextUrl.searchParams.get("date")?.trim();
   const dayKey = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : workDateKey();
@@ -163,6 +166,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const user = await getStaffAttendanceAdmin();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const moduleCheck = await requireModule("staff_attendance");
+  if (!moduleCheck.ok) return moduleCheck.response;
 
   let input: z.infer<typeof scanSchema>;
   try {

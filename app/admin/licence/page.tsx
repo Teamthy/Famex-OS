@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import PortalTopbar from "@/components/PortalTopbar";
+import { SettingsNotice } from "@/components/settings/SettingsShell";
 import AdminSidebar from "@/components/AdminSidebar";
 import {
   KeyRound,
@@ -14,21 +15,6 @@ import {
   Smartphone,
   Plug,
 } from "lucide-react";
-
-// Human labels for the module switches (F0-25). Keyed by ModuleKey (lib/modules.ts).
-const MODULE_LABELS: Record<string, string> = {
-  admissions: "Admissions",
-  attendance: "Student Attendance",
-  fees: "Fees & Billing",
-  gradebook: "Gradebook / Marks",
-  exams: "CBT Exams",
-  report_cards: "Report Cards",
-  news: "Post & News",
-  staff_attendance: "Staff QR Attendance",
-  notifications: "Notifications",
-  expenses: "Expenses",
-  budgets: "Budgets",
-};
 
 const INTEGRATION_LABELS: Record<string, string> = {
   database: "Database",
@@ -50,7 +36,15 @@ type LicenceData = {
     schoolStatus: string | null;
     provisionedAt: string | null;
   };
-  modules: { key: string; enabled: boolean }[];
+  modules: {
+    key: string;
+    enabled: boolean;
+    /** Label, summary and owning workstream, resolved by the server from the
+     *  module registry so this screen cannot drift from the sidebar. */
+    label?: string;
+    summary?: string;
+    release?: string;
+  }[];
   usage: {
     storage: number | null;
     messages: number | null;
@@ -90,6 +84,45 @@ export default function LicencePage() {
   const [data, setData] = useState<LicenceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [switching, setSwitching] = useState<string | null>(null);
+  const [switchNote, setSwitchNote] = useState<string | null>(null);
+
+  /**
+   * F0-25: the switches on this screen are the same switches the sidebar and
+   * every guarded route read. Flipping one is a licence decision, so it is
+   * server-authoritative, role-guarded (ADMIN/DIRECTOR) and audited.
+   */
+  const toggleModule = useCallback(async (key: string, enabled: boolean) => {
+    setSwitching(key);
+    setSwitchNote(null);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/licence", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ modules: { [key]: enabled } }),
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        modules?: LicenceData["modules"];
+      };
+      if (!res.ok) {
+        setError(body.error ?? "Could not change that switch.");
+        return;
+      }
+      if (body.modules)
+        setData((current) => (current ? { ...current, modules: body.modules! } : current));
+      setSwitchNote(
+        enabled
+          ? "Switched on. It appears in the sidebar and its screens will answer."
+          : "Switched off. Its sidebar rows are gone and its API answers 403.",
+      );
+    } catch {
+      setError("Could not reach the server. That switch was not changed.");
+    } finally {
+      setSwitching(null);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -200,26 +233,53 @@ export default function LicencePage() {
                   <Card
                     title={`Modules (${enabledCount}/${data.modules.length} enabled)`}
                     icon={<CheckCircle2 size={16} />}
-                    note="School.modules drives navigation, entitlement and licence together (F0-25), so the three cannot drift apart."
+                    note="School.modules drives navigation, entitlement and licence together (F0-25). Switching one off removes its sidebar rows AND makes its API answer 403 — the switch is the entitlement, not a preference."
                   >
+                    {switchNote ? (
+                      <div className="mb-4">
+                        <SettingsNotice kind="success">{switchNote}</SettingsNotice>
+                      </div>
+                    ) : null}
                     <ul className="grid gap-2 sm:grid-cols-2">
                       {data.modules.map((m) => (
                         <li
                           key={m.key}
-                          className="flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-disabled)] px-3 py-2 text-sm"
+                          className="rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-disabled)] px-3 py-2"
                         >
-                          <span className="text-[var(--text-secondary)]">
-                            {MODULE_LABELS[m.key] ?? m.key}
-                          </span>
-                          {m.enabled ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-brand-green">
-                              <CheckCircle2 size={14} /> On
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm text-[var(--text-secondary)]">
+                              {m.label ?? m.key}
                             </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
-                              <Circle size={14} /> Off
-                            </span>
-                          )}
+                            <button
+                              type="button"
+                              disabled={switching === m.key}
+                              aria-pressed={m.enabled}
+                              onClick={() => void toggleModule(m.key, !m.enabled)}
+                              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50 ${
+                                m.enabled
+                                  ? "border-brand-green/40 text-brand-green"
+                                  : "border-[var(--border-subtle)] text-[var(--text-muted)]"
+                              }`}
+                            >
+                              {switching === m.key ? (
+                                "Saving…"
+                              ) : m.enabled ? (
+                                <>
+                                  <CheckCircle2 size={12} /> On
+                                </>
+                              ) : (
+                                <>
+                                  <Circle size={12} /> Off
+                                </>
+                              )}
+                            </button>
+                          </div>
+                          {m.summary ? (
+                            <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                              {m.summary}
+                              {m.release ? ` · ships ${m.release}` : ""}
+                            </p>
+                          ) : null}
                         </li>
                       ))}
                     </ul>
@@ -232,9 +292,21 @@ export default function LicencePage() {
                   >
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                       {[
-                        { label: "Storage", value: data.usage.storage, icon: <HardDrive size={14} /> },
-                        { label: "Messages", value: data.usage.messages, icon: <MessageSquare size={14} /> },
-                        { label: "AI credits", value: data.usage.aiCredits, icon: <Sparkles size={14} /> },
+                        {
+                          label: "Storage",
+                          value: data.usage.storage,
+                          icon: <HardDrive size={14} />,
+                        },
+                        {
+                          label: "Messages",
+                          value: data.usage.messages,
+                          icon: <MessageSquare size={14} />,
+                        },
+                        {
+                          label: "AI credits",
+                          value: data.usage.aiCredits,
+                          icon: <Sparkles size={14} />,
+                        },
                         { label: "SMS", value: data.usage.sms, icon: <Smartphone size={14} /> },
                       ].map((meter) => (
                         <div

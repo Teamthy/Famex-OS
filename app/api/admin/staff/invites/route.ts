@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { STAFF_ROLES, PEOPLE_ADMIN_ROLES, hashValue, oneTimeSecret } from "@/lib/people";
 import { getClientIp } from "@/lib/requests";
-import { requireRole } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 import { sendStaffInviteEmail } from "@/lib/email";
 const schema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -12,8 +12,10 @@ const schema = z.object({
   role: z.enum(STAFF_ROLES),
 });
 export async function GET() {
-  const user = await requireRole(PEOPLE_ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("users", PEOPLE_ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
   const staff = await prisma.user.findMany({
     take: 500,
     where: { schoolId: user.schoolId, role: { in: [...STAFF_ROLES] } },
@@ -43,8 +45,10 @@ export async function GET() {
   return NextResponse.json({ staff, invites });
 }
 export async function POST(request: NextRequest) {
-  const user = await requireRole(PEOPLE_ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("users", PEOPLE_ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
   let input: z.infer<typeof schema>;
   try {
     input = schema.parse(await request.json());

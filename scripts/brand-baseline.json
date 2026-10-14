@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-10-13T22:59:47.208Z",
-  "totalFindings": 474,
-  "files": 152,
+  "generatedAt": "2026-10-14T06:30:04.244Z",
+  "totalFindings": 464,
+  "files": 148,
   "allow": {
     "app/about/page.tsx": {
       "ykay": 5,
@@ -141,9 +141,6 @@
       "ykay": 2,
       "eduportal": 2
     },
-    "components/AdminSidebar.tsx": {
-      "eduos": 1
-    },
     "components/AdmissionsBanner.tsx": {
       "ykay": 1
     },
@@ -155,9 +152,6 @@
     },
     "components/Churches.tsx": {
       "ykay": 1
-    },
-    "components/CommandSearch.tsx": {
-      "ykay": 2
     },
     "components/CookieConsent.tsx": {
       "ykay": 10
@@ -183,10 +177,6 @@
     },
     "components/PaystackModal.tsx": {
       "ykay": 1
-    },
-    "components/PortalTopbar.tsx": {
-      "ykay": 1,
-      "eduportal": 1
     },
     "components/ReceiptModal.tsx": {
       "ykay": 1
@@ -223,10 +213,6 @@
     },
     "lib/apk.ts": {
       "ykay": 1
-    },
-    "lib/branding.ts": {
-      "ykay": 2,
-      "eduos": 3
     },
     "lib/cors.ts": {
       "ykay": 2

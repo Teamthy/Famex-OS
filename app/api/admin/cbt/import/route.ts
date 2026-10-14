@@ -1,6 +1,7 @@
+import { UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireRoleOr503 } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 
 /**
  * Teacher/admin CSV import for the CBT bank.
@@ -12,8 +13,8 @@ import { requireRoleOr503 } from "@/lib/session";
  * skipped, so re-uploading a file is safe.
  */
 export async function POST(req: NextRequest) {
-  const denied = await requireRoleOr503(["ADMIN"]);
-  if (denied) return denied;
+  const guard = await requireModule("exams", [UserRole.ADMIN]);
+  if (!guard.ok) return guard.response;
 
   const { csv } = (await req.json()) as { csv?: string };
   if (!csv || typeof csv !== "string") {

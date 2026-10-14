@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { PEOPLE_ADMIN_ROLES, hashValue, oneTimeSecret } from "@/lib/people";
 import { getClientIp } from "@/lib/requests";
-import { requireRole } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 import { sendStaffInviteEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -31,8 +31,10 @@ async function loadPendingInvite(id: string, schoolId: string) {
 
 /** DELETE — revoke a pending invitation. */
 export async function DELETE(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const user = await requireRole(PEOPLE_ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("users", PEOPLE_ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   const { id } = await context.params;
   const invite = await loadPendingInvite(id, user.schoolId);
@@ -72,8 +74,10 @@ export async function DELETE(_request: NextRequest, context: { params: Promise<{
 
 /** POST — reissue: mint a fresh token, extend expiry, resend the email. */
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const user = await requireRole(PEOPLE_ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("users", PEOPLE_ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  // Rule 13: auth → role → module. A module this school switched off is a 403.
+  const user = guard.user;
 
   const { id } = await context.params;
   const invite = await loadPendingInvite(id, user.schoolId);
