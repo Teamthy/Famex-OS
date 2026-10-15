@@ -30,6 +30,13 @@ export async function postCompletedFeePayment(input: {
   reference: string;
   providerData?: Prisma.InputJsonValue;
   actorUserId?: string | null;
+  /**
+   * Deliberate overpayment (F5-11): the bursar chose "pay extra / carry
+   * forward". The excess becomes a FeeCredit (liability, 2000). Online
+   * payments never set this — the parent intent route caps the amount at
+   * balanceDue, so an online excess cannot be invented by a client.
+   */
+  allowExcessAsCredit?: boolean;
 }) {
   if (!Number.isInteger(input.amount) || input.amount <= 0) {
     throw new Error("Payment amount must be a positive integer (kobo/naira units as stored).");
@@ -41,18 +48,39 @@ export async function postCompletedFeePayment(input: {
       return { payment: existing, replay: true as const };
     }
 
+    // F5-11: only the part that settles the invoice touches the
+    // receivable; a deliberate excess is held as a credit balance.
+    let applied = input.amount;
+    let creditExcess = 0;
+    if (input.allowExcessAsCredit) {
+      const current = await tx.feeInvoice.findFirst({
+        where: { id: input.invoiceId, schoolId: input.schoolId },
+        select: { balanceDue: true },
+      });
+      if (!current) {
+        throw new Error("The invoice could not be found for this payment.");
+      }
+      applied = Math.min(input.amount, Math.max(current.balanceDue, 0));
+      creditExcess = input.amount - applied;
+      if (applied === 0 && creditExcess === input.amount) {
+        throw new Error(
+          "This invoice is already fully settled. The whole payment has been held for finance review.",
+        );
+      }
+    }
+
     const reserved = await tx.feeInvoice.updateMany({
       where: {
         id: input.invoiceId,
         schoolId: input.schoolId,
-        balanceDue: { gte: input.amount },
+        balanceDue: { gte: applied },
         status: {
           in: [FeeInvoiceStatus.UNPAID, FeeInvoiceStatus.PARTIAL, FeeInvoiceStatus.OVERDUE],
         },
       },
       data: {
-        amountPaid: { increment: input.amount },
-        balanceDue: { decrement: input.amount },
+        amountPaid: { increment: applied },
+        balanceDue: { decrement: applied },
       },
     });
 
@@ -63,7 +91,12 @@ export async function postCompletedFeePayment(input: {
     }
 
     const invoice = await tx.feeInvoice.findUniqueOrThrow({ where: { id: input.invoiceId } });
-    const status = computeInvoiceStatus(invoice.totalAmount, invoice.amountPaid, invoice.dueDate);
+    const status = computeInvoiceStatus(
+      invoice.totalAmount,
+      invoice.amountPaid,
+      invoice.dueDate,
+      (invoice.amountDiscounted ?? 0) + (invoice.amountCredited ?? 0),
+    );
     await tx.feeInvoice.update({ where: { id: invoice.id }, data: { status } });
 
     const payment = await tx.feePayment.create({
@@ -81,7 +114,8 @@ export async function postCompletedFeePayment(input: {
       },
     });
 
-    // Rule 10: the document and its posting commit together.
+    // Rule 10: the document and its posting commit together — including
+    // the credit document when part of the payment was an overpayment.
     await postPaymentReceipt(tx, {
       schoolId: input.schoolId,
       paymentId: payment.id,
@@ -92,7 +126,22 @@ export async function postCompletedFeePayment(input: {
       studentProfileId: input.studentProfileId,
       actorUserId: input.actorUserId ?? null,
       paidAt: payment.paidAt,
+      creditNaira: creditExcess,
     });
+
+    if (creditExcess > 0) {
+      await tx.feeCredit.create({
+        data: {
+          schoolId: input.schoolId,
+          studentProfileId: input.studentProfileId,
+          parentProfileId: input.parentProfileId || null,
+          amountNaira: creditExcess,
+          amountRemainingNaira: creditExcess,
+          sourcePaymentId: payment.id,
+          createdByUserId: input.actorUserId || null,
+        },
+      });
+    }
 
     if (input.attemptId) {
       await tx.feePaymentAttempt.update({
@@ -116,11 +165,12 @@ export async function postCompletedFeePayment(input: {
           amount: input.amount,
           invoiceId: input.invoiceId,
           method: input.method,
+          creditExcessNaira: creditExcess,
           replay: false,
         },
       },
     });
 
-    return { payment, replay: false as const };
+    return { payment, replay: false as const, creditExcessNaira: creditExcess };
   });
 }

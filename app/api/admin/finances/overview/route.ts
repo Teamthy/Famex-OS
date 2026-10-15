@@ -147,6 +147,20 @@ export async function GET() {
     },
     ledger: {
       balanced: ledger.balanced,
+      // Stage B work queues: money waiting on a human decision or a
+      // matching exercise (F5-12/F5-13/F5-16).
+      pendingDiscounts: await prisma.feeDiscount.count({
+        where: { schoolId, status: "PENDING" },
+      }),
+      pendingRefunds: await prisma.feeRefund.count({
+        where: { schoolId, status: "PENDING" },
+      }),
+      settlementsUnmatchedKobo: (
+        await prisma.gatewaySettlement.findMany({
+          where: { schoolId },
+          select: { grossKobo: true, matchedKobo: true },
+        })
+      ).reduce((sum, row) => sum + Math.max(row.grossKobo - row.matchedKobo, 0), 0),
       cashKobo: balanceOf("cash"),
       bankKobo: balanceOf("bank"),
       receivableKobo: balanceOf("fees_receivable"),

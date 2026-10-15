@@ -23,8 +23,8 @@ If a session ends mid-workstream, §9 must say exactly where it stopped and what
 
 ## 1. Repo & branch identity
 
-- Repo: `Teamthy/Famex-OS` (origin). W3 base commit: `ca1c10886f50b5c699dd0f0327f3d90606ed7c1f` (main, W1 + W2 merged).
-- **Session branch (fixed): `arena/ce3a9b67-famex-os` for W3.** Always work/commit/push here; open PRs from here to `main`. Never create/switch/push other branches. (W1 used `arena/7f29531d-famex-os` → PR #1; W2 used `arena/9abf8aef-famex-os` → PR #2, merge `74f236c`.)
+- Repo: `Teamthy/Famex-OS` (origin). W3 base commit: `ca1c10886f50b5c699dd0f0327f3d90606ed7c1f` (main, W1 + W2 merged); stage A merged at `e96217a` (PR #4).
+- **Session branches (fixed, one per session):** W3 stage A used `arena/ce3a9b67-famex-os` → PR #4 (merged); **stage B continues on `arena/f5d78cef-famex-os` → PR #5**. Always work/commit/push on your session branch; open PRs from it to `main`. Never create/switch/push other branches. (W1 used `arena/7f29531d-famex-os` → PR #1; W2 used `arena/9abf8aef-famex-os` → PR #2, merge `74f236c`.)
 - The old Ykay repo (`upstream`) is **read-only, out of bounds** (Rule 15). Never push/edit it.
 - Product: **Famex OS** — single-school Nigerian secondary-school OS (~3,000 users, 5-yr horizon). Rebuilt from a school EduPortal base with the SaaS platform layer removed.
 
@@ -47,7 +47,7 @@ Read in this order before any work:
 |---|---|---|
 | **W1** | Strip EDUos platform + Ykay arms; single-school boot; brand tokens; Licence & Usage; re-cut audit | ✅ **MERGED into main** — PR #1, 2026-10-14 (commits `a9451cd`, `ccaab0b` + this handoff commit). Gates green at merge; DB gates environment-blocked and stated in the PR. |
 | **W2** | Module registry drives nav/routes/entitlements; settings framework; first-run wizard; `check:modules` | ✅ **merged** — PR #2, merge commit `74f236c` (branch `arena/9abf8aef-famex-os`, 2026-10-14). All CI jobs green except the pre-existing red `Lighthouse budgets` workflow (also red on the W1 merge). |
-| **W3** | Double-entry ledger → Fees & Billing; bursar dashboard; gateway reconciliation | 🟡 **IN PROGRESS (stage A)** — ledger core + posting rules + accrual/settlement/expenditure wiring + trial-balance UI + bursar ledger figures + `verify:ledger` gate. Remaining: discounts, refunds, transfers, plans, cashbook, gateway settlement, ageing, statements, receipts re-brand (see §9) |
+| **W3** | Double-entry ledger → Fees & Billing; bursar dashboard; gateway reconciliation | 🟢 **stage A MERGED** (PR #4, `e96217a`). 🟡 **stage B in PR #5** (`arena/f5d78cef-famex-os`): discounts (F5-12), refunds (F5-13), credits (F5-11), transfers (F5-14), gateway settlement (F5-16), ageing + statements (F5-17/18), bursar queues (F5-19), receipts re-brand (F5-04/22) + `verify:ledger` extended to 12 steps. Remaining after stage B: instalment plans (F5-10), manual adjustments screen (F5-20), cashbook polish (F5-15/F5-23/F5-25), go-live data (§9) |
 | W4 | Notification spine + WhatsApp Business (categories, receipts, cost) | pending |
 | W5 | Admissions funnel, classes/streams, timetable, attendance, GPS clock-in | pending |
 | W6 | Marks → broadsheet → report cards → release; post-lock corrections | pending |
@@ -144,23 +144,66 @@ F5-07 (expenses are voided, not deleted), F5-19 (bursar figures read from the le
   `resetLedgerMocks()` for files that override them, because `vi.clearAllMocks()` does not undo
   `mockResolvedValue`).
 
+### 4d. W3 stage B — the remaining money documents (2026-10-15, PR #5)
+
+Stage A deliberately shipped the ledger and left every adversarial money document for this
+stage: nothing in stage A could discount, refund, hold or move money. Stage B, on branch
+`arena/f5d78cef-famex-os` (rebased onto stage A's `e96217a`):
+
+- **Migration** `20261015120000_w3_stage_b_money_documents` (forward-only, rollback note in-file):
+  `FeeDiscount`, `FeeRefund`, `FeeCredit`, `GatewaySettlement` (+ RLS on all four via
+  `eduos_apply_tenant_rls`), `LedgerSourceType.FEE_CREDIT`, and `FeeInvoice.amountDiscounted` /
+  `amountCredited` so the document invariant `balanceDue == totalAmount − amountPaid −
+  amountDiscounted − amountCredited` is assertable. Documents stay whole naira; settlements are
+  kobo (gateway-native).
+- **Posting rules** appended to `lib/ledger-postings.ts` (still the ONLY place rules live):
+  `postFeeDiscount` (`fee-discount:<id>`, DR 4100 / CR 1100), `postFeeRefund` (`fee-refund:<id>`,
+  DR 4110 / CR cash|bank), `postCreditApplication` (`fee-credit-apply:<creditId>:<invoiceId>`,
+  DR 2000 / CR 1100, source `FEE_CREDIT`), `postFeeTransfer` (`fee-transfer:<id>`, receivable-to-
+  receivable between pupils), `postGatewaySettlement` (`gateway-settlement:<id>`, DR
+  `expense:gateway_charges` / CR bank — charges only, because payments already credit the bank
+  gross), and `postPaymentReceipt` learned an optional `creditNaira` split.
+- **Controls** in `lib/fee-adjustments.ts`: discounts/refunds are request → approve with
+  **approver ≠ requester** (bursar may request; only ADMIN/DIRECTOR approve), reason mandatory
+  and permanent; approval posts in the same transaction as the document change. A refund marks
+  the payment `REFUNDED` and never reopens the invoice (income nets through 4110).
+  `postCompletedFeePayment` gained `allowExcessAsCredit` (bursar cash desk opt-in only — the
+  parent intent route still caps at `balanceDue`); `generateInvoices` spends open credits
+  oldest-first inside the billing transaction; `computeInvoiceStatus` settles on
+  paid + discounted + credited.
+- **Routes** (all under existing `API_OWNERS` prefixes): `admin/fees/discounts`,
+  `admin/fees/refunds`, `admin/fees/credits`, `admin/finances/settlements`. The ledger GET was
+  extended with an income statement, arrears ageing (projection of the receivable), approval
+  queues and credits held; `/admin/finances/ledger` renders them, and the finances overview
+  carries the pending counts + unmatched settlement total (F5-19).
+- **Receipts** (F5-04/F5-22): `lib/receipt.ts` is profile-driven now (School name/address/
+  phone/email from `useSchoolProfile`, no hard-coded school); `ReceiptModal` adds a
+  verification QR (`FAMEX-RECEIPT:<receiptNo>:<reference>`, local `lib/qr.ts`). Brand ratchet
+  banked 464 → **451**.
+- **`verify:ledger` extended to 12 steps**: discount invariant asserted against the documents,
+  refund counter-entry (invoice NOT reopened), credit held then spent at the next billing,
+  gateway charges booked. Still CI-gated; DB gates remain environment-blocked locally.
+- **Tests**: stage-B suites in `tests/lib/ledger-postings.test.ts` (+8) and new
+  `tests/lib/fee-adjustments.test.ts` (11) — suite is **77 files / 917 tests**, green.
+  `tests/setup.ts` learned the four new models.
+
 ## 5. Gates: commands + latest evidence + blockers
 
-Run from repo root. Latest (**W3 stage A, 2026-10-14**, branch `arena/ce3a9b67-famex-os`):
+Run from repo root. Latest (**W3 stage B, 2026-10-15**, branch `arena/f5d78cef-famex-os`, PR #5):
 
 | Gate | Command | Result (actual output) |
 |---|---|---|
 | typecheck | `npx tsc --noEmit` | exit 0 — no errors |
-| unit/integration | `npx vitest run` | `Test Files 76 passed (76)` / `Tests 898 passed (898)` (W2: 72 / 843; W1: 66 / 779) |
+| unit/integration | `npx vitest run` | `Test Files 77 passed (77)` / `Tests 917 passed (917)` (stage A: 76 / 898; W2: 72 / 843) |
 | lint | `npm run lint` | `✖ 96 problems (0 errors, 96 warnings)` — the new ones are `react-hooks/set-state-in-effect` on fetch-on-mount pages, the same pattern as the other ~40 portal pages |
 | formatting | `npx prettier --check .` | `All matched files use Prettier code style!` (main: 9 files failing) |
 | dep audit | `npm run audit:deps` | `Dependency audit passed.` (4 scoped, dated exclusions unchanged) |
 | project audit | `npm run audit` | `No blockers. 14 warning(s).` (main: 1 blocker — `/api/cbt/topics`, `/api/contact`) |
-| brand ratchet | `npm run audit:brand` | `Brand audit OK — 464 finding(s) across 148 file(s); baseline allows 464.` |
+| brand ratchet | `npm run audit:brand` | `Brand audit OK — 451 finding(s) across 147 file(s); baseline allows 451.` (banked via `--update`; receipts de-branded) |
 | feature IDs | `npm run check:features` | OK — `Catalogue: 331 features parsed` / `§25 declares TOTAL 331 — matches.` |
 | orphans | `npm run check:orphans` | `All 80 portal pages are reachable.` (scans `lib/` too — the sidebar renders from `lib/nav.ts`) |
 | dead UI | `npm run check:dead-ui` | `Checked 87 portal pages.` / `No dead UI found.` |
-| modules | `npm run check:modules` | `Nav registry: 20 groups, 36 live items, 77 planned.` / `Modules: 22 declared, 22 used by nav/API.` / `Admin pages: 37 found, 36 linked.` / `Admin API directories: 26 owned, 57 guard calls.` / `Modules, nav and routes agree.` |
+| modules | `npm run check:modules` | `Nav registry: 20 groups, 36 live items, 77 planned.` / `Modules: 22 declared, 22 used by nav/API.` / `Admin pages: 37 found, 36 linked.` / `Admin API directories: 26 owned, 65 guard calls.` / `Modules, nav and routes agree.` |
 | client boundary | `npm run check:boundary` | `Checking 153 client component(s)…` / `No client component reaches a server-only module.` |
 | prisma schema | `npx prisma validate` | `The schema at prisma/schema.prisma is valid 🚀` (needs a dummy `DATABASE_URL`) |
 | tenant coverage | `npm run check:tenant-coverage` | exit 0 — 13 UNCOVERED, all pre-existing teacher/auth routes; CI's `--max-uncovered 18` still satisfied |
@@ -239,6 +282,24 @@ Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only
   deterministic key; a random or timestamped key is a double-post waiting to happen.
 - **Accrual, not cash.** An invoice is income when billed and a receivable until paid. A cash-basis
   ledger cannot produce arrears ageing (F5-17) or a position statement (F5-18) at all.
+
+### W3 stage B decisions (2026-10-15)
+
+- **Approver ≠ requester, in the service.** Discounts and refunds check
+  `requestedByUserId !== actorUserId` inside `lib/fee-adjustments.ts`, not just in the UI; a
+  bursar can request (they see hardship first) but only ADMIN/DIRECTOR can move the money.
+- **A refund never reopens an invoice.** Income nets through `refunds` (4110), so billed-vs-net
+  stays readable; reopening would pretend the fee was never settled. The invoice document is
+  deliberately untouched by `decideRefund` (pinned by test).
+- **Overpayment is opt-in, never accidental.** Only the bursar cash desk can set
+  `allowExcessAsCredit`; online amounts remain capped at `balanceDue` by the intent route, so
+  a client cannot invent credit.
+- **Gateway settlement books the charges only.** Payments credit the bank at gross on receipt;
+  the settlement's one missing movement is DR `expense:gateway_charges` / CR bank. Settlement
+  amounts stay kobo end-to-end — `nairaToKobo` is never inverted for them.
+- **Ageing/statements are projections.** The ledger GET computes the income statement from the
+  trial balance and ageing from the receivable's document projection; no screen recomputes
+  money from raw payments.
 - **Reversal is the only correction.** `reverseJournal` refuses a second reversal (unique index on
   `reversesJournalId`) and refuses reversing a counter-entry. Nothing in `lib/ledger.ts` updates or
   deletes a journal or a line, and there is deliberately no "post a manual journal" API — a manual
@@ -279,53 +340,38 @@ Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only
 
 ---
 
-## 9. Next session: W3 continued (exact stop-point)
+## 9. Next session: W4, after the W3 close-out (exact stop-point)
 
-**Where stage A stopped (2026-10-14, PR from `arena/ce3a9b67-famex-os`):** the ledger core, the
-posting rules, the accrual/settlement/expenditure wiring, the trial-balance screen, the bursar
-ledger figures, the DB trigger and the `verify:ledger` CI gate all landed. What is NOT done is
-the rest of F5: nothing yet handles a discount, a refund, a transfer, an instalment plan, a
-cashbook, a Paystack settlement, arrears ageing or the financial statements, and receipts are
-still branded with the old literals.
+**Where W3 stopped (2026-10-15, PR #5 from `arena/f5d78cef-famex-os`):** stage A (PR #4) built
+the ledger; stage B built the remaining money documents on it — discounts, refunds, credits,
+transfers, gateway settlements — plus the income statement, arrears ageing, approval queues,
+bursar drill-downs and the receipts re-brand. `verify:ledger` now runs 12 steps and reconciles
+to the kobo including the discount invariant. **W3 is DONE except the close-out list below;
+do not start W4 until it is burned down or explicitly deferred by the founder.**
 
-**Ledger-posted today:** fee invoices (accrual), completed fee payments (cash/bank settlement:
-Paystack, parent card, bank transfer approval, bursar cash), expenditures (spend), opening
-balances (helper only — no screen). **Not posted:** everything in the paragraph above.
+### W3 close-out (small, in order)
 
-### The very next edits, in order
+1. **Instalment plans (F5-10)** — the one stage-B deferral: plan = schedule of due fragments
+   on an invoice, still settled through `postCompletedFeePayment` (no new posting rule needed
+   unless fragments bill separately — decide before coding).
+2. **Go-live data (§9 of stage A, still owed):** `npm run ledger:backfill -- --apply`, opening
+   balances via `postOpeningBalance`, `npm run verify:ledger` against a copy of the seeded DB.
+   Needs a real Postgres — run it where one exists, paste the output in the PR.
+3. **Cashbook polish (F5-15/F5-23/F5-25)** and **manual adjustments screen (F5-20)**: the
+   ledger route header already reserves the shape; adjustments enter through a document with
+   an actor and approval, never a free-text journal on the read-only ledger route.
+4. **Per-reference settlement matching (F5-16 continuation):** the settlement route matches a
+   payout window today; matching individual payment references from the gateway's settlement
+   report is the follow-up.
 
-1. **Discounts, scholarships and bursaries (F5-12).** Add `FeeDiscount` (schoolId, invoiceId,
-   studentProfileId, kind, amountNaira, reason, approvedByUserId, approvedAt) + a posting rule
-   DR `discounts` / CR `fees_receivable` with key `fee-discount:<id>`, an approval route
-   (`requireModule("fees", [ADMIN, DIRECTOR, BURSAR])`, audited), and invoice re-computation that
-   keeps `balanceDue` == `totalAmount − amountPaid − discounts` (assert it in `verify:ledger`).
-   The receivable reconciliation in `scripts/verify-ledger-loop.ts` is the test to extend — it
-   already compares the ledger against the documents to the kobo.
-2. **Refunds and reversals (F5-13).** Refund request → approval → DR `refunds` / CR `cash|bank`,
-   key `fee-refund:<id>`; a `FeePayment` that is refunded must be settled by its own counter-entry
-   rather than by deleting the payment. Exposure: `FeePayment.status = REFUNDED` exists already.
-3. **Overpayments and credit balance (F5-11).** A payment larger than the invoice posts the excess
-   to `student_credit` (a LIABILITY — the chart already has 2000). The parent intent route caps at
-   `balanceDue` today, so this needs a deliberate "pay extra / carry forward" path, and the credit
-   must be spendable against the next term's invoice.
-4. **Fee transfers (F5-14)** between pupils/classes: counter-entry on the source invoice, accrual
-   onto the target, both under one idempotency key. `/admin/fees/transfers` is live UI today.
-5. **Cashbook + bank reconciliation (F5-15)** and **gateway settlement (F5-16)**: a settlement
-   posting (DR `bank` / CR `suspense`-style clearing) matched to Paystack payouts, with an
-   `unmatched` list. This is where `GATEWAY_SETTLEMENT` gets its first poster.
-6. **Arrears ageing (F5-17)** and **financial statements (F5-18)** — both are `trialBalance` +
-   `accountStatement` projections (`lib/ledger.ts` already returns per-student lines via
-   `LedgerLine.studentProfileId`). Do not compute them from the documents.
-7. **Bursar dashboard completeness (F5-19):** committed spend, ageing buckets, drill-downs from
-   the ledger cards already on `/admin/finances`.
-8. **Receipts (F5-04/F5-22):** re-brand `lib/receipt.ts` (it is in the brand baseline, §7) and add
-   the invoice/receipt QR verification route (F5-26) — the QR helper (`lib/qr.ts`) exists.
-9. **Go-live data:** `npm run ledger:backfill -- --apply` then opening balances via
-   `postOpeningBalance`, then `npm run verify:ledger` against a copy of the seeded database.
+### Then W4 — Notification spine + WhatsApp Business
+
+Per the catalogue §9 (Comms) and §3 board: categories, receipts, cost tracking; the email
+sender de-brand (`lib/email.ts`) rides along per the §7 brand ratchet (comms/email→W4).
 
 Rules for whoever continues: post through `lib/ledger-postings.ts`, never `postJournal` directly
 from a route; every new posting gets a deterministic idempotency key; corrections are counter-entries.
-Cite feature IDs in commits and update §3/§4c/§5/§7/§9 here in the same PR.
+Cite feature IDs in commits and update §3/§4/§5/§7/§9 here in the same PR.
 
 ## 10. Reference nav & founder scope
 

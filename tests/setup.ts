@@ -125,13 +125,63 @@ const mockPrisma = {
   },
   feePayment: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     count: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
+    groupBy: vi.fn(async () => []),
+    aggregate: vi.fn(async () => ({ _sum: { amount: 0 } })),
+  },
+  feeDiscount: {
+    findMany: vi.fn(async () => []),
+    findFirst: vi.fn(),
+    create: vi.fn(async (args: Record<string, unknown>) => ({
+      id: "fdisc_1",
+      ...(args.data as object),
+    })),
+    update: vi.fn(async (args: Record<string, unknown>) => ({
+      id: "fdisc_1",
+      ...(args.data as object),
+    })),
+    count: vi.fn(async () => 0),
+  },
+  feeRefund: {
+    findMany: vi.fn(async () => []),
+    findFirst: vi.fn(),
+    create: vi.fn(async (args: Record<string, unknown>) => ({
+      id: "fref_1",
+      ...(args.data as object),
+    })),
+    update: vi.fn(async (args: Record<string, unknown>) => ({
+      id: "fref_1",
+      ...(args.data as object),
+    })),
+    count: vi.fn(async () => 0),
+  },
+  feeCredit: {
+    findMany: vi.fn(async () => []),
+    findFirst: vi.fn(),
+    create: vi.fn(async (args: Record<string, unknown>) => ({
+      id: "fcred_1",
+      ...(args.data as object),
+    })),
+    update: vi.fn(async () => ({})),
+    count: vi.fn(async () => 0),
+  },
+  gatewaySettlement: {
+    findMany: vi.fn(async () => []),
+    findFirst: vi.fn(),
+    create: vi.fn(async (args: Record<string, unknown>) => ({
+      id: "gset_1",
+      ...(args.data as object),
+    })),
+    count: vi.fn(async () => 0),
   },
   feeInvoice: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     findUniqueOrThrow: vi.fn(),
     findMany: vi.fn(),
     update: vi.fn(),
