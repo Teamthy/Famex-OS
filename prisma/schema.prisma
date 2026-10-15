@@ -125,6 +125,7 @@ enum LedgerSourceType {
   OPENING_BALANCE
   FEE_INVOICE
   FEE_PAYMENT
+  FEE_CREDIT
   FEE_DISCOUNT
   FEE_REFUND
   FEE_TRANSFER
@@ -132,6 +133,39 @@ enum LedgerSourceType {
   EXPENSE
   EXPENSE_VOID
   MANUAL_ADJUSTMENT
+}
+
+// ── W3 stage B — discount / refund / credit / settlement documents ──────
+
+enum FeeDiscountKind {
+  DISCOUNT
+  SCHOLARSHIP
+  BURSARY
+  WAIVER
+}
+
+enum FeeDiscountStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum FeeRefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum FeeCreditStatus {
+  OPEN
+  PARTIALLY_APPLIED
+  APPLIED
+}
+
+enum GatewaySettlementStatus {
+  RECORDED
+  PARTIALLY_MATCHED
+  MATCHED
 }
 
 enum ReportCardStatus {
@@ -247,6 +281,10 @@ model School {
   idempotencyRecords      IdempotencyRecord[]
   expenses                Expense[]
   budgets                 Budget[]
+  feeDiscounts            FeeDiscount[]
+  feeRefunds              FeeRefund[]
+  feeCredits              FeeCredit[]
+  gatewaySettlements      GatewaySettlement[]
   staffAttendanceEvents   StaffAttendanceEvent[]
   branding                TenantBranding?
   messageThreads          MessageThread[]
@@ -412,6 +450,7 @@ model StudentProfile {
   attendanceJobs       AttendanceAlertJob[]
   feeInvoices          FeeInvoice[]
   feePayments          FeePayment[]
+  feeCredits           FeeCredit[]
   feePaymentAttempts   FeePaymentAttempt[]
   reportCards          ReportCard[]
   gradebookEntries     GradebookEntry[]
@@ -628,6 +667,12 @@ model FeeInvoice {
   status           FeeInvoiceStatus @default(UNPAID)
   totalAmount      Int
   amountPaid       Int              @default(0)
+  /// Settled by an approved discount/scholarship (F5-12), not by cash.
+  /// Invariant (asserted by verify:ledger): balanceDue ==
+  /// totalAmount - amountPaid - amountDiscounted - amountCredited.
+  amountDiscounted Int              @default(0)
+  /// Settled by applying a credit balance the school held (F5-11).
+  amountCredited   Int              @default(0)
   balanceDue       Int
   dueDate          DateTime?
   issuedAt         DateTime         @default(now())
@@ -641,6 +686,8 @@ model FeeInvoice {
   items           FeeInvoiceItem[]
   payments        FeePayment[]
   paymentAttempts FeePaymentAttempt[]
+  discounts       FeeDiscount[]
+  refunds         FeeRefund[]
 
   /// One invoice per student per term when raised from a structure. This is
   /// what makes generation safely re-runnable.
@@ -835,6 +882,125 @@ model LedgerLine {
   @@index([schoolId, accountId])
   @@index([journalId])
   @@index([schoolId, studentProfileId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  W3 stage B — the remaining money documents (F5-11…F5-17).
+//
+//  Each is a document that posts through lib/ledger-postings.ts under its
+//  own deterministic idempotency key; none of them is the truth on its own.
+//  Amounts on documents are whole naira, as on FeeInvoice/FeePayment; the
+//  settlement is gateway-native, so it stores the kobo it was told about.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// A requested reduction of an invoice (F5-12 discounts, scholarships,
+/// bursaries; F5-24 register). Requested by one person, approved by another
+/// (ADMIN/DIRECTOR — never the requester), with the reason kept forever.
+/// Approval posts DR discounts / CR fees_receivable (`fee-discount:<id>`)
+/// and reduces the invoice; rejection changes nothing.
+model FeeDiscount {
+  id                String            @id @default(cuid())
+  schoolId          String
+  invoiceId         String
+  studentProfileId  String
+  kind              FeeDiscountKind
+  /// Whole naira, matching the invoice document.
+  amountNaira       Int
+  reason            String
+  status            FeeDiscountStatus @default(PENDING)
+  requestedByUserId String
+  approvedByUserId  String?
+  approvedAt        DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  school  School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  invoice FeeInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, status])
+  @@index([invoiceId])
+}
+
+/// Money going back to a family (F5-13). Request → approval → the posting
+/// DR refunds / CR cash|bank (`fee-refund:<id>`); the payment is marked
+/// REFUNDED and the refund is settled by its own counter-movement, never
+/// by deleting the payment (Rule 9).
+model FeeRefund {
+  id                String          @id @default(cuid())
+  schoolId          String
+  paymentId         String
+  invoiceId         String
+  studentProfileId  String
+  amountNaira       Int
+  reason            String
+  status            FeeRefundStatus @default(PENDING)
+  requestedByUserId String
+  approvedByUserId  String?
+  approvedAt        DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  school  School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  invoice FeeInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, status])
+  @@index([paymentId])
+}
+
+/// A credit balance the school holds for a pupil (F5-11): created when a
+/// payment exceeds what was owed, applied to a later invoice oldest-first
+/// (`fee-credit:<paymentId>` creates it inside the payment posting;
+/// `fee-credit-apply:<creditId>:<invoiceId>` spends it), or transferred to
+/// a sibling (F5-14). A liability (2000), never income.
+model FeeCredit {
+  id                   String          @id @default(cuid())
+  schoolId             String
+  studentProfileId     String
+  parentProfileId      String?
+  amountNaira          Int
+  amountRemainingNaira Int
+  status               FeeCreditStatus @default(OPEN)
+  /// The payment that created this credit, when it came from an overpayment.
+  sourcePaymentId      String?
+  /// The credit this one was transferred from (F5-14), when applicable.
+  sourceCreditId       String?
+  createdByUserId      String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  school         School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentProfile StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, studentProfileId, status])
+  @@index([schoolId, status])
+}
+
+/// A gateway payout batch (F5-16): what Paystack says it settled, matched
+/// against the payments it clears. Recording posts the charges the school
+/// had not yet booked (`gateway-settlement:<id>`: DR expense:gateway_charges
+/// / CR bank) — payments already credited the bank gross, so the charge is
+/// the only missing movement. Gateway-native amounts: kobo, as reported.
+model GatewaySettlement {
+  id               String                  @id @default(cuid())
+  schoolId         String
+  provider         String                  @default("PAYSTACK")
+  /// The payout reference from the gateway dashboard.
+  reference        String
+  settledAt        DateTime
+  grossKobo        Int
+  chargesKobo      Int                     @default(0)
+  netKobo          Int
+  /// How much of the gross matched known payment references (kobo).
+  matchedKobo      Int                     @default(0)
+  status           GatewaySettlementStatus @default(RECORDED)
+  recordedByUserId String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, reference])
+  @@index([schoolId, settledAt])
 }
 
 model ReportCard {

@@ -1,4 +1,4 @@
-﻿import { jsPDF } from "jspdf";
+import { jsPDF } from "jspdf";
 
 export interface ReceiptData {
   receiptNo: string;
@@ -16,6 +16,33 @@ export interface ReceiptData {
   term: string;
   /** The school's confirmed address. Left off the receipt when empty. */
   schoolAddress?: string | null;
+  /**
+   * The school's own identity, from its profile (Rule 1: a receipt is a
+   * money document and carries the school's brand, never a hard-coded one).
+   * Each field is optional and simply left off the document when unset.
+   */
+  schoolName?: string | null;
+  schoolPhone?: string | null;
+  schoolEmail?: string | null;
+  /**
+   * QR image (PNG data URL from lib/qr.ts `qrDataUrl`) encoding a payload
+   * anyone can check — receipt number + reference — so a printed receipt
+   * can be verified against the ledger without phoning the bursary. The
+   * renderer is synchronous, so the caller generates it and passes it in.
+   */
+  qrImageDataUrl?: string | null;
+}
+
+function receiptSchoolName(data: ReceiptData): string {
+  return data.schoolName?.trim() || "the school";
+}
+
+function receiptContactLine(data: ReceiptData): string | null {
+  const parts = [
+    data.schoolPhone?.trim() ? `Tel: ${data.schoolPhone.trim()}` : null,
+    data.schoolEmail?.trim() || null,
+  ].filter((part): part is string => Boolean(part));
+  return parts.length ? parts.join("  |  ") : null;
 }
 
 export function generateReceiptPDF(data: ReceiptData): jsPDF {
@@ -26,22 +53,22 @@ export function generateReceiptPDF(data: ReceiptData): jsPDF {
   doc.setFillColor(12, 24, 36); // brand-navy
   doc.rect(0, 0, pageWidth, 55, "F");
 
-  // School Name
+  // School Name — the school's own, from its profile.
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
-  doc.text("YKAY COLLEGE", pageWidth / 2, 20, { align: "center" });
-
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(200, 200, 200);
-  doc.text("& LEADERSHIP ACADEMY", pageWidth / 2, 27, { align: "center" });
+  doc.text(receiptSchoolName(data).toUpperCase(), pageWidth / 2, 22, { align: "center" });
 
   doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(200, 200, 200);
   if (data.schoolAddress) {
-    doc.text(data.schoolAddress, pageWidth / 2, 34, { align: "center" });
+    doc.text(data.schoolAddress, pageWidth / 2, 32, { align: "center" });
   }
-  doc.text("Tel: 0701 537 4411  |  info@ykaycollege.com", pageWidth / 2, 39, { align: "center" });
+  const contactLine = receiptContactLine(data);
+  if (contactLine) {
+    doc.text(contactLine, pageWidth / 2, 38, { align: "center" });
+  }
 
   // Green accent line
   doc.setFillColor(78, 197, 77); // brand-green
@@ -176,6 +203,18 @@ export function generateReceiptPDF(data: ReceiptData): jsPDF {
   doc.setFont("helvetica", "bold");
   doc.text("STATUS: CONFIRMED ✓", 20, yPos);
 
+  // === VERIFY QR ===
+  if (data.qrImageDataUrl) {
+    try {
+      doc.addImage(data.qrImageDataUrl, "PNG", pageWidth - 38, 232, 24, 24);
+      doc.setFontSize(6);
+      doc.setTextColor(100, 100, 100);
+      doc.text("Scan to verify", pageWidth - 26, 259, { align: "center" });
+    } catch {
+      // A bad image payload must never stop a receipt printing.
+    }
+  }
+
   // === FOOTER ===
   const footerY = 275;
   doc.setFillColor(248, 250, 252);
@@ -185,17 +224,15 @@ export function generateReceiptPDF(data: ReceiptData): jsPDF {
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.text(
-    "This is an official electronic receipt from Ykay College. Keep for your records.",
+    `This is an official electronic receipt from ${receiptSchoolName(data)}. Keep for your records.`,
     pageWidth / 2,
     footerY + 6,
     { align: "center" },
   );
-  doc.text(
-    "For enquiries: bursary@ykaycollege.com  |  0701 537 4411",
-    pageWidth / 2,
-    footerY + 11,
-    { align: "center" },
-  );
+  const footerContact = receiptContactLine(data);
+  if (footerContact) {
+    doc.text(`For enquiries: ${footerContact}`, pageWidth / 2, footerY + 11, { align: "center" });
+  }
 
   doc.setFontSize(6);
   doc.text(
@@ -210,7 +247,7 @@ export function generateReceiptPDF(data: ReceiptData): jsPDF {
 
 export function downloadReceipt(data: ReceiptData) {
   const doc = generateReceiptPDF(data);
-  doc.save(`YkayCollege-Receipt-${data.receiptNo}.pdf`);
+  doc.save(`Receipt-${data.receiptNo}.pdf`);
 }
 
 export function getReceiptBlob(data: ReceiptData): Blob {
@@ -219,7 +256,9 @@ export function getReceiptBlob(data: ReceiptData): Blob {
 }
 
 export async function shareReceiptWhatsApp(data: ReceiptData, parentPhone?: string) {
-  const message = `Payment Receipt from Ykay College
+  const schoolName = receiptSchoolName(data);
+  const contact = receiptContactLine(data);
+  const message = `Payment Receipt from ${schoolName}
 
 Receipt No: ${data.receiptNo}
 Student: ${data.studentName} (${data.studentClass})
@@ -230,8 +269,7 @@ Status: CONFIRMED
 
 Thank you for your payment!
 
-Ykay College & Leadership Academy
-0701 537 4411 | info@ykaycollege.com`;
+${schoolName}${contact ? "\n" + contact.replace("Tel: ", "") : ""}`;
 
   const phoneNumber = parentPhone?.replace(/\D/g, "") || "";
   const cleanPhone = phoneNumber.startsWith("0") ? "234" + phoneNumber.slice(1) : phoneNumber;
@@ -253,17 +291,17 @@ export async function shareReceiptNative(data: ReceiptData) {
 
   try {
     const blob = getReceiptBlob(data);
-    const file = new File([blob], `YkayReceipt-${data.receiptNo}.pdf`, { type: "application/pdf" });
+    const file = new File([blob], `Receipt-${data.receiptNo}.pdf`, { type: "application/pdf" });
 
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({
         files: [file],
-        title: `Ykay Receipt ${data.receiptNo}`,
+        title: `Receipt ${data.receiptNo} — ${receiptSchoolName(data)}`,
         text: `Payment of NGN ${data.totalPaid.toLocaleString()} for ${data.studentName}`,
       });
     } else {
       await navigator.share({
-        title: `Ykay Receipt ${data.receiptNo}`,
+        title: `Receipt ${data.receiptNo} — ${receiptSchoolName(data)}`,
         text: `Payment of NGN ${data.totalPaid.toLocaleString()} for ${data.studentName}`,
         url: window.location.href,
       });

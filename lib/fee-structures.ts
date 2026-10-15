@@ -1,6 +1,7 @@
-import { FeeInvoiceStatus, Prisma, UserRole } from "@prisma/client";
+import { FeeCreditStatus, FeeInvoiceStatus, Prisma, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { postInvoiceAccrual } from "@/lib/ledger-postings";
+import { postCreditApplication, postInvoiceAccrual } from "@/lib/ledger-postings";
+import { computeInvoiceStatus } from "@/lib/finance";
 
 /**
  * Fee structures and invoice generation.
@@ -239,7 +240,13 @@ export async function generateInvoices(params: {
   termId: string;
   classId?: string | null;
   actorUserId: string;
-}): Promise<{ created: number; skipped: number; blocked: number; totalBilled: number }> {
+}): Promise<{
+  created: number;
+  skipped: number;
+  blocked: number;
+  totalBilled: number;
+  creditsAppliedNaira: number;
+}> {
   const plan = await planInvoiceGeneration(params);
   const toBill = plan.rows.filter((r) => !r.blocker && !r.alreadyInvoiced);
 
@@ -249,6 +256,7 @@ export async function generateInvoices(params: {
       skipped: plan.summary.skipped,
       blocked: plan.summary.blocked,
       totalBilled: 0,
+      creditsAppliedNaira: 0,
     };
   }
 
@@ -268,6 +276,7 @@ export async function generateInvoices(params: {
   });
   const parentOf = new Map(links.map((l) => [l.studentProfileId, l.parentProfileId]));
 
+  let creditsApplied = 0;
   let created = 0;
   let totalBilled = 0;
   let sequence = issued;
@@ -330,6 +339,58 @@ export async function generateInvoices(params: {
           actorUserId: params.actorUserId,
           postedAt: invoice.issuedAt,
         });
+
+        // F5-11: a credit balance the school holds for this pupil settles
+        // the new bill first, oldest credit first. The liability is spent
+        // in the same transaction as the accrual, so the pupil's ledger
+        // statement shows the new bill arriving already part-settled.
+        const credits = await tx.feeCredit.findMany({
+          where: {
+            schoolId: params.schoolId,
+            studentProfileId: row.studentProfileId,
+            status: { in: [FeeCreditStatus.OPEN, FeeCreditStatus.PARTIALLY_APPLIED] },
+            amountRemainingNaira: { gt: 0 },
+          },
+          orderBy: { createdAt: "asc" },
+        });
+        const openCredits = credits ?? [];
+        let remaining = total;
+        let credited = 0;
+        for (const credit of openCredits) {
+          if (remaining <= 0) break;
+          const spend = Math.min(credit.amountRemainingNaira, remaining);
+          if (spend <= 0) continue;
+          await postCreditApplication(tx, {
+            schoolId: params.schoolId,
+            creditId: credit.id,
+            invoiceId: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            amountNaira: spend,
+            studentProfileId: row.studentProfileId,
+            actorUserId: params.actorUserId,
+          });
+          const left = credit.amountRemainingNaira - spend;
+          await tx.feeCredit.update({
+            where: { id: credit.id },
+            data: {
+              amountRemainingNaira: left,
+              status: left === 0 ? FeeCreditStatus.APPLIED : FeeCreditStatus.PARTIALLY_APPLIED,
+            },
+          });
+          remaining -= spend;
+          credited += spend;
+        }
+        if (credited > 0) {
+          creditsApplied += credited;
+          await tx.feeInvoice.update({
+            where: { id: invoice.id },
+            data: {
+              amountCredited: credited,
+              balanceDue: total - credited,
+              status: computeInvoiceStatus(total, 0, dueDate, credited),
+            },
+          });
+        }
       });
       created += 1;
       totalBilled += total;
@@ -356,6 +417,7 @@ export async function generateInvoices(params: {
         classId: params.classId ?? null,
         created,
         totalBilled,
+        creditsAppliedNaira: creditsApplied,
       },
     },
   });
@@ -365,5 +427,6 @@ export async function generateInvoices(params: {
     skipped: plan.summary.skipped,
     blocked: plan.summary.blocked,
     totalBilled,
+    creditsAppliedNaira: creditsApplied,
   };
 }

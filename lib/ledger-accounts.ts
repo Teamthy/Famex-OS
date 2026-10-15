@@ -37,6 +37,7 @@ export type LedgerSourceTypeKey =
   | "OPENING_BALANCE"
   | "FEE_INVOICE"
   | "FEE_PAYMENT"
+  | "FEE_CREDIT"
   | "FEE_DISCOUNT"
   | "FEE_REFUND"
   | "FEE_TRANSFER"
@@ -49,6 +50,7 @@ export const LEDGER_SOURCE_TYPES: readonly LedgerSourceTypeKey[] = [
   "OPENING_BALANCE",
   "FEE_INVOICE",
   "FEE_PAYMENT",
+  "FEE_CREDIT",
   "FEE_DISCOUNT",
   "FEE_REFUND",
   "FEE_TRANSFER",
@@ -63,6 +65,7 @@ export const LEDGER_SOURCE_LABELS: Record<LedgerSourceTypeKey, string> = {
   OPENING_BALANCE: "Opening balance",
   FEE_INVOICE: "Fee invoice",
   FEE_PAYMENT: "Fee payment",
+  FEE_CREDIT: "Credit applied",
   FEE_DISCOUNT: "Discount / scholarship",
   FEE_REFUND: "Refund",
   FEE_TRANSFER: "Fee transfer",

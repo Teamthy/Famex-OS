@@ -14,9 +14,17 @@ export function computeInvoiceStatus(
   totalAmount: number,
   amountPaid: number,
   dueDate?: Date | null,
+  /**
+   * Settled without cash: approved discounts plus applied credit (F5-12 /
+   * F5-11). An invoice is PAID when paid + settledWithoutCash >= total —
+   * a scholarship pupil owes nothing, and saying PARTIAL would chase a
+   * family that does not owe.
+   */
+  settledWithoutCash = 0,
 ) {
-  if (amountPaid >= totalAmount) return FeeInvoiceStatus.PAID;
-  if (amountPaid > 0) return FeeInvoiceStatus.PARTIAL;
+  const settled = amountPaid + settledWithoutCash;
+  if (settled >= totalAmount) return FeeInvoiceStatus.PAID;
+  if (settled > 0) return FeeInvoiceStatus.PARTIAL;
   if (dueDate && dueDate.getTime() < Date.now()) return FeeInvoiceStatus.OVERDUE;
   return FeeInvoiceStatus.UNPAID;
 }

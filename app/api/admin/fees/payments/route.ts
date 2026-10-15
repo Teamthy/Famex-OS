@@ -13,6 +13,7 @@ const cashSchema = z.object({
   action: z.literal("RECORD_CASH"),
   invoiceId: z.string().min(1),
   amount: z.number().int().positive(),
+  carryExcessAsCredit: z.boolean().optional(),
   reference: z.string().trim().min(4).max(120).optional(),
   note: z.string().trim().max(500).optional(),
 });
@@ -87,6 +88,9 @@ export async function POST(request: NextRequest) {
         reference,
         providerData: { recordedBy: context.user.id, note: input.note || null },
         actorUserId: context.user.id,
+        // F5-11: cash desk only — the bursar deliberately choosing to
+        // carry an overpayment forward. Never implicit.
+        allowExcessAsCredit: input.carryExcessAsCredit ?? false,
       });
 
       await prisma.auditLog.create({

@@ -2,12 +2,14 @@
 
 import { m, AnimatePresence } from "framer-motion";
 import { X, Download, MessageCircle, Share2, CheckCircle2, Printer } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
   ReceiptData,
   downloadReceipt,
   shareReceiptWhatsApp,
   shareReceiptNative,
 } from "@/lib/receipt";
+import { qrDataUrl } from "@/lib/qr";
 import { useToast } from "./Toast";
 import { useSchoolProfile } from "@/components/SchoolProfileContext";
 
@@ -19,11 +21,39 @@ interface Props {
 
 export default function ReceiptModal({ open, data, onClose }: Props) {
   const { toast } = useToast();
-  const { address } = useSchoolProfile();
+  const profile = useSchoolProfile();
+  const [qrImage, setQrImage] = useState<string | null>(null);
+
+  // The QR payload names the receipt and its payment reference — scanning
+  // it against the bursary's records proves the document is genuine.
+  useEffect(() => {
+    let alive = true;
+    if (!data) {
+      setQrImage(null);
+      return;
+    }
+    qrDataUrl(`FAMEX-RECEIPT:${data.receiptNo}:${data.paymentReference}`, 192)
+      .then((url) => {
+        if (alive) setQrImage(url);
+      })
+      .catch(() => {
+        if (alive) setQrImage(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [data]);
 
   if (!data) return null;
 
-  const receipt: ReceiptData = { ...data, schoolAddress: address };
+  const receipt: ReceiptData = {
+    ...data,
+    schoolAddress: profile.address,
+    schoolName: data.schoolName ?? profile.name,
+    schoolPhone: data.schoolPhone ?? profile.phone,
+    schoolEmail: data.schoolEmail ?? profile.email,
+    qrImageDataUrl: data.qrImageDataUrl ?? qrImage,
+  };
 
   const handleDownload = () => {
     downloadReceipt(receipt);

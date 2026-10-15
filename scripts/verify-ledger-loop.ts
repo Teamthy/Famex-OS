@@ -20,6 +20,15 @@
  *                          stays on the books (Rule 9), and a second reversal
  *                          is refused
  *   8. expenditure       → posted, then voided by counter-entry, netting zero
+ *   9. discount (F5-12)  → contra-income debited, receivable reduced, and
+ *                          the document invariant balanceDue ==
+ *                          total - paid - discounted - credited asserted
+ *  10. refund (F5-13)    → refunds debited, bank credited, payment marked
+ *                          REFUNDED (never deleted), invoice NOT reopened
+ *  11. credit (F5-11)    → overpayment held as a liability, then spent
+ *                          against the next term's invoice at billing
+ *  12. settlement (F5-16)→ gateway charges debited to expense:gateway_charges
+ *                          against the bank
  *
  * The payment step mirrors lib/fee-payment-service.ts rather than calling it:
  * that service pulls in the request-scoped session layer, which a plain script
@@ -30,8 +39,23 @@
  * can gate a merge or a deploy.
  */
 import { FeeInvoiceStatus, FeePaymentMethod, FeePaymentStatus, PrismaClient } from "@prisma/client";
+import {
+  FeeCreditStatus,
+  FeeDiscountKind,
+  FeeDiscountStatus,
+  FeeRefundStatus,
+} from "@prisma/client";
+import { computeInvoiceStatus } from "@/lib/finance";
 import { ensureLedgerAccounts, postJournal, reverseJournal, trialBalance } from "@/lib/ledger";
-import { postExpenseSpend, postInvoiceAccrual, postPaymentReceipt } from "@/lib/ledger-postings";
+import {
+  postCreditApplication,
+  postExpenseSpend,
+  postFeeDiscount,
+  postFeeRefund,
+  postGatewaySettlement,
+  postInvoiceAccrual,
+  postPaymentReceipt,
+} from "@/lib/ledger-postings";
 
 const prisma = new PrismaClient({ log: [] });
 
@@ -62,6 +86,10 @@ async function cleanup() {
   await prisma.ledgerJournal.deleteMany({ where: { schoolId: SCHOOL } });
   await prisma.ledgerLine.deleteMany({ where: { schoolId: SCHOOL } });
   await prisma.ledgerAccount.deleteMany({ where: { schoolId: SCHOOL } });
+  await prisma.feeDiscount.deleteMany({ where: { schoolId: SCHOOL } });
+  await prisma.feeRefund.deleteMany({ where: { schoolId: SCHOOL } });
+  await prisma.feeCredit.deleteMany({ where: { schoolId: SCHOOL } });
+  await prisma.gatewaySettlement.deleteMany({ where: { schoolId: SCHOOL } });
   await prisma.feePayment.deleteMany({ where: { schoolId: SCHOOL } });
   await prisma.feeInvoice.deleteMany({ where: { schoolId: SCHOOL } });
   await prisma.expense.deleteMany({ where: { schoolId: SCHOOL } });
@@ -386,15 +414,266 @@ async function main() {
   });
   check("voiding nets the spend to zero", expenseAfterVoid._sum.amount, 0);
 
+  // ── 9. Discount approval (F5-12) ──────────────────────────────────────
+  console.log("\nDiscount approval (F5-12)");
+  // Receivable is back at the full invoice after the reversal above.
+  const discountNaira = 10_000;
+  const discount = await prisma.$transaction(async (tx) => {
+    const created = await tx.feeDiscount.create({
+      data: {
+        schoolId: SCHOOL,
+        invoiceId: invoice.id,
+        studentProfileId: STUDENT_ID,
+        kind: FeeDiscountKind.SCHOLARSHIP,
+        amountNaira: discountNaira,
+        reason: "Verify-loop scholarship",
+        status: FeeDiscountStatus.APPROVED,
+        requestedByUserId: "ledgerverify_bursar",
+        approvedByUserId: "ledgerverify_director",
+        approvedAt: new Date(),
+      },
+    });
+    await tx.feeInvoice.updateMany({
+      where: { id: invoice.id, schoolId: SCHOOL, balanceDue: { gte: discountNaira } },
+      data: {
+        amountDiscounted: { increment: discountNaira },
+        balanceDue: { decrement: discountNaira },
+      },
+    });
+    await postFeeDiscount(tx, {
+      schoolId: SCHOOL,
+      discountId: created.id,
+      invoiceNumber: invoice.invoiceNumber,
+      kind: created.kind,
+      amountNaira: discountNaira,
+      studentProfileId: STUDENT_ID,
+    });
+    return created;
+  });
+  check("discounts contra-income debited", await balanceOf("discounts"), 1_000_000);
+  check("receivable reduced by the waiver", await balanceOf("fees_receivable"), 9_000_000);
+  const afterDiscount = await prisma.feeInvoice.findUniqueOrThrow({ where: { id: invoice.id } });
+  check(
+    "document invariant: balanceDue = total - paid - discounted - credited",
+    afterDiscount.balanceDue,
+    afterDiscount.totalAmount -
+      afterDiscount.amountPaid -
+      afterDiscount.amountDiscounted -
+      afterDiscount.amountCredited,
+  );
+  check("the discount document survives", discount.status, FeeDiscountStatus.APPROVED);
+
+  // ── 10. Refund (F5-13) ────────────────────────────────────────────────
+  console.log("\nRefund by counter-entry (F5-13)");
+  const bankPayment = await prisma.$transaction(async (tx) => {
+    const created = await tx.feePayment.create({
+      data: {
+        schoolId: SCHOOL,
+        invoiceId: invoice.id,
+        studentProfileId: STUDENT_ID,
+        amount: 20_000,
+        method: FeePaymentMethod.BANK_TRANSFER,
+        status: FeePaymentStatus.COMPLETED,
+        reference: "LVC-PAY-2",
+        receiptNumber: "LVC-RCP-2",
+      },
+    });
+    await tx.feeInvoice.update({
+      where: { id: invoice.id },
+      data: { amountPaid: { increment: 20_000 }, balanceDue: { decrement: 20_000 } },
+    });
+    await postPaymentReceipt(tx, {
+      schoolId: SCHOOL,
+      paymentId: created.id,
+      receiptNumber: created.receiptNumber,
+      reference: created.reference,
+      amountNaira: 20_000,
+      method: created.method,
+      studentProfileId: STUDENT_ID,
+    });
+    return created;
+  });
+  await prisma.$transaction(async (tx) => {
+    const refund = await tx.feeRefund.create({
+      data: {
+        schoolId: SCHOOL,
+        paymentId: bankPayment.id,
+        invoiceId: invoice.id,
+        studentProfileId: STUDENT_ID,
+        amountNaira: 5_000,
+        reason: "Verify-loop refund",
+        status: FeeRefundStatus.APPROVED,
+        requestedByUserId: "ledgerverify_bursar",
+        approvedByUserId: "ledgerverify_director",
+        approvedAt: new Date(),
+      },
+    });
+    await tx.feePayment.update({
+      where: { id: bankPayment.id },
+      data: { status: FeePaymentStatus.REFUNDED },
+    });
+    await postFeeRefund(tx, {
+      schoolId: SCHOOL,
+      refundId: refund.id,
+      paymentReference: bankPayment.reference,
+      amountNaira: 5_000,
+      method: bankPayment.method,
+      studentProfileId: STUDENT_ID,
+    });
+  });
+  check("refunds contra-income debited", await balanceOf("refunds"), 500_000);
+  check("bank paid the refund out", await balanceOf("bank"), 1_500_000);
+  const refundedPayment = await prisma.feePayment.findUniqueOrThrow({
+    where: { id: bankPayment.id },
+  });
+  check(
+    "the payment is marked REFUNDED, not deleted",
+    refundedPayment.status,
+    FeePaymentStatus.REFUNDED,
+  );
+  const afterRefund = await prisma.feeInvoice.findUniqueOrThrow({ where: { id: invoice.id } });
+  check("the invoice is NOT reopened by a refund", afterRefund.balanceDue, 45_000);
+
+  // ── 11. Overpayment credit, spent at next billing (F5-11) ─────────────
+  console.log("\nCredit balance held and spent (F5-11)");
+  await prisma.$transaction(async (tx) => {
+    const created = await tx.feePayment.create({
+      data: {
+        schoolId: SCHOOL,
+        invoiceId: invoice.id,
+        studentProfileId: STUDENT_ID,
+        amount: 70_000, // ₦45,000 owed + ₦25,000 deliberate excess
+        method: FeePaymentMethod.BANK_TRANSFER,
+        status: FeePaymentStatus.COMPLETED,
+        reference: "LVC-PAY-3",
+        receiptNumber: "LVC-RCP-3",
+      },
+    });
+    await tx.feeInvoice.update({
+      where: { id: invoice.id },
+      data: { amountPaid: { increment: 45_000 }, balanceDue: 0, status: FeeInvoiceStatus.PAID },
+    });
+    await postPaymentReceipt(tx, {
+      schoolId: SCHOOL,
+      paymentId: created.id,
+      receiptNumber: created.receiptNumber,
+      reference: created.reference,
+      amountNaira: 70_000,
+      method: created.method,
+      studentProfileId: STUDENT_ID,
+      creditNaira: 25_000,
+    });
+    await tx.feeCredit.create({
+      data: {
+        schoolId: SCHOOL,
+        studentProfileId: STUDENT_ID,
+        amountNaira: 25_000,
+        amountRemainingNaira: 25_000,
+        sourcePaymentId: created.id,
+      },
+    });
+  });
+  check("the excess sits in credit balances held", await balanceOf("student_credit"), -2_500_000);
+  // The ledger receivable still carries the ₦25,000 the step-7 reversal
+  // restored (that reversal was ledger-only, as stage A scoped it) — the
+  // document side settled. The two are reconciled stage-B-wide below.
+  check(
+    "receivable keeps the reversal's restored amount",
+    await balanceOf("fees_receivable"),
+    2_500_000,
+  );
+
+  const invoice2 = await prisma.feeInvoice.create({
+    data: {
+      schoolId: SCHOOL,
+      studentProfileId: STUDENT_ID,
+      invoiceNumber: "LVC/2026/2/0001",
+      title: "JSS1 School Fees — Second Term",
+      termLabel: "Second Term",
+      totalAmount: 30_000,
+      amountPaid: 0,
+      balanceDue: 30_000,
+    },
+  });
+  const credit = await prisma.$transaction(async (tx) => {
+    await postInvoiceAccrual(tx, {
+      schoolId: SCHOOL,
+      invoiceId: invoice2.id,
+      invoiceNumber: invoice2.invoiceNumber,
+      totalNaira: 30_000,
+      termLabel: invoice2.termLabel,
+      studentProfileId: STUDENT_ID,
+    });
+    const held = await tx.feeCredit.findFirstOrThrow({
+      where: { schoolId: SCHOOL, studentProfileId: STUDENT_ID, status: FeeCreditStatus.OPEN },
+    });
+    await postCreditApplication(tx, {
+      schoolId: SCHOOL,
+      creditId: held.id,
+      invoiceId: invoice2.id,
+      invoiceNumber: invoice2.invoiceNumber,
+      amountNaira: 25_000,
+      studentProfileId: STUDENT_ID,
+    });
+    await tx.feeCredit.update({
+      where: { id: held.id },
+      data: { amountRemainingNaira: 0, status: FeeCreditStatus.APPLIED },
+    });
+    await tx.feeInvoice.update({
+      where: { id: invoice2.id },
+      data: {
+        amountCredited: 25_000,
+        balanceDue: 5_000,
+        status: computeInvoiceStatus(30_000, 0, null, 25_000),
+      },
+    });
+    return held;
+  });
+  check("credit balances held are spent", await balanceOf("student_credit"), 0);
+  // ₦25,000 reversal restoration + ₦30,000 new bill − ₦25,000 credit spent.
+  check("receivable after the credit is spent", await balanceOf("fees_receivable"), 3_000_000);
+  const appliedCredit = await prisma.feeCredit.findUniqueOrThrow({ where: { id: credit.id } });
+  check("the credit document is fully applied", appliedCredit.status, FeeCreditStatus.APPLIED);
+
+  // ── 12. Gateway settlement charges (F5-16) ────────────────────────────
+  console.log("\nGateway settlement (F5-16)");
+  const settlement = await prisma.$transaction(async (tx) => {
+    const created = await tx.gatewaySettlement.create({
+      data: {
+        schoolId: SCHOOL,
+        reference: "LVC-SETTLE-1",
+        settledAt: new Date(),
+        grossKobo: 11_500_000,
+        chargesKobo: 150_000,
+        netKobo: 11_350_000,
+      },
+    });
+    await postGatewaySettlement(tx, {
+      schoolId: SCHOOL,
+      settlementId: created.id,
+      reference: created.reference,
+      chargesKobo: 150_000,
+    });
+    return created;
+  });
+  check("settlement recorded", settlement.grossKobo, 11_500_000);
+  // Bank: ₦20,000 in (step 10) − ₦5,000 refund + ₦70,000 in (step 11)
+  // − ₦1,500 gateway charges = ₦83,500.
+  check("bank reduced by the gateway charges", await balanceOf("bank"), 8_350_000);
+  const chargesAccount = await prisma.ledgerAccount.findFirst({
+    where: { schoolId: SCHOOL, systemKey: "expense:gateway_charges" },
+    select: { id: true },
+  });
+  checkTrue("a gateway-charges category account exists", Boolean(chargesAccount));
+
   const finalLedger = await trialBalance(prisma, SCHOOL);
   checkTrue("ledger still balanced at the end", finalLedger.balanced);
-  // The payment was reversed by counter-entry, so the student owes the full
-  // invoice again. The document-level half of that (a refund/reversal that also
-  // restores the invoice) is F5-13; here the books are what is being proved.
+  // Everything above nets out in the receivable: the restored ₦25,000 from
+  // the reversal, plus the second-term bill's ₦5,000 still owed.
   check(
-    "reversal puts the receivable back to the full invoice",
+    "final receivable = restored reversal + second bill balance",
     await balanceOf("fees_receivable"),
-    10_000_000,
+    3_000_000,
   );
 
   await cleanup();

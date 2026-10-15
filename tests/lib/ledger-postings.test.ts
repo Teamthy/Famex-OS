@@ -285,3 +285,161 @@ describe("wiring — the documents that already existed now post", () => {
     ]);
   });
 });
+
+describe("postFeeDiscount (stage B)", () => {
+  it("debits discounts and credits fees receivable under its own key", async () => {
+    const { postFeeDiscount } = await import("@/lib/ledger-postings");
+    await postFeeDiscount(db as never, {
+      schoolId: "school_1",
+      discountId: "fdisc_1",
+      invoiceNumber: "YKC/2026/1/0001",
+      kind: "SCHOLARSHIP",
+      amountNaira: 10_000,
+      studentProfileId: "stu_1",
+    });
+    expect(lastLegs()).toEqual([
+      expect.objectContaining({ accountId: "acct_4100", amount: 1_000_000 }),
+      expect.objectContaining({ accountId: "acct_1100", amount: -1_000_000 }),
+    ]);
+    const data = db.ledgerJournal.create.mock.calls.at(-1)?.[0].data;
+    expect(data.sourceType).toBe("FEE_DISCOUNT");
+    expect(data.idempotencyKey).toBe("fee-discount:fdisc_1");
+  });
+});
+
+describe("postFeeRefund (stage B)", () => {
+  it("debits refunds and credits the bank for a transfer payment", async () => {
+    const { postFeeRefund } = await import("@/lib/ledger-postings");
+    await postFeeRefund(db as never, {
+      schoolId: "school_1",
+      refundId: "fref_1",
+      paymentReference: "YKC-PAY-1",
+      amountNaira: 5_000,
+      method: "BANK_TRANSFER",
+      studentProfileId: "stu_1",
+    });
+    expect(lastLegs()).toEqual([
+      expect.objectContaining({ accountId: "acct_4110", amount: 500_000 }),
+      expect.objectContaining({ accountId: "acct_1010", amount: -500_000 }),
+    ]);
+    const data = db.ledgerJournal.create.mock.calls.at(-1)?.[0].data;
+    expect(data.idempotencyKey).toBe("fee-refund:fref_1");
+  });
+});
+
+describe("postPaymentReceipt with a credit excess (F5-11)", () => {
+  it("splits the receipt: cash up, receivable down by the applied part only", async () => {
+    const { postPaymentReceipt } = await import("@/lib/ledger-postings");
+    await postPaymentReceipt(db as never, {
+      schoolId: "school_1",
+      paymentId: "pay_9",
+      reference: "YKC-PAY-9",
+      amountNaira: 70_000,
+      method: "BANK_TRANSFER",
+      studentProfileId: "stu_1",
+      creditNaira: 25_000,
+    });
+    expect(lastLegs()).toEqual([
+      expect.objectContaining({ accountId: "acct_1010", amount: 7_000_000 }),
+      expect.objectContaining({ accountId: "acct_1100", amount: -4_500_000 }),
+      expect.objectContaining({ accountId: "acct_2000", amount: -2_500_000 }),
+    ]);
+  });
+
+  it("refuses a credit portion larger than the payment", async () => {
+    const { postPaymentReceipt } = await import("@/lib/ledger-postings");
+    await expect(
+      postPaymentReceipt(db as never, {
+        schoolId: "school_1",
+        paymentId: "pay_10",
+        reference: "YKC-PAY-10",
+        amountNaira: 10_000,
+        method: "CASH",
+        studentProfileId: "stu_1",
+        creditNaira: 11_000,
+      }),
+    ).rejects.toThrow(/cannot exceed/);
+  });
+});
+
+describe("postCreditApplication + postFeeTransfer (stage B)", () => {
+  it("spends held credit against the receivable", async () => {
+    const { postCreditApplication } = await import("@/lib/ledger-postings");
+    await postCreditApplication(db as never, {
+      schoolId: "school_1",
+      creditId: "fcred_1",
+      invoiceId: "inv_2",
+      invoiceNumber: "YKC/2026/2/0001",
+      amountNaira: 25_000,
+      studentProfileId: "stu_1",
+    });
+    expect(lastLegs()).toEqual([
+      expect.objectContaining({ accountId: "acct_2000", amount: 2_500_000 }),
+      expect.objectContaining({ accountId: "acct_1100", amount: -2_500_000 }),
+    ]);
+    const data = db.ledgerJournal.create.mock.calls.at(-1)?.[0].data;
+    expect(data.sourceType).toBe("FEE_CREDIT");
+    expect(data.idempotencyKey).toBe("fee-credit-apply:fcred_1:inv_2");
+  });
+
+  it("a transfer moves the receivable between pupils without moving its total", async () => {
+    const { postFeeTransfer } = await import("@/lib/ledger-postings");
+    await postFeeTransfer(db as never, {
+      schoolId: "school_1",
+      transferId: "tr_1",
+      amountNaira: 8_000,
+      fromStudentProfileId: "stu_1",
+      toStudentProfileId: "stu_2",
+      fromInvoiceNumber: "YKC/2026/1/0001",
+      toInvoiceNumber: "YKC/2026/1/0002",
+    });
+    const legs = lastLegs();
+    expect(legs).toHaveLength(2);
+    expect(legs[0]).toEqual(expect.objectContaining({ accountId: "acct_1100", amount: 800_000 }));
+    expect(legs[1]).toEqual(expect.objectContaining({ accountId: "acct_1100", amount: -800_000 }));
+    expect(legs.reduce((sum, leg) => sum + leg.amount, 0)).toBe(0);
+    const data = db.ledgerJournal.create.mock.calls.at(-1)?.[0].data;
+    expect(data.sourceType).toBe("FEE_TRANSFER");
+    expect(data.idempotencyKey).toBe("fee-transfer:tr_1");
+  });
+});
+
+describe("postGatewaySettlement (F5-16)", () => {
+  it("books only the charges: DR gateway charges, CR bank, in kobo", async () => {
+    // The expense:* category account is provisioned on demand.
+    db.ledgerAccount.create.mockResolvedValue({
+      id: "acct_5099",
+      code: "5099",
+      name: "gateway charges",
+      type: "EXPENSE",
+      systemKey: "expense:gateway_charges",
+      isActive: true,
+    });
+    const { postGatewaySettlement } = await import("@/lib/ledger-postings");
+    const result = await postGatewaySettlement(db as never, {
+      schoolId: "school_1",
+      settlementId: "gset_1",
+      reference: "PSTK-SETTLE-1",
+      chargesKobo: 150_000,
+    });
+    expect(result).not.toBeNull();
+    const legs = lastLegs();
+    expect(legs[0]).toEqual(expect.objectContaining({ accountId: "acct_5099", amount: 150_000 }));
+    expect(legs[1]).toEqual(expect.objectContaining({ accountId: "acct_1010", amount: -150_000 }));
+    const data = db.ledgerJournal.create.mock.calls.at(-1)?.[0].data;
+    expect(data.sourceType).toBe("GATEWAY_SETTLEMENT");
+    expect(data.idempotencyKey).toBe("gateway-settlement:gset_1");
+  });
+
+  it("posts nothing for a zero-charge payout", async () => {
+    const { postGatewaySettlement } = await import("@/lib/ledger-postings");
+    const result = await postGatewaySettlement(db as never, {
+      schoolId: "school_1",
+      settlementId: "gset_2",
+      reference: "PSTK-SETTLE-2",
+      chargesKobo: 0,
+    });
+    expect(result).toBeNull();
+    expect(db.ledgerJournal.create).not.toHaveBeenCalled();
+  });
+});
