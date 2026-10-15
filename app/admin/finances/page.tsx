@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LoaderCircle, PiggyBank, Wallet } from "lucide-react";
 import AdminSidebar from "@/components/AdminSidebar";
 import PortalTopbar from "@/components/PortalTopbar";
+import { formatKobo } from "@/lib/money";
 
 type FinanceOverviewResponse = {
   cards: Array<{ period: string; income: number; expenses: number; net: number }>;
@@ -16,6 +17,22 @@ type FinanceOverviewResponse = {
     totalOutstanding: number;
     collectionRate: number;
     pendingBankTransfers: number;
+  };
+  /**
+   * F5-19 bursar dashboard: figures read from the LEDGER, not from the
+   * documents. `balanced: false` means the books do not add up and nothing
+   * else on this page should be trusted — so it is shown first.
+   */
+  ledger?: {
+    balanced: boolean;
+    cashKobo: number;
+    bankKobo: number;
+    receivableKobo: number;
+    creditHeldKobo: number;
+    incomeKobo: number;
+    discountsKobo: number;
+    expensesKobo: number;
+    surplusKobo: number;
   };
   recentIncome: Array<{
     id: string;
@@ -105,6 +122,12 @@ export default function FinanceDashboardPage() {
             >
               Transfers
             </Link>
+            <Link
+              href="/admin/finances/ledger"
+              className="rounded-full border border-[var(--border-default)] px-4 py-2 text-[10px] font-bold uppercase tracking-widest"
+            >
+              General ledger
+            </Link>
           </div>
 
           {error && (
@@ -159,6 +182,58 @@ export default function FinanceDashboardPage() {
                   </div>
                 ))}
               </div>
+
+              {data.ledger && (
+                <div className="space-y-3">
+                  <div
+                    className={`rounded-2xl border p-4 text-sm ${
+                      data.ledger.balanced
+                        ? "border-brand-green/30 bg-brand-green/5"
+                        : "border-red-500/40 bg-red-500/10 text-red-600"
+                    }`}
+                  >
+                    {data.ledger.balanced ? (
+                      <>
+                        <b>The books balance.</b> Every naira debited is credited — the journal has
+                        no gaps as at this moment.
+                      </>
+                    ) : (
+                      <>
+                        <b>The books do not balance.</b> Debits and credits differ. Do not act on
+                        any figure on this page until the general ledger has been reconciled.
+                      </>
+                    )}
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    {[
+                      ["Cash on hand", data.ledger.cashKobo, "text-brand-green"],
+                      ["Bank", data.ledger.bankKobo, "text-brand-green"],
+                      ["Fees receivable", data.ledger.receivableKobo, "text-brand-orange"],
+                      ["Surplus to date", data.ledger.surplusKobo, "text-blue-500"],
+                    ].map(([label, value, color]) => (
+                      <div
+                        key={String(label)}
+                        className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-4"
+                      >
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                          {label}
+                        </div>
+                        <div className={`mt-1 font-display text-2xl ${color}`}>
+                          {formatKobo(Number(value))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-4 text-sm">
+                    From the ledger: income <b>{formatKobo(data.ledger.incomeKobo)}</b> · discounts
+                    &amp; refunds <b>{formatKobo(data.ledger.discountsKobo)}</b> · expenditure{" "}
+                    <b>{formatKobo(data.ledger.expensesKobo)}</b> · credit held for families{" "}
+                    <b>{formatKobo(data.ledger.creditHeldKobo)}</b>
+                  </div>
+                </div>
+              )}
 
               <div className="rounded-2xl border border-brand-orange/30 bg-brand-orange/5 p-4 text-sm">
                 Pending bank transfers awaiting bursar review:{" "}

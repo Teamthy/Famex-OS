@@ -99,6 +99,41 @@ enum FeePaymentStatus {
   REFUNDED
 }
 
+/// ── W3 ledger (F5-08/F5-09) ────────────────────────────────────────────────
+///
+/// What kind of account this is in the accounting equation. It decides which
+/// direction increases the account, which is why the ledger can say "debits
+/// equal credits" without every caller re-deriving normal balances:
+///
+///   ASSET      debit-normal   (cash, bank, money a parent owes us)
+///   EXPENSE    debit-normal   (spent)
+///   LIABILITY  credit-normal  (a credit balance we owe a parent)
+///   EQUITY     credit-normal
+///   INCOME     credit-normal  (billed)
+enum LedgerAccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+/// The document class a journal was posted from. Every posting names one, so
+/// any balance a bursar questions a year later can be traced back to the thing
+/// that caused it (Rule 10 / §9 Money).
+enum LedgerSourceType {
+  OPENING_BALANCE
+  FEE_INVOICE
+  FEE_PAYMENT
+  FEE_DISCOUNT
+  FEE_REFUND
+  FEE_TRANSFER
+  GATEWAY_SETTLEMENT
+  EXPENSE
+  EXPENSE_VOID
+  MANUAL_ADJUSTMENT
+}
+
 enum ReportCardStatus {
   DRAFT
   RELEASED
@@ -224,6 +259,9 @@ model School {
   contactEnquiries        ContactEnquiry[]
   stageConfigs            StageConfig[]
   gradeBands              GradeBand[]
+  ledgerAccounts          LedgerAccount[]
+  ledgerJournals          LedgerJournal[]
+  ledgerLines             LedgerLine[]
 }
 
 model User {
@@ -384,6 +422,7 @@ model StudentProfile {
   behaviorRecords      BehaviorRecord[]
   enrolments           StudentEnrolment[]
   studentSubjects      StudentSubject[]
+  ledgerLines          LedgerLine[]
 
   @@unique([schoolId, studentId])
   @@index([currentClassId, isActive])
@@ -680,6 +719,122 @@ model FeePaymentAttempt {
 
   @@index([schoolId, status, createdAt])
   @@index([invoiceId, status])
+}
+
+/// ── The ledger (F5-08, F5-09, F5-10, F5-11, F5-13) ─────────────────────────
+///
+/// Rule 10: the ledger is the source of truth for money. Invoices, fee
+/// balances and every dashboard figure are PROJECTIONS of these three tables —
+/// `FeeInvoice`/`FeePayment` stay as the documents a parent and a bursar see,
+/// and each one posts a journal the moment it exists.
+///
+/// The base had no ledger at all: `lib/finance.ts` was invoice-shaped, so
+/// "how much did we collect" meant summing `FeePayment.amount` with no way to
+/// explain a balance, no cashbook, and no double-entry check. A payment that
+/// was reversed simply vanished.
+///
+/// ── Why one signed amount instead of debit/credit columns ─────────────────
+/// `LedgerLine.amount` is a SIGNED integer in kobo: positive = debit,
+/// negative = credit (see `lib/money.ts` for the unit, `lib/ledger.ts` for the
+/// rules). One column means one invariant — the lines of a journal sum to
+/// exactly zero — and no way to record a debit with a negative value, which is
+/// the classic way a two-column ledger stops reconciling. A deferred database
+/// constraint trigger enforces the same rule, so a future service bug cannot
+/// write an unbalanced journal either.
+///
+/// ── Units ─────────────────────────────────────────────────────────────────
+/// Ledger amounts are integer kobo (Rule 2). The legacy fee/expense documents
+/// store whole naira; `lib/money.ts` is the single conversion boundary and
+/// converts at the point of posting, never in the middle of a calculation.
+model LedgerAccount {
+  id        String            @id @default(cuid())
+  schoolId  String
+  /// Human/accountant code — "1000" cash, "1200" fees receivable, "4000" fee
+  /// income. Unique per school.
+  code      String
+  name      String
+  type      LedgerAccountType
+  /// The well-known accounts the system itself posts to ("cash", "bank",
+  /// "fees_receivable", "student_credit", "fee_income", "discounts",
+  /// "refunds", "expense_default", "suspense"). Accounts created by hand for
+  /// a school's own expense categories carry no key. One per school.
+  systemKey String?
+  isActive  Boolean           @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  lines  LedgerLine[]
+
+  @@unique([schoolId, code])
+  @@unique([schoolId, systemKey])
+  @@index([schoolId, type])
+}
+
+/// One balanced posting — the atom of the ledger. Journals are append-only:
+/// there is no update or delete path in the service, only counter-entries
+/// (`reverseJournal`), because a financial record is corrected, never removed
+/// (Rule 9).
+model LedgerJournal {
+  id          String @id @default(cuid())
+  schoolId    String
+  /// Readable reference, "JRN-2026-000042". Unique per school.
+  number      String
+  postedAt    DateTime @default(now())
+  description String
+  sourceType  LedgerSourceType
+  /// The document that caused this posting (a FeePayment id, an Expense id…).
+  /// Null only for opening balances and manual adjustments.
+  sourceId    String?
+  actorUserId String?
+  /// Idempotency key (Rule 4). When present it is unique per school, so the
+  /// same webhook delivered twice posts one journal, not two.
+  idempotencyKey String?
+
+  /// Set on the counter-entry journal that reverses this one. `@unique` makes
+  /// a second reversal of the same journal impossible at the database level.
+  reversesJournalId String? @unique
+
+  createdAt DateTime     @default(now())
+  lines     LedgerLine[]
+
+  school   School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  reverses LedgerJournal? @relation("LedgerReversal", fields: [reversesJournalId], references: [id], onDelete: Restrict)
+  reversedBy LedgerJournal? @relation("LedgerReversal")
+
+  @@unique([schoolId, number])
+  @@unique([schoolId, idempotencyKey])
+  @@index([schoolId, postedAt])
+  @@index([schoolId, sourceType, sourceId])
+}
+
+/// One leg of a journal. `amount` is signed integer kobo: +debit / −credit.
+/// The lines of a journal must sum to zero — enforced by the service AND by a
+/// deferred constraint trigger created in the W3 migration.
+model LedgerLine {
+  id        String @id @default(cuid())
+  schoolId  String
+  journalId String
+  accountId String
+  /// Signed kobo. Positive = debit, negative = credit.
+  amount    Int
+  memo      String?
+  /// Set when the line is about a specific pupil (fees receivable, a credit
+  /// carried for them). Lets statements and arrears reports be per-student
+  /// without a second book.
+  studentProfileId String?
+
+  createdAt DateTime @default(now())
+
+  school         School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  journal        LedgerJournal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  account        LedgerAccount  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  studentProfile StudentProfile? @relation(fields: [studentProfileId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId, accountId])
+  @@index([journalId])
+  @@index([schoolId, studentProfileId])
 }
 
 model ReportCard {
@@ -1250,24 +1405,33 @@ model IdempotencyRecord {
 }
 
 model Expense {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   schoolId         String
   category         String
   title            String
+  /// Whole-naira integer, as entered by the bursar. Posted to the ledger in
+  /// kobo via lib/money.ts (F5-08).
   amount           Int
-  spentAt          DateTime @default(now())
+  spentAt          DateTime  @default(now())
   vendor           String?
   paymentMethod    String?
   reference        String?
   notes            String?
   recordedByUserId String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  /// W3 (Rule 9): an expense is never deleted. Voiding posts a counter-entry
+  /// to the ledger and stamps who did it, when and why, so last term's
+  /// spending still explains itself.
+  voidedAt         DateTime?
+  voidedByUserId   String?
+  voidReason       String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([schoolId, spentAt])
   @@index([schoolId, category])
+  @@index([schoolId, voidedAt])
 }
 
 model Budget {

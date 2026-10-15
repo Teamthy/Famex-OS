@@ -45,6 +45,9 @@ export async function GET() {
       by: ["category"],
       where: {
         schoolId: context.user.schoolId,
+        // Rule 9: a voided expenditure is not spend. It stays in the table
+        // (with who voided it and why) but it must not eat a term's budget.
+        voidedAt: null,
         spentAt: { gte: termWindow.from, lt: termWindow.to },
       },
       _sum: { amount: true },

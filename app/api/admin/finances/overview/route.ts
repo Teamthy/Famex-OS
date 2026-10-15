@@ -1,5 +1,6 @@
 import { FeePaymentStatus } from "@prisma/client";
 import { getAdminFinanceContext } from "@/lib/finance";
+import { trialBalance } from "@/lib/ledger";
 import { prisma } from "@/lib/prisma";
 import { requireModule } from "@/lib/module-guard";
 import { jsonNoStore } from "@/lib/requests";
@@ -41,7 +42,8 @@ export async function GET() {
       _sum: { amount: true },
     }),
     prisma.expense.aggregate({
-      where: { schoolId },
+      // Rule 9 / W3: voided expenditures are excluded from every figure.
+      where: { schoolId, voidedAt: null },
       _sum: { amount: true },
     }),
     prisma.feeInvoice.aggregate({
@@ -70,7 +72,7 @@ export async function GET() {
       },
     }),
     prisma.expense.findMany({
-      where: { schoolId },
+      where: { schoolId, voidedAt: null },
       orderBy: { spentAt: "desc" },
       take: 200,
       select: { id: true, spentAt: true, amount: true, category: true, title: true, vendor: true },
@@ -114,6 +116,17 @@ export async function GET() {
     classMap.set(cn, row);
   }
 
+  // ── Ledger (F5-08/F5-19): the numbers a bursar signs off ──────────────
+  //
+  // The figures above are projections of the documents; these come from the
+  // ledger itself, which is the source of truth (Rule 10). Two things are
+  // worth showing a head teacher without opening a report: how much cash and
+  // bank the school actually holds, and whether the books balance at all. A
+  // `balanced: false` here is the single most important number on the page.
+  const ledger = await trialBalance(prisma, schoolId);
+  const balanceOf = (systemKey: string) =>
+    ledger.rows.find((row) => row.systemKey === systemKey)?.balance ?? 0;
+
   // ── Totals (from SQL aggregate — accurate, not from bounded sample) ──
   const totalIncome = incomeAgg._sum.amount ?? 0;
   const totalExpenses = expenseAgg._sum.amount ?? 0;
@@ -131,6 +144,29 @@ export async function GET() {
       totalOutstanding,
       collectionRate: totalBilled ? Math.round((totalCollected / totalBilled) * 100) : 0,
       pendingBankTransfers: pendingTransfers,
+    },
+    ledger: {
+      balanced: ledger.balanced,
+      cashKobo: balanceOf("cash"),
+      bankKobo: balanceOf("bank"),
+      receivableKobo: balanceOf("fees_receivable"),
+      creditHeldKobo: -balanceOf("student_credit"),
+      incomeKobo: -balanceOf("fee_income"),
+      // Contra-income accounts are debit-normal, so their balance is already
+      // the positive cost of the waivers/refunds.
+      discountsKobo: balanceOf("discounts") + balanceOf("refunds"),
+      expensesKobo: ledger.rows
+        .filter((row) => row.type === "EXPENSE")
+        .reduce((sum, row) => sum + row.displayBalance, 0),
+      // Income − expenses − discounts: what the books say the term earned,
+      // before anyone opens a spreadsheet.
+      surplusKobo:
+        -balanceOf("fee_income") -
+        balanceOf("discounts") -
+        balanceOf("refunds") -
+        ledger.rows
+          .filter((row) => row.type === "EXPENSE")
+          .reduce((sum, row) => sum + row.displayBalance, 0),
     },
     recentIncome: recentPayments.slice(0, 10).map((p) => ({
       id: p.id,

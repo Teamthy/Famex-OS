@@ -148,6 +148,32 @@ jobs:
         env:
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
 
+      - name: Verify the ledger (money loop)
+        # W3: provisions the chart of accounts, raises an invoice, takes a
+        # payment, reconciles the ledger against the documents to the kobo,
+        # proves a repeated posting is one journal, proves the DATABASE refuses
+        # an unbalanced journal (deferred constraint trigger), reverses by
+        # counter-entry, and voids an expenditure. Unit tests mock Prisma and
+        # cannot prove any of that.
+        #
+        # On failure the interesting lines are re-emitted as `::error::`
+        # workflow commands: GitHub turns those into check-run annotations,
+        # which are readable from the API even though the raw job log is not.
+        run: |
+          set +e
+          npm run verify:ledger > /tmp/ledger.log 2>&1
+          status=$?
+          cat /tmp/ledger.log
+          if [ $status -ne 0 ]; then
+            echo "::error::ledger verification failed (exit $status)"
+            grep -E "FAIL|Error|error:|error " /tmp/ledger.log | head -30 | while IFS= read -r line; do
+              echo "::error title=ledger::$line"
+            done
+          fi
+          exit $status
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
   e2e:
     name: Browser E2E
     runs-on: ubuntu-latest

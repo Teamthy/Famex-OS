@@ -141,8 +141,8 @@ Counts at the end (§25). Scope boundary (Ykay College, *not* EDUos) —
 | F5-05 | Parent fee view and payment intents | ✅ | app/parent/fees |
 | F5-06 | Fee reminders over email and SMS | ✅ | ⚠️ must move off marketing templates — see W4 |
 | F5-07 | Expenses and budgets pages | ✅ | app/admin/expenses, app/admin/budgets |
-| F5-08 | **Double-entry ledger: accounts, journals, trial balance** | 🔧 | lib/finance.ts is invoice-shaped today |
-| F5-09 | General-ledger UI and posting rules | 🔧 | money in must equal money out, always |
+| F5-08 | **Double-entry ledger: accounts, journals, trial balance** | 🔧 | W3 stage A: `lib/ledger.ts` + `LedgerAccount`/`LedgerJournal`/`LedgerLine` + a DB constraint trigger that refuses an unbalanced journal. Wired: invoice accrual, fee payments, expenditures. Remaining: discounts/refunds/transfers postings |
+| F5-09 | General-ledger UI and posting rules | 🔧 | W3 stage A: `/admin/finances/ledger` (trial balance, postings, account statement); posting rules in `lib/ledger-postings.ts`. Remaining: manual-adjustment flow with approval |
 | F5-10 | Payment plans and instalments | 🔧 | term fees in three parts, tracked |
 | F5-11 | Partial payments, overpayments and credit balance | 🔧 | a credit is a liability, not a rounding error |
 | F5-12 | Discounts, scholarships and bursaries with approval | 🔧 | who authorised it, and why, forever |
@@ -152,7 +152,7 @@ Counts at the end (§25). Scope boundary (Ykay College, *not* EDUos) —
 | F5-16 | Gateway settlement reconciliation | 🆕 | Paystack payouts matched to invoices |
 | F5-17 | Arrears aging and a collection workflow | 🆕 | 30/60/90 buckets with a follow-up owner |
 | F5-18 | Financial statements: income, position, cashflow | 🆕 | from the ledger, not from a spreadsheet |
-| F5-19 | Bursar dashboard | 🆕 | collected, outstanding, spent, committed |
+| F5-19 | Bursar dashboard | 🆕 | W3 stage A: the finance dashboard now reads cash/bank/receivable/surplus from the ledger and says whether the books balance. Remaining: committed spend, ageing, drill-downs |
 | F5-20 | Fee price-change audit trail | 🆕 | why a term cost more than the last one |
 | F5-21 | Multi-channel collection: transfer, POS, USSD | 🆕 | cash still walks through the door; record it properly |
 | F5-22 | Invoice templates with school branding | 🆕 | and a QR code that verifies the invoice |
