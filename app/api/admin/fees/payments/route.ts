@@ -1,4 +1,4 @@
-import { FeePaymentMethod, PaymentStatus } from "@prisma/client";
+import { FeePaymentMethod, FeePaymentStatus, PaymentStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -6,6 +6,7 @@ import { getAdminFinanceContext, generatePaymentReference } from "@/lib/finance"
 import { postCompletedFeePayment } from "@/lib/fee-payment-service";
 import { getClientIp } from "@/lib/requests";
 import { requireModule } from "@/lib/module-guard";
+import { isOfflineReplay } from "@/lib/fee-guard";
 
 export const runtime = "nodejs";
 
@@ -78,6 +79,44 @@ export async function POST(request: NextRequest) {
       }
 
       const reference = input.reference || generatePaymentReference();
+      const offlineReplay = isOfflineReplay(request);
+
+      // Release gate (Section G): offline-entered cash NEVER auto-confirms.
+      // Write a PENDING_REVIEW FeePayment instead and skip balance settling.
+      if (offlineReplay) {
+        const payment = await prisma.feePayment.create({
+          data: {
+            schoolId: context.user.schoolId,
+            invoiceId: invoice.id,
+            studentProfileId: invoice.studentProfileId,
+            parentProfileId: invoice.parentProfileId,
+            amount: input.amount,
+            method: FeePaymentMethod.CASH,
+            reference,
+            status: FeePaymentStatus.PENDING_REVIEW,
+            // No dedicated metadata column; stash offline markers in providerData.
+            providerData: {
+              recordedBy: context.user.id,
+              note: input.note || null,
+              offlineReplay: true,
+              clientSubmittedAt: request.headers.get("x-offline-submitted-at"),
+            },
+          },
+        });
+        await prisma.auditLog.create({
+          data: {
+            schoolId: context.user.schoolId,
+            actorUserId: context.user.id,
+            action: "OFFLINE_CASH_PAYMENT_QUEUED",
+            entityType: "FeePayment",
+            entityId: payment.id,
+            ipAddress: getClientIp(request),
+            metadata: { reference, amount: input.amount, pendingReview: true },
+          },
+        });
+        return NextResponse.json({ payment, pendingReview: true }, { status: 202 });
+      }
+
       const result = await postCompletedFeePayment({
         schoolId: context.user.schoolId,
         invoiceId: invoice.id,
@@ -88,8 +127,6 @@ export async function POST(request: NextRequest) {
         reference,
         providerData: { recordedBy: context.user.id, note: input.note || null },
         actorUserId: context.user.id,
-        // F5-11: cash desk only — the bursar deliberately choosing to
-        // carry an overpayment forward. Never implicit.
         allowExcessAsCredit: input.carryExcessAsCredit ?? false,
       });
 

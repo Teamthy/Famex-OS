@@ -176,12 +176,28 @@ export const studentApi = {
   dashboard: () => api("/api/student/dashboard"),
   reportCards: () => api("/api/student/report-cards"),
   attendance: () => api("/api/student/attendance"),
+  clock: () => api("/api/student/clock"),
+  gpsClock: (data: {
+    action: "CHECK_IN" | "CHECK_OUT";
+    latitude: number;
+    longitude: number;
+    accuracyM?: number | null;
+  }) =>
+    api("/api/student/clock", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   exams: () => api("/api/student/exams"),
   announcements: () => api("/api/student/announcements"),
   teachers: () => api("/api/student/teachers"),
   timetable: () => api("/api/student/timetable"),
 
   startExam: (examId: string) => api(`/api/student/exams/${examId}/attempt`, { method: "POST" }),
+  /** Download an exam package for offline sitting (questions without answer keys). */
+  downloadOfflineExam: (examId: string) =>
+    api<import("@/lib/offline/exams").OfflinePackage>(
+      `/api/student/exams/${examId}/offline-package`,
+    ),
   saveExam: (examId: string, attemptId: string, answers: ExamAnswer[]) =>
     apiQueued(`/api/student/exams/${examId}/attempt`, "PATCH", {
       attemptId,
@@ -197,6 +213,22 @@ export const studentApi = {
         action: "SUBMIT",
         answers,
       }),
+    }),
+};
+
+// ── Staff "me" API (self clock-in, GPS) ──────────────────
+
+export const staffMeApi = {
+  attendance: () => api("/api/staff/attendance/me"),
+  gpsClock: (data: {
+    action: "CHECK_IN" | "CHECK_OUT";
+    latitude: number;
+    longitude: number;
+    accuracyM?: number | null;
+  }) =>
+    api("/api/staff/attendance/me", {
+      method: "POST",
+      body: JSON.stringify({ method: "GPS", ...data }),
     }),
 };
 

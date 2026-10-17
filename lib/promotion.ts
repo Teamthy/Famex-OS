@@ -223,11 +223,31 @@ export async function commitPromotion(params: {
         else result.repeated++;
       } else {
         // Graduated, withdrawn or transferred: no new enrolment. The profile
-        // is deactivated but KEPT, so transcripts and the alumni list still
-        // resolve. currentClassId is left pointing at their final class.
+        // is soft-deactivated but KEPT for 10+ years, so transcripts and the
+        // alumni list still resolve. currentClassId is left pointing at their
+        // final class (this is what report cards snapshot anyway).
+        const lifecycleMap: Record<string, import("@prisma/client").StudentLifecycleStatus> = {
+          GRADUATED: "GRADUATED",
+          WITHDRAWN: "WITHDRAWN",
+          TRANSFERRED: "TRANSFERRED",
+        };
+        const lifecycle = lifecycleMap[d.outcome] ?? "ARCHIVED";
+        const tenYears = new Date();
+        tenYears.setFullYear(tenYears.getFullYear() + 10);
+        const now = new Date();
         const leaver = await tx.studentProfile.update({
           where: { id: d.studentProfileId },
-          data: { isActive: false },
+          data: {
+            isActive: false,
+            deactivatedAt: now,
+            lifecycleStatus: lifecycle,
+            graduatedAt: d.outcome === EnrolmentOutcome.GRADUATED ? now : undefined,
+            alumniNumber:
+              d.outcome === EnrolmentOutcome.GRADUATED
+                ? `${now.getFullYear()}-${d.studentProfileId.slice(-6)}`
+                : undefined,
+            dataRetentionUntil: tenYears,
+          },
           select: { userId: true },
         });
 

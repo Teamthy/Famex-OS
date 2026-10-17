@@ -158,6 +158,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     moduleKey: "exams",
     items: [
       live("Question Bank", "/admin/questions", "W7"),
+      live("Bulk Import (CSV)", "/admin/cbt/import", "W16"),
       planned("Examinations", "W7"),
       planned("Exam Computers (offline)", "W7"),
       planned("Results & Marking", "W7"),
@@ -257,6 +258,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       live("Staff Attendance", "/admin/staff-attendance", "W5", {
         moduleKey: "staff_attendance",
       }),
+      live("GPS Clock-ins", "/admin/gps-clockins", "W16"),
     ],
   },
   {
@@ -343,6 +345,16 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     icon: "timetable",
     moduleKey: "timetable",
     items: [live("Class Timetable", "/admin/timetable", "W5"), planned("Exam Timetable", "W7")],
+  },
+  {
+    key: "operations",
+    label: "Operations",
+    icon: "operations",
+    items: [
+      live("Library", "/admin/library", "W17"),
+      live("Inventory & Assets", "/admin/inventory", "W17"),
+      live("Clinic / Health", "/admin/clinic", "W17"),
+    ],
   },
   {
     key: "help_desk",

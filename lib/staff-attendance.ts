@@ -1,7 +1,17 @@
 import { createHash, randomBytes } from "crypto";
-import { StaffAttendanceEventType, UserRole } from "@prisma/client";
+import { Prisma, StaffAttendanceEventType, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
+import {
+  checkGeofence,
+  clampRadiusM,
+  decimalToNumber,
+  DEFAULT_RADIUS_M,
+  isValidPoint,
+  MAX_ACCEPTED_ACCURACY_M,
+  type Geofence,
+} from "@/lib/geofence";
+import { sendSms } from "@/lib/sms";
 
 export const STAFF_ATTENDANCE_ADMIN_ROLES = [
   UserRole.ADMIN,
@@ -216,6 +226,172 @@ export async function recordStaffScan(input: {
     },
     cutoff: late.cutoff,
   };
+}
+
+export async function getSchoolGeofence(schoolId: string): Promise<Geofence | null> {
+  const school = await prisma.school.findUnique({
+    where: { id: schoolId },
+    select: { geoLatitude: true, geoLongitude: true, geoRadiusM: true, geoEnabled: true },
+  });
+  if (!school?.geoEnabled) return null;
+  const lat = decimalToNumber(school.geoLatitude);
+  const lng = decimalToNumber(school.geoLongitude);
+  if (!isValidPoint({ latitude: lat, longitude: lng })) return null;
+  return {
+    center: { latitude: lat!, longitude: lng! },
+    radiusM: clampRadiusM(school.geoRadiusM ?? DEFAULT_RADIUS_M),
+    enabled: true,
+  };
+}
+
+export interface StaffGpsClockInput {
+  schoolId: string;
+  teacherProfileId: string;
+  eventType: StaffAttendanceEventType;
+  latitude: number;
+  longitude: number;
+  accuracyM?: number | null;
+  note?: string | null;
+}
+
+export async function recordStaffGpsClock(input: StaffGpsClockInput) {
+  const fence = await getSchoolGeofence(input.schoolId);
+  if (!fence) throw new Error("GPS clock-in is not configured for this school yet.");
+
+  if (!isValidPoint({ latitude: input.latitude, longitude: input.longitude })) {
+    throw new Error("Invalid GPS coordinates. Please enable location services and try again.");
+  }
+  const accuracyM =
+    typeof input.accuracyM === "number" && Number.isFinite(input.accuracyM)
+      ? Math.max(0, input.accuracyM)
+      : null;
+  if (accuracyM !== null && accuracyM > MAX_ACCEPTED_ACCURACY_M) {
+    throw new Error(
+      `GPS signal is too weak (${Math.round(accuracyM)} m accuracy). Step outside or enable high-accuracy mode.`,
+    );
+  }
+
+  const check = checkGeofence(
+    { latitude: input.latitude, longitude: input.longitude, accuracyM },
+    fence,
+  );
+  if (!check.withinFence) {
+    // Still record for audit? No — reject outright so the DB only contains
+    // verified clock-ins. Return distance so the UI can show how far away.
+    const err = new Error(
+      `You are ${check.distanceM} m from school — clock-in is only allowed within ${check.radiusM} m of the school.`,
+    );
+    (err as Error & { distanceM?: number; radiusM?: number }).distanceM = check.distanceM;
+    (err as Error & { distanceM?: number; radiusM?: number }).radiusM = check.radiusM;
+    throw err;
+  }
+
+  const teacher = await prisma.teacherProfile.findFirst({
+    where: { id: input.teacherProfileId, schoolId: input.schoolId, isActive: true },
+    select: { id: true, displayName: true, phone: true, user: { select: { email: true, role: true, name: true } } },
+  });
+  if (!teacher) throw new Error("Staff profile not found.");
+
+  const now = new Date();
+  const workDate = new Date(`${workDateKey(now)}T12:00:00.000Z`);
+
+  const todays = await prisma.staffAttendanceEvent.findMany({
+    where: { schoolId: input.schoolId, teacherProfileId: teacher.id, workDate },
+    orderBy: { scannedAt: "asc" },
+  });
+  const last = todays[todays.length - 1] || null;
+  if (input.eventType === StaffAttendanceEventType.CHECK_IN) {
+    if (last?.eventType === StaffAttendanceEventType.CHECK_IN) {
+      throw new Error(`${teacher.displayName} is already checked in today. Check out first.`);
+    }
+  } else if (!last || last.eventType === StaffAttendanceEventType.CHECK_OUT) {
+    throw new Error(`${teacher.displayName} has no open check-in to close today.`);
+  }
+
+  const late =
+    input.eventType === StaffAttendanceEventType.CHECK_IN
+      ? computeLateness(now)
+      : { isLate: false, lateMinutes: 0, cutoff: lateCutoffHm() };
+
+  const data: Prisma.StaffAttendanceEventCreateInput = {
+    school: { connect: { id: input.schoolId } },
+    teacherProfile: { connect: { id: teacher.id } },
+    eventType: input.eventType,
+    scannedAt: now,
+    isLate: late.isLate,
+    lateMinutes: late.lateMinutes,
+    source: "GPS",
+    note: input.note || null,
+    workDate,
+    geoLatitude: new Prisma.Decimal(input.latitude.toFixed(6)),
+    geoLongitude: new Prisma.Decimal(input.longitude.toFixed(6)),
+    geoAccuracyM: accuracyM !== null ? new Prisma.Decimal(accuracyM.toFixed(2)) : null,
+    geoDistanceM: check.distanceM,
+    geoWithinFence: true,
+  };
+  const event = await prisma.staffAttendanceEvent.create({ data });
+
+  await prisma.auditLog.create({
+    data: {
+      schoolId: input.schoolId,
+      actorUserId: null,
+      action: input.eventType === "CHECK_IN" ? "STAFF_GPS_CHECK_IN" : "STAFF_GPS_CHECK_OUT",
+      entityType: "StaffAttendanceEvent",
+      entityId: event.id,
+      metadata: {
+        teacherProfileId: teacher.id,
+        displayName: teacher.displayName,
+        isLate: event.isLate,
+        lateMinutes: event.lateMinutes,
+        distanceM: check.distanceM,
+        accuracyM,
+        workDate: workDateKey(now),
+      },
+    },
+  });
+
+  return {
+    event: {
+      id: event.id,
+      eventType: event.eventType,
+      scannedAt: event.scannedAt.toISOString(),
+      isLate: event.isLate,
+      lateMinutes: event.lateMinutes,
+      workDate: workDateKey(now),
+      source: "GPS",
+      geo: {
+        latitude: input.latitude,
+        longitude: input.longitude,
+        accuracyM,
+        distanceM: check.distanceM,
+      },
+    },
+    staff: {
+      id: teacher.id,
+      displayName: teacher.displayName,
+      email: teacher.user.email,
+      role: teacher.user.role,
+    },
+    cutoff: late.cutoff,
+    fence: { radiusM: check.radiusM },
+  };
+
+  // Fire-and-forget SMS receipt to the staff member's phone. This gives them
+  // proof of clock-in ("it sent at 8:04") they can show a supervisor if a
+  // device/sync issue later disputes it.
+  if (teacher.phone) {
+    const actionLabel = input.eventType === "CHECK_IN" ? "Checked in" : "Checked out";
+    const timeStr = event.scannedAt.toLocaleTimeString("en-NG", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "Africa/Lagos",
+    });
+    sendSms({
+      to: teacher.phone,
+      message: `[Famex] ${actionLabel} at ${timeStr}${event.isLate ? ` · LATE +${event.lateMinutes}m` : ""} · ${check.distanceM} m from school. Keep this as proof.`,
+    }).catch(() => {});
+  }
 }
 
 export function hashDedupe(...parts: string[]) {

@@ -65,6 +65,15 @@ export default function StudentDashboard() {
     void load();
   }, [load]);
 
+  // After a successful dashboard load, silently pull any papers that are
+  // due in the next 24h so they're ready offline. Fire-and-forget.
+  useEffect(() => {
+    if (!data) return;
+    import("@/lib/offline/prefetch")
+      .then((m) => m.prefetchUpcomingExams())
+      .catch(() => {});
+  }, [data]);
+
   const stats = data?.stats;
   const report = data?.latestReport;
   const attendanceRate = Number(stats?.attendanceRate ?? 0);

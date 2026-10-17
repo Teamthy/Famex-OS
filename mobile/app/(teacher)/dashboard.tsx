@@ -33,6 +33,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Heart,
+  MapPin,
 } from "lucide-react-native";
 
 export default function TeacherDashboard() {
@@ -214,6 +215,11 @@ export default function TeacherDashboard() {
             label: "Take attendance",
             icon: <ClipboardCheck size={18} color={colors.brand.greenLight} />,
             onPress: () => router.push("/(teacher)/attendance"),
+          },
+          {
+            label: "GPS clock-in",
+            icon: <MapPin size={18} color={colors.brand.greenLight} />,
+            onPress: () => router.push("/gps-clock?audience=staff"),
           },
           {
             label: "Gradebook",

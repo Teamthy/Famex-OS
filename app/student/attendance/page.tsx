@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import PortalTopbar from "@/components/PortalTopbar";
 import PortalSidebar from "@/components/PortalSidebar";
 import AttendanceCalendar, { type AttendanceDay } from "@/components/AttendanceCalendar";
+import GpsClockCard from "@/components/GpsClockCard";
+import type { Fence } from "@/lib/useGps";
 import {
   MessageCircle,
   CalendarDays,
@@ -12,6 +14,9 @@ import {
   FileWarning,
   LayoutDashboard,
   LoaderCircle,
+  LogIn,
+  LogOut,
+  MapPin,
   User,
   FileText,
   Bell,
@@ -20,6 +25,30 @@ import {
   Calendar,
   X,
 } from "lucide-react";
+
+type ClockStatus = {
+  supported: boolean;
+  date?: string;
+  lateCutoff?: string;
+  gps?: Fence;
+  student?: { id: string; displayName: string; className: string; studentId: string };
+  today?: {
+    status: "ABSENT" | "IN" | "OUT";
+    checkInAt: string | null;
+    checkOutAt: string | null;
+    isLate: boolean;
+    lateMinutes: number;
+    events: Array<{
+      id: string;
+      eventType: string;
+      clockedAt: string;
+      isLate: boolean;
+      lateMinutes: number;
+      source?: string;
+      distanceM?: number | null;
+    }>;
+  };
+};
 
 const SIDEBAR_ITEMS = [
   { label: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
@@ -59,8 +88,27 @@ function currentMonthKey() {
 export default function StudentAttendancePage() {
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
   const [data, setData] = useState<StudentAttendanceResponse | null>(null);
+  const [clock, setClock] = useState<ClockStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [clockLoading, setClockLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const loadClock = useCallback(async () => {
+    setClockLoading(true);
+    try {
+      const r = await fetch("/api/student/clock", { cache: "no-store" });
+      const j = await r.json();
+      if (r.ok) setClock(j);
+    } catch {
+      /* clock-in UI is best-effort */
+    } finally {
+      setClockLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadClock();
+  }, [loadClock]);
 
   useEffect(() => {
     let active = true;
@@ -163,7 +211,101 @@ export default function StudentAttendancePage() {
 
               {!loading && data ? (
                 <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-                  <div className="lg:col-span-2">
+                  <div className="space-y-8 lg:col-span-2">
+                    {clockLoading ? (
+                      <div className="rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6">
+                        <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                          <LoaderCircle className="animate-spin" size={16} /> Loading clock-in…
+                        </div>
+                      </div>
+                    ) : clock?.supported ? (
+                      <div className="space-y-6">
+                        <div className="rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6">
+                          <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                              <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--text-muted)]">
+                                <MapPin size={14} className="text-brand-green" /> Today · {clock.date}
+                              </div>
+                              <h2 className="mt-1 font-display text-2xl tracking-widest">
+                                {clock.student?.displayName}
+                              </h2>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <span
+                                  className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${
+                                    clock.today?.status === "IN"
+                                      ? "bg-brand-green/15 text-brand-green"
+                                      : clock.today?.status === "OUT"
+                                        ? "bg-blue-500/15 text-blue-500"
+                                        : "bg-[var(--surface-disabled)] text-[var(--text-muted)]"
+                                  }`}
+                                >
+                                  {clock.today?.status}
+                                </span>
+                                {clock.today?.isLate && (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-orange/15 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-orange">
+                                    <Clock size={12} /> Late +{clock.today.lateMinutes}m
+                                  </span>
+                                )}
+                              </div>
+                              <div className="mt-3 grid gap-1 text-sm sm:grid-cols-2">
+                                <div>
+                                  Check-in:{" "}
+                                  <b>
+                                    {clock.today?.checkInAt
+                                      ? new Date(clock.today.checkInAt).toLocaleTimeString()
+                                      : "—"}
+                                  </b>
+                                </div>
+                                <div>
+                                  Check-out:{" "}
+                                  <b>
+                                    {clock.today?.checkOutAt
+                                      ? new Date(clock.today.checkOutAt).toLocaleTimeString()
+                                      : "—"}
+                                  </b>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <GpsClockCard
+                          endpoint="/api/student/clock"
+                          fence={clock.gps || { enabled: false }}
+                          currentStatus={clock.today?.status || "ABSENT"}
+                          lateCutoff={clock.lateCutoff || "08:00"}
+                          onClocked={loadClock}
+                        />
+
+                        {(clock.today?.events?.length || 0) > 0 && (
+                          <div className="rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5">
+                            <h3 className="flex items-center gap-2 font-display text-lg tracking-widest">
+                              <LogIn size={16} className="text-brand-green" /> TODAY&apos;S GPS EVENTS
+                            </h3>
+                            <ul className="mt-3 space-y-2">
+                              {(clock.today?.events || []).map((ev) => (
+                                <li key={ev.id} className="flex items-center justify-between text-sm">
+                                  <span className="inline-flex items-center gap-2">
+                                    {ev.eventType === "CHECK_IN" ? (
+                                      <Check className="text-brand-green" size={14} />
+                                    ) : (
+                                      <LogOut className="text-blue-500" size={14} />
+                                    )}
+                                    {ev.eventType.replace("_", " ")}
+                                    {typeof ev.distanceM === "number" ? ` · ${ev.distanceM}m` : ""}
+                                    {ev.isLate ? ` · late +${ev.lateMinutes}m` : ""}
+                                  </span>
+                                  <span className="text-xs text-[var(--text-muted)]">
+                                    {new Date(ev.clockedAt).toLocaleTimeString()}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+
                     <AttendanceCalendar
                       days={data.days}
                       month={data.monthLabel}
