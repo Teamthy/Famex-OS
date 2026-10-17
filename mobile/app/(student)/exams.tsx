@@ -11,7 +11,7 @@ import { Button } from "@/src/components/buttons";
 import { Column, Row, Screen, AppBar } from "@/src/components/layout";
 import { EmptyState } from "@/src/components/feedback";
 import { bodyFont } from "@/src/theme/typography";
-import { ClipboardCheck, Clock, Play, Lock, CheckCircle2, RotateCcw, CalendarClock } from "lucide-react-native";
+import { ClipboardCheck, Clock, Play, Lock, CheckCircle2, RotateCcw, CalendarClock, DownloadCloud, WifiOff } from "lucide-react-native";
 
 export default function StudentExams() {
   const router = useRouter();
@@ -67,7 +67,30 @@ export default function StudentExams() {
       <AppBar title="My Exams" onBack={() => router.back()} />
       <H2 style={{ marginBottom: spacing.xs }}>My Exams</H2>
       {error ? <InlineError message={error} onRetry={() => { void load(); }} /> : null}
-      <Caption style={{ marginBottom: spacing.lg }}>Computer-based tests for your class</Caption>
+      <Caption style={{ marginBottom: spacing.md }}>Computer-based tests for your class</Caption>
+
+      <TouchableOpacity
+        onPress={() => router.push("/offline-exams")}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.sm,
+          padding: spacing.md,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderStyle: "dashed",
+          borderColor: colors.brand.green,
+          backgroundColor: `${colors.brand.green}18`,
+          marginBottom: spacing.md,
+        }}
+      >
+        <WifiOff size={20} color={colors.brand.green} />
+        <View style={{ flex: 1 }}>
+          <Body tone="primary" style={{ fontFamily: bodyFont("bold") }}>Offline CBT</Body>
+          <Caption style={{ color: colors.brand.greenLight }}>Download papers now, sit them without internet, answers auto-sync later.</Caption>
+        </View>
+        <DownloadCloud size={20} color={colors.brand.green} />
+      </TouchableOpacity>
 
       {exams.length > 0 ? (
         exams.map((exam: any) => {

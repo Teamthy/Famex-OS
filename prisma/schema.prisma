@@ -175,6 +175,9 @@ enum ReportCardStatus {
 
 enum NotificationKind {
   ATTENDANCE_ALERT
+  CLOCK_IN
+  CLOCK_IN_LATE
+  CLOCK_OUT
   FEE_REMINDER
   REPORT_RELEASED
   BROADCAST
@@ -250,6 +253,13 @@ model School {
   /// School-wide settings framework (F0-18) — academic, result and fee
   /// defaults. Typed and validated in lib/settings.ts, never read raw.
   settings     Json?
+  /// GPS geofence center & radius (meters) for staff/student GPS clock-in.
+  /// When geoLatitude/geoLongitude are null, GPS clock-in is disabled and
+  /// self-service falls back to the existing badge / manual flows.
+  geoLatitude  Decimal?     @db.Decimal(9, 6)
+  geoLongitude Decimal?     @db.Decimal(9, 6)
+  geoRadiusM   Int?
+  geoEnabled   Boolean      @default(false)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -286,6 +296,7 @@ model School {
   feeCredits              FeeCredit[]
   gatewaySettlements      GatewaySettlement[]
   staffAttendanceEvents   StaffAttendanceEvent[]
+  studentClockEvents      StudentClockEvent[]
   branding                TenantBranding?
   messageThreads          MessageThread[]
   messages                Message[]
@@ -423,10 +434,10 @@ model SchoolClass {
 }
 
 model StudentProfile {
-  id                     String   @id @default(cuid())
+  id                     String                 @id @default(cuid())
   schoolId               String
   currentClassId         String
-  userId                 String?  @unique
+  userId                 String?                @unique
   studentId              String
   firstName              String
   lastName               String
@@ -437,15 +448,24 @@ model StudentProfile {
   guardianName           String?
   guardianPhone          String?
   guardianEmail          String?
-  isActive               Boolean  @default(true)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-  admissionApplicationId String?  @unique
+  isActive               Boolean                @default(true)
+  lifecycleStatus        StudentLifecycleStatus @default(ACTIVE)
+  graduatedAt            DateTime?
+  deactivatedAt          DateTime?
+  alumniNumber           String?
+  /// Data-protection: records are kept for at least this long to satisfy
+  /// university-application / transcript requests (default 10 years after
+  /// graduation). No automated job may delete a student before this date.
+  dataRetentionUntil     DateTime?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  admissionApplicationId String?                @unique
 
   school               School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   currentClass         SchoolClass           @relation(fields: [currentClassId], references: [id], onDelete: Restrict)
   user                 User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
   attendanceEntries    AttendanceEntry[]
+  clockEvents          StudentClockEvent[]
   parentLinks          ParentStudentLink[]
   attendanceJobs       AttendanceAlertJob[]
   feeInvoices          FeeInvoice[]
@@ -464,8 +484,10 @@ model StudentProfile {
   ledgerLines          LedgerLine[]
 
   @@unique([schoolId, studentId])
+  @@unique([schoolId, alumniNumber], name: "StudentProfile_schoolId_alumniNumber_key")
   @@index([currentClassId, isActive])
   @@index([schoolId, displayName])
+  @@index([schoolId, lifecycleStatus])
   @@index([schoolId])
 }
 
@@ -1630,6 +1652,12 @@ model StaffAttendanceEvent {
   scannerUserId    String?
   note             String?
   workDate         DateTime                 @db.Date
+  /// GPS verification (set when source === "GPS").
+  geoLatitude      Decimal?                 @db.Decimal(9, 6)
+  geoLongitude     Decimal?                 @db.Decimal(9, 6)
+  geoAccuracyM     Decimal?                 @db.Decimal(8, 2)
+  geoDistanceM     Int?
+  geoWithinFence   Boolean?
   createdAt        DateTime                 @default(now())
 
   school         School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -1638,6 +1666,37 @@ model StaffAttendanceEvent {
   @@index([schoolId, workDate])
   @@index([teacherProfileId, workDate])
   @@index([schoolId, eventType, scannedAt])
+}
+
+enum StudentClockEventType {
+  CHECK_IN
+  CHECK_OUT
+}
+
+model StudentClockEvent {
+  id               String                @id @default(cuid())
+  schoolId         String
+  studentProfileId String
+  eventType        StudentClockEventType
+  clockedAt        DateTime              @default(now())
+  isLate           Boolean               @default(false)
+  lateMinutes      Int                   @default(0)
+  source           String                @default("GPS")
+  note             String?
+  workDate         DateTime              @db.Date
+  geoLatitude      Decimal?              @db.Decimal(9, 6)
+  geoLongitude     Decimal?              @db.Decimal(9, 6)
+  geoAccuracyM     Decimal?              @db.Decimal(8, 2)
+  geoDistanceM     Int?
+  geoWithinFence   Boolean?
+  createdAt        DateTime              @default(now())
+
+  school         School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentProfile StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, workDate])
+  @@index([studentProfileId, workDate])
+  @@index([schoolId, eventType, clockedAt])
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -1869,6 +1928,16 @@ enum EnrolmentOutcome {
   GRADUATED
   WITHDRAWN
   TRANSFERRED
+}
+
+enum StudentLifecycleStatus {
+  APPLICANT
+  ACTIVE
+  GRADUATED
+  WITHDRAWN
+  TRANSFERRED
+  EXPELLED
+  ARCHIVED
 }
 
 model AcademicSession {

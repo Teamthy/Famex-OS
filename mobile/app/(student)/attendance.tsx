@@ -7,7 +7,10 @@ import { InlineError } from "@/src/components/dashboard";
 import { Card } from "@/src/components/cards";
 import { H2, Caption, Label } from "@/src/components/typography";
 import { Screen, AppBar, Row, Column } from "@/src/components/layout";
-import { Check, X, Clock } from "lucide-react-native";
+import { Check, X, Clock, MapPin } from "lucide-react-native";
+import { TouchableOpacity } from "react-native";
+import { Body } from "@/src/components/typography";
+import { bodyFont } from "@/src/theme/typography";
 
 export default function StudentAttendance() {
   const { colors, spacing } = useTheme();
@@ -36,6 +39,24 @@ export default function StudentAttendance() {
     <Screen scroll refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.brand.greenLight} />}>
       <AppBar title="My Attendance" onBack={() => router.back()} />
       {error ? <InlineError message={error} onRetry={() => { void load(); }} /> : null}
+
+      <TouchableOpacity
+        onPress={() => router.push("/gps-clock?audience=student")}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.sm,
+          padding: spacing.md,
+          borderRadius: 16,
+          backgroundColor: colors.brand.green,
+          marginBottom: spacing.md,
+        }}
+      >
+        <MapPin size={20} color={colors.brand.navy} />
+        <Body style={{ flex: 1, color: colors.brand.navy, fontFamily: bodyFont("bold") }}>
+          GPS clock-in / clock-out
+        </Body>
+      </TouchableOpacity>
 
       <Card variant="bordered" style={{ alignItems: "center", marginBottom: spacing.lg }}>
         <Label>Attendance Rate</Label>

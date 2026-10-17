@@ -1,10 +1,12 @@
 import { StaffAttendanceEventType, UserRole } from "@prisma/client";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
   badgePayload,
   ensureTeacherBadge,
+  getSchoolGeofence,
   lateCutoffHm,
+  recordStaffGpsClock,
   recordStaffScan,
   STAFF_SELF_ROLES,
   workDateKey,
@@ -14,11 +16,6 @@ import { requireRole } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const actionSchema = z.object({
-  action: z.enum(["CHECK_IN", "CHECK_OUT"]),
-  note: z.string().trim().max(300).optional(),
-});
 
 async function myTeacherProfile(userId: string, schoolId: string) {
   return prisma.teacherProfile.findFirst({
@@ -55,10 +52,19 @@ export async function GET() {
   });
   const last = events[events.length - 1] || null;
 
+  const fence = await getSchoolGeofence(user.schoolId);
+
   return NextResponse.json({
     supported: true,
     date: dayKey,
     lateCutoff: lateCutoffHm(),
+    gps: fence
+      ? {
+          enabled: true,
+          center: { latitude: fence.center.latitude, longitude: fence.center.longitude },
+          radiusM: fence.radiusM,
+        }
+      : { enabled: false },
     staff: {
       id: profile.id,
       displayName: profile.displayName,
@@ -86,6 +92,7 @@ export async function GET() {
         isLate: e.isLate,
         lateMinutes: e.lateMinutes,
         source: e.source,
+        distanceM: e.geoDistanceM,
       })),
     },
   });
@@ -108,10 +115,59 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Could not issue staff badge." }, { status: 500 });
   }
 
-  let input: z.infer<typeof actionSchema>;
-  try {
-    input = actionSchema.parse(await request.json());
-  } catch {
+  const rawBody = await request.json().catch(() => null);
+  const method = rawBody?.method === "GPS" ? "GPS" : "QR";
+
+  if (method === "GPS") {
+    const parsed = z
+      .object({
+        action: z.enum(["CHECK_IN", "CHECK_OUT"]),
+        latitude: z.coerce.number().min(-90).max(90),
+        longitude: z.coerce.number().min(-180).max(180),
+        accuracyM: z.coerce.number().nonnegative().optional().nullable(),
+        note: z.string().trim().max(300).optional(),
+      })
+      .safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid GPS clock-in payload. Coordinates are required." },
+        { status: 400 },
+      );
+    }
+    try {
+      const result = await recordStaffGpsClock({
+        schoolId: user.schoolId,
+        teacherProfileId: profile.id,
+        eventType:
+          parsed.data.action === "CHECK_IN"
+            ? StaffAttendanceEventType.CHECK_IN
+            : StaffAttendanceEventType.CHECK_OUT,
+        latitude: parsed.data.latitude,
+        longitude: parsed.data.longitude,
+        accuracyM: parsed.data.accuracyM ?? null,
+        note: parsed.data.note || null,
+      });
+      return NextResponse.json(result, { status: 201 });
+    } catch (error) {
+      const err = error as Error & { distanceM?: number; radiusM?: number };
+      return NextResponse.json(
+        {
+          error: err.message || "Unable to record GPS attendance.",
+          distanceM: err.distanceM,
+          radiusM: err.radiusM,
+        },
+        { status: 409 },
+      );
+    }
+  }
+
+  const parsed = z
+    .object({
+      action: z.enum(["CHECK_IN", "CHECK_OUT"]),
+      note: z.string().trim().max(300).optional(),
+    })
+    .safeParse(rawBody);
+  if (!parsed.success) {
     return NextResponse.json({ error: "Invalid action." }, { status: 400 });
   }
 
@@ -120,12 +176,12 @@ export async function POST(request: NextRequest) {
       schoolId: user.schoolId,
       badgeCode: ensured.badgeCode,
       eventType:
-        input.action === "CHECK_IN"
+        parsed.data.action === "CHECK_IN"
           ? StaffAttendanceEventType.CHECK_IN
           : StaffAttendanceEventType.CHECK_OUT,
       scannerUserId: user.id,
       source: "SELF_SERVICE",
-      note: input.note || null,
+      note: parsed.data.note || null,
     });
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

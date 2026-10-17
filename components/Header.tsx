@@ -29,6 +29,8 @@ const navLinks = [
     href: "/about",
     dropdown: [
       { label: "Our Story", href: "/about" },
+      { label: "Leadership", href: "/about#leadership" },
+      { label: "Vision & Mission", href: "/about#vision" },
       { label: "Alumni", href: "/alumni" },
       { label: "Testimonials", href: "/testimonials" },
     ],
@@ -36,8 +38,16 @@ const navLinks = [
   {
     label: "Academics",
     href: "/academics",
-    dropdown: [{ label: "Academic Programs", href: "/academics" }],
+    dropdown: [
+      { label: "Primary School", href: "/academics/primary" },
+      { label: "Junior Secondary", href: "/academics/junior-secondary" },
+      { label: "Senior Secondary — Science", href: "/academics/ss-science" },
+      { label: "Senior Secondary — Commercial", href: "/academics/ss-commercial" },
+      { label: "Senior Secondary — Arts", href: "/academics/ss-arts" },
+      { label: "Academic Calendar", href: "/academics/calendar" },
+    ],
   },
+  { label: "Staff", href: "/staff-directory" },
   { label: "Admissions", href: "/admissions" },
   { label: "Campus Life", href: "/campus-life" },
   { label: "News", href: "/news-events" },

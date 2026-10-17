@@ -147,7 +147,11 @@ export default function AdminStaffAttendancePage() {
     });
   }, [data, filter]);
 
-  async function submitScan(e?: FormEvent, code?: string) {
+  async function submitScan(
+    e?: FormEvent,
+    code?: string,
+    meta?: { scannerGps?: { latitude: number; longitude: number; accuracyM: number; outsideFence?: boolean; distanceM?: number } },
+  ) {
     e?.preventDefault();
     const badgeCode = (code ?? scanValue).trim();
     if (!badgeCode) return;
@@ -167,18 +171,25 @@ export default function AdminStaffAttendancePage() {
     }
     setScanning(true);
     try {
+      const body: Record<string, unknown> = { badgeCode, eventType: mode };
+      if (meta?.scannerGps) body.scannerGps = meta.scannerGps;
       const r = await fetch("/api/admin/staff-attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ badgeCode, eventType: mode }),
+        body: JSON.stringify(body),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Scan failed.");
       const msg = `${j.staff.displayName} · ${j.event.eventType.replace("_", " ")}${
         j.event.isLate ? ` · LATE +${j.event.lateMinutes}m` : ""
-      }`;
+      }${j.scannerFlag === "OUTSIDE_FENCE" ? " · ⚠️ SCANNER OFF-SITE" : j.scannerFlag === "WEAK_FIX" ? " · ⚠️ weak GPS" : ""}`;
       setLastResult(msg);
-      toast(msg, j.event.isLate ? "info" : "success");
+      const tone = j.scannerFlag
+        ? "warning"
+        : j.event.isLate
+          ? "info"
+          : "success";
+      toast(msg, tone);
       setScanValue("");
       await load();
     } catch (err) {
@@ -273,7 +284,7 @@ export default function AdminStaffAttendancePage() {
               </span>
             )}
           </div>
-          <StaffQrScanner active={cameraOn} onScan={(code) => void submitScan(undefined, code)} />
+          <StaffQrScanner active={cameraOn} onScan={(code, meta) => void submitScan(undefined, code, meta)} fence={data?.fence ?? null} />
 
           {loading || !data ? (
             <div className="flex items-center gap-2 p-10 text-[var(--text-muted)]">

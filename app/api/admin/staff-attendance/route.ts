@@ -12,6 +12,8 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
 import { requireModule } from "@/lib/module-guard";
+import { getSchoolGeofence } from "@/lib/staff-attendance";
+import { checkGeofence } from "@/lib/geofence";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +22,14 @@ const scanSchema = z.object({
   badgeCode: z.string().trim().min(4).max(200),
   eventType: z.enum(["CHECK_IN", "CHECK_OUT", "AUTO"]).default("AUTO"),
   note: z.string().trim().max(300).optional(),
+  scannerGps: z
+    .object({
+      latitude: z.coerce.number().min(-90).max(90),
+      longitude: z.coerce.number().min(-180).max(180),
+      accuracyM: z.coerce.number().nonnegative().optional().nullable(),
+    })
+    .optional()
+    .nullable(),
 });
 
 export async function GET(request: NextRequest) {
@@ -136,9 +146,16 @@ export async function GET(request: NextRequest) {
   const late = rows.filter((r) => r.isLate).length;
   const stillIn = rows.filter((r) => r.status === "IN").length;
 
+  // Surface the geofence so the scanner UI can attach its own GPS for
+  // off-site flagging.
+  const fence = await getSchoolGeofence(user.schoolId);
+
   return NextResponse.json({
     date: dayKey,
     lateCutoff: lateCutoffHm(),
+    fence: fence
+      ? { enabled: true, center: { latitude: fence.center.latitude, longitude: fence.center.longitude }, radiusM: fence.radiusM }
+      : { enabled: false },
     summary: {
       staffTotal: rows.length,
       present,
@@ -209,6 +226,27 @@ export async function POST(request: NextRequest) {
       note: input.note || null,
     });
 
+    // If the scanner device supplied GPS (from StaffQrScanner or the mobile
+    // admin screen), validate it is on-site and flag anomalies. We don't
+    // mutate the staff event row — the geo* columns are reserved for the
+    // STAFF'S coordinates (self clock-in). Scanner GPS is logged for audit.
+    let scannerFlag: "OUTSIDE_FENCE" | "WEAK_FIX" | null = null;
+    if (input.scannerGps) {
+      const fence = await getSchoolGeofence(user.schoolId);
+      if (fence) {
+        const c = checkGeofence(
+          {
+            latitude: input.scannerGps.latitude,
+            longitude: input.scannerGps.longitude,
+            accuracyM: input.scannerGps.accuracyM,
+          },
+          fence,
+        );
+        if (!c.withinFence) scannerFlag = "OUTSIDE_FENCE";
+      }
+      if (input.scannerGps.accuracyM && input.scannerGps.accuracyM > 65) scannerFlag = "WEAK_FIX";
+    }
+
     await prisma.auditLog
       .create({
         data: {
@@ -218,12 +256,17 @@ export async function POST(request: NextRequest) {
           entityType: "StaffAttendanceEvent",
           entityId: result.event.id,
           ipAddress: getClientIp(request),
-          metadata: { eventType: result.event.eventType, staff: result.staff.displayName },
+          metadata: {
+            eventType: result.event.eventType,
+            staff: result.staff.displayName,
+            scannerFlag,
+            scannerGps: input.scannerGps || null,
+          },
         },
       })
       .catch(() => undefined);
 
-    return NextResponse.json(result, { status: 201 });
+    return NextResponse.json({ ...result, scannerFlag }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Scan failed." },

@@ -58,6 +58,14 @@
         }
       ],
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Ykay College to access your location to verify you are on school premises for GPS clock-in.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isIosBackgroundLocationEnabled": false
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {

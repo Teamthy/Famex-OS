@@ -7,19 +7,21 @@ import PortalTopbar from "@/components/PortalTopbar";
 import PortalSidebar from "@/components/PortalSidebar";
 import {
   Award,
+  BellRing,
   Calendar,
   CalendarDays,
   CreditCard,
   FileText,
   LayoutDashboard,
   LoaderCircle,
+  MapPin,
   MessageCircle,
-  BellRing,
 } from "lucide-react";
 
 const SIDEBAR_ITEMS = [
   { label: "Dashboard", href: "/parent/dashboard", icon: LayoutDashboard },
   { label: "Attendance", href: "/parent/attendance", icon: CalendarDays },
+  { label: "GPS Clock-ins", href: "/parent/clock-ins", icon: MapPin },
   { label: "Fees", href: "/parent/fees", icon: CreditCard },
   { label: "Report Cards", href: "/parent/report-cards", icon: FileText },
   { label: "Messages", href: "/parent/messages", icon: MessageCircle },
@@ -296,6 +298,12 @@ export default function ParentDashboardPage() {
                               desc: "View daily attendance and teacher notes.",
                               link: "/parent/attendance",
                               icon: CalendarDays,
+                            },
+                            {
+                              title: "GPS Clock-ins",
+                              desc: "See arrival/departure pins on a map.",
+                              link: "/parent/clock-ins",
+                              icon: MapPin,
                             },
                             {
                               title: "Report Cards",

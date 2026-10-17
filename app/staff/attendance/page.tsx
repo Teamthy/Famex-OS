@@ -5,12 +5,15 @@ import { CheckCircle2, Clock3, LoaderCircle, LogIn, LogOut, QrCode } from "lucid
 import PortalTopbar from "@/components/PortalTopbar";
 import { useToast } from "@/components/Toast";
 import QrImage from "@/components/QrImage";
+import GpsClockCard from "@/components/GpsClockCard";
+import type { Fence } from "@/lib/useGps";
 
 type MeResponse = {
   supported: boolean;
   message?: string;
   date?: string;
   lateCutoff?: string;
+  gps?: Fence;
   staff?: {
     id: string;
     displayName: string;
@@ -29,6 +32,8 @@ type MeResponse = {
       scannedAt: string;
       isLate: boolean;
       lateMinutes: number;
+      source?: string;
+      distanceM?: number | null;
     }>;
   };
 };
@@ -174,17 +179,25 @@ export default function StaffSelfAttendancePage() {
                   className="inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-40"
                 >
                   {busy ? <LoaderCircle className="animate-spin" size={16} /> : <LogIn size={16} />}
-                  Check in
+                  QR / Self Check in
                 </button>
                 <button
                   disabled={busy || data.today?.status !== "IN"}
                   onClick={() => void act("CHECK_OUT")}
                   className="inline-flex items-center gap-2 rounded-full bg-brand-navy px-5 py-3 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-40"
                 >
-                  <LogOut size={16} /> Check out
+                  <LogOut size={16} /> QR / Self Check out
                 </button>
               </div>
             </div>
+
+            <GpsClockCard
+              endpoint="/api/staff/attendance/me"
+              fence={data.gps || { enabled: false }}
+              currentStatus={data.today?.status || "ABSENT"}
+              lateCutoff={data.lateCutoff || "08:00"}
+              onClocked={load}
+            />
 
             <div className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5">
               <h3 className="flex items-center gap-2 font-display text-xl tracking-widest">
@@ -200,6 +213,8 @@ export default function StaffSelfAttendancePage() {
                         <LogOut className="text-blue-500" size={14} />
                       )}
                       {ev.eventType.replace("_", " ")}
+                      {ev.source === "GPS" ? " · GPS" : ""}
+                      {typeof ev.distanceM === "number" ? ` · ${ev.distanceM}m` : ""}
                       {ev.isLate ? ` · late +${ev.lateMinutes}m` : ""}
                     </span>
                     <span className="text-xs text-[var(--text-muted)]">
