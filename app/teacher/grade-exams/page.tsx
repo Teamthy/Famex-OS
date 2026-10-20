@@ -129,12 +129,22 @@ export default function GradeExamsPage() {
                       <td className="p-4 text-xs">{e.statusLabel || e.status}</td>
                       <td className="p-4 text-right">
                         {e.submittedCount > 0 ? (
-                          <Link
-                            href={`/teacher/test-results?exam=${e.id}`}
-                            className="rounded-full bg-brand-green px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-navy"
-                          >
-                            Review {e.submittedCount}
-                          </Link>
+                          <div className="flex justify-end gap-2">
+                            {"essayCount" in e && (e as any).essayCount > 0 && (
+                              <Link
+                                href={`/teacher/exam-center/${e.id}/mark`}
+                                className="rounded-full border border-brand-green px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-green hover:bg-brand-green hover:text-brand-navy"
+                              >
+                                Mark theory
+                              </Link>
+                            )}
+                            <Link
+                              href={`/teacher/test-results?exam=${e.id}`}
+                              className="rounded-full bg-brand-green px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-navy"
+                            >
+                              Review {e.submittedCount}
+                            </Link>
+                          </div>
                         ) : (
                           <span className="text-xs text-[var(--text-muted)]">No submissions</span>
                         )}
