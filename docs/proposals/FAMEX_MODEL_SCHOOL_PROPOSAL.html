@@ -31,9 +31,7 @@
   .cover .meta{margin-top:auto;border-top:2px solid var(--accent);padding-top:8mm;display:grid;grid-template-columns:1fr 1fr;gap:6mm;font-family:Arial,Helvetica,sans-serif;font-size:10.5pt}
   .cover .meta .lbl{font-size:8.5pt;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:2mm;display:block}
   .cover .meta strong{font-weight:700;color:var(--ink)}
-  .cover .price{margin-top:8mm;border:1.5px solid var(--accent);border-radius:4px;padding:5mm 6mm;background:var(--soft);display:flex;align-items:baseline;gap:4mm}
-  .cover .price .lbl{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);font-weight:700}
-  .cover .price .amt{font-family:Georgia,serif;font-size:22pt;font-weight:700;color:var(--ink)}
+  .cover .price{display:none} /* kept in case the box is restored for a private copy */
   /* ===== BODY ===== */
   h1,h2,h3,h4{font-family:Arial,Helvetica,sans-serif;color:var(--ink);line-height:1.25}
   h2{font-size:16pt;margin:10mm 0 3mm;border-bottom:2px solid var(--accent);padding-bottom:2mm;page-break-after:avoid}
@@ -104,11 +102,6 @@
   </div>
 
   <div>
-    <div class="price">
-      <span class="lbl">Total Investment</span>
-      <span class="amt">₦1,750,000</span>
-      <span style="margin-left:auto;font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:var(--muted);align-self:flex-end">all-inclusive · 3 months support</span>
-    </div>
     <div class="meta">
       <div>
         <span class="lbl">Prepared for</span>
