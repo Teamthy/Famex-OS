@@ -154,7 +154,11 @@ export async function GET(request: NextRequest) {
     date: dayKey,
     lateCutoff: lateCutoffHm(),
     fence: fence
-      ? { enabled: true, center: { latitude: fence.center.latitude, longitude: fence.center.longitude }, radiusM: fence.radiusM }
+      ? {
+          enabled: true,
+          center: { latitude: fence.center.latitude, longitude: fence.center.longitude },
+          radiusM: fence.radiusM,
+        }
       : { enabled: false },
     summary: {
       staffTotal: rows.length,

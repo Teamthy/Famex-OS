@@ -209,7 +209,11 @@ export default function AdminCbtImportPage() {
                     <div className="mt-2 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
                       <StatPill label="Imported" value={result.imported} tone="green" />
                       <StatPill label="Skipped" value={result.skipped} tone="muted" />
-                      <StatPill label="Errors" value={result.errors.length} tone={result.errors.length ? "red" : "muted"} />
+                      <StatPill
+                        label="Errors"
+                        value={result.errors.length}
+                        tone={result.errors.length ? "red" : "muted"}
+                      />
                     </div>
                     {result.errors.length > 0 && (
                       <details className="mt-3 text-xs text-red-600">
@@ -218,7 +222,9 @@ export default function AdminCbtImportPage() {
                           {result.errors.slice(0, 20).map((err, i) => (
                             <li key={i}>{err}</li>
                           ))}
-                          {result.errors.length > 20 && <li>…and {result.errors.length - 20} more.</li>}
+                          {result.errors.length > 20 && (
+                            <li>…and {result.errors.length - 20} more.</li>
+                          )}
                         </ul>
                       </details>
                     )}
@@ -243,10 +249,16 @@ function StatPill({
   tone: "green" | "muted" | "red";
 }) {
   const color =
-    tone === "green" ? "text-brand-green" : tone === "red" ? "text-red-600" : "text-[var(--text-muted)]";
+    tone === "green"
+      ? "text-brand-green"
+      : tone === "red"
+        ? "text-red-600"
+        : "text-[var(--text-muted)]";
   return (
     <div className="rounded-xl bg-white/60 p-3">
-      <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">{label}</div>
+      <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+        {label}
+      </div>
       <div className={`font-display text-2xl ${color}`}>{value}</div>
     </div>
   );

@@ -40,7 +40,13 @@ export async function GET() {
 
   const school = await prisma.school.findUnique({
     where: { id: user.schoolId },
-    select: { name: true, geoLatitude: true, geoLongitude: true, geoRadiusM: true, geoEnabled: true },
+    select: {
+      name: true,
+      geoLatitude: true,
+      geoLongitude: true,
+      geoRadiusM: true,
+      geoEnabled: true,
+    },
   });
 
   const since = new Date();

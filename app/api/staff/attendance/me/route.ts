@@ -1,5 +1,5 @@
 import { StaffAttendanceEventType, UserRole } from "@prisma/client";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import {
   badgePayload,

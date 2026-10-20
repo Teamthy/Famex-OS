@@ -171,7 +171,7 @@ export const messagingApi = {
 
 // ── Student API ───────────────────────────────────────────
 
-type ExamAnswer = { questionId: string; response: string | null };
+export type ExamAnswer = { questionId: string; response: string | null };
 
 export const studentApi = {
   dashboard: () => api("/api/student/dashboard"),

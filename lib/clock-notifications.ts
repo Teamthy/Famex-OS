@@ -15,15 +15,12 @@ import { prisma } from "@/lib/prisma";
 
 interface ParentLike {
   id: string;
+  userId: string;
   user: { name: string | null; email: string | null } | null;
   phone: string | null;
 }
 
-function dedupeKey(
-  studentId: string,
-  eventId: string,
-  channel: AlertChannel,
-) {
+function dedupeKey(studentId: string, eventId: string, channel: AlertChannel) {
   return `clock:${studentId}:${eventId}:${channel}`;
 }
 

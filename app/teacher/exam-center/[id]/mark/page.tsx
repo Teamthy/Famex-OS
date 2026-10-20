@@ -15,7 +15,6 @@ import {
   Save,
   Star,
   User,
-  XCircle,
 } from "lucide-react";
 
 type Question = {
@@ -44,7 +43,12 @@ type MarkingData = {
     totalMarks: number;
     theoryMinutes: number;
   };
-  summary: { totalStudents: number; pendingCount: number; totalTheory: number; totalMarked: number };
+  summary: {
+    totalStudents: number;
+    pendingCount: number;
+    totalTheory: number;
+    totalMarked: number;
+  };
   questions: Question[];
   items: MarkItem[];
 };
@@ -78,7 +82,9 @@ export default function TeacherMarkingPage() {
     }
   }, [examId, toast]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const questions = useMemo(() => data?.questions ?? [], [data]);
   const q = questions[activeQ];
@@ -94,7 +100,10 @@ export default function TeacherMarkingPage() {
     setSaving(true);
     try {
       const body = {
-        marks: Object.entries(updates).map(([answerId, awardedMarks]) => ({ answerId, awardedMarks })),
+        marks: Object.entries(updates).map(([answerId, awardedMarks]) => ({
+          answerId,
+          awardedMarks,
+        })),
         finalize,
       };
       const r = await fetch(`/api/teacher/exams/${examId}/marking`, {
@@ -104,7 +113,10 @@ export default function TeacherMarkingPage() {
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Save failed.");
-      toast(`Saved ${j.marked} mark${j.marked === 1 ? "" : "s"}${finalize ? " · exams graded" : ""}.`, "success");
+      toast(
+        `Saved ${j.marked} mark${j.marked === 1 ? "" : "s"}${finalize ? " · exams graded" : ""}.`,
+        "success",
+      );
       await load();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Save failed.", "error");
@@ -124,7 +136,6 @@ export default function TeacherMarkingPage() {
 
   async function saveVisible(e?: FormEvent) {
     e?.preventDefault();
-    const qid = q.id;
     const updates: Record<string, number> = {};
     for (const it of visibleItems) {
       const v = marks[it.answerId];
@@ -141,9 +152,14 @@ export default function TeacherMarkingPage() {
       if (it.awardedMarks != null) updates[it.answerId] = it.awardedMarks;
       else if (marks[it.answerId] != null) updates[it.answerId] = marks[it.answerId];
     }
-    const pending = data.items.filter((i) => i.awardedMarks == null && marks[i.answerId] == null).length;
+    const pending = data.items.filter(
+      (i) => i.awardedMarks == null && marks[i.answerId] == null,
+    ).length;
     if (pending > 0) {
-      toast(`${pending} answer${pending === 1 ? "" : "s"} still unmarked — cannot finalise.`, "error");
+      toast(
+        `${pending} answer${pending === 1 ? "" : "s"} still unmarked — cannot finalise.`,
+        "error",
+      );
       return;
     }
     await save(updates, true);
@@ -161,7 +177,9 @@ export default function TeacherMarkingPage() {
   }
 
   const progressPct =
-    data.summary.totalTheory === 0 ? 100 : Math.round((data.summary.totalMarked / data.summary.totalTheory) * 100);
+    data.summary.totalTheory === 0
+      ? 100
+      : Math.round((data.summary.totalMarked / data.summary.totalTheory) * 100);
 
   return (
     <>
@@ -170,17 +188,27 @@ export default function TeacherMarkingPage() {
         <TeacherSidebar />
         <section className="min-w-0 flex-1 space-y-6">
           <div className="rounded-[2rem] bg-brand-navy p-7 text-white">
-            <button onClick={() => router.back()} className="mb-3 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-green hover:opacity-80">
+            <button
+              onClick={() => router.back()}
+              className="mb-3 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-green hover:opacity-80"
+            >
               <ArrowLeft size={14} /> Back to exams
             </button>
-            <p className="text-xs font-bold uppercase tracking-widest text-brand-green">{data.exam.subjectName} · {data.exam.className}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-brand-green">
+              {data.exam.subjectName} · {data.exam.className}
+            </p>
             <h1 className="mt-2 font-display text-4xl tracking-widest">{data.exam.title}</h1>
             <div className="mt-4 h-2 w-full max-w-md overflow-hidden rounded-full bg-white/10">
-              <div className="h-full bg-brand-green transition-all" style={{ width: `${progressPct}%` }} />
+              <div
+                className="h-full bg-brand-green transition-all"
+                style={{ width: `${progressPct}%` }}
+              />
             </div>
             <p className="mt-2 text-sm text-white/65">
-              {data.summary.totalMarked}/{data.summary.totalTheory} answers marked across {data.summary.totalStudents} scripts
-              {" · "}{data.summary.pendingCount} pending
+              {data.summary.totalMarked}/{data.summary.totalTheory} answers marked across{" "}
+              {data.summary.totalStudents} scripts
+              {" · "}
+              {data.summary.pendingCount} pending
             </p>
           </div>
 
@@ -204,7 +232,13 @@ export default function TeacherMarkingPage() {
                     title={qq.questionText}
                   >
                     Q{i + 1}
-                    {done ? <CheckCircle2 size={12} /> : pending > 0 ? <span className="rounded-full bg-yellow-400/20 px-1.5 text-yellow-600">{pending}</span> : null}
+                    {done ? (
+                      <CheckCircle2 size={12} />
+                    ) : pending > 0 ? (
+                      <span className="rounded-full bg-yellow-400/20 px-1.5 text-yellow-600">
+                        {pending}
+                      </span>
+                    ) : null}
                   </button>
                 );
               })}
@@ -238,14 +272,37 @@ export default function TeacherMarkingPage() {
           {q && (
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6">
               <p className="text-xs uppercase tracking-widest text-[var(--accent-primary)]">
-                Question {activeQ + 1} · {q.type.replace("_", " ")} · {q.marks} mk{q.marks !== 1 ? "s" : ""}
+                Question {activeQ + 1} · {q.type.replace("_", " ")} · {q.marks} mk
+                {q.marks !== 1 ? "s" : ""}
               </p>
               <h2 className="mt-2 text-lg font-semibold leading-relaxed">{q.questionText}</h2>
               <div className="mt-4 flex items-center justify-between text-sm text-[var(--text-muted)]">
-                <span>{visibleItems.length} script{visibleItems.length === 1 ? "" : "s"} · <span className="font-bold text-[var(--accent-primary)]">{visibleItems.filter((i) => marks[i.answerId] != null || i.awardedMarks != null).length}</span> marked</span>
+                <span>
+                  {visibleItems.length} script{visibleItems.length === 1 ? "" : "s"} ·{" "}
+                  <span className="font-bold text-[var(--accent-primary)]">
+                    {
+                      visibleItems.filter(
+                        (i) => marks[i.answerId] != null || i.awardedMarks != null,
+                      ).length
+                    }
+                  </span>{" "}
+                  marked
+                </span>
                 <div className="flex gap-2">
-                  <button onClick={() => setActiveQ((i) => Math.max(0, i - 1))} disabled={activeQ === 0} className="rounded-full border border-[var(--border-subtle)] p-2 disabled:opacity-40"><ChevronLeft size={14} /></button>
-                  <button onClick={() => setActiveQ((i) => Math.min(questions.length - 1, i + 1))} disabled={activeQ === questions.length - 1} className="rounded-full border border-[var(--border-subtle)] p-2 disabled:opacity-40"><ChevronRight size={14} /></button>
+                  <button
+                    onClick={() => setActiveQ((i) => Math.max(0, i - 1))}
+                    disabled={activeQ === 0}
+                    className="rounded-full border border-[var(--border-subtle)] p-2 disabled:opacity-40"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <button
+                    onClick={() => setActiveQ((i) => Math.min(questions.length - 1, i + 1))}
+                    disabled={activeQ === questions.length - 1}
+                    className="rounded-full border border-[var(--border-subtle)] p-2 disabled:opacity-40"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
                 </div>
               </div>
             </div>
@@ -256,13 +313,23 @@ export default function TeacherMarkingPage() {
               const val = marks[it.answerId] ?? it.awardedMarks ?? 0;
               const marked = it.awardedMarks != null || marks[it.answerId] != null;
               return (
-                <li key={it.answerId} className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5">
+                <li
+                  key={it.answerId}
+                  className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5"
+                >
                   <div className="flex items-start gap-3">
                     <User size={18} className="mt-1 shrink-0 text-[var(--accent-primary)]" />
                     <div className="min-w-0 flex-1">
-                      <p className="font-bold">{it.student.name} <span className="text-xs text-[var(--text-muted)]">({it.student.studentId})</span></p>
+                      <p className="font-bold">
+                        {it.student.name}{" "}
+                        <span className="text-xs text-[var(--text-muted)]">
+                          ({it.student.studentId})
+                        </span>
+                      </p>
                       <div className="mt-2 whitespace-pre-wrap rounded-lg bg-[var(--bg-primary)] p-3 text-sm leading-relaxed">
-                        {it.response || <span className="italic text-[var(--text-muted)]">(no response)</span>}
+                        {it.response || (
+                          <span className="italic text-[var(--text-muted)]">(no response)</span>
+                        )}
                       </div>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-2">
@@ -275,7 +342,9 @@ export default function TeacherMarkingPage() {
                               key={pct}
                               onClick={() => setMark(it.answerId, v, it.marks)}
                               className={`flex h-8 w-8 items-center justify-center rounded-md border text-xs font-bold transition ${
-                                active ? "border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white" : "border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--accent-primary)]"
+                                active
+                                  ? "border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white"
+                                  : "border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--accent-primary)]"
                               }`}
                               title={`${v}/${it.marks}`}
                             >
@@ -296,10 +365,24 @@ export default function TeacherMarkingPage() {
                         <span className="text-xs text-[var(--text-muted)]">/ {it.marks}</span>
                       </div>
                       <div className="flex gap-1">
-                        <button onClick={() => quickAward(it, 0)} className="rounded-md bg-red-50 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-red-500 hover:bg-red-100">0</button>
-                        <button onClick={() => quickAward(it, it.marks)} className="rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-600 hover:bg-emerald-100">Full</button>
+                        <button
+                          onClick={() => quickAward(it, 0)}
+                          className="rounded-md bg-red-50 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-red-500 hover:bg-red-100"
+                        >
+                          0
+                        </button>
+                        <button
+                          onClick={() => quickAward(it, it.marks)}
+                          className="rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-600 hover:bg-emerald-100"
+                        >
+                          Full
+                        </button>
                       </div>
-                      {marked ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Clock size={14} className="text-yellow-500" />}
+                      {marked ? (
+                        <CheckCircle2 size={14} className="text-emerald-500" />
+                      ) : (
+                        <Clock size={14} className="text-yellow-500" />
+                      )}
                     </div>
                   </div>
                 </li>
@@ -307,7 +390,8 @@ export default function TeacherMarkingPage() {
             })}
             {visibleItems.length === 0 && (
               <li className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-8 text-center text-sm text-[var(--text-muted)]">
-                All scripts marked for this question. Use the pills above to move to the next pending question.
+                All scripts marked for this question. Use the pills above to move to the next
+                pending question.
               </li>
             )}
           </ul>

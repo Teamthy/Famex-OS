@@ -1343,6 +1343,12 @@ model ExamAttempt {
   totalScore       Int               @default(0)
   tabSwitches      Int               @default(0)
   metadata         Json?
+  /// Client-supplied idempotency key for offline CBT replays (null for
+  /// online sittings). Promoted out of `metadata` so the replay lookup is an
+  /// indexed column read instead of a JSON scan — and so the index is one
+  /// Prisma can model (the expression index it replaces was invisible to
+  /// schema.prisma and failed the drift gate).
+  clientAttemptId  String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
@@ -1353,6 +1359,7 @@ model ExamAttempt {
   @@unique([examId, studentProfileId, attemptNumber])
   @@index([examId, status])
   @@index([studentProfileId, createdAt])
+  @@index([examId, studentProfileId, clientAttemptId])
 }
 
 model ExamAnswer {

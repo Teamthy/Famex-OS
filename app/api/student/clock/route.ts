@@ -39,11 +39,7 @@ export async function GET() {
       className: ctx.profile.currentClass.displayName,
     },
     today: {
-      status: !last
-        ? "ABSENT"
-        : last.eventType === StudentClockEventType.CHECK_IN
-          ? "IN"
-          : "OUT",
+      status: !last ? "ABSENT" : last.eventType === StudentClockEventType.CHECK_IN ? "IN" : "OUT",
       checkInAt: events.find((e) => e.eventType === "CHECK_IN")?.clockedAt.toISOString() || null,
       checkOutAt:
         [...events]

@@ -18,6 +18,7 @@ import PortalTopbar from "@/components/PortalTopbar";
 import StaffQrScanner from "@/components/StaffQrScanner";
 import { useToast } from "@/components/Toast";
 import QrImage from "@/components/QrImage";
+import type { Fence } from "@/lib/useGps";
 
 type Row = {
   teacherProfileId: string;
@@ -44,6 +45,7 @@ type Badge = {
 type Overview = {
   date: string;
   lateCutoff: string;
+  fence: Fence;
   summary: { staffTotal: number; present: number; absent: number; late: number; stillIn: number };
   rows: Row[];
   events: Array<{
@@ -150,7 +152,15 @@ export default function AdminStaffAttendancePage() {
   async function submitScan(
     e?: FormEvent,
     code?: string,
-    meta?: { scannerGps?: { latitude: number; longitude: number; accuracyM: number; outsideFence?: boolean; distanceM?: number } },
+    meta?: {
+      scannerGps?: {
+        latitude: number;
+        longitude: number;
+        accuracyM: number;
+        outsideFence?: boolean;
+        distanceM?: number;
+      };
+    },
   ) {
     e?.preventDefault();
     const badgeCode = (code ?? scanValue).trim();
@@ -184,11 +194,7 @@ export default function AdminStaffAttendancePage() {
         j.event.isLate ? ` · LATE +${j.event.lateMinutes}m` : ""
       }${j.scannerFlag === "OUTSIDE_FENCE" ? " · ⚠️ SCANNER OFF-SITE" : j.scannerFlag === "WEAK_FIX" ? " · ⚠️ weak GPS" : ""}`;
       setLastResult(msg);
-      const tone = j.scannerFlag
-        ? "warning"
-        : j.event.isLate
-          ? "info"
-          : "success";
+      const tone = j.scannerFlag ? "warning" : j.event.isLate ? "info" : "success";
       toast(msg, tone);
       setScanValue("");
       await load();
@@ -284,7 +290,11 @@ export default function AdminStaffAttendancePage() {
               </span>
             )}
           </div>
-          <StaffQrScanner active={cameraOn} onScan={(code, meta) => void submitScan(undefined, code, meta)} fence={data?.fence ?? null} />
+          <StaffQrScanner
+            active={cameraOn}
+            onScan={(code, meta) => void submitScan(undefined, code, meta)}
+            fence={data?.fence ?? null}
+          />
 
           {loading || !data ? (
             <div className="flex items-center gap-2 p-10 text-[var(--text-muted)]">

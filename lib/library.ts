@@ -30,14 +30,17 @@ const LoanSchema = z.object({
 export type Loan = z.infer<typeof LoanSchema>;
 
 export const listBooks = (schoolId: string) => listRecords<Book>(schoolId, MODULE);
-export const addBook = (schoolId: string, data: unknown) => createRecord(schoolId, MODULE, BookSchema, data);
+export const addBook = (schoolId: string, data: unknown) =>
+  createRecord(schoolId, MODULE, BookSchema, data);
 export const updateBook = (schoolId: string, id: string, patch: unknown) =>
   updateRecord(schoolId, MODULE, BookSchema, id, patch);
-export const removeBook = (schoolId: string, id: string) => deleteRecord<Book>(schoolId, MODULE, id);
+export const removeBook = (schoolId: string, id: string) =>
+  deleteRecord<Book>(schoolId, MODULE, id);
 
 const LOAN_MODULE = "library_loans";
 export const listLoans = (schoolId: string) => listRecords<Loan>(schoolId, LOAN_MODULE);
-export const loanBook = (schoolId: string, data: unknown) => createRecord(schoolId, LOAN_MODULE, LoanSchema, data);
+export const loanBook = (schoolId: string, data: unknown) =>
+  createRecord(schoolId, LOAN_MODULE, LoanSchema, data);
 export const returnBook = (schoolId: string, id: string) =>
   updateRecord(schoolId, LOAN_MODULE, LoanSchema, id, { returnedAt: new Date().toISOString() });
 

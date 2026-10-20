@@ -2,7 +2,6 @@ import { UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { decimalToNumber } from "@/lib/geofence";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -80,13 +79,20 @@ export async function GET(req: NextRequest) {
   const student = await prisma.studentProfile.findUnique({
     where: { id: studentId },
     select: {
-      id: true, schoolId: true, userId: true, displayName: true, studentId: true,
-      lifecycleStatus: true, graduatedAt: true, alumniNumber: true,
+      id: true,
+      schoolId: true,
+      userId: true,
+      displayName: true,
+      studentId: true,
+      lifecycleStatus: true,
+      graduatedAt: true,
+      alumniNumber: true,
       currentClass: { select: { displayName: true } },
     },
   });
   if (!student) return NextResponse.json({ error: "Student not found." }, { status: 404 });
-  if (student.schoolId !== session.schoolId) return NextResponse.json({ error: "Wrong school." }, { status: 403 });
+  if (student.schoolId !== session.schoolId)
+    return NextResponse.json({ error: "Wrong school." }, { status: 403 });
 
   const isSelf = session.role === UserRole.STUDENT && student.userId === session.id;
   const isAdmin = [UserRole.ADMIN, UserRole.DIRECTOR].includes(session.role as UserRole);
@@ -94,7 +100,8 @@ export async function GET(req: NextRequest) {
   let parentLink: any = null;
   if (isParent) {
     parentLink = await prisma.parentProfile.findFirst({ where: { userId: session.id } });
-    if (!parentLink) return NextResponse.json({ error: "Parent profile not found." }, { status: 403 });
+    if (!parentLink)
+      return NextResponse.json({ error: "Parent profile not found." }, { status: 403 });
     const pl = await prisma.parentStudentLink.findFirst({
       where: { parentProfileId: parentLink.id, studentProfileId: student.id },
     });

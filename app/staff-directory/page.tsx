@@ -6,7 +6,8 @@ import { Mail, UserRound } from "lucide-react";
 
 export const metadata = {
   title: "Staff Directory — Meet Our Teachers",
-  description: "Meet our teaching and leadership team. Subject specialisms and class assignments are listed for each member of staff.",
+  description:
+    "Meet our teaching and leadership team. Subject specialisms and class assignments are listed for each member of staff.",
 };
 
 // Server component: renders a fallback list even if JS fails; client can
@@ -68,20 +69,30 @@ export default async function StaffDirectoryPage() {
                     >
                       <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[var(--accent-primary)]/15 text-[var(--accent-primary)]">
                         {s.photoUrl ? (
-                          <img src={s.photoUrl} alt={`${s.name} portrait`} className="h-full w-full rounded-full object-cover" />
+                          <img
+                            src={s.photoUrl}
+                            alt={`${s.name} portrait`}
+                            className="h-full w-full rounded-full object-cover"
+                          />
                         ) : (
                           <UserRound size={30} aria-hidden />
                         )}
                       </div>
-                      <h3 className="font-display text-lg tracking-widest text-[var(--text-primary)]">{s.name}</h3>
-                      <p className="mt-1 text-xs uppercase tracking-widest text-[var(--accent-primary)]">{s.title}</p>
+                      <h3 className="font-display text-lg tracking-widest text-[var(--text-primary)]">
+                        {s.name}
+                      </h3>
+                      <p className="mt-1 text-xs uppercase tracking-widest text-[var(--accent-primary)]">
+                        {s.title}
+                      </p>
                       {s.subjects.length > 0 && (
                         <p className="mt-3 text-sm text-[var(--text-secondary)]">
                           {s.subjects.slice(0, 3).join(" · ")}
                         </p>
                       )}
                       {s.className && (
-                        <p className="mt-1 text-xs text-[var(--text-muted)]">Class: {s.className}</p>
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">
+                          Class: {s.className}
+                        </p>
                       )}
                       <a
                         href={`/contact?subject=${encodeURIComponent(`Message for ${s.name}`)}`}

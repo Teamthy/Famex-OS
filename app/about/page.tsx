@@ -135,20 +135,48 @@ export default async function AboutPage() {
                 </p>
                 <div className="grid gap-6 md:grid-cols-3">
                   {[
-                    { role: "Proprietor / Founder", name: "Board of Governors", desc: "Sets strategic direction and ensures fidelity to the school's founding vision." },
-                    { role: "Principal", name: "School Principal", desc: "Oversees academic standards, discipline and day-to-day operations." },
-                    { role: "Vice-Principal Academics", name: "VP Academics", desc: "Coordinates curriculum delivery, examinations and teacher professional development." },
+                    {
+                      role: "Proprietor / Founder",
+                      name: "Board of Governors",
+                      desc: "Sets strategic direction and ensures fidelity to the school's founding vision.",
+                    },
+                    {
+                      role: "Principal",
+                      name: "School Principal",
+                      desc: "Oversees academic standards, discipline and day-to-day operations.",
+                    },
+                    {
+                      role: "Vice-Principal Academics",
+                      name: "VP Academics",
+                      desc: "Coordinates curriculum delivery, examinations and teacher professional development.",
+                    },
                   ].map((l) => (
-                    <article key={l.role} className="rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-8 shadow-[var(--card-shadow)]">
-                      <p className="text-xs uppercase tracking-widest text-[var(--accent-primary)]">{l.role}</p>
-                      <h3 className="mt-2 font-display text-xl tracking-widest text-[var(--text-primary)]">{l.name}</h3>
-                      <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">{l.desc}</p>
+                    <article
+                      key={l.role}
+                      className="rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-8 shadow-[var(--card-shadow)]"
+                    >
+                      <p className="text-xs uppercase tracking-widest text-[var(--accent-primary)]">
+                        {l.role}
+                      </p>
+                      <h3 className="mt-2 font-display text-xl tracking-widest text-[var(--text-primary)]">
+                        {l.name}
+                      </h3>
+                      <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">
+                        {l.desc}
+                      </p>
                     </article>
                   ))}
                 </div>
                 <p className="mt-6 text-sm text-[var(--text-muted)]">
                   Full staff profiles, including subject teachers and form masters, are listed in
-                  the <a href="/staff-directory" className="text-[var(--accent-primary)] underline underline-offset-4">Staff Directory</a>.
+                  the{" "}
+                  <a
+                    href="/staff-directory"
+                    className="text-[var(--accent-primary)] underline underline-offset-4"
+                  >
+                    Staff Directory
+                  </a>
+                  .
                 </p>
               </div>
             </div>

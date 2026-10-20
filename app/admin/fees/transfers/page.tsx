@@ -1,10 +1,10 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import PortalTopbar from "@/components/PortalTopbar";
 import AdminSidebar from "@/components/AdminSidebar";
 import { useToast } from "@/components/Toast";
-import { BadgeCheck, CheckCircle2, LoaderCircle, Receipt, Search, XCircle } from "lucide-react";
+import { BadgeCheck, LoaderCircle, Receipt, Search, XCircle } from "lucide-react";
 
 type Transfer = {
   id: string;
@@ -20,7 +20,11 @@ type Transfer = {
   parentProfile: { displayName: string; phone: string | null } | null;
 };
 
-const NAIRA = new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 });
+const NAIRA = new Intl.NumberFormat("en-NG", {
+  style: "currency",
+  currency: "NGN",
+  maximumFractionDigits: 0,
+});
 
 export default function TransferReviewPage() {
   const { toast } = useToast();
@@ -45,7 +49,9 @@ export default function TransferReviewPage() {
     }
   }, [toast]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   async function act(transfer: Transfer, action: "APPROVE_TRANSFER" | "REJECT_TRANSFER") {
     setBusy(transfer.id);
@@ -57,7 +63,12 @@ export default function TransferReviewPage() {
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Action failed.");
-      toast(action === "APPROVE_TRANSFER" ? "Transfer approved — receipt issued." : "Transfer rejected.", "success");
+      toast(
+        action === "APPROVE_TRANSFER"
+          ? "Transfer approved — receipt issued."
+          : "Transfer rejected.",
+        "success",
+      );
       setNoteFor(null);
       setNote("");
       await load();
@@ -87,11 +98,14 @@ export default function TransferReviewPage() {
         <AdminSidebar />
         <section className="min-w-0 flex-1 space-y-6">
           <div className="rounded-[2rem] bg-brand-navy p-7 text-white">
-            <p className="text-xs font-bold uppercase tracking-widest text-brand-green">FEES · BURSAR</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-brand-green">
+              FEES · BURSAR
+            </p>
             <h1 className="mt-2 font-display text-4xl tracking-widest">TRANSFER REVIEW</h1>
             <p className="mt-2 text-sm text-white/60">
-              Parents submit bank-transfer evidence; here you verify against the bank statement and approve
-              (issues a receipt, settles the invoice) or reject (flags the parent). Nothing settles until you approve.
+              Parents submit bank-transfer evidence; here you verify against the bank statement and
+              approve (issues a receipt, settles the invoice) or reject (flags the parent). Nothing
+              settles until you approve.
             </p>
           </div>
 
@@ -106,7 +120,10 @@ export default function TransferReviewPage() {
               <Receipt size={16} className="text-[var(--accent-primary)]" />
               <h2 className="font-display text-lg tracking-widest">Pending transfers</h2>
               <div className="ml-auto relative">
-                <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                <Search
+                  size={14}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+                />
                 <input
                   className="w-64 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-primary)] py-2 pl-9 pr-4 text-sm"
                   placeholder="Search student, reference, invoice…"
@@ -136,16 +153,28 @@ export default function TransferReviewPage() {
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-bold">{t.studentProfile.displayName}</span>
-                            <span className="text-xs text-[var(--text-muted)]">({t.studentProfile.studentId})</span>
-                            <span className="rounded-full bg-yellow-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-yellow-600">Pending</span>
+                            <span className="text-xs text-[var(--text-muted)]">
+                              ({t.studentProfile.studentId})
+                            </span>
+                            <span className="rounded-full bg-yellow-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-yellow-600">
+                              Pending
+                            </span>
                           </div>
                           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                            Invoice <span className="font-mono text-xs">{t.invoice.invoiceNumber}</span> — {t.invoice.title}
+                            Invoice{" "}
+                            <span className="font-mono text-xs">{t.invoice.invoiceNumber}</span> —{" "}
+                            {t.invoice.title}
                           </p>
                           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--text-muted)]">
-                            <span>Ref: <span className="font-mono">{t.reference}</span></span>
+                            <span>
+                              Ref: <span className="font-mono">{t.reference}</span>
+                            </span>
                             <span>Submitted {new Date(t.createdAt).toLocaleString()}</span>
-                            {t.transferDate && <span>Transfer date: {new Date(t.transferDate).toLocaleDateString()}</span>}
+                            {t.transferDate && (
+                              <span>
+                                Transfer date: {new Date(t.transferDate).toLocaleDateString()}
+                              </span>
+                            )}
                             {t.parentProfile?.phone && <span>Parent: {t.parentProfile.phone}</span>}
                           </div>
                           {t.transferNarration && (
@@ -160,7 +189,8 @@ export default function TransferReviewPage() {
                           )}
                           {shortfall > 0 && (
                             <p className="mt-2 text-xs text-yellow-600">
-                              {NAIRA.format(shortfall / 100)} short of balance — partial payment will be recorded.
+                              {NAIRA.format(shortfall / 100)} short of balance — partial payment
+                              will be recorded.
                             </p>
                           )}
                         </div>
@@ -183,7 +213,10 @@ export default function TransferReviewPage() {
                           <div className="mt-3 flex justify-end gap-2">
                             <button
                               className="rounded-full border border-[var(--border-subtle)] px-4 py-2 text-xs font-bold uppercase tracking-widest"
-                              onClick={() => { setNoteFor(null); setNote(""); }}
+                              onClick={() => {
+                                setNoteFor(null);
+                                setNote("");
+                              }}
                             >
                               Cancel
                             </button>
@@ -207,14 +240,20 @@ export default function TransferReviewPage() {
                         <div className="mt-4 flex justify-end gap-2">
                           <button
                             className="inline-flex items-center gap-2 rounded-full border border-red-300 bg-red-50 px-4 py-2 text-xs font-bold uppercase tracking-widest text-red-600 hover:bg-red-100"
-                            onClick={() => { setNoteFor(t.id); setNote(""); }}
+                            onClick={() => {
+                              setNoteFor(t.id);
+                              setNote("");
+                            }}
                           >
                             <XCircle size={14} /> Reject
                           </button>
                           <button
                             className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-emerald-600 disabled:opacity-60"
                             disabled={busy === t.id}
-                            onClick={() => { setNoteFor(t.id); setNote(""); }}
+                            onClick={() => {
+                              setNoteFor(t.id);
+                              setNote("");
+                            }}
                           >
                             <BadgeCheck size={14} /> Review & approve
                           </button>

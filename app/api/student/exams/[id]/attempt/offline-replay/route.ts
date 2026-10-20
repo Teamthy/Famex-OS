@@ -1,10 +1,9 @@
 import { ExamAttemptStatus, ExamStatus } from "@prisma/client";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { finalizeAttempt, getStudentExamContext } from "@/lib/exams";
 import { getStudentFeeLock } from "@/lib/fee-lock";
 import { prisma } from "@/lib/prisma";
-import { attemptDeadline } from "@/lib/subjects";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +13,9 @@ export const dynamic = "force-dynamic";
  * Accepts an attempt that was created AND sat entirely on the device (zero
  * server connectivity). Creates or resumes a matching ExamAttempt on the
  * server, replays saved answers in one batch, and optionally finalizes
- * (SUBMIT). Idempotent via the client-supplied clientAttemptId (stored in
- * IdempotencyRecord and on ExamAttempt.metadata so retries don't create
- * duplicate attempts).
+ * (SUBMIT). Idempotent via the client-supplied clientAttemptId (stored on
+ * ExamAttempt.clientAttemptId, with the full provenance in metadata, so
+ * retries don't create duplicate attempts).
  *
  * Request body:
  *   clientAttemptId  string (required, used as idempotency key)
@@ -59,7 +58,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   let body: z.infer<typeof schema>;
   try {
     body = schema.parse(await request.json());
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Invalid offline replay payload." }, { status: 400 });
   }
 
@@ -79,17 +78,38 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   let late = false;
   if (submittedMs && submittedMs - startedMs > maxAllowedMs) late = true;
 
-  // Idempotency: look for an existing attempt whose metadata stores the
-  // clientAttemptId. (ExamAttempt.metadata is JSON so we do a linear scan
-  // over the student's recent attempts — cheap, they have at most a handful.)
-  const priorAttempts = await prisma.examAttempt.findMany({
-    where: { examId, studentProfileId: studentContext.studentProfile.id },
+  // Idempotency: look for the server attempt already created for this
+  // clientAttemptId. The key is a real indexed column (promoted out of
+  // metadata by 20261020140000_align_index_drift_client_attempt_id); the
+  // metadata scan remains only as a fallback for attempts created before
+  // that migration in environments whose backfill has not run.
+  let serverAttempt = await prisma.examAttempt.findFirst({
+    where: {
+      examId,
+      studentProfileId: studentContext.studentProfile.id,
+      clientAttemptId: body.clientAttemptId,
+    },
     orderBy: { createdAt: "desc" },
-    take: 10,
   });
-  let serverAttempt = priorAttempts.find(
-    (a) => ((a.metadata as any)?.clientAttemptId ?? null) === body.clientAttemptId,
-  ) ?? null;
+  if (!serverAttempt) {
+    const priorAttempts = await prisma.examAttempt.findMany({
+      where: { examId, studentProfileId: studentContext.studentProfile.id },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    });
+    serverAttempt =
+      priorAttempts.find(
+        (a) => ((a.metadata as any)?.clientAttemptId ?? null) === body.clientAttemptId,
+      ) ?? null;
+    if (serverAttempt && !serverAttempt.clientAttemptId) {
+      // Self-heal the legacy row so the next retry takes the indexed path.
+      await prisma.examAttempt.update({
+        where: { id: serverAttempt.id },
+        data: { clientAttemptId: body.clientAttemptId },
+      });
+      serverAttempt = { ...serverAttempt, clientAttemptId: body.clientAttemptId };
+    }
+  }
   const serverAttemptId = serverAttempt?.id ?? null;
 
   if (!serverAttemptId) {
@@ -98,7 +118,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       // Allow replaying a submitted paper even if the exam has since closed.
       // But do not let offline start a NEW exam that's not published.
     }
-    const feeLock = await getStudentFeeLock(studentContext.user.schoolId, studentContext.studentProfile.id);
+    const feeLock = await getStudentFeeLock(
+      studentContext.user.schoolId,
+      studentContext.studentProfile.id,
+    );
     if (feeLock && !body.finalize) {
       return NextResponse.json({ error: feeLock.message, code: "FEE_LOCK" }, { status: 402 });
     }
@@ -117,8 +140,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         examId,
         studentProfileId: studentContext.studentProfile.id,
         attemptNumber: (existing?.attemptNumber || 0) + 1,
-        deadlineAt: submittedMs ? new Date(Math.max(deadlineAt.getTime(), submittedMs)) : deadlineAt,
+        deadlineAt: submittedMs
+          ? new Date(Math.max(deadlineAt.getTime(), submittedMs))
+          : deadlineAt,
         status: ExamAttemptStatus.IN_PROGRESS,
+        clientAttemptId: body.clientAttemptId,
         metadata: {
           clientAttemptId: body.clientAttemptId,
           offlineReplay: true,
@@ -131,7 +157,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   }
 
   // At this point serverAttempt is non-null (either existing match or new).
-  if (!serverAttempt) return NextResponse.json({ error: "Server error creating attempt." }, { status: 500 });
+  if (!serverAttempt)
+    return NextResponse.json({ error: "Server error creating attempt." }, { status: 500 });
   const serverId = serverAttempt.id;
 
   // Filter answers to valid question IDs.
@@ -163,7 +190,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
           submitted: false,
           lateForReview: true,
           attemptId: serverId,
-          message: "Answers received but your submission appears to exceed the allowed duration. Your teacher will review it.",
+          message:
+            "Answers received but your submission appears to exceed the allowed duration. Your teacher will review it.",
         });
       }
       await finalizeAttempt(serverId);

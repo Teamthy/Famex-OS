@@ -58,7 +58,11 @@ export async function sendSms(payload: SmsPayload): Promise<void> {
   // Twilio
   if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM) {
     try {
-      const b = new URLSearchParams({ To: `+${to}`, From: process.env.TWILIO_FROM, Body: payload.message });
+      const b = new URLSearchParams({
+        To: `+${to}`,
+        From: process.env.TWILIO_FROM,
+        Body: payload.message,
+      });
       const res = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`,
         {

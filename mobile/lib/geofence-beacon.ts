@@ -40,7 +40,6 @@ async function setBeaconFlag(on: boolean): Promise<void> {
   }
 }
 
-const BEACON_PREF = "beacon_enabled";
 /** How often we check, in ms. 30 s keeps battery impact tiny. */
 const POLL_MS = 30_000;
 /** Clock-in window: 6:00 AM – 10:00 AM local time. */

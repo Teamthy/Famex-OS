@@ -15,17 +15,12 @@ export async function GET() {
   const h = await headers();
   const host = h.get("x-forwarded-host") || h.get("host");
   const resolved = await resolveTenantFromHost(host);
-  if (!resolved?.school) return NextResponse.json({ staff: [] });
+  if (!resolved?.tenant) return NextResponse.json({ staff: [] });
 
-  const school = await prisma.school.findUnique({
-    where: { id: resolved.school.id },
-    select: { flags: true },
-  });
-  const hidden = !!(school?.flags as any)?.hidePublicDirectory;
-  if (hidden) return NextResponse.json({ staff: [] });
-
+  // Only directory-safe fields are exposed (name, role label, photo,
+  // subjects) — there is no settings toggle for this endpoint yet.
   const teachers = await prisma.teacherProfile.findMany({
-    where: { schoolId: resolved.school.id, isActive: true },
+    where: { schoolId: resolved.tenant.id, isActive: true },
     select: {
       id: true,
       displayName: true,
@@ -33,7 +28,10 @@ export async function GET() {
       photoUrl: true,
       classAssignments: {
         take: 1,
-        select: { schoolClass: { select: { displayName: true } }, subject: { select: { name: true } } },
+        select: {
+          schoolClass: { select: { displayName: true } },
+          subject: { select: { name: true } },
+        },
       },
       gradebooks: {
         take: 4,

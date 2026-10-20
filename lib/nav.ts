@@ -53,6 +53,7 @@ export type NavIcon =
   | "communication"
   | "documents"
   | "timetable"
+  | "operations"
   | "helpdesk"
   | "website"
   | "settings"
@@ -350,6 +351,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     key: "operations",
     label: "Operations",
     icon: "operations",
+    moduleKey: "operations",
     items: [
       live("Library", "/admin/library", "W17"),
       live("Inventory & Assets", "/admin/inventory", "W17"),

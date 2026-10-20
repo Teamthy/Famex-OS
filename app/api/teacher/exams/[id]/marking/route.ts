@@ -31,10 +31,7 @@ async function requireTeacherExamAccess(examId: string) {
  * of the teacher exam views use), so a teacher can only mark their own
  * exam.
  */
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const ctx = await requireTeacherExamAccess(id);
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -68,12 +65,20 @@ export async function GET(
   // Flatten into a queue of items needing a mark (ESSAY/FILL_BLANK with awardedMarks == null).
   const items = attempts.flatMap((a) =>
     a.answers
-      .filter((ans) => ans.question.type !== ExamQuestionType.MCQ && ans.question.type !== ExamQuestionType.TRUE_FALSE)
+      .filter(
+        (ans) =>
+          ans.question.type !== ExamQuestionType.MCQ &&
+          ans.question.type !== ExamQuestionType.TRUE_FALSE,
+      )
       .map((ans) => ({
         attemptId: a.id,
         answerId: ans.id,
         questionId: ans.question.id,
-        student: { id: a.studentProfile.id, name: a.studentProfile.displayName, studentId: a.studentProfile.studentId },
+        student: {
+          id: a.studentProfile.id,
+          name: a.studentProfile.displayName,
+          studentId: a.studentProfile.studentId,
+        },
         questionText: ans.question.questionText,
         marks: ans.question.marks,
         questionType: ans.question.type,
@@ -127,10 +132,7 @@ const markSchema = z.object({
  * are now marked AND finalize=true, bump the attempt to GRADED and compute
  * totals.
  */
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const ctx = await requireTeacherExamAccess(id);
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -149,14 +151,21 @@ export async function PATCH(
     where: { id: { in: answerIds } },
     include: { question: true, attempt: true },
   });
-  const perAnswerCap = new Map(answers.map((a) => [a.id, { attemptId: a.attemptId, maxMarks: a.question.marks }]));
+  const perAnswerCap = new Map(
+    answers.map((a) => [a.id, { attemptId: a.attemptId, maxMarks: a.question.marks }]),
+  );
 
   for (const m of body.marks) {
     const cap = perAnswerCap.get(m.answerId);
-    if (!cap) return NextResponse.json({ error: `Answer ${m.answerId} not found.` }, { status: 404 });
-    if (cap.attempt.examId !== id) return NextResponse.json({ error: "Answer does not belong to this exam." }, { status: 403 });
+    if (!cap)
+      return NextResponse.json({ error: `Answer ${m.answerId} not found.` }, { status: 404 });
+    if (cap.attempt.examId !== id)
+      return NextResponse.json({ error: "Answer does not belong to this exam." }, { status: 403 });
     if (m.awardedMarks > cap.maxMarks) {
-      return NextResponse.json({ error: `Awarded ${m.awardedMarks} exceeds question maximum (${cap.maxMarks}).` }, { status: 400 });
+      return NextResponse.json(
+        { error: `Awarded ${m.awardedMarks} exceeds question maximum (${cap.maxMarks}).` },
+        { status: 400 },
+      );
     }
   }
 
@@ -183,7 +192,11 @@ export async function PATCH(
       const allMarked = a.answers.every((ans) => ans.awardedMarks != null);
       if (!allMarked) continue;
       const theory = a.answers
-        .filter((ans) => ans.question.type !== ExamQuestionType.MCQ && ans.question.type !== ExamQuestionType.TRUE_FALSE)
+        .filter(
+          (ans) =>
+            ans.question.type !== ExamQuestionType.MCQ &&
+            ans.question.type !== ExamQuestionType.TRUE_FALSE,
+        )
         .reduce((s, ans) => s + (ans.awardedMarks ?? 0), 0);
       const objective = a.autoScore;
       await prisma.examAttempt.update({

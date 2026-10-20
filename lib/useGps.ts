@@ -53,9 +53,11 @@ export function useGps(fence: Fence | null | undefined) {
     let active = true;
     async function queryPerm() {
       if (typeof navigator === "undefined") return;
-      const perms = (navigator as Navigator & {
-        permissions?: { query: (p: { name: PermissionName }) => Promise<PermissionStatus> };
-      }).permissions;
+      const perms = (
+        navigator as Navigator & {
+          permissions?: { query: (_p: { name: PermissionName }) => Promise<PermissionStatus> };
+        }
+      ).permissions;
       if (!perms?.query) return;
       try {
         const status = await perms.query({ name: "geolocation" as PermissionName });
@@ -111,13 +113,12 @@ export function useGps(fence: Fence | null | undefined) {
 
   // Continuously compute distance to the fence center when both are known
   useEffect(() => {
-    if (
-      !state.reading ||
-      !fence?.enabled ||
-      !fence.center?.latitude ||
-      !fence.center?.longitude
-    ) {
-      setState((s) => (s.distanceM === Number.POSITIVE_INFINITY ? s : { ...s, distanceM: Number.POSITIVE_INFINITY }));
+    if (!state.reading || !fence?.enabled || !fence.center?.latitude || !fence.center?.longitude) {
+      setState((s) =>
+        s.distanceM === Number.POSITIVE_INFINITY
+          ? s
+          : { ...s, distanceM: Number.POSITIVE_INFINITY },
+      );
       return;
     }
     const d = Math.round(
