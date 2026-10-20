@@ -1,26 +1,20 @@
-"use client";
-
 // HomeSections — the below-the-fold marketing sections of the home page.
 //
-// Each section is its own async chunk (next/dynamic, ssr kept so the markup
-// is in the server HTML for SEO and no-JS visitors). They carry no animation
-// library and their images sit behind content-visibility:auto (see the Reveal
-// classNames), so the chunks and bytes stay off the LCP critical path
-// measured by lighthouserc.json.
-//
-// NOTE: do not gate these loaders client-side (e.g. "load after LCP") — a
-// loader that resolves on the server but suspends on the client breaks
-// hydration and blanks the page. Gating is only safe with ssr:false.
+// These sections are server-rendered. Their CSS-only headings and static
+// markup therefore ship no per-section JavaScript chunks and do not hydrate
+// hundreds of DOM nodes on the first load; only the small Reveal wrappers and
+// profile-dependent address/map islands are client components. The sections'
+// images remain lazy, and the Reveal wrappers use content-visibility:auto so
+// below-the-fold rendering stays off the LCP critical path measured by
+// lighthouserc.json.
 
-import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 import { Reveal } from "@/components/Reveal";
-
-const ServiceInfo = dynamic(() => import("@/components/ServiceInfo"));
-const AdmissionsBanner = dynamic(() => import("@/components/AdmissionsBanner"));
-const Services = dynamic(() => import("@/components/Services"));
-const Groups = dynamic(() => import("@/components/Groups"));
-const FindUs = dynamic(() => import("@/components/FindUs"));
+import AdmissionsBanner from "@/components/AdmissionsBanner";
+import FindUs from "@/components/FindUs";
+import Groups from "@/components/Groups";
+import ServiceInfo from "@/components/ServiceInfo";
+import Services from "@/components/Services";
 
 /** Sections between the hero and the marquee. */
 export function HomeSectionsTop() {

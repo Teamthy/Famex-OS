@@ -1,5 +1,3 @@
-"use client";
-
 import { AnimatedText } from "@/components/AnimatedText";
 import { ArrowRight, FileCheck2, CreditCard, CalendarClock } from "lucide-react";
 
