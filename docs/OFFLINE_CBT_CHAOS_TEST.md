@@ -4,6 +4,21 @@ Run these 10 scenarios against a staging build (device on school Wi-Fi, then
 toggled to airplane mode) before every exam-period release. Every scenario
 must produce the expected result; any failure blocks deployment.
 
+## Automated runner
+
+A server-side automator covering the contract-level scenarios (download,
+double-submit idempotency, late flag, role gating, corrupt payload, answer-key
+leak, blank script, health, replay mounting, teacher marking) is checked in
+at `scripts/chaos-offline-cbt.ts`. Run it against any live instance:
+
+```
+BASE_URL=https://staging.famex.os SEED_PASSWORD="..." npm run test:chaos:cbt
+```
+
+It exits non-zero on any failure and prints a per-scenario pass/fail table.
+The manual scenarios below cover device-level UX (airplane-mode start, hard
+quit, app-restore) that the API-level runner cannot drive.
+
 ## Setup
 
 - One student account enrolled in a 10-question, 10-minute mock CBT exam.

@@ -5,7 +5,11 @@ import { studentApi } from "@/lib/api";
 import {
   deleteOfflineExam,
   listDownloadedExams,
+  listAttemptsWithExam,
   offlineAttemptCount,
+  pendingSubmittedCount,
+  retryAttempt,
+  type AttemptListItem,
   type OfflineExam,
 } from "@/lib/offline/exams";
 import { useTheme } from "@/src/theme";
@@ -15,7 +19,7 @@ import { Button } from "@/src/components/buttons";
 import { Screen, AppBar, Row, Column } from "@/src/components/layout";
 import { bodyFont } from "@/src/theme/typography";
 import { useToast } from "@/components/MobileToast";
-import { DownloadCloud, Offline, PlayCircle, Trash2, Wifi, LoaderCircle } from "lucide-react-native";
+import { DownloadCloud, Offline, PlayCircle, Trash2, Wifi, LoaderCircle, RefreshCw, AlertTriangle, CheckCircle2, Clock } from "lucide-react-native";
 
 type ServerExam = {
   id: string;
@@ -32,20 +36,29 @@ export default function OfflineExamsScreen() {
   const { toast } = useToast();
   const [downloaded, setDownloaded] = useState<OfflineExam[]>([]);
   const [serverExams, setServerExams] = useState<ServerExam[]>([]);
+  const [attempts, setAttempts] = useState<AttemptListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
   const [pending, setPending] = useState(0);
+  const [submitting, setSubmitting] = useState(0);
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const local = await listDownloadedExams();
+    const [local, att] = await Promise.all([listDownloadedExams(), listAttemptsWithExam()]);
     setDownloaded(local);
+    setAttempts(att);
     setPending(await offlineAttemptCount());
-    // Try to sync any pending offline answers/exams if online.
+    setSubmitting(await pendingSubmittedCount());
     import("@/lib/offline/sync")
       .then((m) => m.syncOfflineExams())
-      .then(async () => setPending(await offlineAttemptCount()))
+      .then(async () => {
+        const [upd, p, s] = await Promise.all([listAttemptsWithExam(), offlineAttemptCount(), pendingSubmittedCount()]);
+        setAttempts(upd);
+        setPending(p);
+        setSubmitting(s);
+      })
       .catch(() => {});
     try {
       const list: any = await studentApi.exams();
@@ -57,6 +70,20 @@ export default function OfflineExamsScreen() {
       setLoading(false);
     }
   }, []);
+
+  async function retry(a: AttemptListItem) {
+    setRetryingId(a.attemptId);
+    await retryAttempt(a.attemptId);
+    try {
+      const { syncOfflineExams } = await import("@/lib/offline/sync");
+      await syncOfflineExams();
+      toast("Retrying submission…", "info");
+    } catch {
+      toast("Still offline — will retry when reconnected.", "warning");
+    }
+    await refresh();
+    setRetryingId(null);
+  }
 
   // Auto-sync on app foreground.
   useEffect(() => {
@@ -123,16 +150,71 @@ export default function OfflineExamsScreen() {
         </Card>
       )}
 
-      {pending > 0 && (
+      {submitting > 0 && (
         <Card variant="bordered" padding={spacing.md} style={{ borderColor: colors.brand.green, marginBottom: spacing.md }}>
           <Row gap={spacing.sm}>
             <Wifi size={20} color={colors.brand.green} />
             <View style={{ flex: 1 }}>
-              <Label>{pending} exam{pending > 1 ? "s" : ""} ready to submit</Label>
-              <Caption>Reconnect to sync your answers automatically.</Caption>
+              <Label>{submitting} paper{submitting > 1 ? "s" : ""} submitted — syncing</Label>
+              <Caption>Answers are locked on this device; they're uploading to the server now.</Caption>
             </View>
           </Row>
         </Card>
+      )}
+
+      {attempts.length > 0 && (
+        <>
+          <H2 style={{ marginBottom: spacing.sm }}>Your sittings</H2>
+          <Column gap={spacing.xs} style={{ marginBottom: spacing.lg }}>
+            {attempts.map((a) => {
+              const isSynced = a.syncStatus === "SYNCED";
+              const isFailed = a.syncStatus === "FAILED";
+              const isInProgress = !a.submitted;
+              const statusColor = isSynced ? colors.success : isFailed ? colors.danger : colors.warning;
+              const StatusIcon = isSynced ? CheckCircle2 : isFailed ? AlertTriangle : isInProgress ? Clock : RefreshCw;
+              const statusLabel = isSynced
+                ? "Submitted & synced"
+                : isFailed
+                  ? "Sync failed"
+                  : isInProgress
+                    ? "In progress"
+                    : "Submitted · waiting to sync";
+              return (
+                <Card key={a.attemptId} variant="default" padding={spacing.md}>
+                  <Row style={{ alignItems: "center" }}>
+                    <StatusIcon size={20} color={statusColor} style={{ marginRight: spacing.sm }} />
+                    <View style={{ flex: 1 }}>
+                      <Body tone="primary" style={{ fontFamily: bodyFont("semibold") }}>
+                        {a.examTitle}
+                      </Body>
+                      <Caption>
+                        {a.subjectName} · {a.answerCount} answer{a.answerCount === 1 ? "" : "s"} ·{" "}
+                        {new Date(a.startedAt).toLocaleString()}
+                      </Caption>
+                      <Caption style={{ color: statusColor, marginTop: 2 }}>{statusLabel}{a.lastError ? ` · ${a.lastError}` : ""}</Caption>
+                    </View>
+                    {isFailed && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onPress={() => void retry(a)}
+                        disabled={retryingId === a.attemptId}
+                        leftIcon={retryingId === a.attemptId ? <LoaderCircle size={14} color={colors.text.primary} /> : <RefreshCw size={14} color={colors.text.primary} />}
+                      >
+                        Retry
+                      </Button>
+                    )}
+                    {!isSynced && !isFailed && a.submitted && online && (
+                      <TouchableOpacity onPress={() => void refresh()} style={{ padding: 8 }}>
+                        <RefreshCw size={16} color={colors.text.muted} />
+                      </TouchableOpacity>
+                    )}
+                  </Row>
+                </Card>
+              );
+            })}
+          </Column>
+        </>
       )}
 
       <H2 style={{ marginBottom: spacing.sm }}>Downloaded</H2>

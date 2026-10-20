@@ -407,15 +407,26 @@ export async function deleteOfflineExam(examId: string): Promise<void> {
   await db.withTransactionAsync(async () => {
     await db.runAsync(`DELETE FROM offline_exams WHERE examId = ?`, examId);
     await db.runAsync(`DELETE FROM offline_questions WHERE examId = ?`, examId);
-    const attempt = await db.getFirstAsync<{ attemptId: string }>(
-      `SELECT attemptId FROM offline_attempts WHERE examId = ? AND submitted = 1`,
+    // Only wipe attempts that are already synced, so submitted-not-synced
+    // papers survive re-downloads.
+    const synced = await db.getAllAsync<{ attemptId: string }>(
+      `SELECT attemptId FROM offline_attempts WHERE examId = ? AND syncStatus = 'SYNCED'`,
       examId,
     );
-    if (attempt) {
-      await db.runAsync(`DELETE FROM offline_answers WHERE attemptId = ?`, attempt.attemptId);
-      await db.runAsync(`DELETE FROM offline_attempts WHERE attemptId = ?`, attempt.attemptId);
+    for (const row of synced) {
+      await db.runAsync(`DELETE FROM offline_answers WHERE attemptId = ?`, row.attemptId);
+      await db.runAsync(`DELETE FROM offline_attempts WHERE attemptId = ?`, row.attemptId);
     }
   });
+}
+
+/** Reset a FAILED attempt back to SUBMITTED so the next sync pass retries it. */
+export async function retryAttempt(attemptId: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    `UPDATE offline_attempts SET syncStatus = 'SUBMITTED', lastError = NULL WHERE attemptId = ?`,
+    attemptId,
+  );
 }
 
 export async function offlineAttemptCount(): Promise<number> {
@@ -434,4 +445,54 @@ export async function pendingSubmittedCount(): Promise<number> {
      WHERE submitted = 1 AND syncStatus IN ('LOCAL','SYNCING','SUBMITTED','FAILED')`,
   );
   return row?.c ?? 0;
+}
+
+export type AttemptListItem = {
+  attemptId: string;
+  examId: string;
+  examTitle: string;
+  subjectName: string;
+  startedAt: number;
+  submittedAt: number | null;
+  deadlineAt: number;
+  submitted: boolean;
+  syncStatus: "LOCAL" | "SYNCING" | "SUBMITTED" | "SYNCED" | "FAILED";
+  lastError: string | null;
+  answerCount: number;
+};
+
+export async function listAttemptsWithExam(): Promise<AttemptListItem[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<any>(
+    `SELECT a.attemptId, a.examId, a.startedAt, a.submittedAt, a.deadlineAt,
+            a.submitted, a.syncStatus, a.lastError, e.payloadJson AS examJson,
+            (SELECT COUNT(*) FROM offline_answers ans WHERE ans.attemptId = a.attemptId) AS answerCount
+     FROM offline_attempts a
+     LEFT JOIN offline_exams e ON e.examId = a.examId
+     ORDER BY a.startedAt DESC`,
+  );
+  return rows.map((r) => {
+    let title = "(downloaded exam)";
+    let subject = "";
+    try {
+      if (r.examJson) {
+        const ex = JSON.parse(r.examJson);
+        title = ex.title ?? title;
+        subject = ex.subjectName ?? "";
+      }
+    } catch { /* ignore */ }
+    return {
+      attemptId: r.attemptId,
+      examId: r.examId,
+      examTitle: title,
+      subjectName: subject,
+      startedAt: r.startedAt,
+      submittedAt: r.submittedAt ?? null,
+      deadlineAt: r.deadlineAt,
+      submitted: !!r.submitted,
+      syncStatus: r.syncStatus,
+      lastError: r.lastError ?? null,
+      answerCount: r.answerCount ?? 0,
+    };
+  });
 }

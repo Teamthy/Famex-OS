@@ -35,6 +35,7 @@
     "loadtest": "tsx scripts/load-test.ts",
     "test:e2e:full": "tsx scripts/e2e-full.ts",
     "test:e2e:mobile": "tsx scripts/e2e-mobile.ts",
+    "test:chaos:cbt": "tsx scripts/chaos-offline-cbt.ts",
     "verify:rls": "tsx scripts/verify-rls.ts",
     "verify:rls:coverage": "tsx scripts/verify-rls-coverage.ts",
     "check:drift": "tsx scripts/check-schema-drift.ts",
