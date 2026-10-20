@@ -28,13 +28,7 @@ const updateSchema = z.object({
     .optional(),
   geoLatitude: z.coerce.number().min(-90).max(90).nullable().optional(),
   geoLongitude: z.coerce.number().min(-180).max(180).nullable().optional(),
-  geoRadiusM: z.coerce
-    .number()
-    .int()
-    .min(MIN_RADIUS_M)
-    .max(MAX_RADIUS_M)
-    .nullable()
-    .optional(),
+  geoRadiusM: z.coerce.number().int().min(MIN_RADIUS_M).max(MAX_RADIUS_M).nullable().optional(),
   geoEnabled: z.coerce.boolean().optional(),
 });
 
@@ -116,10 +110,8 @@ export async function PUT(request: NextRequest) {
 
     let nextLat = latPresent ? payload.geoLatitude : curLat;
     let nextLng = lngPresent ? payload.geoLongitude : curLng;
-    let nextRadius = radiusPresent
-      ? payload.geoRadiusM
-      : current?.geoRadiusM ?? DEFAULT_RADIUS_M;
-    let nextEnabled = enabledPresent ? payload.geoEnabled : current?.geoEnabled ?? false;
+    let nextRadius = radiusPresent ? payload.geoRadiusM : (current?.geoRadiusM ?? DEFAULT_RADIUS_M);
+    let nextEnabled = enabledPresent ? payload.geoEnabled : (current?.geoEnabled ?? false);
 
     if (nextLat === null || nextLng === null) {
       // Clearing the fence → disable GPS clock-in

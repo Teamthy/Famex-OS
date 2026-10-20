@@ -2,7 +2,11 @@ import { FeePaymentMethod, FeePaymentStatus, PaymentStatus } from "@prisma/clien
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getAdminFinanceContext, generatePaymentReference } from "@/lib/finance";
+import {
+  getAdminFinanceContext,
+  generatePaymentReference,
+  generateUniqueReceiptNumber,
+} from "@/lib/finance";
 import { postCompletedFeePayment } from "@/lib/fee-payment-service";
 import { getClientIp } from "@/lib/requests";
 import { requireModule } from "@/lib/module-guard";
@@ -91,6 +95,7 @@ export async function POST(request: NextRequest) {
             studentProfileId: invoice.studentProfileId,
             parentProfileId: invoice.parentProfileId,
             amount: input.amount,
+            receiptNumber: await generateUniqueReceiptNumber(),
             method: FeePaymentMethod.CASH,
             reference,
             status: FeePaymentStatus.PENDING_REVIEW,

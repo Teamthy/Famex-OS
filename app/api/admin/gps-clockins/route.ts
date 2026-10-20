@@ -1,14 +1,10 @@
-import { Prisma, StaffAttendanceEventType, StudentClockEventType, UserRole } from "@prisma/client";
+import { StaffAttendanceEventType, StudentClockEventType } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonNoStore } from "@/lib/requests";
 import { STAFF_ATTENDANCE_ADMIN_ROLES, workDateKey } from "@/lib/staff-attendance";
-import { requireRole } from "@/lib/session";
-import {
-  flagReading,
-  isImpossibleTravel,
-  type GeoReading,
-} from "@/lib/spoof-detection";
+import { requireAnyModule } from "@/lib/module-guard";
+import { flagReading, isImpossibleTravel, type GeoReading } from "@/lib/spoof-detection";
 
 export const dynamic = "force-dynamic";
 
@@ -20,19 +16,30 @@ export const dynamic = "force-dynamic";
  * spot suspicious entries (large lateMinutes, high distanceM right at the edge).
  */
 export async function GET(request: NextRequest) {
-  const user = await requireRole(STAFF_ATTENDANCE_ADMIN_ROLES);
-  if (!user) return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
+  // Rule 13: auth → role → module. The GPS timeline spans staff and student
+  // clock-ins, so either attendance arm entitles the caller.
+  const guard = await requireAnyModule(
+    ["staff_attendance", "attendance"],
+    STAFF_ATTENDANCE_ADMIN_ROLES,
+  );
+  if (!guard.ok) return guard.response;
+  const user = guard.user;
 
   const url = new URL(request.url);
   const dateParam = url.searchParams.get("date");
-  const dateKey =
-    dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : workDateKey();
+  const dateKey = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : workDateKey();
   const workDate = new Date(`${dateKey}T12:00:00.000Z`);
 
   const [fence, staffEvents, studentEvents, staffTotal, studentTotal] = await Promise.all([
     prisma.school.findUnique({
       where: { id: user.schoolId },
-      select: { geoEnabled: true, geoRadiusM: true, geoLatitude: true, geoLongitude: true, name: true },
+      select: {
+        geoEnabled: true,
+        geoRadiusM: true,
+        geoLatitude: true,
+        geoLongitude: true,
+        name: true,
+      },
     }),
     prisma.staffAttendanceEvent.findMany({
       where: { schoolId: user.schoolId, workDate, source: "GPS" },
@@ -65,9 +72,7 @@ export async function GET(request: NextRequest) {
   );
   for (const e of staffChronological) staffLatestMap.set(e.teacherProfileId, e.eventType);
   const staffIn = [...staffLatestMap.values()].filter((v) => v === "CHECK_IN").length;
-  const staffLate = staffEvents.filter(
-    (e) => e.eventType === "CHECK_IN" && e.isLate,
-  ).length;
+  const staffLate = staffEvents.filter((e) => e.eventType === "CHECK_IN" && e.isLate).length;
 
   const studentLatest = new Map<string, StudentClockEventType>();
   const sortedStudent = [...studentEvents].sort(
@@ -75,9 +80,7 @@ export async function GET(request: NextRequest) {
   );
   for (const e of sortedStudent) studentLatest.set(e.studentProfileId, e.eventType);
   const studentIn = [...studentLatest.values()].filter((v) => v === "CHECK_IN").length;
-  const studentLate = studentEvents.filter(
-    (e) => e.eventType === "CHECK_IN" && e.isLate,
-  ).length;
+  const studentLate = studentEvents.filter((e) => e.eventType === "CHECK_IN" && e.isLate).length;
 
   type Row = {
     id: string;
@@ -153,7 +156,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const fenceRadiusM: number | null = typeof fence?.geoRadiusM === "number" ? fence.geoRadiusM : null;
+  const fenceRadiusM: number | null =
+    typeof fence?.geoRadiusM === "number" ? fence.geoRadiusM : null;
   const rowsWithFlags: Row[] = rows.map((r) => {
     const perEvent = flagReading(
       {

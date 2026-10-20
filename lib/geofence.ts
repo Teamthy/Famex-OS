@@ -39,12 +39,13 @@ export function haversineDistanceM(a: GeoPoint, b: GeoPoint): number {
   const dLng = toRad(b.longitude - a.longitude);
   const lat1 = toRad(a.latitude);
   const lat2 = toRad(b.latitude);
-  const h =
-    Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
   return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(h));
 }
 
-export function isValidPoint(p: Partial<GeoPoint> | null | undefined): p is GeoPoint {
+export function isValidPoint(
+  p: { latitude?: number | null; longitude?: number | null } | null | undefined,
+): p is GeoPoint {
   if (!p) return false;
   const { latitude, longitude } = p;
   return (
@@ -84,9 +85,10 @@ export function checkGeofence(
   fence: Geofence,
 ): GeofenceCheck {
   const distanceM = Math.round(haversineDistanceM(reading, fence.center));
-  const accuracyM = typeof reading.accuracyM === "number" && Number.isFinite(reading.accuracyM)
-    ? Math.max(0, reading.accuracyM)
-    : 0;
+  const accuracyM =
+    typeof reading.accuracyM === "number" && Number.isFinite(reading.accuracyM)
+      ? Math.max(0, reading.accuracyM)
+      : 0;
   const accuracyOk = accuracyM <= MAX_ACCEPTED_ACCURACY_M;
   const effectiveRadius = fence.radiusM;
   // Treat the reading as inside only if the reported point is within the

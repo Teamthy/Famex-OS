@@ -29,7 +29,12 @@ export interface GeoReading {
 }
 
 export function flagReading(
-  r: { latitude: number | null; longitude: number | null; accuracyM: number | null; distanceM?: number | null },
+  r: {
+    latitude: number | null;
+    longitude: number | null;
+    accuracyM: number | null;
+    distanceM?: number | null;
+  },
   fenceRadiusM?: number | null,
 ): { accuracySuspicious: boolean; edgeSuspicious: boolean } {
   const accuracySuspicious = r.accuracyM !== null && r.accuracyM > ACCURACY_SUSPICIOUS_THRESHOLD_M;
@@ -45,12 +50,7 @@ export function flagReading(
 
 /** Returns true if two consecutive readings are impossible for a human to make. */
 export function isImpossibleTravel(a: GeoReading, b: GeoReading): boolean {
-  if (
-    a.latitude === null ||
-    a.longitude === null ||
-    b.latitude === null ||
-    b.longitude === null
-  ) {
+  if (a.latitude === null || a.longitude === null || b.latitude === null || b.longitude === null) {
     return false;
   }
   const dt = Math.abs(b.at.getTime() - a.at.getTime()) / 1000;

@@ -15,15 +15,12 @@ import { prisma } from "@/lib/prisma";
 
 interface ParentLike {
   id: string;
+  userId: string;
   user: { name: string | null; email: string | null } | null;
   phone: string | null;
 }
 
-function dedupeKey(
-  studentId: string,
-  eventId: string,
-  channel: AlertChannel,
-) {
+function dedupeKey(studentId: string, eventId: string, channel: AlertChannel) {
   return `clock:${studentId}:${eventId}:${channel}`;
 }
 
@@ -55,7 +52,7 @@ export async function queueStudentClockNotifications(input: {
   const links = await prisma.parentStudentLink.findMany({
     where: { studentProfileId: input.studentId },
     include: {
-      parent: {
+      parentProfile: {
         select: {
           id: true,
           userId: true,
@@ -66,7 +63,7 @@ export async function queueStudentClockNotifications(input: {
     },
     take: 2,
   });
-  const parents: ParentLike[] = links.map((l) => l.parent);
+  const parents: ParentLike[] = links.map((l) => l.parentProfile);
 
   if (parents.length === 0) return;
 

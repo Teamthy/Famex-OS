@@ -24,7 +24,7 @@ If a session ends mid-workstream, §9 must say exactly where it stopped and what
 ## 1. Repo & branch identity
 
 - Repo: `Teamthy/Famex-OS` (origin). W3 base commit: `ca1c10886f50b5c699dd0f0327f3d90606ed7c1f` (main, W1 + W2 merged); stage A merged at `e96217a` (PR #4).
-- **Session branches (fixed, one per session):** W3 stage A used `arena/ce3a9b67-famex-os` → PR #4 (merged); **stage B continues on `arena/f5d78cef-famex-os` → PR #5**. Always work/commit/push on your session branch; open PRs from it to `main`. Never create/switch/push other branches. (W1 used `arena/7f29531d-famex-os` → PR #1; W2 used `arena/9abf8aef-famex-os` → PR #2, merge `74f236c`.)
+- **Session branches (fixed, one per session):** W3 stage A used `arena/ce3a9b67-famex-os` → PR #4 (merged); stage B used `arena/f5d78cef-famex-os` → PR #5 (merged `193ff93`); OCI hosting used `arena/ca91d7ae-famex-os` → PR #9 (merged `e9a1193`); **the CI-rescue session (2026-10-20) works on `arena/ea852f26-famex-os`** (base `1f50c0f`, PR #11). Always work/commit/push on your session branch; open PRs from it to `main`. Never create/switch/push other branches. (W1 used `arena/7f29531d-famex-os` → PR #1; W2 used `arena/9abf8aef-famex-os` → PR #2, merge `74f236c`.)
 - The old Ykay repo (`upstream`) is **read-only, out of bounds** (Rule 15). Never push/edit it.
 - Product: **Famex OS** — single-school Nigerian secondary-school OS (~3,000 users, 5-yr horizon). Rebuilt from a school EduPortal base with the SaaS platform layer removed.
 
@@ -47,7 +47,7 @@ Read in this order before any work:
 |---|---|---|
 | **W1** | Strip EDUos platform + Ykay arms; single-school boot; brand tokens; Licence & Usage; re-cut audit | ✅ **MERGED into main** — PR #1, 2026-10-14 (commits `a9451cd`, `ccaab0b` + this handoff commit). Gates green at merge; DB gates environment-blocked and stated in the PR. |
 | **W2** | Module registry drives nav/routes/entitlements; settings framework; first-run wizard; `check:modules` | ✅ **merged** — PR #2, merge commit `74f236c` (branch `arena/9abf8aef-famex-os`, 2026-10-14). All CI jobs green except the pre-existing red `Lighthouse budgets` workflow (also red on the W1 merge). |
-| **W3** | Double-entry ledger → Fees & Billing; bursar dashboard; gateway reconciliation | 🟢 **stage A MERGED** (PR #4, `e96217a`). 🟡 **stage B in PR #5** (`arena/f5d78cef-famex-os`): discounts (F5-12), refunds (F5-13), credits (F5-11), transfers (F5-14), gateway settlement (F5-16), ageing + statements (F5-17/18), bursar queues (F5-19), receipts re-brand (F5-04/22) + `verify:ledger` extended to 12 steps. Remaining after stage B: instalment plans (F5-10), manual adjustments screen (F5-20), cashbook polish (F5-15/F5-23/F5-25), go-live data (§9) |
+| **W3** | Double-entry ledger → Fees & Billing; bursar dashboard; gateway reconciliation | ✅ **stage A MERGED** (PR #4, `e96217a`) and **stage B MERGED** (PR #5, `193ff93`, 2026-10-15): discounts (F5-12), refunds (F5-13), credits (F5-11), transfers (F5-14), gateway settlement (F5-16), ageing + statements (F5-17/18), bursar queues (F5-19), receipts re-brand (F5-04/22) + `verify:ledger` extended to 12 steps. **Close-out still owed** (§9): instalment plans (F5-10), real-DB ledger backfill/opening balances, manual adjustments screen (F5-20), cashbook polish (F5-15/F5-23/F5-25), per-reference settlement matching |
 | W4 | Notification spine + WhatsApp Business (categories, receipts, cost) | pending |
 | W5 | Admissions funnel, classes/streams, timetable, attendance, GPS clock-in | pending |
 | W6 | Marks → broadsheet → report cards → release; post-lock corrections | pending |
@@ -186,6 +186,20 @@ stage: nothing in stage A could discount, refund, hold or move money. Stage B, o
 - **Tests**: stage-B suites in `tests/lib/ledger-postings.test.ts` (+8) and new
   `tests/lib/fee-adjustments.test.ts` (11) — suite is **77 files / 917 tests**, green.
   `tests/setup.ts` learned the four new models.
+
+## 4d. Pulled-forward waves + CI rescue (PRs #6–#11, then 2026-10-20 on `arena/ea852f26-famex-os`)
+
+PRs merged outside this board's order — the board in §3 still governs the *remaining* scope:
+
+- **PR #6** (`f609c72`) — GPS clock-ins, offline CBT v1, parent portal, alumni records, operations screens (clinic/inventory/library). **PR #7** (`a42e859`) — 100% offline CBT sitting/sync. **PR #8** (`9be7924`) — teacher theory-marking carousel, offline sittings, bursar transfer review, CBT chaos runner. These pulled pieces of W5/W7/W11 forward and introduced the ad-hoc release tags `W16`/`W17` now in `ReleaseTag`.
+- **PR #9** (`e9a1193`) — Oracle Cloud Always Free (Ampere A1 ARM64) support: CI-published multi-arch GHCR image, `deploy/oci/` self-contained pack, Caddy/Cloudflare-Tunnel ingress, `docs/OCI-HOSTING.md`. Render/Vercel paths preserved. **PR #10/#11** — print-ready school proposal docs.
+- These PRs landed while CI was red, so the **Docker image never published** (publishing is correctly gated on green CI). Root causes found and fixed on `arena/ea852f26-famex-os`:
+  - `mobile/package-lock.json` missed `expo-location@18.0.10` → Mobile job install failed; behind it: a stray `` `); `` breaking `mobile/lib/offline/exams.ts`, duplicate `BEACON_PREF`, non-existent lucide `Offline` icon, unexported `ExamAnswer`. Mobile `npm ci` + `typecheck` green.
+  - Schema drift: two indexes Prisma cannot model — PR #6's partial unique on `StudentProfile (schoolId, alumniNumber)` and PR #7's expression index on `ExamAttempt (metadata->>'clientAttemptId')`. Fixed forward-only: real `ExamAttempt.clientAttemptId` column + `@@index([examId, studentProfileId, clientAttemptId])`, migration `20261020140000_align_index_drift_client_attempt_id` (backfills from metadata, drops both unmodelled indexes, recreates the alumni unique plain — Postgres plain unique still allows multiple NULL pairs). **Applied migrations were not edited.** Offline-replay idempotency now reads the column, falls back to the metadata scan for legacy rows, and self-heals them.
+  - `check:modules`: operations screens had no module owner. New **`operations`** module key (23rd) owns clinic/inventory/library nav + APIs (`requireModule("operations", …)`, role lists unchanged); `admin/gps-clockins` owned by `staff_attendance` (`requireAnyModule(["staff_attendance","attendance"], …)`).
+  - Lint/format backlog from PRs #6–#8 burned down: repo-wide Prettier (43 files), 13 `no-unused-vars` errors removed (warnings remain as backlog).
+  - Real type/runtime bugs fixed behind the Prisma stub noise: lucide `Child`→`Baby`; staff-attendance page `Overview.fence`; `/api/public/staff` + `/api/public/calendar` used a non-existent `resolved.school` (now `.tenant`), a non-existent `School.flags` column (removed — endpoint exposes directory-safe fields only) and invented `AcademicSession`/`Term` field names (now `label`/`isCurrent`/`sessionId`/`startsOn`/`endsOn`, ordered by `Term.index`); missing `NextRequest` imports; `isValidPoint` now accepts `number | null` coordinates; `ParentLike.userId`; nav `operations` icon (`Boxes`) + `W16`/`W17` release tags.
+- **Verified locally (sandbox):** `check:modules`, `check:features`, `check:orphans`, `check:dead-ui`, `check:mobile`, `check:boundary`, `audit:deps`, Prettier check, full ESLint (0 errors), mobile `npm ci` + `tsc`. **Environment-blocked here** (Prisma engines/Postgres unavailable): `check:drift`, root `tsc` against the generated client, Vitest, `next build` — the PR's GitHub CI is the verdict for those; iterate there before requesting merge.
 
 ## 5. Gates: commands + latest evidence + blockers
 
@@ -340,7 +354,14 @@ Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only
 
 ---
 
-## 9. Next session: W4, after the W3 close-out (exact stop-point)
+## 9. Next session: green CI first, then W3 close-out, then W4 (exact stop-point)
+
+**Immediate (2026-10-20, supersedes starting new feature work):** get the CI-rescue PR from
+`arena/ea852f26-famex-os` (§4d) fully green on GitHub and merged, so the multi-arch GHCR
+image publishes; then run the OCI staging drills (first-admin seed, restore, payment,
+admissions) per `docs/OCI-HOSTING.md`. Until that PR is green, treat any new CI failure
+layer it reveals (generated-client `tsc`, Vitest, `next build`, RLS/tenant ratchets, E2E)
+as the top priority — fix forward on that branch, never by editing applied migrations.
 
 **Where W3 stopped (2026-10-15, PR #5 from `arena/f5d78cef-famex-os`):** stage A (PR #4) built
 the ledger; stage B built the remaining money documents on it — discounts, refunds, credits,

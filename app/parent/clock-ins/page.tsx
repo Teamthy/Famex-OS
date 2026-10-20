@@ -46,7 +46,11 @@ type Child = {
 };
 type Response = {
   schoolName?: string;
-  fence: { enabled: boolean; center?: { latitude: number; longitude: number } | null; radiusM?: number };
+  fence: {
+    enabled: boolean;
+    center?: { latitude: number; longitude: number } | null;
+    radiusM?: number;
+  };
   children: Child[];
 };
 
@@ -93,9 +97,8 @@ export default function ParentClockInsPage() {
               ARRIVAL &amp; <span className="text-brand-green">DEPARTURE</span>
             </h1>
             <p className="mt-3 max-w-2xl text-sm text-white/60">
-              Every GPS clock-in is logged with time, distance from the school centre, and
-              accuracy. See when your child arrived and left, and where they were when they tapped
-              in.
+              Every GPS clock-in is logged with time, distance from the school centre, and accuracy.
+              See when your child arrived and left, and where they were when they tapped in.
             </p>
           </div>
         </section>
@@ -135,7 +138,9 @@ export default function ParentClockInsPage() {
                     <ClockInMap
                       center={data.fence.center}
                       radiusM={data.fence.radiusM ?? 100}
-                      events={selectedChild.events.filter((e) => e.latitude !== null && e.longitude !== null)}
+                      events={selectedChild.events.filter(
+                        (e) => e.latitude !== null && e.longitude !== null,
+                      )}
                     />
                   )}
 
@@ -164,7 +169,11 @@ export default function ParentClockInsPage() {
                                 : "bg-blue-500/15 text-blue-500"
                             }`}
                           >
-                            {e.eventType === "CHECK_IN" ? <LogIn size={18} /> : <LogOut size={18} />}
+                            {e.eventType === "CHECK_IN" ? (
+                              <LogIn size={18} />
+                            ) : (
+                              <LogOut size={18} />
+                            )}
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
@@ -239,8 +248,22 @@ function ClockInMap({
             </radialGradient>
           </defs>
           <circle cx={VIEW / 2} cy={VIEW / 2} r={plotR + 6} fill="url(#parentbg)" />
-          <circle cx={VIEW / 2} cy={VIEW / 2} r={plotR} fill="none" stroke="var(--border-subtle)" strokeDasharray="2 4" />
-          <circle cx={VIEW / 2} cy={VIEW / 2} r={fenceR} fill="rgb(78 197 77 / 0.08)" stroke="rgb(78 197 77 / 0.8)" strokeWidth={2} />
+          <circle
+            cx={VIEW / 2}
+            cy={VIEW / 2}
+            r={plotR}
+            fill="none"
+            stroke="var(--border-subtle)"
+            strokeDasharray="2 4"
+          />
+          <circle
+            cx={VIEW / 2}
+            cy={VIEW / 2}
+            r={fenceR}
+            fill="rgb(78 197 77 / 0.08)"
+            stroke="rgb(78 197 77 / 0.8)"
+            strokeWidth={2}
+          />
           <circle cx={VIEW / 2} cy={VIEW / 2} r={5} fill="#4EC54D" />
           {events.slice(0, 40).map((e, idx) => {
             if (e.latitude === null || e.longitude === null) return null;
@@ -250,15 +273,25 @@ function ClockInMap({
             const color = isCheckIn ? "#4EC54D" : "#3B82F6";
             return (
               <g key={e.id} opacity={isToday ? 1 : 0.5}>
-                <circle cx={x} cy={y} r={isToday ? 6 : 4} fill={color} stroke="white" strokeWidth={1.5} />
-                {isToday && idx === 0 && <circle cx={x} cy={y} r={10} fill="none" stroke={color} strokeOpacity={0.5} />}
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={isToday ? 6 : 4}
+                  fill={color}
+                  stroke="white"
+                  strokeWidth={1.5}
+                />
+                {isToday && idx === 0 && (
+                  <circle cx={x} cy={y} r={10} fill="none" stroke={color} strokeOpacity={0.5} />
+                )}
               </g>
             );
           })}
         </svg>
       </div>
       <p className="mt-3 text-center text-xs text-[var(--text-muted)]">
-        Green pins are check-ins; blue are check-outs. Today&apos;s pins are larger; older ones fade out.
+        Green pins are check-ins; blue are check-outs. Today&apos;s pins are larger; older ones fade
+        out.
       </p>
     </div>
   );

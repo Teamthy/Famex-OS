@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireRole } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
 import { UserRole } from "@prisma/client";
-import {
-  addBook,
-  catalogueStats,
-  listBooks,
-  listLoans,
-  loanBook,
-  returnBook,
-} from "@/lib/library";
+import { addBook, catalogueStats, listBooks, listLoans, loanBook, returnBook } from "@/lib/library";
 import { getClientIp } from "@/lib/requests";
 import { prisma } from "@/lib/prisma";
 
@@ -16,21 +9,28 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function adminCtx() {
-  const user = await requireRole([UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.HOD, UserRole.TEACHER]);
-  if (!user) return null;
-  return user;
+  // Rule 13: auth → role → module entitlement (Operations owns the library).
+  return requireModule("operations", [
+    UserRole.ADMIN,
+    UserRole.DIRECTOR,
+    UserRole.COORDINATOR,
+    UserRole.HOD,
+    UserRole.TEACHER,
+  ]);
 }
 
 export async function GET() {
-  const user = await adminCtx();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await adminCtx();
+  if (!guard.ok) return guard.response;
+  const user = guard.user;
   const [books, loans] = await Promise.all([listBooks(user.schoolId), listLoans(user.schoolId)]);
   return NextResponse.json({ books, loans, stats: catalogueStats(books, loans) });
 }
 
 export async function POST(req: NextRequest) {
-  const user = await adminCtx();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await adminCtx();
+  if (!guard.ok) return guard.response;
+  const user = guard.user;
 
   let body: any;
   try {

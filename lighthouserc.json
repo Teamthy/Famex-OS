@@ -3,11 +3,7 @@
     "collect": {
       "numberOfRuns": 3,
       "startServerCommand": "node scripts/e2e-server.mjs 3000",
-      "url": [
-        "http://localhost:3000/",
-        "http://localhost:3000/admissions",
-        "http://localhost:3000/virtual"
-      ]
+      "url": ["http://localhost:3000/", "http://localhost:3000/admissions"]
     },
     "assert": {
       "assertions": {

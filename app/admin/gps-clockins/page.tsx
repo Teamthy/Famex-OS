@@ -5,7 +5,6 @@ import AdminSidebar from "@/components/AdminSidebar";
 import PortalTopbar from "@/components/PortalTopbar";
 import { useToast } from "@/components/Toast";
 import {
-  CheckCircle2,
   Clock3,
   LoaderCircle,
   LogIn,
@@ -13,7 +12,6 @@ import {
   MapPin,
   RefreshCw,
   ShieldAlert,
-  ShieldCheck,
   Users,
   AlertTriangle,
 } from "lucide-react";
@@ -49,14 +47,23 @@ type Summary = {
 type Response = {
   date: string;
   schoolName?: string;
-  fence: { enabled: boolean; radiusM: number | null; center?: { latitude: number; longitude: number } | null };
+  fence: {
+    enabled: boolean;
+    radiusM: number | null;
+    center?: { latitude: number; longitude: number } | null;
+  };
   summary: Summary & { flaggedCount: number };
   rows: Row[];
 };
 
 function todayKey() {
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "Africa/Lagos";
-  return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 export default function AdminGpsClockinsPage() {
@@ -105,8 +112,8 @@ export default function AdminGpsClockinsPage() {
               LIVE <span className="text-brand-green">CLOCK-INS</span>
             </h1>
             <p className="mt-3 max-w-2xl text-sm text-white/60">
-              Real-time feed of GPS-verified check-ins by staff and students. Server-side
-              geofencing means only people physically at school appear here.
+              Real-time feed of GPS-verified check-ins by staff and students. Server-side geofencing
+              means only people physically at school appear here.
             </p>
           </div>
         </section>
@@ -118,7 +125,9 @@ export default function AdminGpsClockinsPage() {
             <div className="min-w-0 flex-1 space-y-6">
               <div className="flex flex-wrap items-center gap-3">
                 <label className="flex items-center gap-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] px-4 py-2 text-sm">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Date</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                    Date
+                  </span>
                   <input
                     type="date"
                     value={date}
@@ -156,9 +165,19 @@ export default function AdminGpsClockinsPage() {
               ) : data ? (
                 <>
                   <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-                    <Stat label="Staff checked in" value={data.summary.staffIn} total={data.summary.staffTotal} tone="green" />
+                    <Stat
+                      label="Staff checked in"
+                      value={data.summary.staffIn}
+                      total={data.summary.staffTotal}
+                      tone="green"
+                    />
                     <Stat label="Staff late" value={data.summary.staffLate} tone="orange" />
-                    <Stat label="Students in" value={data.summary.studentIn} total={data.summary.studentTotal} tone="green" />
+                    <Stat
+                      label="Students in"
+                      value={data.summary.studentIn}
+                      total={data.summary.studentTotal}
+                      tone="green"
+                    />
                     <Stat label="Students late" value={data.summary.studentLate} tone="orange" />
                     <Stat
                       label="Flagged"
@@ -197,7 +216,10 @@ export default function AdminGpsClockinsPage() {
                         </li>
                       )}
                       {data.rows.map((r) => (
-                        <li key={r.id} className={`flex items-center gap-4 px-6 py-3 ${r.flagged ? "bg-red-50" : ""}`}>
+                        <li
+                          key={r.id}
+                          className={`flex items-center gap-4 px-6 py-3 ${r.flagged ? "bg-red-50" : ""}`}
+                        >
                           <div
                             className={`flex h-10 w-10 items-center justify-center rounded-xl ${
                               r.kind === "staff"
@@ -205,11 +227,17 @@ export default function AdminGpsClockinsPage() {
                                 : "bg-brand-green/15 text-brand-green"
                             }`}
                           >
-                            {r.eventType === "CHECK_IN" ? <LogIn size={18} /> : <LogOut size={18} />}
+                            {r.eventType === "CHECK_IN" ? (
+                              <LogIn size={18} />
+                            ) : (
+                              <LogOut size={18} />
+                            )}
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-sm font-bold text-[var(--text-primary)]">{r.name}</span>
+                              <span className="text-sm font-bold text-[var(--text-primary)]">
+                                {r.name}
+                              </span>
                               <span
                                 className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest ${
                                   r.kind === "staff"
@@ -238,7 +266,8 @@ export default function AdminGpsClockinsPage() {
                             </div>
                             {typeof r.distanceM === "number" && (
                               <div className="text-[var(--text-muted)]">
-                                {r.distanceM} m {r.accuracyM !== null ? `±${Math.round(r.accuracyM)}m` : ""}
+                                {r.distanceM} m{" "}
+                                {r.accuracyM !== null ? `±${Math.round(r.accuracyM)}m` : ""}
                               </div>
                             )}
                           </div>
@@ -284,8 +313,12 @@ function Stat({
           ? "bg-red-50"
           : "bg-[var(--surface-disabled)]";
   return (
-    <div className={`rounded-[1.5rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5`}>
-      <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">{label}</div>
+    <div
+      className={`rounded-[1.5rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5`}
+    >
+      <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+        {label}
+      </div>
       <div className={`mt-2 font-display text-3xl ${color} ${bg ? "" : ""}`}>
         {value}
         {typeof total === "number" && (
@@ -336,7 +369,6 @@ function GpsScatterMap({
 
   const centerPx = { x: VIEW / 2, y: VIEW / 2 };
   const innerR = plotR / 3;
-  const midR = (plotR * 2) / 3;
   const outerR = plotR;
   const fenceR = plotR * (radiusM / (radiusM * 1.5));
 
@@ -365,14 +397,42 @@ function GpsScatterMap({
           {/* Background */}
           <circle cx={centerPx.x} cy={centerPx.y} r={outerR + 6} fill="url(#bg)" />
           {/* Outer 150% ring */}
-          <circle cx={centerPx.x} cy={centerPx.y} r={outerR} fill="none" stroke="var(--border-subtle)" strokeDasharray="2 4" />
+          <circle
+            cx={centerPx.x}
+            cy={centerPx.y}
+            r={outerR}
+            fill="none"
+            stroke="var(--border-subtle)"
+            strokeDasharray="2 4"
+          />
           {/* Mid 100% circle at 100% of the 1.5x view → 2/3 = fence */}
-          <circle cx={centerPx.x} cy={centerPx.y} r={fenceR} fill="rgb(78 197 77 / 0.08)" stroke="rgb(78 197 77 / 0.8)" strokeWidth={2} />
+          <circle
+            cx={centerPx.x}
+            cy={centerPx.y}
+            r={fenceR}
+            fill="rgb(78 197 77 / 0.08)"
+            stroke="rgb(78 197 77 / 0.8)"
+            strokeWidth={2}
+          />
           {/* 50 m tick */}
-          <circle cx={centerPx.x} cy={centerPx.y} r={innerR} fill="none" stroke="var(--border-subtle)" strokeDasharray="2 4" />
+          <circle
+            cx={centerPx.x}
+            cy={centerPx.y}
+            r={innerR}
+            fill="none"
+            stroke="var(--border-subtle)"
+            strokeDasharray="2 4"
+          />
           {/* Center marker */}
           <circle cx={centerPx.x} cy={centerPx.y} r={5} fill="#4EC54D" />
-          <circle cx={centerPx.x} cy={centerPx.y} r={10} fill="none" stroke="#4EC54D" strokeOpacity={0.4} />
+          <circle
+            cx={centerPx.x}
+            cy={centerPx.y}
+            r={10}
+            fill="none"
+            stroke="#4EC54D"
+            strokeOpacity={0.4}
+          />
 
           {/* Pins */}
           {pins.map((p, i) => {
@@ -380,17 +440,25 @@ function GpsScatterMap({
             const { x, y } = project(p.latitude, p.longitude);
             // Clip pins outside the viewbox with a small halo
             const outside = Math.hypot(x - centerPx.x, y - centerPx.y) > outerR + 4;
-            const color = p.flagged
-              ? "#EF4444"
-              : p.kind === "staff"
-                ? "#3B82F6"
-                : "#4EC54D";
+            const color = p.flagged ? "#EF4444" : p.kind === "staff" ? "#3B82F6" : "#4EC54D";
             return (
               <g key={p.id}>
-                <circle cx={x} cy={y} r={outside ? 3 : 5} fill={color} fillOpacity={0.95} stroke="white" strokeWidth={1.5} />
-                {p.flagged && <circle cx={x} cy={y} r={10} fill="none" stroke={color} strokeOpacity={0.5} />}
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={outside ? 3 : 5}
+                  fill={color}
+                  fillOpacity={0.95}
+                  stroke="white"
+                  strokeWidth={1.5}
+                />
+                {p.flagged && (
+                  <circle cx={x} cy={y} r={10} fill="none" stroke={color} strokeOpacity={0.5} />
+                )}
                 {i < 3 && !outside && (
-                  <title>{p.name} — {p.distanceM ?? "?"} m{p.flagged ? " (flagged)" : ""}</title>
+                  <title>
+                    {p.name} — {p.distanceM ?? "?"} m{p.flagged ? " (flagged)" : ""}
+                  </title>
                 )}
               </g>
             );
@@ -399,11 +467,17 @@ function GpsScatterMap({
           {/* Legend */}
           <g transform={`translate(${PAD}, ${VIEW - PAD - 40})`}>
             <rect width={14} height={14} rx={7} fill="#4EC54D" />
-            <text x={20} y={11} fontSize={10} fill="var(--text-secondary, #666)">Student</text>
+            <text x={20} y={11} fontSize={10} fill="var(--text-secondary, #666)">
+              Student
+            </text>
             <rect x={72} width={14} height={14} rx={7} fill="#3B82F6" />
-            <text x={92} y={11} fontSize={10} fill="var(--text-secondary, #666)">Staff</text>
+            <text x={92} y={11} fontSize={10} fill="var(--text-secondary, #666)">
+              Staff
+            </text>
             <rect x={130} width={14} height={14} rx={7} fill="#EF4444" />
-            <text x={150} y={11} fontSize={10} fill="var(--text-secondary, #666)">Flagged</text>
+            <text x={150} y={11} fontSize={10} fill="var(--text-secondary, #666)">
+              Flagged
+            </text>
           </g>
         </svg>
       </div>

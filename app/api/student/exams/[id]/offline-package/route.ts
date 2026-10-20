@@ -29,10 +29,7 @@ export const dynamic = "force-dynamic";
  * - The exam must be within its sitting window or scheduled within 24 hours
  *   (pre-download allowance).
  */
-export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const url = new URL(req.url);
   const createAttempt = url.searchParams.get("createAttempt") === "true";
@@ -55,10 +52,7 @@ export async function GET(
       schoolId: user.schoolId,
       classId: profile.currentClassId,
       status: ExamStatus.PUBLISHED,
-      OR: [
-        { scheduledFor: null },
-        { scheduledFor: { lte: preDownloadWindow } },
-      ],
+      OR: [{ scheduledFor: null }, { scheduledFor: { lte: preDownloadWindow } }],
     },
     select: {
       id: true,
@@ -85,7 +79,11 @@ export async function GET(
       },
     },
   });
-  if (!exam) return NextResponse.json({ error: "Exam not available for offline download." }, { status: 404 });
+  if (!exam)
+    return NextResponse.json(
+      { error: "Exam not available for offline download." },
+      { status: 404 },
+    );
 
   // When explicitly requested, provision an IN_PROGRESS attempt now (timer
   // starts). Otherwise return package with a null attempt — the device
@@ -132,7 +130,10 @@ export async function GET(
           id: attempt.id,
           startedAt: attempt.startedAt.toISOString(),
           deadlineAt: attempt.deadlineAt.toISOString(),
-          secondsLeft: Math.max(0, Math.floor((attempt.deadlineAt.getTime() - now.getTime()) / 1000)),
+          secondsLeft: Math.max(
+            0,
+            Math.floor((attempt.deadlineAt.getTime() - now.getTime()) / 1000),
+          ),
         }
       : null,
     questions: exam.questions.map((q) => ({

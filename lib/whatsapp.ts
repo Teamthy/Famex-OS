@@ -58,7 +58,12 @@ export async function sendWhatsapp(params: {
       name: params.templateName,
       language: { code: params.templateLang || "en" },
       components: params.templateParams?.length
-        ? [{ type: "body", parameters: params.templateParams.map((p) => ({ type: "text", text: p })) }]
+        ? [
+            {
+              type: "body",
+              parameters: params.templateParams.map((p) => ({ type: "text", text: p })),
+            },
+          ]
         : undefined,
     };
   } else if (params.text) {

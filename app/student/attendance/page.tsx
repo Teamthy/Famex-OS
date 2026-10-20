@@ -224,7 +224,8 @@ export default function StudentAttendancePage() {
                           <div className="flex flex-wrap items-start justify-between gap-4">
                             <div>
                               <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--text-muted)]">
-                                <MapPin size={14} className="text-brand-green" /> Today · {clock.date}
+                                <MapPin size={14} className="text-brand-green" /> Today ·{" "}
+                                {clock.date}
                               </div>
                               <h2 className="mt-1 font-display text-2xl tracking-widest">
                                 {clock.student?.displayName}
@@ -280,11 +281,15 @@ export default function StudentAttendancePage() {
                         {(clock.today?.events?.length || 0) > 0 && (
                           <div className="rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5">
                             <h3 className="flex items-center gap-2 font-display text-lg tracking-widest">
-                              <LogIn size={16} className="text-brand-green" /> TODAY&apos;S GPS EVENTS
+                              <LogIn size={16} className="text-brand-green" /> TODAY&apos;S GPS
+                              EVENTS
                             </h3>
                             <ul className="mt-3 space-y-2">
                               {(clock.today?.events || []).map((ev) => (
-                                <li key={ev.id} className="flex items-center justify-between text-sm">
+                                <li
+                                  key={ev.id}
+                                  className="flex items-center justify-between text-sm"
+                                >
                                   <span className="inline-flex items-center gap-2">
                                     {ev.eventType === "CHECK_IN" ? (
                                       <Check className="text-brand-green" size={14} />

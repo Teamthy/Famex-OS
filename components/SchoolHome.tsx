@@ -1,4 +1,3 @@
-import LoadingScreen from "@/components/LoadingScreen";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import { Marquee } from "@/components/AnimatedText";
@@ -17,7 +16,6 @@ import Footer from "@/components/Footer";
 export default function SchoolHome() {
   return (
     <>
-      <LoadingScreen />
       <Header />
       {/* overflow-x-clip: the Reveal scroll animations hold sections at
           translateX(±48px) until they enter the viewport; without this the

@@ -32,7 +32,21 @@
 
 /** The workstream that ships a module's screens. Used for roadmap labels. */
 export type ReleaseTag =
-  "W2" | "W3" | "W4" | "W5" | "W6" | "W7" | "W8" | "W9" | "W10" | "W11" | "W12";
+  | "W2"
+  | "W3"
+  | "W4"
+  | "W5"
+  | "W6"
+  | "W7"
+  | "W8"
+  | "W9"
+  | "W10"
+  | "W11"
+  | "W12"
+  // Pulled-forward waves shipped outside the original W1–W12 plan
+  // (offline CBT tooling, GPS clock-ins, operations screens).
+  | "W16"
+  | "W17";
 
 export type ModuleDefinition = {
   /** Human label, shown in Licence & Usage and in the settings switches. */
@@ -76,6 +90,10 @@ export const MODULE_KEYS = [
   "front_desk",
   "help_desk",
   "website",
+  // Added when the Library / Inventory / Clinic screens shipped (PR #6)
+  // without a module to own them — nav, guards and check:modules all need
+  // every live screen to belong to a declared, switchable module.
+  "operations",
 ] as const;
 
 export type ModuleKey = (typeof MODULE_KEYS)[number];
@@ -190,6 +208,11 @@ export const MODULES: Record<ModuleKey, ModuleDefinition> = {
     label: "School website",
     summary: "Public site content, team and gallery without a developer.",
     release: "W12",
+  },
+  operations: {
+    label: "Operations",
+    summary: "Library, inventory & assets, and the school clinic.",
+    release: "W11",
   },
 };
 

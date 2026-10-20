@@ -1,9 +1,7 @@
-"use client";
-
 import { Clock, MapPin } from "lucide-react";
 
 import { AnimatedText } from "@/components/AnimatedText";
-import { useSchoolProfile } from "@/components/SchoolProfileContext";
+import { SchoolAddressLink } from "@/components/SchoolAddressLink";
 
 /**
  * Full-bleed school information band.
@@ -14,7 +12,6 @@ import { useSchoolProfile } from "@/components/SchoolProfileContext";
  * section before or after it.
  */
 export default function ServiceInfo() {
-  const { address } = useSchoolProfile();
   return (
     <section className="relative w-full border-y border-[var(--border-subtle)] bg-[var(--bg-secondary)] backdrop-edu-light py-14 md:py-20 theme-transition">
       <div className="mx-auto w-full max-w-7xl px-6 md:px-10">
@@ -78,20 +75,7 @@ export default function ServiceInfo() {
                 <p className="mb-1 font-body text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--accent-primary)]">
                   Location
                 </p>
-                {address ? (
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-body text-sm text-[var(--text-primary)] underline decoration-[var(--border-default)] underline-offset-4 transition-colors hover:text-[var(--accent-primary)] hover:decoration-[var(--accent-primary)]"
-                  >
-                    {address}
-                  </a>
-                ) : (
-                  <p className="font-body text-sm text-[var(--text-primary)]">
-                    Call or email the school office for directions.
-                  </p>
-                )}
+                <SchoolAddressLink />
               </div>
             </div>
           </div>

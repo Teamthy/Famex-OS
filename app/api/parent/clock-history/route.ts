@@ -27,7 +27,7 @@ export async function GET() {
   const links = await prisma.parentStudentLink.findMany({
     where: { parentProfileId: parent.id },
     include: {
-      student: {
+      studentProfile: {
         select: {
           id: true,
           displayName: true,
@@ -40,7 +40,13 @@ export async function GET() {
 
   const school = await prisma.school.findUnique({
     where: { id: user.schoolId },
-    select: { name: true, geoLatitude: true, geoLongitude: true, geoRadiusM: true, geoEnabled: true },
+    select: {
+      name: true,
+      geoLatitude: true,
+      geoLongitude: true,
+      geoRadiusM: true,
+      geoEnabled: true,
+    },
   });
 
   const since = new Date();
@@ -50,15 +56,15 @@ export async function GET() {
   const children = await Promise.all(
     links.map(async (l) => {
       const events = await prisma.studentClockEvent.findMany({
-        where: { studentProfileId: l.student.id, workDate: { gte: dayCutoff } },
+        where: { studentProfileId: l.studentProfile.id, workDate: { gte: dayCutoff } },
         orderBy: { clockedAt: "desc" },
         take: 200,
       });
       return {
-        id: l.student.id,
-        displayName: l.student.displayName,
-        studentId: l.student.studentId,
-        className: l.student.currentClass.displayName,
+        id: l.studentProfile.id,
+        displayName: l.studentProfile.displayName,
+        studentId: l.studentProfile.studentId,
+        className: l.studentProfile.currentClass.displayName,
         events: events.map((e) => ({
           id: e.id,
           eventType: e.eventType,

@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { AnimatedText } from "@/components/AnimatedText";
 import Link from "next/link";
-import { BookOpen, Child, Music, Palette, Puzzle, Shield } from "lucide-react";
+import { Baby, BookOpen, Music, Palette, Puzzle, Shield } from "lucide-react";
 
 export const metadata = {
   title: "Primary School — Foundational Learning & Character",
@@ -12,7 +12,7 @@ export const metadata = {
 };
 
 const stages = [
-  { key: "Creche / Playgroup", ages: "6 months – 2 years", icon: Child },
+  { key: "Creche / Playgroup", ages: "6 months – 2 years", icon: Baby },
   { key: "Nursery 1–2", ages: "3 – 4 years", icon: Puzzle },
   { key: "Kindergarten / Pre-Primary", ages: "5 years", icon: Palette },
   { key: "Primary 1–6", ages: "6 – 11 years", icon: BookOpen },
@@ -49,9 +49,16 @@ export default function PrimaryPage() {
         <Reveal>
           <section className="w-full overflow-hidden bg-[var(--bg-primary)] pt-32 pb-12 md:pt-40 md:pb-16">
             <div className="mx-auto max-w-7xl px-6">
-              <nav aria-label="Breadcrumb" className="mb-6 text-xs uppercase tracking-widest text-[var(--text-muted)]">
+              <nav
+                aria-label="Breadcrumb"
+                className="mb-6 text-xs uppercase tracking-widest text-[var(--text-muted)]"
+              >
                 <ol className="flex gap-2">
-                  <li><Link href="/academics" className="hover:text-[var(--accent-primary)]">Academics</Link></li>
+                  <li>
+                    <Link href="/academics" className="hover:text-[var(--accent-primary)]">
+                      Academics
+                    </Link>
+                  </li>
                   <li aria-hidden>/</li>
                   <li className="text-[var(--accent-primary)]">Primary School</li>
                 </ol>
@@ -88,8 +95,12 @@ export default function PrimaryPage() {
                     key={s.key}
                     className="rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-8 shadow-[var(--card-shadow)] transition hover:-translate-y-1 hover:border-[var(--accent-primary)]"
                   >
-                    <p className="text-xs uppercase tracking-widest text-[var(--text-muted)]">Stage {i + 1}</p>
-                    <h3 className="mt-3 font-display text-xl tracking-widest text-[var(--text-primary)]">{s.key}</h3>
+                    <p className="text-xs uppercase tracking-widest text-[var(--text-muted)]">
+                      Stage {i + 1}
+                    </p>
+                    <h3 className="mt-3 font-display text-xl tracking-widest text-[var(--text-primary)]">
+                      {s.key}
+                    </h3>
                     <p className="mt-2 text-sm text-[var(--text-secondary)]">{s.ages}</p>
                   </div>
                 ))}
@@ -114,7 +125,9 @@ export default function PrimaryPage() {
                     <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent-primary)]/15 text-[var(--accent-primary)]">
                       <p.icon size={22} />
                     </div>
-                    <h3 className="mb-2 font-display text-xl tracking-widest text-[var(--text-primary)]">{p.title}</h3>
+                    <h3 className="mb-2 font-display text-xl tracking-widest text-[var(--text-primary)]">
+                      {p.title}
+                    </h3>
                     <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{p.desc}</p>
                   </div>
                 ))}

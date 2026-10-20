@@ -22,10 +22,12 @@ export const VisitSchema = z.object({
 export type Visit = z.infer<typeof VisitSchema>;
 
 export const listVisits = (schoolId: string) => listRecords<Visit>(schoolId, MODULE);
-export const recordVisit = (schoolId: string, data: unknown) => createRecord(schoolId, MODULE, VisitSchema, data);
+export const recordVisit = (schoolId: string, data: unknown) =>
+  createRecord(schoolId, MODULE, VisitSchema, data);
 export const updateVisit = (schoolId: string, id: string, patch: unknown) =>
   updateRecord(schoolId, MODULE, VisitSchema, id, patch);
-export const removeVisit = (schoolId: string, id: string) => deleteRecord<Visit>(schoolId, MODULE, id);
+export const removeVisit = (schoolId: string, id: string) =>
+  deleteRecord<Visit>(schoolId, MODULE, id);
 
 const ALERT_MODULE = "clinic_alerts";
 const AlertSchema = z.object({
@@ -37,8 +39,10 @@ const AlertSchema = z.object({
 });
 export type MedicalAlert = z.infer<typeof AlertSchema>;
 export const listAlerts = (schoolId: string) => listRecords<MedicalAlert>(schoolId, ALERT_MODULE);
-export const addAlert = (schoolId: string, data: unknown) => createRecord(schoolId, ALERT_MODULE, AlertSchema, data);
-export const removeAlert = (schoolId: string, id: string) => deleteRecord<MedicalAlert>(schoolId, ALERT_MODULE, id);
+export const addAlert = (schoolId: string, data: unknown) =>
+  createRecord(schoolId, ALERT_MODULE, AlertSchema, data);
+export const removeAlert = (schoolId: string, id: string) =>
+  deleteRecord<MedicalAlert>(schoolId, ALERT_MODULE, id);
 
 export function clinicStats(visits: Array<{ data: Visit }>) {
   const todayIso = new Date().toISOString().slice(0, 10);

@@ -2,7 +2,6 @@ import { UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { decimalToNumber } from "@/lib/geofence";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,8 +35,8 @@ export async function GET(req: NextRequest) {
     const card = await prisma.reportCard.findFirst({
       where: { reportNumber, status: "RELEASED" },
       include: {
-        subjects: { orderBy: { subjectName: "asc" } },
-        student: {
+        subjects: { orderBy: { sortOrder: "asc" } },
+        studentProfile: {
           select: {
             id: true,
             displayName: true,
@@ -58,8 +57,8 @@ export async function GET(req: NextRequest) {
         sessionLabel: card.sessionLabel,
         termLabel: card.termLabel,
         className: card.classNameSnapshot,
-        studentName: card.student.displayName,
-        studentId: card.student.studentId,
+        studentName: card.studentProfile.displayName,
+        studentId: card.studentProfile.studentId,
         overallAverage: card.overallAverage,
         overallGrade: card.overallGrade,
         classPosition: card.classPosition,
@@ -80,21 +79,29 @@ export async function GET(req: NextRequest) {
   const student = await prisma.studentProfile.findUnique({
     where: { id: studentId },
     select: {
-      id: true, schoolId: true, userId: true, displayName: true, studentId: true,
-      lifecycleStatus: true, graduatedAt: true, alumniNumber: true,
+      id: true,
+      schoolId: true,
+      userId: true,
+      displayName: true,
+      studentId: true,
+      lifecycleStatus: true,
+      graduatedAt: true,
+      alumniNumber: true,
       currentClass: { select: { displayName: true } },
     },
   });
   if (!student) return NextResponse.json({ error: "Student not found." }, { status: 404 });
-  if (student.schoolId !== session.schoolId) return NextResponse.json({ error: "Wrong school." }, { status: 403 });
+  if (student.schoolId !== session.schoolId)
+    return NextResponse.json({ error: "Wrong school." }, { status: 403 });
 
   const isSelf = session.role === UserRole.STUDENT && student.userId === session.id;
-  const isAdmin = [UserRole.ADMIN, UserRole.DIRECTOR].includes(session.role as UserRole);
+  const isAdmin = session.role === UserRole.ADMIN || session.role === UserRole.DIRECTOR;
   const isParent = session.role === UserRole.PARENT;
   let parentLink: any = null;
   if (isParent) {
     parentLink = await prisma.parentProfile.findFirst({ where: { userId: session.id } });
-    if (!parentLink) return NextResponse.json({ error: "Parent profile not found." }, { status: 403 });
+    if (!parentLink)
+      return NextResponse.json({ error: "Parent profile not found." }, { status: 403 });
     const pl = await prisma.parentStudentLink.findFirst({
       where: { parentProfileId: parentLink.id, studentProfileId: student.id },
     });
@@ -108,16 +115,16 @@ export async function GET(req: NextRequest) {
   const [cards, enrolments, attendanceSummary] = await Promise.all([
     prisma.reportCard.findMany({
       where: { studentProfileId: student.id, status: "RELEASED" },
-      include: { subjects: { orderBy: { subjectName: "asc" } } },
+      include: { subjects: { orderBy: { sortOrder: "asc" } } },
       orderBy: [{ sessionLabel: "desc" }, { termLabel: "desc" }],
     }),
     prisma.studentEnrolment.findMany({
       where: { studentProfileId: student.id },
       include: {
         classroom: { select: { displayName: true, level: true, arm: true } },
-        session: { select: { name: true, startsAt: true, endsAt: true } },
+        session: { select: { label: true, startsOn: true, endsOn: true } },
       },
-      orderBy: { session: { startsAt: "desc" } },
+      orderBy: { session: { startsOn: "desc" } },
     }),
     prisma.attendanceEntry.aggregate({
       where: { studentProfileId: student.id },
@@ -136,7 +143,7 @@ export async function GET(req: NextRequest) {
       lastClass: student.currentClass.displayName,
     },
     enrolments: enrolments.map((e) => ({
-      session: e.session.name,
+      session: e.session.label,
       class: e.classroom.displayName,
       level: e.classroom.level,
       arm: e.classroom.arm,
@@ -158,7 +165,7 @@ export async function GET(req: NextRequest) {
       teacherComment: c.classTeacherRemark,
       principalComment: c.directorRemark,
       issuedAt: c.releasedAt ?? c.generatedAt,
-      subjects: c.subjects.map((s: any) => ({
+      subjects: c.subjects.map((s) => ({
         name: s.subject,
         caScore: s.ca1 + s.ca2 + s.midterm + s.assignment,
         examScore: s.exam,

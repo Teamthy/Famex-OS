@@ -258,10 +258,18 @@ describe("commitPromotion", () => {
     expect(res.graduated).toBe(1);
     // No enrolment in the new session — they have left.
     expect(mockPrisma.studentEnrolment.create).not.toHaveBeenCalled();
-    // Profile kept, just inactive, so transcripts still resolve.
+    // Profile kept, just inactive, so transcripts still resolve. Graduation
+    // also stamps the alumni lifecycle fields and the 10-year retention date.
     expect(mockPrisma.studentProfile.update).toHaveBeenCalledWith({
       where: { id: "s9" },
-      data: { isActive: false },
+      data: expect.objectContaining({
+        isActive: false,
+        deactivatedAt: expect.any(Date),
+        lifecycleStatus: "GRADUATED",
+        graduatedAt: expect.any(Date),
+        alumniNumber: `${new Date().getFullYear()}-s9`,
+        dataRetentionUntil: expect.any(Date),
+      }),
       select: { userId: true },
     });
     // ...and the LOGIN is closed too. Deactivating only the profile left the

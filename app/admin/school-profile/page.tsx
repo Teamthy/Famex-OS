@@ -305,14 +305,12 @@ export default function SchoolProfilePage() {
 
                     <div className="rounded-xl bg-[var(--surface-disabled)] p-4 text-xs text-[var(--text-muted)]">
                       <p className="font-bold text-[var(--text-secondary)]">
-                        {profile?.geo.configured
-                          ? "Fence is currently set."
-                          : "Fence is not set."}
+                        {profile?.geo.configured ? "Fence is currently set." : "Fence is not set."}
                       </p>
                       <p className="mt-1">
-                        Stand at the school gate or admin office &amp; tap{" "}
-                        <b>Use my location</b> to capture coordinates. Start with a radius of 100 m
-                        and widen it if staff standing at the assembly ground get blocked.
+                        Stand at the school gate or admin office &amp; tap <b>Use my location</b> to
+                        capture coordinates. Start with a radius of 100 m and widen it if staff
+                        standing at the assembly ground get blocked.
                       </p>
                       {profile?.geo.configured && (
                         <p className="mt-2 font-mono">

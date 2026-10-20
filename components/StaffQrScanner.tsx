@@ -25,7 +25,18 @@ export default function StaffQrScanner({
   active,
   fence,
 }: {
-  onScan: (_code: string, _meta: { scannerGps?: { latitude: number; longitude: number; accuracyM: number; distanceM?: number; outsideFence?: boolean } }) => void;
+  onScan: (
+    _code: string,
+    _meta: {
+      scannerGps?: {
+        latitude: number;
+        longitude: number;
+        accuracyM: number;
+        distanceM?: number;
+        outsideFence?: boolean;
+      };
+    },
+  ) => void;
   active: boolean;
   fence?: Fence | null;
 }) {
@@ -53,7 +64,15 @@ export default function StaffQrScanner({
           if (now - lastScanRef.current < 3500) return;
           lastScanRef.current = now;
           // Snapshot the reading at the moment of scan (if we have one).
-          let meta: { scannerGps?: { latitude: number; longitude: number; accuracyM: number; distanceM?: number; outsideFence?: boolean } } = {};
+          let meta: {
+            scannerGps?: {
+              latitude: number;
+              longitude: number;
+              accuracyM: number;
+              distanceM?: number;
+              outsideFence?: boolean;
+            };
+          } = {};
           if (gps.reading && fence?.enabled && fence.center && fence.radiusM) {
             const r = gps.reading;
             const d = gps.distanceM;

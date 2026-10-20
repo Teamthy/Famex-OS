@@ -288,7 +288,12 @@ export async function recordStaffGpsClock(input: StaffGpsClockInput) {
 
   const teacher = await prisma.teacherProfile.findFirst({
     where: { id: input.teacherProfileId, schoolId: input.schoolId, isActive: true },
-    select: { id: true, displayName: true, phone: true, user: { select: { email: true, role: true, name: true } } },
+    select: {
+      id: true,
+      displayName: true,
+      phone: true,
+      user: { select: { email: true, role: true, name: true } },
+    },
   });
   if (!teacher) throw new Error("Staff profile not found.");
 
@@ -350,7 +355,7 @@ export async function recordStaffGpsClock(input: StaffGpsClockInput) {
     },
   });
 
-  return {
+  const result = {
     event: {
       id: event.id,
       eventType: event.eventType,
@@ -392,6 +397,8 @@ export async function recordStaffGpsClock(input: StaffGpsClockInput) {
       message: `[Famex] ${actionLabel} at ${timeStr}${event.isLate ? ` · LATE +${event.lateMinutes}m` : ""} · ${check.distanceM} m from school. Keep this as proof.`,
     }).catch(() => {});
   }
+
+  return result;
 }
 
 export function hashDedupe(...parts: string[]) {

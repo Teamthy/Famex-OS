@@ -59,7 +59,10 @@ async function writeAll<T>(schoolId: string, module: string, rows: Array<ModuleR
   await fs.rename(tmp, p);
 }
 
-export async function listRecords<T>(schoolId: string, module: string): Promise<Array<ModuleRecord<T>>> {
+export async function listRecords<T>(
+  schoolId: string,
+  module: string,
+): Promise<Array<ModuleRecord<T>>> {
   return readAll<T>(schoolId, module);
 }
 
@@ -102,7 +105,11 @@ export async function updateRecord<T>(
   return rows[i];
 }
 
-export async function deleteRecord<T>(schoolId: string, module: string, id: string): Promise<boolean> {
+export async function deleteRecord<T>(
+  schoolId: string,
+  module: string,
+  id: string,
+): Promise<boolean> {
   const rows = await readAll<T>(schoolId, module);
   const next = rows.filter((r) => r.id !== id);
   if (next.length === rows.length) return false;

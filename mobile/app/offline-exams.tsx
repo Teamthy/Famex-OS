@@ -19,7 +19,7 @@ import { Button } from "@/src/components/buttons";
 import { Screen, AppBar, Row, Column } from "@/src/components/layout";
 import { bodyFont } from "@/src/theme/typography";
 import { useToast } from "@/components/MobileToast";
-import { DownloadCloud, Offline, PlayCircle, Trash2, Wifi, LoaderCircle, RefreshCw, AlertTriangle, CheckCircle2, Clock } from "lucide-react-native";
+import { DownloadCloud, PlayCircle, Trash2, Wifi, WifiOff, LoaderCircle, RefreshCw, AlertTriangle, CheckCircle2, Clock } from "lucide-react-native";
 
 type ServerExam = {
   id: string;
@@ -141,7 +141,7 @@ export default function OfflineExamsScreen() {
       {!online && (
         <Card variant="bordered" padding={spacing.md} style={{ borderColor: colors.warning, marginBottom: spacing.md }}>
           <Row gap={spacing.sm}>
-            <Offline size={20} color={colors.warning} />
+            <WifiOff size={20} color={colors.warning} />
             <View style={{ flex: 1 }}>
               <Label>You are offline</Label>
               <Caption>You can sit downloaded exams; new downloads will appear when back online.</Caption>

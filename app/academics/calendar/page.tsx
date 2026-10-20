@@ -7,7 +7,8 @@ import Link from "next/link";
 
 export const metadata = {
   title: "Academic Calendar — Term Dates & Events",
-  description: "Term dates, mid-term breaks, examination periods and school events for the current academic session.",
+  description:
+    "Term dates, mid-term breaks, examination periods and school events for the current academic session.",
 };
 
 async function fetchCalendar() {
@@ -24,7 +25,11 @@ async function fetchCalendar() {
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "TBC";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 export default async function AcademicCalendarPage() {
@@ -36,9 +41,16 @@ export default async function AcademicCalendarPage() {
         <Reveal>
           <section className="w-full overflow-hidden bg-[var(--bg-primary)] pt-32 pb-12 md:pt-40 md:pb-16">
             <div className="mx-auto max-w-7xl px-6">
-              <nav aria-label="Breadcrumb" className="mb-6 text-xs uppercase tracking-widest text-[var(--text-muted)]">
+              <nav
+                aria-label="Breadcrumb"
+                className="mb-6 text-xs uppercase tracking-widest text-[var(--text-muted)]"
+              >
                 <ol className="flex gap-2">
-                  <li><Link href="/academics" className="hover:text-[var(--accent-primary)]">Academics</Link></li>
+                  <li>
+                    <Link href="/academics" className="hover:text-[var(--accent-primary)]">
+                      Academics
+                    </Link>
+                  </li>
                   <li aria-hidden>/</li>
                   <li className="text-[var(--accent-primary)]">Calendar</li>
                 </ol>
@@ -82,11 +94,16 @@ export default async function AcademicCalendarPage() {
                   </div>
                 )}
                 {cal.terms.map((t) => (
-                  <div key={t.name} className="rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-8">
+                  <div
+                    key={t.name}
+                    className="rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-8"
+                  >
                     <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent-primary)]/15 text-[var(--accent-primary)]">
                       <CalendarDays size={22} />
                     </div>
-                    <h3 className="font-display text-xl tracking-widest text-[var(--text-primary)]">{t.name}</h3>
+                    <h3 className="font-display text-xl tracking-widest text-[var(--text-primary)]">
+                      {t.name}
+                    </h3>
                     <p className="mt-3 text-sm text-[var(--text-secondary)]">
                       <span className="block">Resumes: {fmtDate(t.startsAt)}</span>
                       <span className="block">Closes: {fmtDate(t.endsAt)}</span>
@@ -116,14 +133,23 @@ export default async function AcademicCalendarPage() {
                     className="flex items-center gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5"
                   >
                     <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-[var(--accent-primary)]/15 text-[var(--accent-primary)]">
-                      <span className="text-xs uppercase">{new Date(e.date).toLocaleString("en-GB", { month: "short" })}</span>
+                      <span className="text-xs uppercase">
+                        {new Date(e.date).toLocaleString("en-GB", { month: "short" })}
+                      </span>
                       <span className="font-display text-xl">{new Date(e.date).getDate()}</span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs uppercase tracking-widest text-[var(--text-muted)]">{e.category}</p>
-                      <h3 className="truncate font-display text-lg tracking-wider text-[var(--text-primary)]">{e.title}</h3>
+                      <p className="text-xs uppercase tracking-widest text-[var(--text-muted)]">
+                        {e.category}
+                      </p>
+                      <h3 className="truncate font-display text-lg tracking-wider text-[var(--text-primary)]">
+                        {e.title}
+                      </h3>
                     </div>
-                    <Link href={e.link} className="text-xs font-bold uppercase tracking-widest text-[var(--accent-primary)] hover:opacity-80">
+                    <Link
+                      href={e.link}
+                      className="text-xs font-bold uppercase tracking-widest text-[var(--accent-primary)] hover:opacity-80"
+                    >
                       Details →
                     </Link>
                   </li>

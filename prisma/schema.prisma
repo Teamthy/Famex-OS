@@ -175,14 +175,16 @@ enum ReportCardStatus {
 
 enum NotificationKind {
   ATTENDANCE_ALERT
-  CLOCK_IN
-  CLOCK_IN_LATE
-  CLOCK_OUT
   FEE_REMINDER
   REPORT_RELEASED
   BROADCAST
   ADMISSION_UPDATE
   SYSTEM
+  // Appended by 20261016120000_gps_clockin via ALTER TYPE … ADD VALUE, so
+  // they sit at the end of the Postgres enum — keep schema order in step.
+  CLOCK_IN
+  CLOCK_IN_LATE
+  CLOCK_OUT
 }
 
 enum SubjectCategory {
@@ -1343,6 +1345,12 @@ model ExamAttempt {
   totalScore       Int               @default(0)
   tabSwitches      Int               @default(0)
   metadata         Json?
+  /// Client-supplied idempotency key for offline CBT replays (null for
+  /// online sittings). Promoted out of `metadata` so the replay lookup is an
+  /// indexed column read instead of a JSON scan — and so the index is one
+  /// Prisma can model (the expression index it replaces was invisible to
+  /// schema.prisma and failed the drift gate).
+  clientAttemptId  String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
@@ -1353,6 +1361,7 @@ model ExamAttempt {
   @@unique([examId, studentProfileId, attemptNumber])
   @@index([examId, status])
   @@index([studentProfileId, createdAt])
+  @@index([examId, studentProfileId, clientAttemptId])
 }
 
 model ExamAnswer {

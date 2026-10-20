@@ -1,471 +1,1339 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8" />
-<title>Proposal — School Website and Computer-Based Testing (CBT) Software · FAMEX Model School</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<style>
-  :root{
-    --ink:#0f1b2d;
-    --muted:#4b5563;
-    --accent:#0b5c3b;
-    --accent-2:#c9a227;
-    --rule:#d9dee6;
-    --bg:#ffffff;
-    --soft:#f5f7fb;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;padding:0;background:#e9edf3;color:var(--ink);font-family:"Georgia","Times New Roman",Times,serif;line-height:1.55;font-size:11.5pt}
-  .page{background:var(--bg);max-width:210mm;margin:18px auto;padding:22mm 20mm;box-shadow:0 2px 14px rgba(0,0,0,.08);position:relative}
-  /* ===== COVER ===== */
-  .cover{min-height:257mm;display:flex;flex-direction:column;justify-content:space-between;padding:24mm 18mm;page-break-after:always}
-  .cover .crest{display:flex;align-items:center;gap:14px;border-left:6px solid var(--accent);padding-left:14px}
-  .cover .crest .badge{width:58px;height:58px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#0e7a4e);color:#fff;display:grid;place-items:center;font-family:Georgia,serif;font-weight:700;font-size:22pt;letter-spacing:1px}
-  .cover .crest h2{margin:0;font-size:11pt;letter-spacing:4px;text-transform:uppercase;color:var(--accent)}
-  .cover .crest p{margin:2px 0 0;font-size:9.5pt;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
-  .cover .title{margin-top:28mm}
-  .cover .kicker{font-family:Arial,Helvetica,sans-serif;font-size:9.5pt;letter-spacing:5px;text-transform:uppercase;color:var(--accent);font-weight:700}
-  .cover h1{font-family:Georgia,serif;font-size:32pt;line-height:1.1;margin:8mm 0 6mm;font-weight:700;color:var(--ink)}
-  .cover h1 em{font-style:normal;color:var(--accent)}
-  .cover .subtitle{font-size:13pt;color:var(--muted);max-width:140mm;line-height:1.5}
-  .cover .meta{margin-top:auto;border-top:2px solid var(--accent);padding-top:8mm;display:grid;grid-template-columns:1fr 1fr;gap:6mm;font-family:Arial,Helvetica,sans-serif;font-size:10.5pt}
-  .cover .meta .lbl{font-size:8.5pt;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:2mm;display:block}
-  .cover .meta strong{font-weight:700;color:var(--ink)}
-  .cover .price{display:none} /* kept in case the box is restored for a private copy */
-  /* ===== BODY ===== */
-  h1,h2,h3,h4{font-family:Arial,Helvetica,sans-serif;color:var(--ink);line-height:1.25}
-  h2{font-size:16pt;margin:10mm 0 3mm;border-bottom:2px solid var(--accent);padding-bottom:2mm;page-break-after:avoid}
-  h3{font-size:12.5pt;margin:6mm 0 2mm;color:var(--accent);page-break-after:avoid}
-  h4{font-size:11pt;margin:4mm 0 1mm;text-transform:uppercase;letter-spacing:1px}
-  p{margin:0 0 3.2mm}
-  ul,ol{margin:1mm 0 4mm 6mm;padding:0}
-  li{margin-bottom:1.6mm}
-  strong{color:var(--ink)}
-  em{color:var(--ink)}
-  hr{border:none;border-top:1px solid var(--rule);margin:6mm 0}
-  blockquote{border-left:4px solid var(--accent-2);background:var(--soft);margin:4mm 0;padding:3mm 5mm;font-style:italic;color:var(--muted)}
-  /* Tables */
-  table{width:100%;border-collapse:collapse;margin:3mm 0 5mm;font-size:10.5pt;page-break-inside:avoid}
-  thead th{background:var(--accent);color:#fff;text-align:left;font-family:Arial,Helvetica,sans-serif;font-size:9pt;letter-spacing:1.5px;text-transform:uppercase;padding:2.5mm 3mm;border:1px solid var(--accent)}
-  tbody td{border:1px solid var(--rule);padding:2.5mm 3mm;vertical-align:top}
-  tbody tr:nth-child(even) td{background:var(--soft)}
-  /* Section helpers */
-  .lede{font-size:12pt;color:var(--muted);margin-bottom:5mm}
-  .twocol{column-count:2;column-gap:8mm}
-  .benefit-block{margin-bottom:5mm}
-  .benefit-block h3{margin-top:0}
-  /* Signature block */
-  .sig{display:grid;grid-template-columns:1fr 1fr;gap:15mm;margin-top:10mm}
-  .sig .box{border-top:1px solid #000;padding-top:2mm;font-family:Arial,Helvetica,sans-serif;font-size:10pt}
-  .sig .box .label{font-size:8.5pt;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:6mm;display:block}
-  /* Footer / header */
-  .running-header{display:none}
-  /* Section 9 investment — keep exact visual, but print clean */
-  .investment{width:100%;margin:4mm 0 6mm;border-collapse:collapse}
-  .investment td{border:none;border-bottom:1px dotted #bbc;font-family:"Courier New",monospace;font-size:11pt;padding:2mm 0}
-  .investment td:first-child{width:66%}
-  .investment tr.total td{border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);font-weight:700;font-size:12pt;padding-top:3mm;padding-bottom:3mm}
-  .schedule{font-size:10.5pt;background:var(--soft);border-left:4px solid var(--accent);padding:3mm 5mm;margin:4mm 0}
-  .callout{background:#fff8e1;border-left:4px solid var(--accent-2);padding:3mm 5mm;margin:4mm 0;font-size:10.5pt}
-  .thanks{margin-top:10mm;text-align:center;font-style:italic;color:var(--muted);font-size:11pt}
-  /* Print rules */
-  @page{size:A4;margin:0}
-  @media print{
-    body{background:#fff}
-    .page{box-shadow:none;margin:0;max-width:none;padding:18mm 18mm}
-    .cover{padding:22mm 18mm;min-height:253mm}
-    h2{page-break-before:auto}
-    table,tr,td,th{page-break-inside:avoid}
-    .no-break{page-break-inside:avoid}
-    a{color:var(--ink);text-decoration:none}
-  }
-</style>
-</head>
-<body>
-
-<!-- =================== COVER =================== -->
-<section class="page cover">
-  <div>
-    <div class="crest">
-      <div class="badge">F</div>
+  <head>
+    <meta charset="utf-8" />
+    <title>
+      Proposal — School Website and Computer-Based Testing (CBT) Software · FAMEX Model School
+    </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --ink: #0f1b2d;
+        --muted: #4b5563;
+        --accent: #0b5c3b;
+        --accent-2: #c9a227;
+        --rule: #d9dee6;
+        --bg: #ffffff;
+        --soft: #f5f7fb;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #e9edf3;
+        color: var(--ink);
+        font-family: "Georgia", "Times New Roman", Times, serif;
+        line-height: 1.55;
+        font-size: 11.5pt;
+      }
+      .page {
+        background: var(--bg);
+        max-width: 210mm;
+        margin: 18px auto;
+        padding: 22mm 20mm;
+        box-shadow: 0 2px 14px rgba(0, 0, 0, 0.08);
+        position: relative;
+      }
+      /* ===== COVER ===== */
+      .cover {
+        min-height: 257mm;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 24mm 18mm;
+        page-break-after: always;
+      }
+      .cover .crest {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        border-left: 6px solid var(--accent);
+        padding-left: 14px;
+      }
+      .cover .crest .badge {
+        width: 58px;
+        height: 58px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--accent), #0e7a4e);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-family: Georgia, serif;
+        font-weight: 700;
+        font-size: 22pt;
+        letter-spacing: 1px;
+      }
+      .cover .crest h2 {
+        margin: 0;
+        font-size: 11pt;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      .cover .crest p {
+        margin: 2px 0 0;
+        font-size: 9.5pt;
+        color: var(--muted);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+      .cover .title {
+        margin-top: 28mm;
+      }
+      .cover .kicker {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 9.5pt;
+        letter-spacing: 5px;
+        text-transform: uppercase;
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .cover h1 {
+        font-family: Georgia, serif;
+        font-size: 32pt;
+        line-height: 1.1;
+        margin: 8mm 0 6mm;
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .cover h1 em {
+        font-style: normal;
+        color: var(--accent);
+      }
+      .cover .subtitle {
+        font-size: 13pt;
+        color: var(--muted);
+        max-width: 140mm;
+        line-height: 1.5;
+      }
+      .cover .meta {
+        margin-top: auto;
+        border-top: 2px solid var(--accent);
+        padding-top: 8mm;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6mm;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 10.5pt;
+      }
+      .cover .meta .lbl {
+        font-size: 8.5pt;
+        letter-spacing: 2.5px;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 700;
+        margin-bottom: 2mm;
+        display: block;
+      }
+      .cover .meta strong {
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .cover .price {
+        display: none;
+      } /* kept in case the box is restored for a private copy */
+      /* ===== BODY ===== */
+      h1,
+      h2,
+      h3,
+      h4 {
+        font-family: Arial, Helvetica, sans-serif;
+        color: var(--ink);
+        line-height: 1.25;
+      }
+      h2 {
+        font-size: 16pt;
+        margin: 10mm 0 3mm;
+        border-bottom: 2px solid var(--accent);
+        padding-bottom: 2mm;
+        page-break-after: avoid;
+      }
+      h3 {
+        font-size: 12.5pt;
+        margin: 6mm 0 2mm;
+        color: var(--accent);
+        page-break-after: avoid;
+      }
+      h4 {
+        font-size: 11pt;
+        margin: 4mm 0 1mm;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      p {
+        margin: 0 0 3.2mm;
+      }
+      ul,
+      ol {
+        margin: 1mm 0 4mm 6mm;
+        padding: 0;
+      }
+      li {
+        margin-bottom: 1.6mm;
+      }
+      strong {
+        color: var(--ink);
+      }
+      em {
+        color: var(--ink);
+      }
+      hr {
+        border: none;
+        border-top: 1px solid var(--rule);
+        margin: 6mm 0;
+      }
+      blockquote {
+        border-left: 4px solid var(--accent-2);
+        background: var(--soft);
+        margin: 4mm 0;
+        padding: 3mm 5mm;
+        font-style: italic;
+        color: var(--muted);
+      }
+      /* Tables */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 3mm 0 5mm;
+        font-size: 10.5pt;
+        page-break-inside: avoid;
+      }
+      thead th {
+        background: var(--accent);
+        color: #fff;
+        text-align: left;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 9pt;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        padding: 2.5mm 3mm;
+        border: 1px solid var(--accent);
+      }
+      tbody td {
+        border: 1px solid var(--rule);
+        padding: 2.5mm 3mm;
+        vertical-align: top;
+      }
+      tbody tr:nth-child(even) td {
+        background: var(--soft);
+      }
+      /* Section helpers */
+      .lede {
+        font-size: 12pt;
+        color: var(--muted);
+        margin-bottom: 5mm;
+      }
+      .twocol {
+        column-count: 2;
+        column-gap: 8mm;
+      }
+      .benefit-block {
+        margin-bottom: 5mm;
+      }
+      .benefit-block h3 {
+        margin-top: 0;
+      }
+      /* Signature block */
+      .sig {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15mm;
+        margin-top: 10mm;
+      }
+      .sig .box {
+        border-top: 1px solid #000;
+        padding-top: 2mm;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 10pt;
+      }
+      .sig .box .label {
+        font-size: 8.5pt;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-top: 6mm;
+        display: block;
+      }
+      /* Footer / header */
+      .running-header {
+        display: none;
+      }
+      /* Section 9 investment — keep exact visual, but print clean */
+      .investment {
+        width: 100%;
+        margin: 4mm 0 6mm;
+        border-collapse: collapse;
+      }
+      .investment td {
+        border: none;
+        border-bottom: 1px dotted #bbc;
+        font-family: "Courier New", monospace;
+        font-size: 11pt;
+        padding: 2mm 0;
+      }
+      .investment td:first-child {
+        width: 66%;
+      }
+      .investment tr.total td {
+        border-top: 2px solid var(--ink);
+        border-bottom: 2px solid var(--ink);
+        font-weight: 700;
+        font-size: 12pt;
+        padding-top: 3mm;
+        padding-bottom: 3mm;
+      }
+      .schedule {
+        font-size: 10.5pt;
+        background: var(--soft);
+        border-left: 4px solid var(--accent);
+        padding: 3mm 5mm;
+        margin: 4mm 0;
+      }
+      .callout {
+        background: #fff8e1;
+        border-left: 4px solid var(--accent-2);
+        padding: 3mm 5mm;
+        margin: 4mm 0;
+        font-size: 10.5pt;
+      }
+      .thanks {
+        margin-top: 10mm;
+        text-align: center;
+        font-style: italic;
+        color: var(--muted);
+        font-size: 11pt;
+      }
+      /* Print rules */
+      @page {
+        size: A4;
+        margin: 0;
+      }
+      @media print {
+        body {
+          background: #fff;
+        }
+        .page {
+          box-shadow: none;
+          margin: 0;
+          max-width: none;
+          padding: 18mm 18mm;
+        }
+        .cover {
+          padding: 22mm 18mm;
+          min-height: 253mm;
+        }
+        h2 {
+          page-break-before: auto;
+        }
+        table,
+        tr,
+        td,
+        th {
+          page-break-inside: avoid;
+        }
+        .no-break {
+          page-break-inside: avoid;
+        }
+        a {
+          color: var(--ink);
+          text-decoration: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- =================== COVER =================== -->
+    <section class="page cover">
       <div>
-        <h2>FAMEX Model School</h2>
-        <p>Proposal · Academic Technology</p>
+        <div class="crest">
+          <div class="badge">F</div>
+          <div>
+            <h2>FAMEX Model School</h2>
+            <p>Proposal · Academic Technology</p>
+          </div>
+        </div>
+
+        <div class="title">
+          <div class="kicker">Project Proposal</div>
+          <h1>School Website &amp; <em>Computer-Based Testing</em> Software</h1>
+          <p class="subtitle">
+            A professional public website and a secure, offline-capable CBT platform to modernise
+            admissions, examinations, and performance reporting at FAMEX Model School.
+          </p>
+        </div>
       </div>
-    </div>
 
-    <div class="title">
-      <div class="kicker">Project Proposal</div>
-      <h1>School Website &amp; <em>Computer-Based Testing</em> Software</h1>
-      <p class="subtitle">A professional public website and a secure, offline-capable CBT platform to modernise admissions, examinations, and performance reporting at FAMEX Model School.</p>
-    </div>
-  </div>
-
-  <div>
-    <div class="meta">
       <div>
-        <span class="lbl">Prepared for</span>
-        <strong>The Proprietor &amp; Management</strong><br/>
-        FAMEX Model School
+        <div class="meta">
+          <div>
+            <span class="lbl">Prepared for</span>
+            <strong>The Proprietor &amp; Management</strong><br />
+            FAMEX Model School
+          </div>
+          <div>
+            <span class="lbl">Prepared by</span>
+            <strong>Adewuyi Adeyemi Reuben</strong><br />
+            Educator · Software Developer
+          </div>
+          <div>
+            <span class="lbl">Date</span>
+            <strong>October 17, 2026</strong>
+          </div>
+          <div>
+            <span class="lbl">Validity</span>
+            <strong>30 days from date above</strong>
+          </div>
+        </div>
       </div>
-      <div>
-        <span class="lbl">Prepared by</span>
-        <strong>Adewuyi Adeyemi Reuben</strong><br/>
-        Educator · Software Developer
+    </section>
+
+    <!-- =================== BODY =================== -->
+    <section class="page">
+      <h2>1. Executive Summary</h2>
+      <p>
+        FAMEX Model School is built on academic excellence, disciplined teaching, and a modern
+        learning environment. This proposal outlines the design, development, and deployment of two
+        connected digital systems that turn that standard into something visible and operational for
+        parents, staff, and students:
+      </p>
+      <ol>
+        <li>
+          <strong>A professional, mobile-first school website</strong> that presents FAMEX Model
+          School to prospective parents, regulators, and the public, and acts as the school's
+          permanent communication hub.
+        </li>
+        <li>
+          <strong>A Computer-Based Testing (CBT) platform</strong> — covering class tests, terminal
+          examinations, and JAMB/WAEC/NECO-format mocks — with secure question banking, automatic
+          and teacher-aided marking, offline/LAN capability for exam halls, and management
+          reporting.
+        </li>
+      </ol>
+      <p>When delivered, the systems will:</p>
+      <ul>
+        <li>
+          Give FAMEX a credible, findable online presence that drives admissions enquiries 24 hours
+          a day.
+        </li>
+        <li>
+          Cut per-term paper, printing, and marking overhead and remove calculation errors from
+          result compilation.
+        </li>
+        <li>
+          Let teachers build and reuse question banks across terms — objective <em>and</em> theory,
+          with partial-mark support.
+        </li>
+        <li>
+          Let students sit exams reliably even when internet is unstable, using an offline runner
+          that saves answers locally and syncs automatically on reconnection.
+        </li>
+        <li>
+          Give proprietor and management real-time visibility into performance by class, subject,
+          student, and question.
+        </li>
+        <li>
+          Position FAMEX students for external CBT examinations (JAMB UTME, WAEC CBT, NECO) by
+          making computer-based sittings routine.
+        </li>
+      </ul>
+      <p>
+        The systems are delivered as one integrated platform with shared login, so the website and
+        CBT are parts of a single digital front door for the school.
+      </p>
+
+      <h2>2. Background and Need</h2>
+      <p>
+        Parents today begin their school search online. A school without a credible website is
+        filtered out before the first visit; a school with outdated information or broken contact
+        forms loses enquiries to the next school on the list. Prospective parents expect to find
+        admissions requirements, fee guidance, recent news, photos of facilities, and a working
+        phone or WhatsApp channel in one place — and they expect it to load cleanly on a phone.
+      </p>
+      <p>
+        Internally, paper-based examination administration is increasingly difficult to sustain:
+      </p>
+      <ul>
+        <li>
+          <strong>Recurring cost:</strong> every test and exam cycle demands fresh printing, answer
+          booklets, and collation materials.
+        </li>
+        <li>
+          <strong>Marking workload:</strong> teachers spend evenings marking scripts a computer can
+          grade in seconds; theory scripts still need professional judgment, but a faster
+          question-by-question interface can cut marking time dramatically.
+        </li>
+        <li>
+          <strong>Human error:</strong> transposition mistakes, lost scripts, and incorrect totals
+          affect students and the integrity of terminal reports.
+        </li>
+        <li>
+          <strong>Limited insight:</strong> on paper, it is difficult to see <em>which</em> question
+          70% of a class failed until long after the exam.
+        </li>
+        <li>
+          <strong>External-exam readiness:</strong> JAMB, WAEC, and NECO run core papers as CBT;
+          students who only ever write on paper enter those halls at a disadvantage.
+        </li>
+        <li>
+          <strong>Malpractice pressure:</strong> paper passes through many hands; leakage, copying,
+          and after-exam alterations are harder to prevent without randomisation and access logs.
+        </li>
+      </ul>
+
+      <h2>3. Project Objectives</h2>
+      <p>The engagement succeeds when, by launch, FAMEX can point to these measurable outcomes:</p>
+      <ol>
+        <li>
+          A responsive, SEO-ready public website, all sections populated, with an admin panel that
+          lets designated staff update content without calling a developer.
+        </li>
+        <li>
+          A working online admissions enquiry channel, with every enquiry delivered to a designated
+          school email and/or WhatsApp number.
+        </li>
+        <li>
+          A secure CBT platform deployed for at least one pilot class during the engagement — one
+          class test, one mid-term, one full mock cycle before handover.
+        </li>
+        <li>
+          Automatic marking for all objective questions (MCQ, true/false) with scores computed
+          instantly and accurately.
+        </li>
+        <li>
+          A teacher theory-marking carousel that presents essay/fill-in answers one question at a
+          time across all scripts, with one-touch partial marks and a finalise step that totals
+          objective + theory and publishes grades.
+        </li>
+        <li>
+          A reusable question bank per subject, class, and topic — supporting images, tables, and
+          accounting/mathematical notation — with bulk upload from Word/Excel templates.
+        </li>
+        <li>
+          Management dashboards for class performance, subject performance, item analysis, and
+          individual student reports, exportable to PDF and Excel.
+        </li>
+        <li>
+          Offline/LAN exam capability: students can start, sit, and submit on the school network
+          without internet; the runner resumes on restart without losing answers.
+        </li>
+        <li>
+          Anti-malpractice configuration: shuffled questions/options, one active session per
+          student, login &amp; submission logs, optional LAN-only enforcement.
+        </li>
+        <li>
+          Hands-on training for every teacher and a sample of students, with printed quick-start
+          guides for each role.
+        </li>
+      </ol>
+
+      <h2>4. Scope of Work</h2>
+
+      <h3>4.1 School Website</h3>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 28%">Section</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Home</strong></td>
+            <td>
+              Hero banner with school motto/crest; highlights (results, facilities, upcoming
+              events); latest announcements; quick links to Admissions, Portal, Contact.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>About Us</strong></td>
+            <td>
+              History, vision, mission, core values, proprietor's welcome, anthem/crest,
+              accreditation/affiliations.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Academics</strong></td>
+            <td>
+              Curriculum overview (Junior &amp; Senior), class levels JSS 1–3 / SS 1–3, subjects
+              offered, academic calendar PDF, exam policy summary.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Admissions</strong></td>
+            <td>
+              Entry requirements by class; step-by-step application process; fees overview (with a
+              "contact school for current schedule" note); online enquiry/application form.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Staff / Leadership</strong></td>
+            <td>
+              Profiles of the proprietor, principal, head teachers, and teaching staff (photos and
+              qualifications as provided).
+            </td>
+          </tr>
+          <tr>
+            <td><strong>News &amp; Events</strong></td>
+            <td>
+              Announcements, event calendar, PTA notices, end-of-term programmes, holiday schedules
+              — updateable by school staff.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Gallery</strong></td>
+            <td>
+              Photos and short videos of school life, facilities, inter-house sports, speech days,
+              excursions — organised by album.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Contact</strong></td>
+            <td>
+              Address with embedded Google Map, phone lines, email, floating WhatsApp click-to-chat
+              button, enquiry form.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Portal Links</strong></td>
+            <td>
+              Prominent buttons linking to the CBT platform and (in future phases) other school
+              services.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Prospectus Download</strong></td>
+            <td>
+              Optional downloadable school prospectus/brochure in PDF for prospective parents.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        <strong>Technical features:</strong> responsive layout (phone, tablet, desktop); fast load
+        times; SEO with correct titles, meta descriptions, and Open Graph tags for WhatsApp/Facebook
+        sharing; social-media links; floating WhatsApp contact button; HTTPS with SSL; CMS admin
+        panel so staff can post news, upload photos, and edit contact details without writing code;
+        basic accessibility (readable contrast, keyboard-friendly forms); visitor analytics overview
+        for admin.
+      </p>
+
+      <h3>4.2 CBT Software</h3>
+
+      <h4>Administrator (Management) module</h4>
+      <ul>
+        <li>
+          Create and manage classes, arms, subjects, sessions, terms, students, and teacher accounts
+          from one dashboard.
+        </li>
+        <li>Bulk import of students/teachers from Excel/CSV templates (provided).</li>
+        <li>
+          Schedule tests and exams with: start date/time, closing window, duration, shuffle rules,
+          whether results are shown immediately or on release, and whether the exam is restricted to
+          the school LAN.
+        </li>
+        <li>Approve, publish, or retract exams before students see them.</li>
+        <li>View, filter, and export results by student, class, subject, term, or question.</li>
+        <li>
+          Performance dashboards: class average, subject strength/weakness, top/bottom performers,
+          pass/fail against pass-mark.
+        </li>
+        <li>
+          Item analysis: for every question, percentage of students choosing each option —
+          identifying badly-worded questions or topics to re-teach.
+        </li>
+        <li>
+          Broadsheet generation (one class, one subject, one term) exportable to Excel and printable
+          PDF.
+        </li>
+        <li>User activity log (logins, exam starts/submissions, result views) for audit.</li>
+        <li>
+          Account controls: reset passwords, disable accounts, enforce one active session per
+          student during exams.
+        </li>
+      </ul>
+
+      <h4>Teacher module</h4>
+      <ul>
+        <li>Build and maintain question banks organised by subject, class, and topic.</li>
+        <li>
+          Question types supported:
+          <ul>
+            <li><strong>Multiple choice</strong> (single-best answer), 2–6 options.</li>
+            <li><strong>True/False.</strong></li>
+            <li>
+              <strong>Fill-in-the-blank / short answer</strong> (auto-matched with teacher override
+              for partial marks).
+            </li>
+            <li>
+              <strong>Essay / theory</strong> (free-text; teacher marks via a dedicated carousel
+              with one-touch 0 / ¼ / ½ / ¾ / full-mark chips and numeric partial-mark input).
+            </li>
+          </ul>
+        </li>
+        <li>
+          Images, tables, and basic mathematical/accounting notation in questions and options
+          (T-accounts, timelines, diagrams).
+        </li>
+        <li>Shuffle question order and option order per student to reduce copying.</li>
+        <li>Bulk upload of questions from Word or Excel templates (provided).</li>
+        <li>
+          Exam builder: pick questions by topic/difficulty, set duration and marks, preview exactly
+          as the student sees it.
+        </li>
+        <li>
+          Live marking queue for theory: per-question progress bar, "pending only" filter, one-click
+          finalise-and-publish when all scripts are marked.
+        </li>
+        <li>Release or withhold results per exam.</li>
+      </ul>
+
+      <h4>Student module</h4>
+      <ul>
+        <li>Secure login with unique student credentials; optional PIN for exam sittings.</li>
+        <li>
+          Clean exam interface: large countdown timer (red in final minutes), question navigation
+          with answered/unanswered/flagged states, flag-for-review button.
+        </li>
+        <li>Auto-save of every answer as it is typed/selected; auto-submit when time expires.</li>
+        <li>
+          Resume-from-interruption: device restart, browser close, or network drop restores the
+          student's exact position, answers, and remaining time.
+        </li>
+        <li>
+          "Your sittings" status view: available, in progress, submitted (waiting to sync if
+          offline), submitted-and-synced, marked/released.
+        </li>
+        <li>
+          Instant result view for objective exams <em>where the school permits</em> (toggleable);
+          theory results appear once the teacher finalises marking.
+        </li>
+        <li>
+          Practice mode for self-study: past-question quizzes by subject/topic with immediate
+          feedback.
+        </li>
+        <li>
+          Result history: every past exam with question-by-question breakdown retained for revision.
+        </li>
+      </ul>
+
+      <h4>Offline/LAN capability (core feature)</h4>
+      <ul>
+        <li>
+          Teachers/admins can pre-download exam packages to student devices ahead of the sitting
+          (e.g., the night before) <em>without</em> starting the countdown timer on the server.
+        </li>
+        <li>
+          Students can start, answer, and submit while completely offline (airplane-mode safe);
+          answers are encrypted and stored locally.
+        </li>
+        <li>
+          On reconnection — school LAN or later at home — answers sync automatically;
+          duplicate/replayed submissions are rejected idempotently so a student cannot submit twice.
+        </li>
+        <li>
+          Late submissions (after the scheduled window closes) are flagged for teacher/management
+          review rather than silently accepted or dropped.
+        </li>
+        <li>Failed syncs are surfaced with a one-tap Retry button, so no paper is lost.</li>
+        <li>
+          Answer keys are <strong>never</strong> sent to the student device — even in the offline
+          package — so a compromised device cannot leak the paper.
+        </li>
+      </ul>
+
+      <h4>Security and integrity</h4>
+      <ul>
+        <li>
+          Role-based access control: Administrator, Teacher, Student (future-proofed for Parent and
+          Bursar).
+        </li>
+        <li>
+          One active session per student during exam windows; login and submission logs retained per
+          sitting.
+        </li>
+        <li>
+          Optional LAN-only enforcement: an exam can be set so it is reachable only from the school
+          network during sitting hours.
+        </li>
+        <li>Encrypted password storage; CSRF and common web-attack protections.</li>
+        <li>No answer keys on the client; all objective scoring runs server-side at submission.</li>
+        <li>Automated database backups (daily retained 30 days; weekly retained longer).</li>
+      </ul>
+
+      <h4>Reporting</h4>
+      <ul>
+        <li>
+          Individual result slips (name, class, subject, score, percentage, grade, remark, teacher
+          comment).
+        </li>
+        <li>Class broadsheets (students × questions or students × subjects).</li>
+        <li>Item analysis: facility index and discrimination index per question.</li>
+        <li>Termly/annual performance summaries by class and subject.</li>
+        <li>Export to Excel (.xlsx) and printable PDF.</li>
+      </ul>
+
+      <h3>4.3 Out of Scope (future phases, separate quotation)</h3>
+      <ul>
+        <li>
+          Full school ERP (end-to-end fees ledger, payroll, statutory deductions, comprehensive
+          attendance).
+        </li>
+        <li>
+          Dedicated parent mobile application (parent-facing web portal can be added as Phase 2).
+        </li>
+        <li>Online payment gateway integration (card, bank transfer, USSD).</li>
+        <li>Live / virtual / hybrid classroom tools (video streaming, live whiteboards).</li>
+        <li>Biometric or AI proctoring (face recognition, eye-tracking).</li>
+        <li>Multi-campus / multi-branch support.</li>
+      </ul>
+
+      <h2>5. Proposed Approach and Technology</h2>
+      <p>
+        The platform is built with modern, widely supported web technologies chosen for reliability,
+        low maintenance cost, and ease of handover. The stack is deliberately standard — not tied to
+        any one developer — so future developers (including internal IT staff as the school grows)
+        can extend it.
+      </p>
+      <p><strong>Deployment modes</strong> (advised on in Phase 1):</p>
+      <ul>
+        <li>
+          <strong>Online (cloud-hosted):</strong> best for the public website and for practice
+          tests/homework quizzes from home.
+        </li>
+        <li>
+          <strong>Offline/LAN:</strong> same platform installed on a school server or dedicated lab
+          machine, accessed over the local network; exams run without public internet, results sync
+          to the cloud when connectivity returns.
+        </li>
+        <li>
+          <strong>Hybrid (recommended):</strong> website online; CBT examinations on the LAN during
+          sittings, syncing to the cloud dashboard for management reporting.
+        </li>
+      </ul>
+      <p>
+        <strong>Design principles:</strong> mobile-first; accessible contrast and labelling;
+        teacher-first marking flow (question-by-question across all scripts); student-first exam UX
+        (large buttons, no intrusive animations, no surprises on auto-submit); fail-safe networking;
+        no data lock-in — the school owns its data and exports are always available.
+      </p>
+
+      <h2>6. Project Phases and Timeline</h2>
+      <p class="lede">
+        The overall engagement is approximately <strong>10 weeks</strong> from approval to go-live,
+        followed by 3 months of post-launch support. Timelines assume timely feedback (≤ 3 working
+        days per review) and prompt supply of content and sample data by the school.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 22%">Phase</th>
+            <th>Activities</th>
+            <th style="width: 18%">Duration</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1. Discovery &amp; Planning</strong></td>
+            <td>
+              Kickoff with proprietor/management; confirm classes/arms/subjects for pilot; collect
+              logo, colours, photos, prospectus; agree deployment mode (online/LAN/hybrid); identify
+              pilot class and teachers; sign-off on requirements.
+            </td>
+            <td>Week 1</td>
+          </tr>
+          <tr>
+            <td><strong>2. Design</strong></td>
+            <td>
+              Website wireframes and visual mock-ups (homepage + one inner page); CBT student runner
+              mock-up (exam screen, results); teacher marking mock-up; management dashboard mock-up;
+              revision cycle until approval.
+            </td>
+            <td>Weeks 2–3</td>
+          </tr>
+          <tr>
+            <td><strong>3. Development</strong></td>
+            <td>
+              Website (all sections, CMS admin); CBT core — accounts, classes/subjects/terms,
+              question bank, exam builder, student runner (online + offline), auto-scoring, theory
+              marking carousel, results release, broadsheets, item analysis.
+            </td>
+            <td>Weeks 3–8</td>
+          </tr>
+          <tr>
+            <td><strong>4. Content Entry &amp; Setup</strong></td>
+            <td>
+              Upload provided content (about text, photos, news, calendar PDF); seed pilot class,
+              subjects, and at least one full question bank per pilot subject; create
+              teacher/student accounts for the pilot; internal smoke test.
+            </td>
+            <td>Weeks 7–8</td>
+          </tr>
+          <tr>
+            <td><strong>5. Testing &amp; Pilot</strong></td>
+            <td>
+              Functional testing across phones and lab computers; security review; load simulation
+              for a full-class sitting; run a pilot exam with the sample class under realistic
+              conditions; fixes; UAT sign-off.
+            </td>
+            <td>Weeks 8–9</td>
+          </tr>
+          <tr>
+            <td><strong>6. Training &amp; Launch</strong></td>
+            <td>
+              Two hands-on training sessions (teachers/admins, then students); printed quick-start
+              guides; soft launch of website; go-live for real examinations at the next approved
+              test window.
+            </td>
+            <td>Weeks 9–10</td>
+          </tr>
+          <tr>
+            <td><strong>7. Support</strong></td>
+            <td>
+              Bug fixes, incident response, minor adjustments, phone/WhatsApp support for the
+              designated school contact; mid-support review at week 6.
+            </td>
+            <td>3 months after launch</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="callout">
+        Optional ongoing support after the 3-month period is available as a separate annual/termly
+        retainer (hosting &amp; domain renewal + maintenance).
+      </p>
+
+      <h2>7. Deliverables</h2>
+      <ol>
+        <li>
+          Fully functional, responsive school website, live on the agreed domain, all sections
+          populated.
+        </li>
+        <li>
+          Fully functional CBT platform with Administrator, Teacher, and Student modules — including
+          offline/LAN exam support, theory marking with partial marks, broadsheets, item analysis,
+          individual result slips.
+        </li>
+        <li>Website CMS admin panel for news, gallery, calendar, contact details.</li>
+        <li>Question-bank templates (Excel and Word) with sample questions.</li>
+        <li>
+          Bulk-import templates for student and staff accounts (Excel/CSV), with pilot accounts
+          already loaded.
+        </li>
+        <li>User manuals — Administrator/Management, Teacher, Student — in print and PDF.</li>
+        <li>
+          Two hands-on training sessions at launch, plus one follow-up Q&amp;A during the support
+          period.
+        </li>
+        <li>One completed pilot exam cycle with the agreed pilot class before sign-off.</li>
+        <li>
+          Credentials and access handover: admin login, domain/DNS, hosting dashboard, and
+          source-code arrangements per the final contract.
+        </li>
+        <li>
+          Three months of post-launch technical support (bug fixes, minor adjustments, incident
+          response during school hours).
+        </li>
+      </ol>
+
+      <h2>8. Roles and Responsibilities</h2>
+      <p><strong>Developer (Adewuyi Adeyemi Reuben):</strong></p>
+      <ul>
+        <li>
+          Design, develop, test, deploy, and document the website and CBT platform as described.
+        </li>
+        <li>
+          Provide agreed hosting/domain/infrastructure setup for the first year as itemised in
+          Section 9.
+        </li>
+        <li>Configure backups, monitoring, and transactional email/WhatsApp messaging.</li>
+        <li>Deliver training sessions and user manuals.</li>
+        <li>Provide post-launch support for 3 months from go-live.</li>
+        <li>Treat all school data as confidential.</li>
+      </ul>
+      <p><strong>FAMEX Model School:</strong></p>
+      <ul>
+        <li>
+          Provide logo, photographs, text content (history, vision/mission, proprietor message,
+          calendar, admissions text, staff profiles as available), and existing prospectus materials
+          in electronic form.
+        </li>
+        <li>
+          Nominate <strong>one designated point of contact</strong> authorised to give approvals,
+          provide content, and coordinate training.
+        </li>
+        <li>
+          Provide student and staff lists in Excel/CSV or the provided template at the start of
+          Phase 4.
+        </li>
+        <li>
+          Make the computer lab or a set of student devices available for pilot testing and
+          training.
+        </li>
+        <li>
+          Provide domain preference (e.g., famexmodelschool.edu.ng) and the official school
+          email/WhatsApp line to be used on the website.
+        </li>
+        <li>
+          Provide timely feedback and sign-off at each milestone (≤ 3 working days per review).
+        </li>
+        <li>
+          Assign a staff member to be trained as the internal "super-user" for day-to-day content
+          updates and first-line support.
+        </li>
+      </ul>
+    </section>
+
+    <section class="page">
+      <h2>9. Investment</h2>
+      <table class="investment">
+        <tbody>
+          <tr>
+            <td>Render (Backend hosting)</td>
+            <td>#400,000</td>
+          </tr>
+          <tr>
+            <td>Watsap business message credit</td>
+            <td>#200,000</td>
+          </tr>
+          <tr>
+            <td>Domain registration</td>
+            <td>#150,000</td>
+          </tr>
+          <tr>
+            <td>DB back up &amp; file storage</td>
+            <td>#150,000</td>
+          </tr>
+          <tr>
+            <td>Monitoring transaction email</td>
+            <td>#100,000</td>
+          </tr>
+          <tr>
+            <td>Workmanship</td>
+            <td>#750,000</td>
+          </tr>
+          <tr class="total">
+            <td>TOTAL.</td>
+            <td>#1,750,000:00</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        <strong>Optional recurring costs after the support period:</strong> annual hosting and
+        domain renewal, and a maintenance and support plan (monthly or termly).
+      </p>
+      <div class="schedule">
+        <strong>Suggested payment schedule:</strong> 50% on approval of the proposal; 30% on
+        completion of development and testing; 20% on launch and handover.
       </div>
-      <div>
-        <span class="lbl">Date</span>
-        <strong>October 17, 2026</strong>
+
+      <h2>10. Benefits to the School</h2>
+      <div class="benefit-block">
+        <h3>To the Proprietor and Management</h3>
+        <ul>
+          <li>
+            A professional online identity that builds trust with parents and supports admission
+            drives.
+          </li>
+          <li>
+            Direct visibility into academic performance — by class, subject, and question — without
+            waiting for paper collation.
+          </li>
+          <li>
+            A defensible audit trail: every sitting, answer, mark, and login is logged and
+            retrievable.
+          </li>
+          <li>
+            A platform that grows with the school; future phases (parent portal, online fees,
+            attendance) extend the same system rather than replacing it.
+          </li>
+          <li>
+            Reduced reliance on any single staff member's personal spreadsheet or paper record.
+          </li>
+        </ul>
       </div>
-      <div>
-        <span class="lbl">Validity</span>
-        <strong>30 days from date above</strong>
+      <div class="benefit-block">
+        <h3>To Teachers</h3>
+        <ul>
+          <li>
+            Dramatically reduced marking load for objective papers — scripts graded at submission
+            time.
+          </li>
+          <li>
+            Faster, more consistent theory marking: one question at a time across every script, with
+            partial-mark shortcuts and auto-totalling on finalise.
+          </li>
+          <li>
+            Reusable question bank — a good question set once and reused across terms/mocks with
+            shuffle.
+          </li>
+          <li>Bulk upload from Word/Excel means teachers do not retype existing questions.</li>
+          <li>
+            Item analysis highlights questions that are too easy, too hard, or ambiguous — improving
+            future teaching and question setting.
+          </li>
+        </ul>
       </div>
-    </div>
-  </div>
-</section>
+      <div class="benefit-block">
+        <h3>To Students</h3>
+        <ul>
+          <li>
+            Early, repeated CBT exposure reduces anxiety and builds competence for JAMB, WAEC, and
+            NECO.
+          </li>
+          <li>
+            Fairer sittings: randomised questions/options reduce copying; auto-submit removes time
+            disputes.
+          </li>
+          <li>
+            No lost answers: auto-save and resume behaviour means a power cut or crash does not cost
+            a student their paper.
+          </li>
+          <li>
+            Faster feedback: objective results immediately where the school allows; theory results
+            sooner because marking is faster.
+          </li>
+          <li>
+            Practice mode supports self-directed revision using questions the school has already
+            set.
+          </li>
+        </ul>
+      </div>
+      <div class="benefit-block">
+        <h3>To Parents</h3>
+        <ul>
+          <li>
+            A website they can share with relatives and that gives them confidence in their school
+            choice.
+          </li>
+          <li>
+            Clear public information on admissions, calendar, and contact channels — fewer routine
+            calls to the front desk.
+          </li>
+          <li>
+            (Future phase) Parent-facing portal for results and announcements, built on the same
+            platform.
+          </li>
+        </ul>
+      </div>
+      <div class="benefit-block">
+        <h3>Operationally</h3>
+        <ul>
+          <li>
+            Elimination of per-exam printing, answer-booklet, and collation costs, which recur every
+            term across every class.
+          </li>
+          <li>Reduced staff overtime spent on manual marking and result compilation.</li>
+          <li>
+            Lower risk of result errors that damage reputation and require costly re-issuance.
+          </li>
+          <li>
+            A platform paid for once (plus modest recurring hosting) rather than a per-student,
+            per-term SaaS fee that grows with the school.
+          </li>
+        </ul>
+      </div>
 
-<!-- =================== BODY =================== -->
-<section class="page">
-<h2>1. Executive Summary</h2>
-<p>FAMEX Model School is built on academic excellence, disciplined teaching, and a modern learning environment. This proposal outlines the design, development, and deployment of two connected digital systems that turn that standard into something visible and operational for parents, staff, and students:</p>
-<ol>
-  <li><strong>A professional, mobile-first school website</strong> that presents FAMEX Model School to prospective parents, regulators, and the public, and acts as the school's permanent communication hub.</li>
-  <li><strong>A Computer-Based Testing (CBT) platform</strong> — covering class tests, terminal examinations, and JAMB/WAEC/NECO-format mocks — with secure question banking, automatic and teacher-aided marking, offline/LAN capability for exam halls, and management reporting.</li>
-</ol>
-<p>When delivered, the systems will:</p>
-<ul>
-  <li>Give FAMEX a credible, findable online presence that drives admissions enquiries 24 hours a day.</li>
-  <li>Cut per-term paper, printing, and marking overhead and remove calculation errors from result compilation.</li>
-  <li>Let teachers build and reuse question banks across terms — objective <em>and</em> theory, with partial-mark support.</li>
-  <li>Let students sit exams reliably even when internet is unstable, using an offline runner that saves answers locally and syncs automatically on reconnection.</li>
-  <li>Give proprietor and management real-time visibility into performance by class, subject, student, and question.</li>
-  <li>Position FAMEX students for external CBT examinations (JAMB UTME, WAEC CBT, NECO) by making computer-based sittings routine.</li>
-</ul>
-<p>The systems are delivered as one integrated platform with shared login, so the website and CBT are parts of a single digital front door for the school.</p>
+      <h2>11. Risk Management</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 28%">Risk</th>
+            <th style="width: 18%">Impact</th>
+            <th>Mitigation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Unreliable internet during exam sittings</td>
+            <td>Disruption to start/submit</td>
+            <td>
+              Offline/LAN deployment mode; fully offline runner with local auto-save and automatic
+              sync on reconnection; exam packages pre-downloadable before the sitting begins.
+            </td>
+          </tr>
+          <tr>
+            <td>Power interruption mid-exam</td>
+            <td>Device shutdown; potential loss</td>
+            <td>
+              Answers auto-save on every selection; resume-where-you-stopped restores position,
+              answers, and remaining time; school advised to have UPS/backup generator for major
+              sittings.
+            </td>
+          </tr>
+          <tr>
+            <td>Device or browser crash</td>
+            <td>Student ejected from exam</td>
+            <td>
+              Same resume behaviour as above; one-active-session rule allows the student to log back
+              in on the same device without admin intervention.
+            </td>
+          </tr>
+          <tr>
+            <td>Data loss</td>
+            <td>Loss of records/results</td>
+            <td>
+              Automated daily DB backups (retained 30 days); backups stored separately from the
+              application server; one-click export of results to Excel/PDF at any time.
+            </td>
+          </tr>
+          <tr>
+            <td>Staff unfamiliarity</td>
+            <td>Slow adoption</td>
+            <td>
+              Hands-on training for teachers/admins/students before launch; printed quick-start
+              guides; internal super-user; 3 months of phone/WhatsApp/email support.
+            </td>
+          </tr>
+          <tr>
+            <td>Delays in content/data supply</td>
+            <td>Timeline slip</td>
+            <td>
+              Agreed content deadlines shared in Phase 1; single point of contact; templates
+              provided for every data item.
+            </td>
+          </tr>
+          <tr>
+            <td>Examination malpractice</td>
+            <td>Compromised results</td>
+            <td>
+              Shuffled questions and options per student; one active session per account; audit
+              logs; optional LAN-only restriction during sittings; answer keys never sent to client
+              devices; late submissions flagged for review.
+            </td>
+          </tr>
+          <tr>
+            <td>Security breach / unauthorised access</td>
+            <td>Data leak / altered results</td>
+            <td>
+              Role-based access; encrypted passwords; HTTPS everywhere; standard web-attack
+              protections; no answer keys on client; activity logs for admin actions.
+            </td>
+          </tr>
+          <tr>
+            <td>Developer unavailability after handover</td>
+            <td>Platform stuck</td>
+            <td>
+              Built on standard, widely documented web technologies; full source code and
+              credentials handed over at launch; documentation and manuals provided; optional annual
+              maintenance retainer.
+            </td>
+          </tr>
+          <tr>
+            <td>Scope creep</td>
+            <td>Delays and budget pressure</td>
+            <td>
+              Written scope in this proposal; out-of-scope changes quoted and approved separately in
+              writing, with timeline impact stated.
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-<h2>2. Background and Need</h2>
-<p>Parents today begin their school search online. A school without a credible website is filtered out before the first visit; a school with outdated information or broken contact forms loses enquiries to the next school on the list. Prospective parents expect to find admissions requirements, fee guidance, recent news, photos of facilities, and a working phone or WhatsApp channel in one place — and they expect it to load cleanly on a phone.</p>
-<p>Internally, paper-based examination administration is increasingly difficult to sustain:</p>
-<ul>
-  <li><strong>Recurring cost:</strong> every test and exam cycle demands fresh printing, answer booklets, and collation materials.</li>
-  <li><strong>Marking workload:</strong> teachers spend evenings marking scripts a computer can grade in seconds; theory scripts still need professional judgment, but a faster question-by-question interface can cut marking time dramatically.</li>
-  <li><strong>Human error:</strong> transposition mistakes, lost scripts, and incorrect totals affect students and the integrity of terminal reports.</li>
-  <li><strong>Limited insight:</strong> on paper, it is difficult to see <em>which</em> question 70% of a class failed until long after the exam.</li>
-  <li><strong>External-exam readiness:</strong> JAMB, WAEC, and NECO run core papers as CBT; students who only ever write on paper enter those halls at a disadvantage.</li>
-  <li><strong>Malpractice pressure:</strong> paper passes through many hands; leakage, copying, and after-exam alterations are harder to prevent without randomisation and access logs.</li>
-</ul>
+      <h2>12. About the Developer</h2>
+      <p>
+        Adewuyi Adeyemi Reuben is an educator with a Higher National Diploma (HND) in Accounting and
+        direct classroom experience teaching Financial Accounting, Economics, Government, Civic
+        Education, and Business Studies across JSS 1 to SS 3. That teaching background is central to
+        this proposal: the CBT is designed around how teachers actually set questions
+        (subject-by-subject, topic-by-topic, with images and tabular material for accounts and
+        economics) and how students actually experience an exam hall (anxiety, the need for a clear
+        timer, the consequences of a device dying mid-paper).
+      </p>
+      <p>
+        The design priorities — offline reliability, one-question-at-a-time theory marking,
+        resume-after-interruption, no answer keys on student devices, item analysis for teachers —
+        all come from classroom observation of what goes wrong during paper exams and what makes
+        teachers resist or embrace a digital system. The website is designed with the same practical
+        bias: parents find what they need in under a minute; school staff update news and gallery
+        photos without calling a developer; enquiries actually reach someone responsible.
+      </p>
+      <p>
+        References from schools currently using the platform (or earlier deployments) are available
+        on request.
+      </p>
 
-<h2>3. Project Objectives</h2>
-<p>The engagement succeeds when, by launch, FAMEX can point to these measurable outcomes:</p>
-<ol>
-  <li>A responsive, SEO-ready public website, all sections populated, with an admin panel that lets designated staff update content without calling a developer.</li>
-  <li>A working online admissions enquiry channel, with every enquiry delivered to a designated school email and/or WhatsApp number.</li>
-  <li>A secure CBT platform deployed for at least one pilot class during the engagement — one class test, one mid-term, one full mock cycle before handover.</li>
-  <li>Automatic marking for all objective questions (MCQ, true/false) with scores computed instantly and accurately.</li>
-  <li>A teacher theory-marking carousel that presents essay/fill-in answers one question at a time across all scripts, with one-touch partial marks and a finalise step that totals objective + theory and publishes grades.</li>
-  <li>A reusable question bank per subject, class, and topic — supporting images, tables, and accounting/mathematical notation — with bulk upload from Word/Excel templates.</li>
-  <li>Management dashboards for class performance, subject performance, item analysis, and individual student reports, exportable to PDF and Excel.</li>
-  <li>Offline/LAN exam capability: students can start, sit, and submit on the school network without internet; the runner resumes on restart without losing answers.</li>
-  <li>Anti-malpractice configuration: shuffled questions/options, one active session per student, login &amp; submission logs, optional LAN-only enforcement.</li>
-  <li>Hands-on training for every teacher and a sample of students, with printed quick-start guides for each role.</li>
-</ol>
+      <h2>13. Terms and Conditions</h2>
+      <ol>
+        <li>
+          This proposal is valid for <strong>30 days</strong> from the date stated on the cover.
+        </li>
+        <li>
+          Work commences on <strong>written approval</strong> (signed proposal or formal email
+          approval) and <strong>receipt of the first payment</strong> as set out in Section 9.
+        </li>
+        <li>
+          All intellectual property in the school's content (logo, photos, text, prospectus,
+          questions, student data) remains with FAMEX Model School at all times.
+        </li>
+        <li>
+          All student and staff data will be treated as confidential, stored securely, used only for
+          purposes connected with school operations, and never shared with third parties except as
+          required by law or with written school approval.
+        </li>
+        <li>
+          The developer will provide credentials and access to all systems (hosting, domain, admin
+          accounts) as part of handover.
+        </li>
+        <li>
+          Changes requested by the school that fall outside the scope in Section 4 will be quoted
+          separately in writing (cost + timeline impact) and commenced only on written approval.
+        </li>
+        <li>
+          Timelines assume timely feedback and content supply; delays caused by the school awaiting
+          content/sign-off extend the timeline commensurately.
+        </li>
+        <li>
+          The 3-month support period covers bug fixes and minor adjustments only; new features or
+          major changes are scoped separately.
+        </li>
+        <li>
+          Hosting, domain, WhatsApp credit, backup, monitoring, and email costs in Section 9 cover
+          the first year of operation; renewal terms will be communicated ahead of renewal date.
+        </li>
+        <li>
+          A formal contract / letter of engagement will be signed before commencement, incorporating
+          this proposal as the statement of work.
+        </li>
+        <li>
+          Either party may terminate for material breach with 14 days' written notice, with payment
+          for work completed up to the date of termination.
+        </li>
+        <li>
+          The school may use the platform for its own educational purposes without restriction;
+          resale or commercial licensing to other schools requires a separate agreement.
+        </li>
+      </ol>
 
-<h2>4. Scope of Work</h2>
+      <h2>14. Approval</h2>
+      <p>
+        By signing below, FAMEX Model School accepts this proposal and authorises the work to begin
+        on the terms set out above.
+      </p>
 
-<h3>4.1 School Website</h3>
-<table>
-  <thead><tr><th style="width:28%">Section</th><th>Description</th></tr></thead>
-  <tbody>
-    <tr><td><strong>Home</strong></td><td>Hero banner with school motto/crest; highlights (results, facilities, upcoming events); latest announcements; quick links to Admissions, Portal, Contact.</td></tr>
-    <tr><td><strong>About Us</strong></td><td>History, vision, mission, core values, proprietor's welcome, anthem/crest, accreditation/affiliations.</td></tr>
-    <tr><td><strong>Academics</strong></td><td>Curriculum overview (Junior &amp; Senior), class levels JSS 1–3 / SS 1–3, subjects offered, academic calendar PDF, exam policy summary.</td></tr>
-    <tr><td><strong>Admissions</strong></td><td>Entry requirements by class; step-by-step application process; fees overview (with a "contact school for current schedule" note); online enquiry/application form.</td></tr>
-    <tr><td><strong>Staff / Leadership</strong></td><td>Profiles of the proprietor, principal, head teachers, and teaching staff (photos and qualifications as provided).</td></tr>
-    <tr><td><strong>News &amp; Events</strong></td><td>Announcements, event calendar, PTA notices, end-of-term programmes, holiday schedules — updateable by school staff.</td></tr>
-    <tr><td><strong>Gallery</strong></td><td>Photos and short videos of school life, facilities, inter-house sports, speech days, excursions — organised by album.</td></tr>
-    <tr><td><strong>Contact</strong></td><td>Address with embedded Google Map, phone lines, email, floating WhatsApp click-to-chat button, enquiry form.</td></tr>
-    <tr><td><strong>Portal Links</strong></td><td>Prominent buttons linking to the CBT platform and (in future phases) other school services.</td></tr>
-    <tr><td><strong>Prospectus Download</strong></td><td>Optional downloadable school prospectus/brochure in PDF for prospective parents.</td></tr>
-  </tbody>
-</table>
+      <div class="sig no-break">
+        <div class="box">
+          <strong>For FAMEX Model School</strong>
+          <span class="label">Name</span>
+          <span class="label">Position</span>
+          <span class="label">Signature</span>
+          <span class="label">Date</span>
+        </div>
+        <div class="box">
+          <strong>Developer</strong>
+          <div style="margin-top: 4mm">Adewuyi Adeyemi Reuben</div>
+          <span class="label">Signature</span>
+          <span class="label">Date</span>
+        </div>
+      </div>
 
-<p><strong>Technical features:</strong> responsive layout (phone, tablet, desktop); fast load times; SEO with correct titles, meta descriptions, and Open Graph tags for WhatsApp/Facebook sharing; social-media links; floating WhatsApp contact button; HTTPS with SSL; CMS admin panel so staff can post news, upload photos, and edit contact details without writing code; basic accessibility (readable contrast, keyboard-friendly forms); visitor analytics overview for admin.</p>
-
-<h3>4.2 CBT Software</h3>
-
-<h4>Administrator (Management) module</h4>
-<ul>
-  <li>Create and manage classes, arms, subjects, sessions, terms, students, and teacher accounts from one dashboard.</li>
-  <li>Bulk import of students/teachers from Excel/CSV templates (provided).</li>
-  <li>Schedule tests and exams with: start date/time, closing window, duration, shuffle rules, whether results are shown immediately or on release, and whether the exam is restricted to the school LAN.</li>
-  <li>Approve, publish, or retract exams before students see them.</li>
-  <li>View, filter, and export results by student, class, subject, term, or question.</li>
-  <li>Performance dashboards: class average, subject strength/weakness, top/bottom performers, pass/fail against pass-mark.</li>
-  <li>Item analysis: for every question, percentage of students choosing each option — identifying badly-worded questions or topics to re-teach.</li>
-  <li>Broadsheet generation (one class, one subject, one term) exportable to Excel and printable PDF.</li>
-  <li>User activity log (logins, exam starts/submissions, result views) for audit.</li>
-  <li>Account controls: reset passwords, disable accounts, enforce one active session per student during exams.</li>
-</ul>
-
-<h4>Teacher module</h4>
-<ul>
-  <li>Build and maintain question banks organised by subject, class, and topic.</li>
-  <li>Question types supported:
-    <ul>
-      <li><strong>Multiple choice</strong> (single-best answer), 2–6 options.</li>
-      <li><strong>True/False.</strong></li>
-      <li><strong>Fill-in-the-blank / short answer</strong> (auto-matched with teacher override for partial marks).</li>
-      <li><strong>Essay / theory</strong> (free-text; teacher marks via a dedicated carousel with one-touch 0 / ¼ / ½ / ¾ / full-mark chips and numeric partial-mark input).</li>
-    </ul>
-  </li>
-  <li>Images, tables, and basic mathematical/accounting notation in questions and options (T-accounts, timelines, diagrams).</li>
-  <li>Shuffle question order and option order per student to reduce copying.</li>
-  <li>Bulk upload of questions from Word or Excel templates (provided).</li>
-  <li>Exam builder: pick questions by topic/difficulty, set duration and marks, preview exactly as the student sees it.</li>
-  <li>Live marking queue for theory: per-question progress bar, "pending only" filter, one-click finalise-and-publish when all scripts are marked.</li>
-  <li>Release or withhold results per exam.</li>
-</ul>
-
-<h4>Student module</h4>
-<ul>
-  <li>Secure login with unique student credentials; optional PIN for exam sittings.</li>
-  <li>Clean exam interface: large countdown timer (red in final minutes), question navigation with answered/unanswered/flagged states, flag-for-review button.</li>
-  <li>Auto-save of every answer as it is typed/selected; auto-submit when time expires.</li>
-  <li>Resume-from-interruption: device restart, browser close, or network drop restores the student's exact position, answers, and remaining time.</li>
-  <li>"Your sittings" status view: available, in progress, submitted (waiting to sync if offline), submitted-and-synced, marked/released.</li>
-  <li>Instant result view for objective exams <em>where the school permits</em> (toggleable); theory results appear once the teacher finalises marking.</li>
-  <li>Practice mode for self-study: past-question quizzes by subject/topic with immediate feedback.</li>
-  <li>Result history: every past exam with question-by-question breakdown retained for revision.</li>
-</ul>
-
-<h4>Offline/LAN capability (core feature)</h4>
-<ul>
-  <li>Teachers/admins can pre-download exam packages to student devices ahead of the sitting (e.g., the night before) <em>without</em> starting the countdown timer on the server.</li>
-  <li>Students can start, answer, and submit while completely offline (airplane-mode safe); answers are encrypted and stored locally.</li>
-  <li>On reconnection — school LAN or later at home — answers sync automatically; duplicate/replayed submissions are rejected idempotently so a student cannot submit twice.</li>
-  <li>Late submissions (after the scheduled window closes) are flagged for teacher/management review rather than silently accepted or dropped.</li>
-  <li>Failed syncs are surfaced with a one-tap Retry button, so no paper is lost.</li>
-  <li>Answer keys are <strong>never</strong> sent to the student device — even in the offline package — so a compromised device cannot leak the paper.</li>
-</ul>
-
-<h4>Security and integrity</h4>
-<ul>
-  <li>Role-based access control: Administrator, Teacher, Student (future-proofed for Parent and Bursar).</li>
-  <li>One active session per student during exam windows; login and submission logs retained per sitting.</li>
-  <li>Optional LAN-only enforcement: an exam can be set so it is reachable only from the school network during sitting hours.</li>
-  <li>Encrypted password storage; CSRF and common web-attack protections.</li>
-  <li>No answer keys on the client; all objective scoring runs server-side at submission.</li>
-  <li>Automated database backups (daily retained 30 days; weekly retained longer).</li>
-</ul>
-
-<h4>Reporting</h4>
-<ul>
-  <li>Individual result slips (name, class, subject, score, percentage, grade, remark, teacher comment).</li>
-  <li>Class broadsheets (students × questions or students × subjects).</li>
-  <li>Item analysis: facility index and discrimination index per question.</li>
-  <li>Termly/annual performance summaries by class and subject.</li>
-  <li>Export to Excel (.xlsx) and printable PDF.</li>
-</ul>
-
-<h3>4.3 Out of Scope (future phases, separate quotation)</h3>
-<ul>
-  <li>Full school ERP (end-to-end fees ledger, payroll, statutory deductions, comprehensive attendance).</li>
-  <li>Dedicated parent mobile application (parent-facing web portal can be added as Phase 2).</li>
-  <li>Online payment gateway integration (card, bank transfer, USSD).</li>
-  <li>Live / virtual / hybrid classroom tools (video streaming, live whiteboards).</li>
-  <li>Biometric or AI proctoring (face recognition, eye-tracking).</li>
-  <li>Multi-campus / multi-branch support.</li>
-</ul>
-
-<h2>5. Proposed Approach and Technology</h2>
-<p>The platform is built with modern, widely supported web technologies chosen for reliability, low maintenance cost, and ease of handover. The stack is deliberately standard — not tied to any one developer — so future developers (including internal IT staff as the school grows) can extend it.</p>
-<p><strong>Deployment modes</strong> (advised on in Phase 1):</p>
-<ul>
-  <li><strong>Online (cloud-hosted):</strong> best for the public website and for practice tests/homework quizzes from home.</li>
-  <li><strong>Offline/LAN:</strong> same platform installed on a school server or dedicated lab machine, accessed over the local network; exams run without public internet, results sync to the cloud when connectivity returns.</li>
-  <li><strong>Hybrid (recommended):</strong> website online; CBT examinations on the LAN during sittings, syncing to the cloud dashboard for management reporting.</li>
-</ul>
-<p><strong>Design principles:</strong> mobile-first; accessible contrast and labelling; teacher-first marking flow (question-by-question across all scripts); student-first exam UX (large buttons, no intrusive animations, no surprises on auto-submit); fail-safe networking; no data lock-in — the school owns its data and exports are always available.</p>
-
-<h2>6. Project Phases and Timeline</h2>
-<p class="lede">The overall engagement is approximately <strong>10 weeks</strong> from approval to go-live, followed by 3 months of post-launch support. Timelines assume timely feedback (≤ 3 working days per review) and prompt supply of content and sample data by the school.</p>
-<table>
-  <thead><tr><th style="width:22%">Phase</th><th>Activities</th><th style="width:18%">Duration</th></tr></thead>
-  <tbody>
-    <tr><td><strong>1. Discovery &amp; Planning</strong></td><td>Kickoff with proprietor/management; confirm classes/arms/subjects for pilot; collect logo, colours, photos, prospectus; agree deployment mode (online/LAN/hybrid); identify pilot class and teachers; sign-off on requirements.</td><td>Week 1</td></tr>
-    <tr><td><strong>2. Design</strong></td><td>Website wireframes and visual mock-ups (homepage + one inner page); CBT student runner mock-up (exam screen, results); teacher marking mock-up; management dashboard mock-up; revision cycle until approval.</td><td>Weeks 2–3</td></tr>
-    <tr><td><strong>3. Development</strong></td><td>Website (all sections, CMS admin); CBT core — accounts, classes/subjects/terms, question bank, exam builder, student runner (online + offline), auto-scoring, theory marking carousel, results release, broadsheets, item analysis.</td><td>Weeks 3–8</td></tr>
-    <tr><td><strong>4. Content Entry &amp; Setup</strong></td><td>Upload provided content (about text, photos, news, calendar PDF); seed pilot class, subjects, and at least one full question bank per pilot subject; create teacher/student accounts for the pilot; internal smoke test.</td><td>Weeks 7–8</td></tr>
-    <tr><td><strong>5. Testing &amp; Pilot</strong></td><td>Functional testing across phones and lab computers; security review; load simulation for a full-class sitting; run a pilot exam with the sample class under realistic conditions; fixes; UAT sign-off.</td><td>Weeks 8–9</td></tr>
-    <tr><td><strong>6. Training &amp; Launch</strong></td><td>Two hands-on training sessions (teachers/admins, then students); printed quick-start guides; soft launch of website; go-live for real examinations at the next approved test window.</td><td>Weeks 9–10</td></tr>
-    <tr><td><strong>7. Support</strong></td><td>Bug fixes, incident response, minor adjustments, phone/WhatsApp support for the designated school contact; mid-support review at week 6.</td><td>3 months after launch</td></tr>
-  </tbody>
-</table>
-<p class="callout">Optional ongoing support after the 3-month period is available as a separate annual/termly retainer (hosting &amp; domain renewal + maintenance).</p>
-
-<h2>7. Deliverables</h2>
-<ol>
-  <li>Fully functional, responsive school website, live on the agreed domain, all sections populated.</li>
-  <li>Fully functional CBT platform with Administrator, Teacher, and Student modules — including offline/LAN exam support, theory marking with partial marks, broadsheets, item analysis, individual result slips.</li>
-  <li>Website CMS admin panel for news, gallery, calendar, contact details.</li>
-  <li>Question-bank templates (Excel and Word) with sample questions.</li>
-  <li>Bulk-import templates for student and staff accounts (Excel/CSV), with pilot accounts already loaded.</li>
-  <li>User manuals — Administrator/Management, Teacher, Student — in print and PDF.</li>
-  <li>Two hands-on training sessions at launch, plus one follow-up Q&amp;A during the support period.</li>
-  <li>One completed pilot exam cycle with the agreed pilot class before sign-off.</li>
-  <li>Credentials and access handover: admin login, domain/DNS, hosting dashboard, and source-code arrangements per the final contract.</li>
-  <li>Three months of post-launch technical support (bug fixes, minor adjustments, incident response during school hours).</li>
-</ol>
-
-<h2>8. Roles and Responsibilities</h2>
-<p><strong>Developer (Adewuyi Adeyemi Reuben):</strong></p>
-<ul>
-  <li>Design, develop, test, deploy, and document the website and CBT platform as described.</li>
-  <li>Provide agreed hosting/domain/infrastructure setup for the first year as itemised in Section 9.</li>
-  <li>Configure backups, monitoring, and transactional email/WhatsApp messaging.</li>
-  <li>Deliver training sessions and user manuals.</li>
-  <li>Provide post-launch support for 3 months from go-live.</li>
-  <li>Treat all school data as confidential.</li>
-</ul>
-<p><strong>FAMEX Model School:</strong></p>
-<ul>
-  <li>Provide logo, photographs, text content (history, vision/mission, proprietor message, calendar, admissions text, staff profiles as available), and existing prospectus materials in electronic form.</li>
-  <li>Nominate <strong>one designated point of contact</strong> authorised to give approvals, provide content, and coordinate training.</li>
-  <li>Provide student and staff lists in Excel/CSV or the provided template at the start of Phase 4.</li>
-  <li>Make the computer lab or a set of student devices available for pilot testing and training.</li>
-  <li>Provide domain preference (e.g., famexmodelschool.edu.ng) and the official school email/WhatsApp line to be used on the website.</li>
-  <li>Provide timely feedback and sign-off at each milestone (≤ 3 working days per review).</li>
-  <li>Assign a staff member to be trained as the internal "super-user" for day-to-day content updates and first-line support.</li>
-</ul>
-</section>
-
-<section class="page">
-<h2>9. Investment</h2>
-<table class="investment">
-  <tbody>
-    <tr><td>Render (Backend hosting)</td><td>#400,000</td></tr>
-    <tr><td>Watsap business message credit</td><td>#200,000</td></tr>
-    <tr><td>Domain registration</td><td>#150,000</td></tr>
-    <tr><td>DB back up &amp; file storage</td><td>#150,000</td></tr>
-    <tr><td>Monitoring transaction email</td><td>#100,000</td></tr>
-    <tr><td>Workmanship</td><td>#750,000</td></tr>
-    <tr class="total"><td>TOTAL.</td><td>#1,750,000:00</td></tr>
-  </tbody>
-</table>
-<p><strong>Optional recurring costs after the support period:</strong> annual hosting and domain renewal, and a maintenance and support plan (monthly or termly).</p>
-<div class="schedule">
-  <strong>Suggested payment schedule:</strong> 50% on approval of the proposal; 30% on completion of development and testing; 20% on launch and handover.
-</div>
-
-<h2>10. Benefits to the School</h2>
-<div class="benefit-block">
-  <h3>To the Proprietor and Management</h3>
-  <ul>
-    <li>A professional online identity that builds trust with parents and supports admission drives.</li>
-    <li>Direct visibility into academic performance — by class, subject, and question — without waiting for paper collation.</li>
-    <li>A defensible audit trail: every sitting, answer, mark, and login is logged and retrievable.</li>
-    <li>A platform that grows with the school; future phases (parent portal, online fees, attendance) extend the same system rather than replacing it.</li>
-    <li>Reduced reliance on any single staff member's personal spreadsheet or paper record.</li>
-  </ul>
-</div>
-<div class="benefit-block">
-  <h3>To Teachers</h3>
-  <ul>
-    <li>Dramatically reduced marking load for objective papers — scripts graded at submission time.</li>
-    <li>Faster, more consistent theory marking: one question at a time across every script, with partial-mark shortcuts and auto-totalling on finalise.</li>
-    <li>Reusable question bank — a good question set once and reused across terms/mocks with shuffle.</li>
-    <li>Bulk upload from Word/Excel means teachers do not retype existing questions.</li>
-    <li>Item analysis highlights questions that are too easy, too hard, or ambiguous — improving future teaching and question setting.</li>
-  </ul>
-</div>
-<div class="benefit-block">
-  <h3>To Students</h3>
-  <ul>
-    <li>Early, repeated CBT exposure reduces anxiety and builds competence for JAMB, WAEC, and NECO.</li>
-    <li>Fairer sittings: randomised questions/options reduce copying; auto-submit removes time disputes.</li>
-    <li>No lost answers: auto-save and resume behaviour means a power cut or crash does not cost a student their paper.</li>
-    <li>Faster feedback: objective results immediately where the school allows; theory results sooner because marking is faster.</li>
-    <li>Practice mode supports self-directed revision using questions the school has already set.</li>
-  </ul>
-</div>
-<div class="benefit-block">
-  <h3>To Parents</h3>
-  <ul>
-    <li>A website they can share with relatives and that gives them confidence in their school choice.</li>
-    <li>Clear public information on admissions, calendar, and contact channels — fewer routine calls to the front desk.</li>
-    <li>(Future phase) Parent-facing portal for results and announcements, built on the same platform.</li>
-  </ul>
-</div>
-<div class="benefit-block">
-  <h3>Operationally</h3>
-  <ul>
-    <li>Elimination of per-exam printing, answer-booklet, and collation costs, which recur every term across every class.</li>
-    <li>Reduced staff overtime spent on manual marking and result compilation.</li>
-    <li>Lower risk of result errors that damage reputation and require costly re-issuance.</li>
-    <li>A platform paid for once (plus modest recurring hosting) rather than a per-student, per-term SaaS fee that grows with the school.</li>
-  </ul>
-</div>
-
-<h2>11. Risk Management</h2>
-<table>
-  <thead><tr><th style="width:28%">Risk</th><th style="width:18%">Impact</th><th>Mitigation</th></tr></thead>
-  <tbody>
-    <tr><td>Unreliable internet during exam sittings</td><td>Disruption to start/submit</td><td>Offline/LAN deployment mode; fully offline runner with local auto-save and automatic sync on reconnection; exam packages pre-downloadable before the sitting begins.</td></tr>
-    <tr><td>Power interruption mid-exam</td><td>Device shutdown; potential loss</td><td>Answers auto-save on every selection; resume-where-you-stopped restores position, answers, and remaining time; school advised to have UPS/backup generator for major sittings.</td></tr>
-    <tr><td>Device or browser crash</td><td>Student ejected from exam</td><td>Same resume behaviour as above; one-active-session rule allows the student to log back in on the same device without admin intervention.</td></tr>
-    <tr><td>Data loss</td><td>Loss of records/results</td><td>Automated daily DB backups (retained 30 days); backups stored separately from the application server; one-click export of results to Excel/PDF at any time.</td></tr>
-    <tr><td>Staff unfamiliarity</td><td>Slow adoption</td><td>Hands-on training for teachers/admins/students before launch; printed quick-start guides; internal super-user; 3 months of phone/WhatsApp/email support.</td></tr>
-    <tr><td>Delays in content/data supply</td><td>Timeline slip</td><td>Agreed content deadlines shared in Phase 1; single point of contact; templates provided for every data item.</td></tr>
-    <tr><td>Examination malpractice</td><td>Compromised results</td><td>Shuffled questions and options per student; one active session per account; audit logs; optional LAN-only restriction during sittings; answer keys never sent to client devices; late submissions flagged for review.</td></tr>
-    <tr><td>Security breach / unauthorised access</td><td>Data leak / altered results</td><td>Role-based access; encrypted passwords; HTTPS everywhere; standard web-attack protections; no answer keys on client; activity logs for admin actions.</td></tr>
-    <tr><td>Developer unavailability after handover</td><td>Platform stuck</td><td>Built on standard, widely documented web technologies; full source code and credentials handed over at launch; documentation and manuals provided; optional annual maintenance retainer.</td></tr>
-    <tr><td>Scope creep</td><td>Delays and budget pressure</td><td>Written scope in this proposal; out-of-scope changes quoted and approved separately in writing, with timeline impact stated.</td></tr>
-  </tbody>
-</table>
-
-<h2>12. About the Developer</h2>
-<p>Adewuyi Adeyemi Reuben is an educator with a Higher National Diploma (HND) in Accounting and direct classroom experience teaching Financial Accounting, Economics, Government, Civic Education, and Business Studies across JSS 1 to SS 3. That teaching background is central to this proposal: the CBT is designed around how teachers actually set questions (subject-by-subject, topic-by-topic, with images and tabular material for accounts and economics) and how students actually experience an exam hall (anxiety, the need for a clear timer, the consequences of a device dying mid-paper).</p>
-<p>The design priorities — offline reliability, one-question-at-a-time theory marking, resume-after-interruption, no answer keys on student devices, item analysis for teachers — all come from classroom observation of what goes wrong during paper exams and what makes teachers resist or embrace a digital system. The website is designed with the same practical bias: parents find what they need in under a minute; school staff update news and gallery photos without calling a developer; enquiries actually reach someone responsible.</p>
-<p>References from schools currently using the platform (or earlier deployments) are available on request.</p>
-
-<h2>13. Terms and Conditions</h2>
-<ol>
-  <li>This proposal is valid for <strong>30 days</strong> from the date stated on the cover.</li>
-  <li>Work commences on <strong>written approval</strong> (signed proposal or formal email approval) and <strong>receipt of the first payment</strong> as set out in Section 9.</li>
-  <li>All intellectual property in the school's content (logo, photos, text, prospectus, questions, student data) remains with FAMEX Model School at all times.</li>
-  <li>All student and staff data will be treated as confidential, stored securely, used only for purposes connected with school operations, and never shared with third parties except as required by law or with written school approval.</li>
-  <li>The developer will provide credentials and access to all systems (hosting, domain, admin accounts) as part of handover.</li>
-  <li>Changes requested by the school that fall outside the scope in Section 4 will be quoted separately in writing (cost + timeline impact) and commenced only on written approval.</li>
-  <li>Timelines assume timely feedback and content supply; delays caused by the school awaiting content/sign-off extend the timeline commensurately.</li>
-  <li>The 3-month support period covers bug fixes and minor adjustments only; new features or major changes are scoped separately.</li>
-  <li>Hosting, domain, WhatsApp credit, backup, monitoring, and email costs in Section 9 cover the first year of operation; renewal terms will be communicated ahead of renewal date.</li>
-  <li>A formal contract / letter of engagement will be signed before commencement, incorporating this proposal as the statement of work.</li>
-  <li>Either party may terminate for material breach with 14 days' written notice, with payment for work completed up to the date of termination.</li>
-  <li>The school may use the platform for its own educational purposes without restriction; resale or commercial licensing to other schools requires a separate agreement.</li>
-</ol>
-
-<h2>14. Approval</h2>
-<p>By signing below, FAMEX Model School accepts this proposal and authorises the work to begin on the terms set out above.</p>
-
-<div class="sig no-break">
-  <div class="box">
-    <strong>For FAMEX Model School</strong>
-    <span class="label">Name</span>
-    <span class="label">Position</span>
-    <span class="label">Signature</span>
-    <span class="label">Date</span>
-  </div>
-  <div class="box">
-    <strong>Developer</strong>
-    <div style="margin-top:4mm">Adewuyi Adeyemi Reuben</div>
-    <span class="label">Signature</span>
-    <span class="label">Date</span>
-  </div>
-</div>
-
-<p class="thanks">Thank you for considering this proposal. I would welcome the opportunity to meet with the proprietor and management of FAMEX Model School to walk through the platform, answer questions, and agree the next steps.</p>
-</section>
-
-</body>
+      <p class="thanks">
+        Thank you for considering this proposal. I would welcome the opportunity to meet with the
+        proprietor and management of FAMEX Model School to walk through the platform, answer
+        questions, and agree the next steps.
+      </p>
+    </section>
+  </body>
 </html>

@@ -75,7 +75,6 @@ function getDb() {
       await addCol("syncStatus", "TEXT NOT NULL DEFAULT 'LOCAL'");
       await addCol("lastError", "TEXT");
       await addCol("forceSubmitted", "INTEGER NOT NULL DEFAULT 0");
-      `);
       return db;
     })();
   }
@@ -113,7 +112,6 @@ export interface OfflinePackage {
 
 export async function saveOfflinePackage(pkg: OfflinePackage): Promise<{ alreadyStarted: boolean; attemptId: string | null }> {
   const db = await getDb();
-  let attemptRow: { attemptId: string } | null = null;
   await db.withTransactionAsync(async () => {
     await db.runAsync(
       `INSERT OR REPLACE INTO offline_exams (examId, payloadJson, downloadedAt) VALUES (?, ?, ?)`,
@@ -141,12 +139,11 @@ export async function saveOfflinePackage(pkg: OfflinePackage): Promise<{ already
         new Date(pkg.attempt.startedAt).getTime(),
         new Date(pkg.attempt.deadlineAt).getTime(),
       );
-      attemptRow = { attemptId: pkg.attempt.id };
     }
   });
   return {
     alreadyStarted: !!pkg.attempt,
-    attemptId: attemptRow?.attemptId ?? null,
+    attemptId: pkg.attempt?.id ?? null,
   };
 }
 

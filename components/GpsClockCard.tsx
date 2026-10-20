@@ -22,7 +22,13 @@ type Props = {
   onClocked: () => void;
 };
 
-export default function GpsClockCard({ endpoint, fence, currentStatus, lateCutoff, onClocked }: Props) {
+export default function GpsClockCard({
+  endpoint,
+  fence,
+  currentStatus,
+  lateCutoff,
+  onClocked,
+}: Props) {
   const { toast } = useToast();
   const gps = useGps(fence);
   const [busy, setBusy] = useState(false);
@@ -36,8 +42,7 @@ export default function GpsClockCard({ endpoint, fence, currentStatus, lateCutof
 
   const radiusM = fence.radiusM ?? 100;
   const inRange = gps.reading !== null && gps.distanceM <= radiusM;
-  const readingFresh =
-    gps.reading !== null && Date.now() - gps.reading.capturedAt < 60_000;
+  const readingFresh = gps.reading !== null && Date.now() - gps.reading.capturedAt < 60_000;
 
   const refresh = useCallback(() => {
     void gps.getPosition().catch(() => {});
@@ -171,26 +176,22 @@ export default function GpsClockCard({ endpoint, fence, currentStatus, lateCutof
           <p className="text-sm text-[var(--text-muted)]">
             Tap <b>Get location</b> to verify you&apos;re on the school premises.
             {gps.permissionState === "denied" && (
-              <>
-                {" "}Location permission is denied — allow it in your browser settings.
-              </>
+              <> Location permission is denied — allow it in your browser settings.</>
             )}
           </p>
         ) : (
           <div className="grid gap-2 text-sm sm:grid-cols-3">
             <StatusCell
               label="Distance"
-              value={
-                gps.distanceM === Number.POSITIVE_INFINITY
-                  ? "—"
-                  : `${gps.distanceM} m`
-              }
+              value={gps.distanceM === Number.POSITIVE_INFINITY ? "—" : `${gps.distanceM} m`}
               tone={inRange ? "good" : "bad"}
             />
             <StatusCell
               label="Accuracy"
               value={`±${Math.round(gps.reading.accuracyM)} m`}
-              tone={gps.reading.accuracyM <= 50 ? "good" : gps.reading.accuracyM <= 100 ? "warn" : "bad"}
+              tone={
+                gps.reading.accuracyM <= 50 ? "good" : gps.reading.accuracyM <= 100 ? "warn" : "bad"
+              }
             />
             <StatusCell
               label="Status"
@@ -213,7 +214,9 @@ export default function GpsClockCard({ endpoint, fence, currentStatus, lateCutof
           {lastResult.action === "CHECK_IN" ? "Checked in" : "Checked out"} at{" "}
           {new Date(lastResult.at).toLocaleTimeString()}
           {lastResult.isLate ? ` · late +${lastResult.lateMinutes}m` : ""}
-          {typeof lastResult.distanceM === "number" ? ` · ${lastResult.distanceM} m from center` : ""}
+          {typeof lastResult.distanceM === "number"
+            ? ` · ${lastResult.distanceM} m from center`
+            : ""}
         </div>
       )}
 
@@ -250,11 +253,7 @@ function StatusCell({
   tone: "good" | "bad" | "warn";
 }) {
   const color =
-    tone === "good"
-      ? "text-brand-green"
-      : tone === "bad"
-        ? "text-red-500"
-        : "text-brand-orange";
+    tone === "good" ? "text-brand-green" : tone === "bad" ? "text-red-500" : "text-brand-orange";
   return (
     <div className="rounded-xl bg-[var(--surface-disabled)] p-3">
       <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">

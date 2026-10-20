@@ -17,10 +17,12 @@ export const AssetSchema = z.object({
 export type Asset = z.infer<typeof AssetSchema>;
 
 export const listAssets = (schoolId: string) => listRecords<Asset>(schoolId, MODULE);
-export const addAsset = (schoolId: string, data: unknown) => createRecord(schoolId, MODULE, AssetSchema, data);
+export const addAsset = (schoolId: string, data: unknown) =>
+  createRecord(schoolId, MODULE, AssetSchema, data);
 export const updateAsset = (schoolId: string, id: string, patch: unknown) =>
   updateRecord(schoolId, MODULE, AssetSchema, id, patch);
-export const removeAsset = (schoolId: string, id: string) => deleteRecord<Asset>(schoolId, MODULE, id);
+export const removeAsset = (schoolId: string, id: string) =>
+  deleteRecord<Asset>(schoolId, MODULE, id);
 
 const LOG_MODULE = "inventory_movements";
 const MovementSchema = z.object({

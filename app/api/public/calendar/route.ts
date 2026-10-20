@@ -18,29 +18,29 @@ export async function GET() {
   const h = await headers();
   const host = h.get("x-forwarded-host") || h.get("host");
   const resolved = await resolveTenantFromHost(host);
-  if (!resolved?.school) return NextResponse.json({ terms: [], events: [] });
+  if (!resolved?.tenant) return NextResponse.json({ terms: [], events: [] });
 
   const currentSession = await prisma.academicSession.findFirst({
-    where: { schoolId: resolved.school.id, isActive: true },
-    select: { id: true, name: true },
+    where: { schoolId: resolved.tenant.id, isCurrent: true },
+    select: { id: true, label: true },
   });
 
   if (!currentSession) return NextResponse.json({ terms: [], events: [] });
 
   const terms = await prisma.term.findMany({
-    where: { academicSessionId: currentSession.id },
-    select: { name: true, startsAt: true, endsAt: true },
-    orderBy: { startsAt: "asc" },
+    where: { sessionId: currentSession.id },
+    select: { label: true, startsOn: true, endsOn: true },
+    orderBy: { index: "asc" },
   });
 
   // NewsPosts that are public and dated within this session act as public events.
   const events = await prisma.newsPost.findMany({
     where: {
-      schoolId: resolved.school.id,
+      schoolId: resolved.tenant.id,
       isPublished: true,
       publishedAt: {
-        gte: terms[0]?.startsAt ?? new Date(Date.now() - 30 * 86400_000),
-        lte: terms[terms.length - 1]?.endsAt ?? new Date(Date.now() + 365 * 86400_000),
+        gte: terms[0]?.startsOn ?? new Date(Date.now() - 30 * 86400_000),
+        lte: terms[terms.length - 1]?.endsOn ?? new Date(Date.now() + 365 * 86400_000),
       },
     },
     select: { id: true, title: true, slug: true, publishedAt: true, category: true },
@@ -49,11 +49,11 @@ export async function GET() {
   });
 
   return NextResponse.json({
-    session: currentSession.name,
+    session: currentSession.label,
     terms: terms.map((t) => ({
-      name: t.name,
-      startsAt: t.startsAt?.toISOString() ?? null,
-      endsAt: t.endsAt?.toISOString() ?? null,
+      name: t.label,
+      startsAt: t.startsOn?.toISOString() ?? null,
+      endsAt: t.endsOn?.toISOString() ?? null,
     })),
     events: events.map((e) => ({
       id: e.id,
