@@ -28,6 +28,30 @@ COPY . .
 # Generate Prisma client
 RUN npx prisma generate
 
+# Public (NEXT_PUBLIC_*) configuration is inlined into the client bundle at
+# BUILD time — a value set only in the container's runtime environment never
+# reaches the browser (the APK download button, browser Sentry DSN and
+# analytics domain all read these from client components; see lib/apk.ts).
+# They are public by definition, so they arrive as build args:
+# CI passes them from GitHub repo Variables, and a VM-local build passes them
+# from deploy/oci/.env via docker-compose `args:`. A prebuilt image pulled
+# without them still boots (server-side reads use the runtime env), but
+# browser-facing links fall back to their unconfigured states.
+ARG NEXT_PUBLIC_SITE_URL=""
+ARG NEXT_PUBLIC_APK_URL=""
+ARG NEXT_PUBLIC_APK_FALLBACK_URL=""
+ARG NEXT_PUBLIC_APK_SIZE=""
+ARG NEXT_PUBLIC_SENTRY_DSN=""
+ARG NEXT_PUBLIC_PLAUSIBLE_DOMAIN=""
+ARG NEXT_PUBLIC_SHOW_DEMO_BADGE=""
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
+    NEXT_PUBLIC_APK_URL=$NEXT_PUBLIC_APK_URL \
+    NEXT_PUBLIC_APK_FALLBACK_URL=$NEXT_PUBLIC_APK_FALLBACK_URL \
+    NEXT_PUBLIC_APK_SIZE=$NEXT_PUBLIC_APK_SIZE \
+    NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN \
+    NEXT_PUBLIC_PLAUSIBLE_DOMAIN=$NEXT_PUBLIC_PLAUSIBLE_DOMAIN \
+    NEXT_PUBLIC_SHOW_DEMO_BADGE=$NEXT_PUBLIC_SHOW_DEMO_BADGE
+
 # Build Next.js
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
@@ -49,9 +73,18 @@ RUN npm run build
 # W1: the EDUos platform super-admin seed (seed-super-admin.ts) was stripped with
 # the cross-tenant console (F0-27). A single-school Famex install provisions its
 # first ADMIN through the school seed / first-run wizard, not a platform super
-# admin. Only the shared CBT bank seed is bundled at boot.
+# admin. The shared CBT bank seed is the only bundle the entrypoint runs at
+# boot; the school's own initial-admin seed (prisma/seed.ts) is bundled below
+# purely so a first deploy can run it by hand inside the slim image.
 RUN npx esbuild prisma/cbt-seed.ts --bundle --platform=node --format=esm \
       --external:@prisma/client --outfile=/out-seeds/cbt-seed.mjs
+
+# The initial-admin seed is bundled for MANUAL one-shot use only
+# (`docker compose exec app node prisma/seed-admin.mjs` on first deploy —
+# see prisma/seed.ts for why it must never run at boot). It hashes with
+# bcryptjs, which — per the note above — must be inlined, not externalised.
+RUN npx esbuild prisma/seed.ts --bundle --platform=node --format=esm \
+      --external:@prisma/client --outfile=/out-seeds/seed-admin.mjs
 
 # Stage everything the Prisma CLI itself requires, derived from the lockfile.
 #

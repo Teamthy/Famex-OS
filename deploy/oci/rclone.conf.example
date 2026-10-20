@@ -1,0 +1,25 @@
+# rclone config for backup-offsite.sh — copy to ~/.config/rclone/rclone.conf
+# and fill in. Test with: rclone lsd offsite:
+#
+# ── Option 1: OCI Object Storage (20 GB Always Free, S3-compatible API) ─────
+# Create a PRIVATE bucket (e.g. "famex-backups") in the OCI console, then a
+# Customer Secret Key: Identity → Users → (your user) → Customer secret keys.
+# <namespace> is shown on the bucket details page; <region> is e.g.
+# af-johannesburg-1 or eu-frankfurt-1.
+[offsite]
+type = s3
+provider = Other
+access_key_id = REPLACE_ME
+secret_access_key = REPLACE_ME
+region = af-johannesburg-1
+endpoint = https://<namespace>.compat.objectstorage.af-johannesburg-1.oraclecloud.com
+acl = private
+
+# ── Option 2: Cloudflare R2 (10 GB free) — replace the block above ──────────
+# [offsite]
+# type = s3
+# provider = Cloudflare
+# access_key_id = REPLACE_ME
+# secret_access_key = REPLACE_ME
+# endpoint = https://<account-id>.r2.cloudflarestorage.com
+# acl = private

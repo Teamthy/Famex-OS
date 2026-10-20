@@ -1,7 +1,7 @@
 {
   "generatedAt": "2026-10-15T02:50:06.455Z",
   "totalFindings": 451,
-  "files": 147,
+  "files": 148,
   "allow": {
     "app/about/page.tsx": {
       "ykay": 5,
@@ -238,7 +238,10 @@
       "yk-virtual": 1
     },
     "lib/school.ts": {
-      "ykay": 4,
+      "ykay": 1
+    },
+    "lib/school-defaults.ts": {
+      "ykay": 3,
       "leadership-academy": 1
     },
     "lib/session.ts": {
