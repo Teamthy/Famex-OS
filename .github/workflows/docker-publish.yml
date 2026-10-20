@@ -20,6 +20,12 @@ name: Docker Publish
 #
 # Requires the GITHUB_TOKEN (built in) to have read/write packages permission —
 # enabled by default for the repository's Actions. No extra secrets needed.
+#
+# The image is multi-arch (linux/amd64 + linux/arm64) so the same tag runs on
+# a generic VPS and on OCI's ARM Ampere instances (deploy/oci/). Public
+# NEXT_PUBLIC_* browser config is baked in from repo Variables — set them
+# under Settings → Secrets and variables → Actions → Variables (see the
+# build-args list below and docs/OCI-HOSTING.md §2).
 
 on:
   # NOTE: `branches` filters the *source* workflow's ref, not this one.
@@ -90,9 +96,30 @@ jobs:
         with:
           context: .
           push: true
+          # Multi-arch: amd64 for generic VPS/Render, arm64 for OCI Ampere A1
+          # (the Always Free shape — an amd64-only image dies there with
+          # "exec format error"). The arm64 build runs under QEMU, so first
+          # builds are slow; the gha cache keeps later ones bearable.
+          # Per-platform correctness matters here: Prisma engines and sharp
+          # are platform binaries fetched during `npm ci`, so each platform
+          # must build its own layers rather than sharing one build's output.
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          # NEXT_PUBLIC_* values are inlined at build time (see Dockerfile).
+          # They are public, so they come from repo *Variables* (Settings →
+          # Secrets and variables → Actions → Variables), never Secrets.
+          # Unset variables build an unbranded browser bundle; the server
+          # still reads the runtime environment for everything server-side.
+          build-args: |
+            NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}
+            NEXT_PUBLIC_APK_URL=${{ vars.NEXT_PUBLIC_APK_URL }}
+            NEXT_PUBLIC_APK_FALLBACK_URL=${{ vars.NEXT_PUBLIC_APK_FALLBACK_URL }}
+            NEXT_PUBLIC_APK_SIZE=${{ vars.NEXT_PUBLIC_APK_SIZE }}
+            NEXT_PUBLIC_SENTRY_DSN=${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+            NEXT_PUBLIC_PLAUSIBLE_DOMAIN=${{ vars.NEXT_PUBLIC_PLAUSIBLE_DOMAIN }}
+            NEXT_PUBLIC_SHOW_DEMO_BADGE=${{ vars.NEXT_PUBLIC_SHOW_DEMO_BADGE }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

@@ -1,0 +1,40 @@
+# Famex OS — Caddy reverse proxy for the OCI "public" ingress profile.
+# Automatic HTTPS via Let's Encrypt. Domain/email come from .env
+# (SITE_DOMAIN / ACME_EMAIL) through the compose environment.
+#
+# If DNS is proxied through Cloudflare (orange cloud), set Cloudflare's SSL
+# mode to "Full (Strict)" and issue the first certificate with the record on
+# DNS-only (grey cloud), then enable the proxy. Add the trusted-proxies block
+# below so the app sees real client IPs instead of Cloudflare's.
+
+{
+	email {$ACME_EMAIL}
+
+	# Uncomment when sitting behind Cloudflare's proxy:
+	# servers {
+	# 	trusted_proxies static 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+	# 	client_ip_headers Cf-Connecting-Ip X-Forwarded-For
+	# }
+}
+
+{$SITE_DOMAIN} {
+	encode zstd gzip
+
+	# Admission documents upload straight to object storage via presigned
+	# URLs, so nothing large should ever post here. Keep the cap modest.
+	request_body {
+		max_size 25MB
+	}
+
+	reverse_proxy app:3000
+
+	log {
+		output stdout
+		format console
+	}
+}
+
+# Optional: redirect www → apex (uncomment and set the real domain twice).
+# www.example.com {
+# 	redir https://example.com{uri} permanent
+# }

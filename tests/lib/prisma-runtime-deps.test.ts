@@ -543,14 +543,23 @@ describe("the boot seeds are self-contained", () => {
     .map((line) => line.trim())
     .filter((line) => line.includes("npx esbuild"));
 
-  it("bundles exactly the CBT boot seed", () => {
+  it("bundles the CBT boot seed and the manual initial-admin seed — nothing else", () => {
     // W1: the EDUos platform super-admin boot seed was stripped with the
     // cross-tenant console (F0-27). The shared CBT bank seed is the only bundle
-    // the entrypoint runs at boot, so there must be exactly one esbuild command
-    // and it must target prisma/cbt-seed.ts.
-    expect(seedCommands).toHaveLength(1);
+    // the entrypoint runs at boot. prisma/seed.ts (this school's OWN first
+    // ADMIN) is also bundled, but strictly for manual one-shot use on a first
+    // deploy — `docker compose exec app node prisma/seed-admin.mjs` — because
+    // the slim runner has no tsx. It must never be wired into the entrypoint:
+    // it resets the admin password on every run (see prisma/seed.ts).
+    expect(seedCommands).toHaveLength(2);
     expect(seedCommands.join("\n")).toContain("prisma/cbt-seed.ts");
+    expect(seedCommands.join("\n")).toContain("prisma/seed.ts");
+    expect(seedCommands.join("\n")).toContain("/out-seeds/seed-admin.mjs");
     expect(seedCommands.join("\n")).not.toContain("seed-super-admin");
+
+    const entrypoint = fs.readFileSync(path.join(REPO_ROOT, "docker-entrypoint.sh"), "utf8");
+    expect(entrypoint).toContain("cbt-seed.mjs");
+    expect(entrypoint).not.toContain("seed-admin");
   });
 
   it("still externalises @prisma/client, which needs the generated client at runtime", () => {

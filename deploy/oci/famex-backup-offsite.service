@@ -1,0 +1,12 @@
+[Unit]
+Description=Copy Famex OS database backups to offsite object storage
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Runs as the stack owner so it reads that user's rclone config
+# (~/.config/rclone/rclone.conf). Change if /opt/famex has another owner.
+User=ubuntu
+WorkingDirectory=/opt/famex
+ExecStart=/opt/famex/backup-offsite.sh

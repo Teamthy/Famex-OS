@@ -39,6 +39,9 @@ yarn-error.log*
 
 # Backups and scratch data
 _backups/
+# Database dumps written by the backup services (docker-compose.prod.yml,
+# deploy/oci/) — real student/payment data; must never be committed.
+backups/
 .data/
 screens/
 deliverables/

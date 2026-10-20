@@ -1,9 +1,10 @@
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { confirmedSchoolAddress } from "@/lib/school-address";
+import { schoolCreateDefaultsFromEnv, schoolSlugFromEnv } from "@/lib/school-defaults";
 import { resolveTenantFromHost } from "@/lib/tenant";
 
-const schoolSlug = process.env.SCHOOL_SLUG || "ykay-college";
+const schoolSlug = schoolSlugFromEnv();
 
 /**
  * Returns (and auto-creates/updates) the default school for single-tenant
@@ -14,24 +15,18 @@ const schoolSlug = process.env.SCHOOL_SLUG || "ykay-college";
  * this school directly — even before the platform has a domain.
  */
 export async function getSchool() {
-  const customDomain = process.env.SCHOOL_CUSTOM_DOMAIN?.trim() || undefined;
+  // Create-defaults live in lib/school-defaults.ts so the bundled first-admin
+  // seed (prisma/seed.ts) creates the row identically without importing this
+  // module's next/headers dependency.
+  const create = schoolCreateDefaultsFromEnv();
+  const { customDomain } = create;
 
   return prisma.school.upsert({
     where: { slug: schoolSlug },
     update: {
       ...(customDomain ? { customDomain } : {}),
     },
-    create: {
-      slug: schoolSlug,
-      subdomain: schoolSlug,
-      customDomain,
-      name: process.env.SCHOOL_NAME || "Ykay College & Leadership Academy",
-      // Empty until the school confirms it (School profile). Nothing is printed meanwhile.
-      address: process.env.SCHOOL_ADDRESS?.trim() || "",
-      phone: process.env.SCHOOL_PHONE || "+2347015374411",
-      email: process.env.SCHOOL_EMAIL || "info@ykaycollege.com",
-      motto: process.env.SCHOOL_MOTTO || "Raising Role Models",
-    },
+    create,
   });
 }
 
