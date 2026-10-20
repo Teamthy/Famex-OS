@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, ScrollView, TouchableOpacity, Alert, RefreshControl } from "react-native";
+import { View, ScrollView, TouchableOpacity, Alert, RefreshControl, AppState } from "react-native";
 import { useRouter } from "expo-router";
 import { studentApi } from "@/lib/api";
 import {
@@ -42,6 +42,11 @@ export default function OfflineExamsScreen() {
     const local = await listDownloadedExams();
     setDownloaded(local);
     setPending(await offlineAttemptCount());
+    // Try to sync any pending offline answers/exams if online.
+    import("@/lib/offline/sync")
+      .then((m) => m.syncOfflineExams())
+      .then(async () => setPending(await offlineAttemptCount()))
+      .catch(() => {});
     try {
       const list: any = await studentApi.exams();
       setServerExams(list.exams || list.upcoming || list || []);
@@ -53,6 +58,14 @@ export default function OfflineExamsScreen() {
     }
   }, []);
 
+  // Auto-sync on app foreground.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (s: string) => {
+      if (s === "active") void refresh();
+    });
+    return () => sub.remove();
+  }, [refresh]);
+
   useEffect(() => {
     void refresh();
   }, [refresh]);
@@ -61,6 +74,9 @@ export default function OfflineExamsScreen() {
     setDownloadingId(examId);
     try {
       const { saveOfflinePackage } = await import("@/lib/offline/exams");
+      // Pre-download without creating a server attempt — that happens when
+      // the student taps Start (so the exam timer doesn't tick during
+      // download the night before).
       const pkg = await studentApi.downloadOfflineExam(examId);
       await saveOfflinePackage(pkg);
       toast("Exam downloaded for offline use.", "success");

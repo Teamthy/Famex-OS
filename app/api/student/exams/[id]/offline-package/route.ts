@@ -11,23 +11,32 @@ export const dynamic = "force-dynamic";
  * Offline exam package.
  *
  * Returns questions WITHOUT correctKey/correctText so the device only stores
- * what the student needs to answer. The package is signed by including an
- * `offlineToken` (the attempt id — created here so the server can match a
- * later offline submission to it) and a deadline. Designed for pulling before
- * the student leaves for school on a spotty network.
+ * what the student needs to answer.
+ *
+ * Modes (controlled by ?createAttempt=):
+ *   default (false): package only — no server attempt created. The device
+ *     will create a local OFFLINE attempt when the student taps Start and
+ *     replay a POST to create the server-side attempt on sync. This is the
+ *     right mode for "download tonight, sit tomorrow morning" because the
+ *     exam duration clock doesn't start ticking until the student actually
+ *     opens the paper.
+ *
+ *   ?createAttempt=true: also provisions an IN_PROGRESS attempt (used when
+ *     the student explicitly clicks "Start offline" while online).
  *
  * Rules:
  * - Only PUBLISHED exams for this student's class.
  * - The exam must be within its sitting window or scheduled within 24 hours
  *   (pre-download allowance).
- * - One offline token per student per exam at a time; re-downloading reuses
- *   the existing IN_PROGRESS attempt (so progress isn't lost).
  */
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const url = new URL(req.url);
+  const createAttempt = url.searchParams.get("createAttempt") === "true";
+
   const user = await requireRole([UserRole.STUDENT]);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -64,7 +73,6 @@ export async function GET(
       availableUntil: true,
       shuffleQuestions: true,
       questions: {
-        where: {},
         select: {
           id: true,
           type: true,
@@ -79,28 +87,29 @@ export async function GET(
   });
   if (!exam) return NextResponse.json({ error: "Exam not available for offline download." }, { status: 404 });
 
-  // Retrieve or create the IN_PROGRESS attempt for this student so the device
-  // can sync answers against it later.
-  const existing = await prisma.examAttempt.findFirst({
-    where: { examId: exam.id, studentProfileId: profile.id, status: "IN_PROGRESS" },
-    select: { id: true, deadlineAt: true, startedAt: true },
-  });
-
-  let attempt: { id: string; deadlineAt: Date; startedAt: Date };
-  if (existing) {
-    attempt = existing;
-  } else {
-    const deadline = new Date(now.getTime() + exam.durationMinutes * 60 * 1000);
-    const created = await prisma.examAttempt.create({
-      data: {
-        examId: exam.id,
-        studentProfileId: profile.id,
-        deadlineAt: deadline,
-        status: "IN_PROGRESS",
-      },
+  // When explicitly requested, provision an IN_PROGRESS attempt now (timer
+  // starts). Otherwise return package with a null attempt — the device
+  // creates one locally on first Start.
+  let attempt: { id: string; startedAt: Date; deadlineAt: Date } | null = null;
+  if (createAttempt) {
+    const existing = await prisma.examAttempt.findFirst({
+      where: { examId: exam.id, studentProfileId: profile.id, status: "IN_PROGRESS" },
       select: { id: true, deadlineAt: true, startedAt: true },
     });
-    attempt = created;
+    if (existing) {
+      attempt = existing;
+    } else {
+      const deadline = new Date(now.getTime() + exam.durationMinutes * 60 * 1000);
+      attempt = await prisma.examAttempt.create({
+        data: {
+          examId: exam.id,
+          studentProfileId: profile.id,
+          deadlineAt: deadline,
+          status: "IN_PROGRESS",
+        },
+        select: { id: true, deadlineAt: true, startedAt: true },
+      });
+    }
   }
 
   return NextResponse.json({
@@ -118,12 +127,14 @@ export async function GET(
       availableUntil: exam.availableUntil?.toISOString() || null,
       shuffleQuestions: exam.shuffleQuestions,
     },
-    attempt: {
-      id: attempt.id,
-      startedAt: attempt.startedAt.toISOString(),
-      deadlineAt: attempt.deadlineAt.toISOString(),
-      secondsLeft: Math.max(0, Math.floor((attempt.deadlineAt.getTime() - now.getTime()) / 1000)),
-    },
+    attempt: attempt
+      ? {
+          id: attempt.id,
+          startedAt: attempt.startedAt.toISOString(),
+          deadlineAt: attempt.deadlineAt.toISOString(),
+          secondsLeft: Math.max(0, Math.floor((attempt.deadlineAt.getTime() - now.getTime()) / 1000)),
+        }
+      : null,
     questions: exam.questions.map((q) => ({
       id: q.id,
       type: q.type,

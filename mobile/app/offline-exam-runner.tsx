@@ -28,10 +28,13 @@ import { Button } from "@/src/components/buttons";
 import { bodyFont } from "@/src/theme/typography";
 import { studentApi } from "@/lib/api";
 import {
+  createLocalAttempt,
+  getActiveAttempt,
   getOfflineAnswers,
   getOfflineExam,
   markAttemptSubmitted,
   saveOfflineAnswer,
+  updateAttemptSync,
   type OfflinePackage,
   type OfflineQuestion,
 } from "@/lib/offline/exams";
@@ -59,6 +62,7 @@ export default function OfflineExamRunner() {
   const answersRef = useRef<Record<string, string>>({});
   const examIdRef = useRef(examId);
   const attemptIdRef = useRef("");
+  const serverAttemptIdRef = useRef<string | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -70,12 +74,54 @@ export default function OfflineExamRunner() {
         if (!p) throw new Error("This exam is not downloaded offline.");
         if (cancelled) return;
         setPkg(p);
-        attemptIdRef.current = p.attempt.id;
-        const stored = await getOfflineAnswers(p.attempt.id);
+
+        // If the package was pre-downloaded without a live attempt (common
+        // case — download the night before on Wi-Fi), create a local attempt
+        // now that the student has actually tapped Start.
+        let attemptId: string;
+        let deadlineAt: number;
+        let startedAt: number;
+        if (p.attempt) {
+          attemptId = p.attempt.id;
+          deadlineAt = new Date(p.attempt.deadlineAt).getTime();
+          startedAt = new Date(p.attempt.startedAt).getTime();
+        } else {
+          // Look for an existing active attempt for this exam (student may
+          // have started it previously).
+          const active = await getActiveAttempt(examId);
+          if (active) {
+            attemptId = active.attemptId;
+            deadlineAt = active.deadlineAt;
+            startedAt = Date.now(); // only used for display; deadline is authoritative
+          } else {
+            const created = await createLocalAttempt(examId);
+            attemptId = created.attemptId;
+            deadlineAt = created.deadlineAt;
+            startedAt = created.startedAt;
+            // Refresh pkg so the attempt is present in state.
+            const refreshed = await getOfflineExam(examId);
+            if (refreshed && !cancelled) setPkg(refreshed);
+          }
+        }
+        attemptIdRef.current = attemptId;
+        // If we already have a server-side attempt id (resync), use it for
+        // live saves; otherwise we'll discover one after the first sync.
+        const active = await getActiveAttempt(examId);
+        serverAttemptIdRef.current = active?.serverAttemptId ?? null;
+        const stored = await getOfflineAnswers(attemptId);
         setAnswers(stored);
         answersRef.current = stored;
-        setSecondsLeft(Math.max(0, Math.floor((new Date(p.attempt.deadlineAt).getTime() - Date.now()) / 1000)));
+        setSecondsLeft(Math.max(0, Math.floor((deadlineAt - Date.now()) / 1000)));
         setPhase("running");
+        // Kick off a sync in the background to register the server-side
+        // attempt if we started offline and just regained connectivity.
+        import("@/lib/offline/sync")
+          .then((m) => m.syncOfflineExams())
+          .then(async () => {
+            const refreshed = await getActiveAttempt(examId);
+            if (refreshed?.serverAttemptId) serverAttemptIdRef.current = refreshed.serverAttemptId;
+          })
+          .catch(() => {});
       } catch (e) {
         if (cancelled) return;
         setError(e instanceof Error ? e.message : "Couldn't start offline exam.");
@@ -154,14 +200,15 @@ export default function OfflineExamRunner() {
 
   async function doSave() {
     if (!pkg || !attemptIdRef.current) return;
+    const targetId = serverAttemptIdRef.current ?? attemptIdRef.current;
     try {
       await studentApi.saveExam(
         pkg.exam.id,
-        attemptIdRef.current,
+        targetId,
         Object.entries(answersRef.current).map(([questionId, response]) => ({ questionId, response })),
       );
     } catch {
-      /* offline queue will hold it */
+      /* saveExam goes through apiQueued which writes to the offline queue on failure */
     }
   }
 
@@ -176,17 +223,25 @@ export default function OfflineExamRunner() {
           saveOfflineAnswer(attemptIdRef.current, qId, val),
         ),
       );
-      await studentApi.submitExam(
-        pkg.exam.id,
-        attemptIdRef.current,
-        Object.entries(answersRef.current).map(([questionId, response]) => ({ questionId, response })),
-      );
+      // Mark local SUBMITTED state immediately so the UI locks.
       await markAttemptSubmitted(attemptIdRef.current);
+
+      // Attempt to save/submit to server. apiQueued works both online and
+      // offline: online it PATCHes immediately; offline it queues for replay.
+      const answers = Object.entries(answersRef.current).map(([questionId, response]) => ({
+        questionId,
+        response,
+      }));
+      try {
+        await studentApi.saveExam(pkg.exam.id, attemptIdRef.current, answers);
+        await studentApi.submitExam(pkg.exam.id, attemptIdRef.current, answers);
+      } catch {
+        /* offline — answers remain queued */
+      }
+
       haptic("success");
       setPhase("done");
     } catch (e) {
-      // If submission fails (offline), mark as "saved offline" — the queue
-      // will replay it when connectivity returns.
       setPhase("done");
       toast("Answers saved offline. Will submit automatically when online.", "warning");
     } finally {
@@ -228,10 +283,13 @@ export default function OfflineExamRunner() {
       <View style={{ flex: 1, backgroundColor: colors.background.primary, justifyContent: "center", alignItems: "center", padding: spacing.lg }}>
         <CheckCircle2 size={56} color={colors.success} />
         <H2 style={{ marginTop: spacing.md }}>{submitting ? "Submitting…" : "Exam finished"}</H2>
-        <Body style={{ textAlign: "center", marginTop: spacing.xs }}>
+        <Body style={{ textAlign: "center", marginTop: spacing.xs, maxWidth: 360 }}>
           {submitting
             ? "Sending your answers to the server…"
-            : "Your answers are saved. If you were offline, they will upload automatically when you reconnect."}
+            : "Your answers are locked and saved on this device. If you're online they're on the server now; if you're offline they will upload automatically the moment you reconnect — no further action needed."}
+        </Body>
+        <Body style={{ textAlign: "center", marginTop: spacing.sm, color: colors.text.muted, maxWidth: 340 }}>
+          You can close the app safely. Your paper is stored locally until the server confirms receipt.
         </Body>
         <Button variant="primary" size="lg" style={{ marginTop: spacing.xxl }} onPress={() => router.replace("/offline-exams")}>
           Back to offline CBT

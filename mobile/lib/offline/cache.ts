@@ -4,6 +4,19 @@
  */
 import { API_BASE, fetchOptions, authHeaders, notifyAuthExpired } from "@/lib/http";
 import { addQueue, getCache, getQueue, removeQueue, setCache, queueCount } from "./db";
+// Queued-write flush also triggers the offline-exam sync engine. Importing
+// it lazily avoids a cycle at module init time.
+let examSyncScheduled = false;
+function scheduleExamSync() {
+  if (examSyncScheduled) return;
+  examSyncScheduled = true;
+  setTimeout(() => {
+    examSyncScheduled = false;
+    import("@/lib/offline/sync")
+      .then((m) => m.syncOfflineExams())
+      .catch(() => {});
+  }, 1500);
+}
 
 // ── Online state (inferred) ──────────────────────────────────────────────
 let online = true;
@@ -63,13 +76,17 @@ export async function queuedWrite<T = unknown>(
   path: string,
   method: string,
   body: unknown,
+  headers: Record<string, string> = {},
 ): Promise<T> {
   let res: Response;
+  const finalHeaders = { ...(await authHeaders()), ...headers };
+  // Ensure exam submits carry an idempotency key even when queued, so replays
+  // don't double-submit the paper.
   try {
     res = await fetch(`${API_BASE}${path}`, {
       ...fetchOptions,
       method,
-      headers: await authHeaders(),
+      headers: finalHeaders,
       body: JSON.stringify(body ?? {}),
     });
   } catch {
@@ -84,6 +101,7 @@ export async function queuedWrite<T = unknown>(
   if (!res.ok) throw new Error((data as { error?: string } | null)?.error || "Request failed");
 
   void flushQueue();
+  scheduleExamSync();
   return data as T;
 }
 
@@ -120,6 +138,7 @@ export async function flushQueue(): Promise<void> {
       }
     }
     await refreshPending();
+    scheduleExamSync();
   } finally {
     flushing = false;
   }
