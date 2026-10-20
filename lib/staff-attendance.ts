@@ -355,7 +355,7 @@ export async function recordStaffGpsClock(input: StaffGpsClockInput) {
     },
   });
 
-  return {
+  const result = {
     event: {
       id: event.id,
       eventType: event.eventType,
@@ -397,6 +397,8 @@ export async function recordStaffGpsClock(input: StaffGpsClockInput) {
       message: `[Famex] ${actionLabel} at ${timeStr}${event.isLate ? ` · LATE +${event.lateMinutes}m` : ""} · ${check.distanceM} m from school. Keep this as proof.`,
     }).catch(() => {});
   }
+
+  return result;
 }
 
 export function hashDedupe(...parts: string[]) {

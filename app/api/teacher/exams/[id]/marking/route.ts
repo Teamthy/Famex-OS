@@ -56,7 +56,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       status: { in: [ExamAttemptStatus.SUBMITTED, ExamAttemptStatus.GRADED] },
     },
     include: {
-      studentProfile: { select: { displayName: true, studentId: true } },
+      studentProfile: { select: { id: true, displayName: true, studentId: true } },
       answers: { include: { question: true } },
     },
     orderBy: { studentProfile: { displayName: "asc" } },
@@ -152,14 +152,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     include: { question: true, attempt: true },
   });
   const perAnswerCap = new Map(
-    answers.map((a) => [a.id, { attemptId: a.attemptId, maxMarks: a.question.marks }]),
+    answers.map((a) => [
+      a.id,
+      { attemptId: a.attemptId, examId: a.attempt.examId, maxMarks: a.question.marks },
+    ]),
   );
 
   for (const m of body.marks) {
     const cap = perAnswerCap.get(m.answerId);
     if (!cap)
       return NextResponse.json({ error: `Answer ${m.answerId} not found.` }, { status: 404 });
-    if (cap.attempt.examId !== id)
+    if (cap.examId !== id)
       return NextResponse.json({ error: "Answer does not belong to this exam." }, { status: 403 });
     if (m.awardedMarks > cap.maxMarks) {
       return NextResponse.json(

@@ -137,11 +137,12 @@ jobs:
         # The policy stays fail-open until this list is empty — then flip the
         # RLS policies to fail-closed and add --strict here.
         #
-        # The `--max-uncovered 18` ratchet IS enforcing: it fails if a new
+        # The `--max-uncovered 14` ratchet IS enforcing: it fails if a new
         # tenant route lands without a schoolId filter, so the list can only
-        # shrink. Baseline measured 2026-09-07 at commit a222c48. Lower it as
-        # routes are fixed. See docs/TENANCY_RLS_STATUS.md.
-        run: npm run check:tenant-coverage -- --max-uncovered 18
+        # shrink. Baseline measured 2026-09-07 at commit a222c48 (18), and
+        # re-measured at 14 on 2026-10-20. Lower it as routes are fixed. See
+        # docs/TENANCY_RLS_STATUS.md.
+        run: npm run check:tenant-coverage -- --max-uncovered 14
 
       - name: Verify admissions operations loop
         run: npm run verify:admissions

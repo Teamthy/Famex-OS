@@ -29,13 +29,13 @@ export async function GET() {
       classAssignments: {
         take: 1,
         select: {
-          schoolClass: { select: { displayName: true } },
-          subject: { select: { name: true } },
+          classroom: { select: { displayName: true } },
+          subjectName: true,
         },
       },
       gradebooks: {
         take: 4,
-        select: { subject: { select: { name: true } } },
+        select: { subjectName: true },
       },
     },
     orderBy: { displayName: "asc" },
@@ -45,15 +45,15 @@ export async function GET() {
   return NextResponse.json({
     staff: teachers.map((t) => {
       const subjects = new Set<string>();
-      for (const c of t.classAssignments) if (c.subject?.name) subjects.add(c.subject.name);
-      for (const g of t.gradebooks) if (g.subject?.name) subjects.add(g.subject.name);
+      for (const c of t.classAssignments) if (c.subjectName) subjects.add(c.subjectName);
+      for (const g of t.gradebooks) if (g.subjectName) subjects.add(g.subjectName);
       return {
         id: t.id,
         name: t.displayName,
         title: t.roleLabel || "Teaching Staff",
         photoUrl: t.photoUrl || null,
         subjects: Array.from(subjects),
-        className: t.classAssignments[0]?.schoolClass.displayName || null,
+        className: t.classAssignments[0]?.classroom.displayName || null,
       };
     }),
   });

@@ -57,3 +57,8 @@ ALTER TABLE "StudentClockEvent"
     FOREIGN KEY ("schoolId") REFERENCES "School"("id") ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT "StudentClockEvent_studentProfileId_fkey"
     FOREIGN KEY ("studentProfileId") REFERENCES "StudentProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- 4. 20261016120000_gps_clockin also created StudentClockEvent without the
+--    tenant RLS policies every other schoolId table carries (the
+--    verify:rls:coverage gate). Apply the standard helper.
+SELECT eduos_apply_tenant_rls('StudentClockEvent');
