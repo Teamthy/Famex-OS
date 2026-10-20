@@ -17,6 +17,12 @@
 --      (it scans the student's recent attempts in memory), so the value is
 --      promoted to a real indexed column instead: same lookup, now modelled.
 --
+--   3. 20261016120000_gps_clockin created the StudentClockEvent foreign keys
+--      by hand without ON UPDATE CASCADE. Every Prisma-generated FK carries
+--      it (it is Prisma's default referential action), so the diff kept
+--      proposing to recreate both constraints. Recreated below in the
+--      Prisma form; ON DELETE CASCADE is unchanged.
+--
 -- Forward-only. Rollback: drop "clientAttemptId", recreate
 -- "ExamAttempt_offline_client_idx", and recreate the alumni index with its
 -- WHERE clause.
@@ -41,3 +47,13 @@ DROP INDEX IF EXISTS "StudentProfile_schoolId_alumniNumber_key";
 
 CREATE UNIQUE INDEX "StudentProfile_schoolId_alumniNumber_key"
   ON "StudentProfile"("schoolId", "alumniNumber");
+
+-- 3. Recreate the hand-written StudentClockEvent FKs with Prisma's default
+--    ON UPDATE CASCADE (delete behaviour unchanged).
+ALTER TABLE "StudentClockEvent"
+  DROP CONSTRAINT "StudentClockEvent_schoolId_fkey",
+  DROP CONSTRAINT "StudentClockEvent_studentProfileId_fkey",
+  ADD CONSTRAINT "StudentClockEvent_schoolId_fkey"
+    FOREIGN KEY ("schoolId") REFERENCES "School"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT "StudentClockEvent_studentProfileId_fkey"
+    FOREIGN KEY ("studentProfileId") REFERENCES "StudentProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
