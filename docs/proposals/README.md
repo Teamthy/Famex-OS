@@ -19,7 +19,7 @@ This folder contains the project proposal prepared for the Proprietor and Manage
 
 The print layout produces:
 
-- A branded cover page with the school badge mark, title, prepared-for / prepared-by blocks, date, validity, and total investment.
+- A branded cover page with the school badge mark, title, prepared-for / prepared-by blocks, date, and validity (the total figure appears inside Section 9 of the body, not on the cover).
 - Numbered sections with proper page-break behaviour (tables and signature blocks stay intact; headings are not left orphaned).
 - Section 9 (Investment) rendered exactly as quoted in the signed proposal — line items and ₦1,750,000 total are preserved in the original typography.
 - Signature blocks for both parties on the final page.
