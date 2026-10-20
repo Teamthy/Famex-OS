@@ -66,8 +66,9 @@ export async function apiQueued<T = unknown>(
   path: string,
   method: string,
   body: unknown,
+  headers: Record<string, string> = {},
 ): Promise<T> {
-  return queuedWrite<T>(path, method, body);
+  return queuedWrite<T>(path, method, body, headers);
 }
 
 // ── Auth ──────────────────────────────────────────────────
@@ -193,10 +194,30 @@ export const studentApi = {
   timetable: () => api("/api/student/timetable"),
 
   startExam: (examId: string) => api(`/api/student/exams/${examId}/attempt`, { method: "POST" }),
+  /** Resume an online-started attempt whose answers are already on the server. */
+  resumeAttempt: (examId: string) => api<{ attempt: { id: string; deadlineAt: string; secondsLeft: number } }>(`/api/student/exams/${examId}/attempt`, { method: "POST" }),
+  /**
+   * Replay an offline-started/answered attempt. Creates the server-side
+   * attempt, uploads answers and (optionally) finalises. Idempotent via
+   * clientAttemptId.
+   */
+  replayOffline: (examId: string, payload: {
+    clientAttemptId: string;
+    startedAt: string;
+    submittedAt: string | null;
+    durationMinutes: number;
+    answers: Array<{ questionId: string; response: string | null }>;
+    finalize: boolean;
+  }) =>
+    api(`/api/student/exams/${examId}/attempt/offline-replay`, {
+      method: "POST",
+      headers: { "x-idempotency-key": payload.clientAttemptId },
+      body: JSON.stringify(payload),
+    }),
   /** Download an exam package for offline sitting (questions without answer keys). */
-  downloadOfflineExam: (examId: string) =>
+  downloadOfflineExam: (examId: string, opts: { createAttempt?: boolean } = {}) =>
     api<import("@/lib/offline/exams").OfflinePackage>(
-      `/api/student/exams/${examId}/offline-package`,
+      `/api/student/exams/${examId}/offline-package${opts.createAttempt ? "?createAttempt=true" : ""}`,
     ),
   saveExam: (examId: string, attemptId: string, answers: ExamAnswer[]) =>
     apiQueued(`/api/student/exams/${examId}/attempt`, "PATCH", {
@@ -205,15 +226,12 @@ export const studentApi = {
       answers,
     }),
   submitExam: (examId: string, attemptId: string, answers: ExamAnswer[]) =>
-    api(`/api/student/exams/${examId}/attempt`, {
-      method: "PATCH",
-      headers: { "x-idempotency-key": `${attemptId}:submit` },
-      body: JSON.stringify({
-        attemptId,
-        action: "SUBMIT",
-        answers,
-      }),
-    }),
+    apiQueued(
+      `/api/student/exams/${examId}/attempt`,
+      "PATCH",
+      { attemptId, action: "SUBMIT", answers },
+      { "x-idempotency-key": `${attemptId}:submit` },
+    ),
 };
 
 // ── Staff "me" API (self clock-in, GPS) ──────────────────
