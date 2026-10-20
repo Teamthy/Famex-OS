@@ -1,0 +1,126 @@
+name: Debug CI output (temporary)
+
+# TEMPORARY — added on arena/ea852f26-famex-os to surface real CI error
+# output as a PR #12 comment (raw Actions logs are unreachable from the
+# development sandbox). DELETE before merging PR #12.
+
+on:
+  push:
+    branches: [arena/ea852f26-famex-os]
+    paths:
+      - ".github/workflows/debug-ci-output.yml"
+      - ".debug-trigger"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  debug:
+    name: Capture failing-step output
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+      DIRECT_URL: "postgresql://ci:ci@localhost:5432/ci"
+      AUTH_SECRET: "ci-debug-secret-that-is-at-least-32-characters-long"
+      NEXT_PUBLIC_SITE_URL: "http://127.0.0.1:3000"
+      PAYSTACK_PUBLIC_KEY: "pk_test_ci"
+      PAYSTACK_SECRET_KEY: "sk_test_ci"
+      SEED_PASSWORD: "CiDebugPassword123!"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          mkdir -p /tmp/out
+          npm ci > /tmp/out/npm-ci.txt 2>&1 || echo "root npm ci FAILED" >> /tmp/out/npm-ci.txt
+          (cd mobile && npm ci >> /tmp/out/npm-ci.txt 2>&1) || echo "mobile npm ci FAILED" >> /tmp/out/npm-ci.txt
+          tail -5 /tmp/out/npm-ci.txt
+
+      - name: Generate + migrate
+        run: |
+          npx prisma generate > /tmp/out/prisma.txt 2>&1 || echo "generate FAILED" >> /tmp/out/prisma.txt
+          npx prisma migrate deploy >> /tmp/out/prisma.txt 2>&1 || echo "migrate deploy FAILED" >> /tmp/out/prisma.txt
+          tail -5 /tmp/out/prisma.txt
+
+      - name: Capture schema diff (SQL the drift gate sees)
+        run: |
+          npx prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --script > /tmp/out/drift.txt 2>&1 || true
+          wc -l /tmp/out/drift.txt
+
+      - name: Capture typecheck
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: |
+          npx tsc --noEmit > /tmp/out/tsc.txt 2>&1 || true
+          echo "tsc exit recorded; lines: $(wc -l < /tmp/out/tsc.txt)"
+
+      - name: Capture expo-doctor
+        working-directory: mobile
+        run: |
+          npx --yes expo-doctor@latest --verbose > /tmp/out/doctor.txt 2>&1 || true
+          wc -l /tmp/out/doctor.txt
+
+      - name: Capture unit/integration tests
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: |
+          timeout 900 npx vitest run > /tmp/out/vitest.txt 2>&1 || echo "vitest FAILED or timed out" >> /tmp/out/vitest.txt
+          tail -5 /tmp/out/vitest.txt
+
+      - name: Capture production build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: |
+          timeout 1200 npx next build > /tmp/out/build.txt 2>&1 || echo "next build FAILED" >> /tmp/out/build.txt
+          tail -5 /tmp/out/build.txt
+
+      - name: Post output to PR #12
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const read = (p, max) => {
+              try {
+                const s = fs.readFileSync(p, 'utf8');
+                return s.length > max ? s.slice(0, max) + `\n… [truncated, ${s.length} chars total]` : s;
+              } catch { return '(no output captured)'; }
+            };
+            const sections = [
+              ['prisma generate + migrate deploy (tail)', read('/tmp/out/prisma.txt', 4000).slice(-4000)],
+              ['schema drift — migrate diff --script', read('/tmp/out/drift.txt', 12000)],
+              ['tsc --noEmit', read('/tmp/out/tsc.txt', 16000)],
+              ['expo-doctor --verbose', read('/tmp/out/doctor.txt', 10000)],
+              ['vitest run (tail)', read('/tmp/out/vitest.txt', 100000).slice(-8000)],
+              ['next build (tail)', read('/tmp/out/build.txt', 100000).slice(-8000)],
+            ];
+            let body = `## 🔧 Debug CI output (${context.sha.slice(0,7)})\n`;
+            for (const [title, txt] of sections) {
+              body += `\n<details><summary><b>${title}</b></summary>\n\n\`\`\`\n${txt.replace(/```/g, "'''")}\n\`\`\`\n</details>\n`;
+            }
+            if (body.length > 65000) body = body.slice(0, 65000) + '\n…[comment truncated]';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 12,
+              body,
+            });
