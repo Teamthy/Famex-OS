@@ -1,97 +1,152 @@
-# EduPortal deployment — Vercel + OCI (production)
+# Famex OS deployment — OCI production + Vercel staging
 
-EduPortal is a **Next.js monolith**: pages and `/api/*` deploy together. On
-Vercel the whole Node app runs in serverless functions; OCI hosts the
-stateful dependencies (or the entire standalone image — both options below).
-The API cannot be split from the pages.
+Famex International Schools (FIS) runs **one personalised school**, not a
+multi-tenant platform. The deployment split is deliberately boring and safe:
 
-## Option A (recommended for launch): full app on Vercel + managed Postgres
+| Environment | Host | Database | Purpose |
+| --- | --- | --- | --- |
+| **Production** | Oracle Cloud Infrastructure (OCI) | Postgres in `deploy/oci/docker-compose.yml` | The only live writer for the school domain |
+| **Staging / preview** | Vercel | A **separate** staging Postgres database | Owner review, seeded test accounts, write-heavy browser E2E |
 
-1. **Database — use Neon (or OCI Autonomous Postgres).** The committed
-   `.env.example` connection string already assumes Neon. A self-hosted
-   Postgres on the OCI Ampere VM is reachable from Vercel only through an
-   IP allowlist/TLS tunnel, and Vercel egress IPs are not stable outside
-   paid plans — do not open 5432 to `0.0.0.0/0`.
-   - Use the **pooled/transaction** connection string for serverless and
-     keep `connection_limit=1` (already in the template). Use the
-     unpooled **direct** URL (`DIRECT_URL`) for migrations in CI.
-2. **Upstash Redis is mandatory on Vercel.** The auth/admissions limiters
-   are in `DISTRIBUTED_REQUIRED` and **answer 503 without a shared store**
-   (`lib/rate-limit.ts`). Set:
-   - `UPSTASH_REDIS_REST_URL`
-   - `UPSTASH_REDIS_REST_TOKEN`
-   Never set `ALLOW_MEMORY_RATE_LIMITS=true` on Vercel (each function is a
-   separate instance; per-instance budgets are no control).
-3. **Vercel environment variables** (Production): see full list in
-   `.env.example`. Minimum to boot: `DATABASE_URL`, `DIRECT_URL`,
-   `AUTH_SECRET` (≥32 chars, unique), `NEXT_PUBLIC_SITE_URL` (https URL),
-   `PAYSTACK_PUBLIC_KEY`/`PAYSTACK_SECRET_KEY` (live), `JOBS_SECRET`
-   (= the timer's secret below), S3 (`S3_BUCKET`, `S3_REGION`,
-   `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, optional `S3_ENDPOINT`),
-   `RESEND_API_KEY`, `EMAIL_FROM`, Sentry DSN, and `COLLEGE_SSO_SECRET`
-   only if YK-Virtual federation is enabled (must match Virtual's value).
-4. **Notifications cron** — Vercel Hobby plans run `vercel.json` crons once
-   a day; the dispatcher expects a 60-second tick. Install the supplied
-   timer on the OCI box instead:
+Do **not** point OCI and Vercel at the same production database. Two live
+writers would make migrations, jobs, uploads and incident rollback ambiguous.
+Hostnames never switch schools: every environment resolves the one configured
+FIS school in its own database (`lib/school-resolution.ts`).
+
+Secrets are entered only in the OCI VM's `/opt/famex/.env`, Vercel's project
+environment settings, or the relevant provider console. Never paste passwords,
+tokens or private keys into chat, GitHub issues, or committed files.
+
+## Release flow
+
+1. Work lands through a pull request into `main` only after the full GitHub CI
+   suite is green.
+2. Merging to `main` triggers `.github/workflows/docker-publish.yml`, gated on
+   CI success for that exact commit. It publishes the multi-arch image to
+   `ghcr.io/teamthy/famex-os`.
+3. OCI pulls a pinned image tag and runs `./deploy.sh`; the container applies
+   forward-only Prisma migrations at boot before serving.
+4. Vercel's Git integration deploys the same commit to the **staging** project
+   after its separate staging database has been migrated.
+
+## A. OCI production (start here)
+
+The complete VM guide is [`OCI-HOSTING.md`](./OCI-HOSTING.md). The owner-only
+console steps are:
+
+1. Create/confirm the OCI account and home region. From Nigeria, Johannesburg
+   (`af-johannesburg-1`) is closest when capacity is available; Frankfurt is a
+   practical fallback. Add a low budget alert before creating resources.
+2. Create one Ubuntu 24.04 ARM VM (`VM.Standard.A1.Flex`, 2 OCPU / 12 GB) with
+   an SSH key you control. Keep the boot volume and backups within the chosen
+   free/paid limits.
+3. Set the GitHub repository **Actions Variables** used for browser build
+   config (`NEXT_PUBLIC_SITE_URL`, APK/Sentry public values as applicable),
+   merge the release PR, and confirm the **Docker Publish** workflow produced
+   the GHCR image for the merge commit.
+4. Copy `deploy/oci/` to `/opt/famex` on the VM and run the bootstrap script
+   from `OCI-HOSTING.md`. Review `/opt/famex/.env` on the VM; fill production
+   secrets there only. Set:
+   - `SCHOOL_SLUG=famex-international-schools`
+   - `SCHOOL_NAME=Famex International Schools`
+   - `IMAGE_TAG` to a version tag published from a `v*` Git tag for a formal
+     release (`main` is acceptable only for the first bring-up)
+   - production `NEXT_PUBLIC_SITE_URL` and `SITE_DOMAIN`
+5. Run `./deploy.sh`, create the first real administrator with the documented
+   one-time seed command, remove `INITIAL_ADMIN_PASSWORD`, and re-deploy.
+6. Point DNS at the VM/Caddy or Cloudflare Tunnel hostname. Verify:
+   - `GET /api/health` returns database `up`
+   - `GET /api/health/ready` reports migrations applied
+   - the real admin can sign in and MFA can be enrolled
+   - a database backup appears under `/opt/famex/backups` and offsite copy is
+     configured before real records are entered
+
+Do not seed `prisma/seed-all.ts` into production. It creates demonstration
+accounts for CI/staging only.
+
+## B. Vercel staging / preview
+
+1. Create a separate staging Postgres database (for example a Neon staging
+   project/branch) in a region close to the Vercel function region. Create an
+   Upstash Redis database for distributed rate limiting.
+2. In Vercel, import `Teamthy/Famex-OS` as a **staging** project. Root
+   Directory is the repository root. `vercel.json` already declares:
+   - framework: Next.js
+   - install: `npm ci` (the package `postinstall` generates Prisma Client)
+   - build: `npm run build`
+   - a daily notification-dispatch cron safe for the Hobby plan
+3. Add environment variables in Vercel for the staging project (Production and
+   Preview may share the staging database initially, but never production
+   OCI credentials):
+   - `DATABASE_URL` — pooled staging Postgres URL with `connection_limit=1`
+     (the Prisma schema reads this variable only; keep the provider's
+     direct/unpooled URL in your trusted shell as `STAGING_DIRECT_URL` for the
+     migration/seed commands below)
+   - a staging-only `AUTH_SECRET` and `MFA_ENCRYPTION_KEY` (32+ characters)
+   - `NEXT_PUBLIC_SITE_URL` — the Vercel staging HTTPS URL
+   - `SCHOOL_SLUG=famex-international-schools`
+   - `SCHOOL_NAME=Famex International Schools`
+   - `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
+   - test-mode Paystack keys; staging Resend/S3 credentials if those flows are
+     being exercised
+   - `JOBS_SECRET` and `CRON_SECRET` with the same staging-only value
+   - `NEXT_PUBLIC_SHOW_DEMO_BADGE=true` if the owner wants the staging badge
+4. Before the first staging deploy, run migrations from a trusted shell using
+   the staging **direct** URL (do not paste it into chat):
+
    ```bash
-   sudo cp deploy/oci/eduportal-notify.service /etc/systemd/system/
-   sudo cp deploy/oci/eduportal-notify.timer   /etc/systemd/system/
-   sudo install -m 600 /dev/stdin /opt/ykay/eduportal-cron.env <<'EOF'
-   EDUPORTAL_JOBS_URL=https://<your-vercel-app>/api/jobs/dispatch-notifications
-   JOBS_SECRET=<same as Vercel JOBS_SECRET / CRON_SECRET>
-   EOF
-   sudo systemctl daemon-reload
-   sudo systemctl enable --now eduportal-notify.timer
-   systemctl list-timers eduportal-notify.timer
-   # manual proof:
-   sudo systemctl start eduportal-notify.service && journalctl -u eduportal-notify.service
+   DATABASE_URL="$STAGING_DIRECT_URL" npx prisma migrate deploy
+   SEED_PASSWORD="<staging-only password>" DATABASE_URL="$STAGING_DIRECT_URL" npx tsx prisma/seed-all.ts
    ```
-   The endpoint also accepts Vercel's `Authorization: Bearer $CRON_SECRET`.
-5. **Migrations** run from CI/gate (the `schema-drift` job proves the chain
-   applies cleanly). For production, run `prisma migrate deploy` from a
-   controlled step or the Docker image entrypoint — never `prisma db push`.
-6. Vercel project settings: Root Directory = repo root, Framework Next.js;
-   security headers/CSP ship from `next.config.ts` (review the
-   `connect-src` list for your exact Upstash/Neon/S3 hostnames).
 
-## Option B: standalone container on OCI (same box as Virtual)
+   For later schema releases, migrate staging before promoting the same
+   commit to OCI. Never use `prisma db push` in either environment.
+5. Trigger/redeploy the Vercel project after env vars are saved. Verify
+   `/api/health`, sign in with a seeded staging account, and run the write E2E
+   journeys against staging (below).
 
-The repo builds a non-root standalone image (`.github/workflows/docker-publish.yml`
-publishes to GHCR, gated on CI). On the VM:
+If one-minute notification dispatch is needed while testing staging, use the
+optional `deploy/oci/famex-notify.timer` from a trusted host. OCI production
+already has its own 60-second cron container; do not run two dispatchers
+against the production database.
+
+## Real browser E2E against staging
+
+The write journeys create exams, attendance registers, assignments and live
+classes, so run them only against the seeded staging database or CI's
+throwaway database — never production:
 
 ```bash
-docker run -d --name eduportal --restart unless-stopped \
-  --network ykv-prod_default \
-  -p 127.0.0.1:3000:3000 \
-  --env-file /opt/ykay/college.env \
-  ghcr.io/teamthy/ykay_eduport-:<sha>
+E2E_BASE_URL="https://<vercel-staging-host>" \
+E2E_NO_SERVER=1 \
+E2E_PASSWORD="$SEED_PASSWORD" \
+npx playwright test tests/e2e/04-exams.spec.ts tests/e2e/07-learning-journeys.spec.ts
 ```
 
-- Put Caddy in front for `*.ykaycollege.edu.ng` (same pattern as Virtual;
-  the container entrypoint already runs `prisma migrate deploy` and seeds
-  idempotently).
-- On a single instance you MAY set `ALLOW_MEMORY_RATE_LIMITS=true`
-  (documented risk acceptance) — but prefer Upstash anyway.
-- `docker-compose.prod.yml` here includes Postgres, Redis, a 60s cron
-  container and a daily backup container; it works directly on the VM.
+`tests/e2e/04-exams.spec.ts` proves teacher publish → student sit/submit →
+auto-mark → released score. `tests/e2e/07-learning-journeys.spec.ts` proves:
 
-## Pre-launch verification (staging)
+- teacher takes and locks a real JSS1A attendance register;
+- teacher creates an assignment in the portal, the student submits, the
+  teacher grades, and the student sees score + feedback;
+- teacher schedules a virtual class, the student joins only inside the
+  permitted window, the external meeting opens, and the teacher sees the
+  launch record;
+- joining before the window is refused without leaking the meeting URL;
+- teacher/student assignment powers stay separate.
 
-- Login burst: 11th attempt/15 min from one IP returns 429, never 503
-  (proves Upstash is wired).
-- Paystack test: fee init → checkout → webhook → invoice settlement;
-  duplicate webhook doesn't double-post; mismatched amount is rejected.
-- Admissions: upload EICAR and a clean PDF (if ClamAV is wired), submit,
-  review, enroll; expired upload token rejected.
-- Exam: 60 students start/submit at the deadline simultaneously (load
-  workflow exists); late resume auto-submits; retake consumed once.
-- Parent messaging IDOR: a parent cannot open another family's thread.
-- Notification timer creates actual deliveries within ~2 min.
-- Restore drill: `npm run db:restore-drill` against a scratch database.
+For production OCI, restrict post-deploy checks to health, public pages,
+real-admin login/MFA, backup presence, and read-only smoke checks unless the
+school has explicitly created disposable production test accounts.
 
-## DNS / domains
+## DNS and provider callbacks
 
-- `ykaycollege.edu.ng` / `www` → Vercel (or Caddy for option B).
-- S3/R3 bucket CORS: presigned PUT/GET from the Vercel origin only.
-- Paystack dashboard callback/webhook URLs point at the production origin;
-  the webhook secret is the Paystack secret already in use.
+- School production domain → OCI Caddy/Cloudflare Tunnel.
+- Vercel staging keeps its `*.vercel.app` hostname or a clearly named staging
+  subdomain; it must not receive the production domain.
+- Paystack live webhook/callback URLs → OCI production only. Staging uses
+  test keys and staging callback URLs.
+- Meta WhatsApp webhook → production only unless a separate test number/app
+  is configured for staging. Unsigned callbacks are rejected.
+- Object-storage CORS allows only the exact production origin on the
+  production bucket and only the staging origin on any staging bucket.

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
 import { sessionCookie, signMfaChallenge, signSession } from "@/lib/session";
-import { resolveTenantFromHost } from "@/lib/tenant";
+import { resolveSchoolForRequest } from "@/lib/school-resolution";
 import { recordSecurityEvent, getUserAgent } from "@/lib/forensics";
 import { enforceRateLimit, checkRateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
@@ -60,10 +60,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { tenant } = await resolveTenantFromHost(request.headers.get("host"));
-    if (!tenant)
+    const { school } = await resolveSchoolForRequest(request.headers.get("host"));
+    if (!school)
       return NextResponse.json({ error: "Sign-in is temporarily unavailable." }, { status: 503 });
-    const user = await prisma.user.findFirst({ where: { email, schoolId: tenant.id } });
+    const user = await prisma.user.findFirst({ where: { email, schoolId: school.id } });
 
     // ── Timing-oracle mitigation ──────────────────────────────
     // Always run bcrypt compare (real or dummy) so response time

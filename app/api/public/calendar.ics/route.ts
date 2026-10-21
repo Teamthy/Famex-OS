@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { resolveTenantFromHost } from "@/lib/tenant";
+import { resolveSchoolForRequest } from "@/lib/school-resolution";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -98,16 +98,16 @@ export function buildICalendar(input: {
 export async function GET() {
   const h = await headers();
   const host = h.get("x-forwarded-host") || h.get("host");
-  const resolved = await resolveTenantFromHost(host);
-  const calName = resolved.tenant?.name ?? "Famex International Schools";
+  const resolved = await resolveSchoolForRequest(host);
+  const calName = resolved.school?.name ?? "Famex International Schools";
 
   let sessionLabel = "";
   let terms: IcsTerm[] = [];
   let events: IcsEvent[] = [];
 
-  if (resolved.tenant) {
+  if (resolved.school) {
     const currentSession = await prisma.academicSession.findFirst({
-      where: { schoolId: resolved.tenant.id, isCurrent: true },
+      where: { schoolId: resolved.school.id, isCurrent: true },
       select: { id: true, label: true },
     });
     if (currentSession) {
@@ -119,7 +119,7 @@ export async function GET() {
       });
       events = await prisma.newsPost.findMany({
         where: {
-          schoolId: resolved.tenant.id,
+          schoolId: resolved.school.id,
           isPublished: true,
           publishedAt: {
             gte: terms[0]?.startsOn ?? new Date(Date.now() - 30 * 86400_000),

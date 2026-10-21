@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { resolveTenantFromHost } from "@/lib/tenant";
+import { resolveSchoolForRequest } from "@/lib/school-resolution";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const slug = request.nextUrl.searchParams.get("slug")?.trim();
-  // AUD-F1: this route used to ignore the request host and always serve the
-  // OLDEST school's posts (findFirst by createdAt) — so tenant B's portal
-  // showed tenant A's news and never its own. Resolve the school from the
-  // host exactly like the login route does (customDomain → subdomain →
-  // default school), and scope the query to it.
-  const { tenant: school } = await resolveTenantFromHost(request.headers.get("host"));
+  // FIS is a single-school installation. Always scope public news to the one
+  // configured school; never infer a different school from a hostname.
+  const { school } = await resolveSchoolForRequest(request.headers.get("host"));
   if (!school) return NextResponse.json({ posts: [] });
 
   if (slug) {

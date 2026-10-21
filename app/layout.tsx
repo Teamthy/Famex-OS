@@ -60,7 +60,7 @@ const dmSans = localFont({
 
 export function generateMetadata(): Metadata {
   // Token-driven (F0-21, W1): the school name and canonical URL come from brand
-  // tokens (env → per-tenant branding), never a hard-coded literal. The logo
+  // tokens (env → the configured school's branding), never a hard-coded literal. The logo
   // asset paths stay the committed set until the brand-asset registry (F0-24).
   const { schoolName, siteUrl } = getSchoolBrandTokens();
   return {
@@ -112,17 +112,15 @@ export const viewport: Viewport = {
 
 import { headers } from "next/headers";
 import { getSession } from "@/lib/session";
-import { resolveTenantFromHost } from "@/lib/tenant";
+import { resolveSchoolForRequest } from "@/lib/school-resolution";
 import { getTenantBranding, DEFAULT_BRANDING } from "@/lib/branding";
 import { PRODUCT_NAME, getSchoolBrandTokens } from "@/lib/brand";
 import { prisma } from "@/lib/prisma";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // ── Resolve branding (per tenant) ──
-  // For AUTHENTICATED users, use THEIR school's branding (from the session's
-  // schoolId — so a new school's colours show immediately after signup, even
-  // on localhost where host resolution falls back to the default school).
-  // For PUBLIC pages (no session), resolve from hostname.
+  // ── Resolve branding for the one configured school ──
+  // Authenticated pages use the session schoolId; public pages resolve the
+  // same single FIS school. Hostnames never switch schools.
   const host = (await headers()).get("host");
   const session = await getSession();
 
@@ -131,8 +129,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   if (session) {
     schoolId = session.schoolId;
   } else {
-    const { tenant } = await resolveTenantFromHost(host);
-    schoolId = tenant?.id ?? null;
+    const { school: resolvedSchool } = await resolveSchoolForRequest(host);
+    schoolId = resolvedSchool?.id ?? null;
   }
 
   const branding = schoolId ? await getTenantBranding(schoolId) : null;
@@ -171,8 +169,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <link rel="icon" href={faviconUrl} type="image/png" />
         <link rel="apple-touch-icon" href={faviconUrl} />
-        {/* Inject per-tenant brand palette as CSS variable overrides.
-            Only navy / navy-light / green are driven by tenant branding so the
+        {/* Inject the configured school's brand palette as CSS variable overrides.
+            Only navy / navy-light / green are driven by the school's saved branding so the
             nuanced green-dark/light + full orange shades in globals.css are
             preserved (gives the palette its proper depth, not a flat fill). */}
         <style

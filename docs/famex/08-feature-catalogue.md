@@ -62,7 +62,7 @@ Counts at the end (§25). Scope boundary (Ykay College, *not* EDUos) —
 | F1-03 | Home layout driven by the module registry and role | 🔧 | a school that did not buy HR sees no HR tile |
 | F1-04 | Live home widgets: today's timetable, fee status, announcements, tasks | 🔧 | one query per widget, cached |
 | F1-05 | "Ask Famex" assistant card on every home screen | 🆕 | AI, scoped to what that role may see |
-| F1-06 | Student/parent live-class card with the next class and its join link | 🆕 | assigned URL — see F2-05 |
+| F1-06 | Student/parent live-class card with the next class and its join link | 🔧 | student next-class + gated join delivered 2026-10-21; parent card remains — see F2-05 |
 
 ## 2. AI Learning Hub
 
@@ -70,9 +70,9 @@ Counts at the end (§25). Scope boundary (Ykay College, *not* EDUos) —
 |---|---|---|---|
 | F2-01 | Hub landing: course catalogue, enrolment, progress at a glance | 🆕 | student, teacher and parent views |
 | F2-02 | Course & lesson player: video, notes, attachments, transcript | 🆕 | resumable position per learner |
-| F2-03 | Assignments: set, submit, mark, return with feedback | 🆕 | files, text, photos of written work |
+| F2-03 | Assignments: set, submit, mark, return with feedback | 🔧 | text + HTTPS attachment link, late flag, grading/return delivered 2026-10-21; binary file/photo upload remains |
 | F2-04 | Per-lesson quizzes, auto-marked, feeding the gradebook | 🆕 | teacher chooses whether to post to CA |
-| F2-05 | **Live virtual classes with an assigned join URL** | 🆕 | school assigns a link per class; the host link is never exposed to students |
+| F2-05 | **Live virtual classes with an assigned join URL** | ✅ | teacher assigns an HTTPS URL per session; student lists omit it and the audited in-window join records the launch (2026-10-21) |
 | F2-06 | Class recording library and replay links | 🆕 | for learners who missed it |
 | F2-07 | AI tutor: ask a question about the current lesson | 🆕 | grounded in the lesson material, age-appropriate, logged |
 | F2-08 | Study plan, streaks and revision reminders | 🆕 | pushes a learner toward weak topics |
@@ -481,8 +481,8 @@ Counts at the end (§25). Scope boundary (Ykay College, *not* EDUos) —
 | Group | Total | ✅ In base | 🔧 Extend | 🆕 New | ✂️ Strip | ⏸ Deferred |
 |---|---|---|---|---|---|---|
 | Foundations — the platform underneath everything | 30 | 16 | 4 | 5 | 5 | 0 |
-| Home | 6 | 2 | 2 | 2 | 0 | 0 |
-| AI Learning Hub | 10 | 0 | 0 | 10 | 0 | 0 |
+| Home | 6 | 2 | 3 | 1 | 0 | 0 |
+| AI Learning Hub | 10 | 1 | 1 | 8 | 0 | 0 |
 | AI Studio | 16 | 0 | 0 | 16 | 0 | 0 |
 | AI CBT | 25 | 6 | 2 | 17 | 0 | 0 |
 | Fees & Billing | 26 | 7 | 7 | 12 | 0 | 0 |
@@ -505,15 +505,15 @@ Counts at the end (§25). Scope boundary (Ykay College, *not* EDUos) —
 | Cross-cutting technical capabilities | 21 | 4 | 2 | 4 | 0 | 11 |
 | Operations & compliance (deliverables, not screens) | 12 | 1 | 3 | 8 | 0 | 0 |
 | Cost model & quotation | 3 | 2 | 0 | 1 | 0 | 0 |
-| **TOTAL** | **331** | **97** | **46** | **167** | **7** | **14** |
+| **TOTAL** | **331** | **98** | **48** | **164** | **7** | **14** |
 
 *(Counted by primary tag: a few rows carry two tags — e.g. ✂️→🔧 or ✅/🆕 —
 and are counted once. The table is generated from the rows above and verified by
 `npm run check:features`, so it cannot drift.)*
 
-**Read it like this:** **97 features already work** in the base and mostly
-need rebranding and wiring; **46 need real extension** (money, results,
-attendance, users, communication); **167 are genuinely new**. The new work
+**Read it like this:** **98 features already work** in the base and mostly
+need rebranding and wiring; **48 need real extension** (money, results,
+attendance, users, communication); **164 are genuinely new**. The new work
 concentrates in the AI layer (26), CBT depth and the offline exam centre, the
 teaching/learning stack, Front Desk, HR, Parent PRM, Help Desk and the Documents
 suite. 14 items are deliberately deferred.

@@ -519,6 +519,7 @@ export default function ClassAttendancePage() {
                       {rows.map((row) => (
                         <div
                           key={row.studentProfileId}
+                          data-testid="attendance-row"
                           className="flex flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center"
                         >
                           <div className="min-w-0 flex-1">
@@ -566,6 +567,7 @@ export default function ClassAttendancePage() {
                                   disabled={isLocked || Boolean(savingMode)}
                                   className={`h-11 w-11 rounded-xl text-xs font-bold transition-all ${active ? button.accent : "bg-[var(--surface-disabled)] text-[var(--text-muted)] hover:bg-[var(--border-subtle)]"} disabled:cursor-not-allowed disabled:opacity-50`}
                                   title={button.value}
+                                  data-attendance-status={button.value}
                                 >
                                   {button.label}
                                 </button>

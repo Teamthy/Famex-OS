@@ -136,6 +136,31 @@ enum ResultCorrectionStatus {
   REJECTED
 }
 
+/// Teacher-set class assignments/homework (E/K). Publication is explicit:
+/// students only see PUBLISHED work, and CLOSED work accepts no submissions.
+enum AssignmentStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+/// A student's current submission state. RETURNED is a teacher request for
+/// revision; GRADED submissions are locked unless the teacher returns them.
+enum AssignmentSubmissionStatus {
+  SUBMITTED
+  GRADED
+  RETURNED
+}
+
+/// Teacher-scheduled live class. Meeting media stays with the school's chosen
+/// provider (for example Meet/Zoom/Teams); FIS records scheduling and the
+/// student's in-window join action, not proof of in-call presence.
+enum VirtualClassSessionStatus {
+  SCHEDULED
+  CANCELLED
+  ENDED
+}
+
 /// ── W3 ledger (F5-08/F5-09) ────────────────────────────────────────────────
 ///
 /// What kind of account this is in the accounting equation. It decides which
@@ -322,6 +347,10 @@ model School {
   mfaRecoveryCodes        MfaRecoveryCode[]
   messageTemplates        MessageTemplate[]
   communicationConsents   CommunicationConsent[]
+  assignments             Assignment[]
+  assignmentSubmissions   AssignmentSubmission[]
+  virtualClassSessions    VirtualClassSession[]
+  virtualClassJoins       VirtualClassJoin[]
   reportCards             ReportCard[]
   notificationJobs        NotificationJob[]
   userNotifications       UserNotification[]
@@ -428,6 +457,8 @@ model TeacherProfile {
   correctionRequests    AttendanceCorrectionRequest[]
   gradebooks            SubjectGradebook[]
   exams                 Exam[]
+  assignments           Assignment[]
+  virtualClassSessions  VirtualClassSession[]
   staffAttendanceEvents StaffAttendanceEvent[]
 
   behaviorRecords BehaviorRecord[]
@@ -479,6 +510,8 @@ model SchoolClass {
   attendanceSessions AttendanceSession[]
   gradebooks         SubjectGradebook[]
   exams              Exam[]
+  assignments        Assignment[]
+  virtualClassSessions VirtualClassSession[]
   enrolments         StudentEnrolment[]
   timetableSlots     TimetableSlot[]
 
@@ -529,6 +562,8 @@ model StudentProfile {
   reportCards          ReportCard[]
   gradebookEntries     GradebookEntry[]
   examAttempts         ExamAttempt[]
+  assignmentSubmissions AssignmentSubmission[]
+  virtualClassJoins    VirtualClassJoin[]
   examRetakes          ExamRetake[]
   admissionApplication AdmissionApplication? @relation("AdmissionEnrollment", fields: [admissionApplicationId], references: [id], onDelete: SetNull)
   messageThreads       MessageThread[]
@@ -2398,4 +2433,120 @@ model CommunicationConsent {
 
   @@unique([userId, channel, kind])
   @@index([schoolId, channel, kind])
+}
+
+// ── Assignments + virtual classes (E/K) ──────────────────────────────────────
+
+/// Teacher-set class assignment/homework. Eligibility is checked against an
+/// active TeacherClassAssignment for the same class + subject in
+/// lib/assignments.ts; students discover work only through their current class.
+model Assignment {
+  id               String           @id @default(cuid())
+  schoolId         String
+  classId          String
+  teacherProfileId String
+  subjectName      String
+  title            String
+  instructions     String
+  dueAt            DateTime
+  maxScore         Int              @default(10)
+  status           AssignmentStatus @default(DRAFT)
+  publishedAt      DateTime?
+  createdByUserId  String
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  school         School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classroom      SchoolClass            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacherProfile TeacherProfile         @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  submissions    AssignmentSubmission[]
+
+  @@index([schoolId, classId, status, dueAt])
+  @@index([teacherProfileId, createdAt])
+  @@index([schoolId])
+}
+
+/// One live submission per student per assignment. Resubmission updates this
+/// row only while it is SUBMITTED or RETURNED; a GRADED row is locked until a
+/// teacher explicitly returns it for revision.
+model AssignmentSubmission {
+  id               String                     @id @default(cuid())
+  schoolId         String
+  assignmentId     String
+  studentProfileId String
+  content          String
+  attachmentUrl    String?
+  status           AssignmentSubmissionStatus @default(SUBMITTED)
+  score            Int?
+  feedback         String?
+  submittedAt      DateTime                   @default(now())
+  gradedAt         DateTime?
+  gradedByUserId   String?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  school         School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  assignment     Assignment     @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  studentProfile StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, studentProfileId])
+  @@index([schoolId, studentProfileId, submittedAt])
+  @@index([assignmentId, status])
+  @@index([schoolId])
+}
+
+/// A scheduled live lesson using a teacher-supplied external meeting URL.
+/// The URL is never included in the ordinary student list payload; it is
+/// returned only by the audited, in-window join action in
+/// lib/virtual-classes.ts.
+model VirtualClassSession {
+  id                     String                    @id @default(cuid())
+  schoolId               String
+  classId                String
+  teacherProfileId       String
+  subjectName            String
+  title                  String
+  description            String?
+  meetingUrl             String
+  startsAt               DateTime
+  endsAt                 DateTime
+  /// Minutes before startsAt when students may join. Stored per session so a
+  /// teacher can open a room early without changing the scheduled start.
+  joinOpensMinutesBefore Int                       @default(10)
+  status                 VirtualClassSessionStatus @default(SCHEDULED)
+  cancelledAt            DateTime?
+  createdByUserId        String
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+
+  school         School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classroom      SchoolClass        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacherProfile TeacherProfile     @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  joins          VirtualClassJoin[]
+
+  @@index([schoolId, classId, startsAt])
+  @@index([teacherProfileId, startsAt])
+  @@index([schoolId])
+}
+
+/// A student's idempotent record that they requested/launched the external
+/// meeting during the permitted window. This is honest join-intent evidence,
+/// not proof that the external provider admitted them or how long they stayed.
+model VirtualClassJoin {
+  id               String   @id @default(cuid())
+  schoolId         String
+  sessionId        String
+  studentProfileId String
+  joinedAt         DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  school         School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  session        VirtualClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  studentProfile StudentProfile      @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, studentProfileId])
+  @@index([schoolId, studentProfileId, joinedAt])
+  @@index([sessionId])
+  @@index([schoolId])
 }

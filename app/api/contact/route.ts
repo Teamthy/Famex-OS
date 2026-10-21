@@ -6,7 +6,7 @@ import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { getClientIp, jsonNoStore } from "@/lib/requests";
-import { resolveTenantFromHost } from "@/lib/tenant";
+import { resolveSchoolForRequest } from "@/lib/school-resolution";
 
 export const dynamic = "force-dynamic";
 
@@ -61,9 +61,9 @@ export async function POST(request: NextRequest) {
     return jsonNoStore({ ok: true, message: CONTACT_THANKS }, { status: 201 });
   }
 
-  const { tenant } = await resolveTenantFromHost(request.headers.get("host"));
-  if (!tenant) {
-    logger.error("Contact enquiry received but no school resolved for this host", {
+  const { school } = await resolveSchoolForRequest(request.headers.get("host"));
+  if (!school) {
+    logger.error("Contact enquiry received but the configured school was not found", {
       host: request.headers.get("host"),
     });
     return jsonNoStore(
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
   try {
     enquiry = await prisma.contactEnquiry.create({
       data: {
-        schoolId: tenant.id,
+        schoolId: school.id,
         name: input.name,
         email: input.email,
         phone: input.phone || null,
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error("Contact enquiry could not be saved", {
       error: String(error),
-      schoolId: tenant.id,
+      schoolId: school.id,
     });
     return jsonNoStore(
       { error: "We could not send your enquiry. Please try again, or call the school office." },
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
   }
 
   // The enquiry is saved, so a failed alert must not be reported to the visitor as a failed enquiry.
-  await notifyOffice(tenant.id, enquiry.id, input).catch((error) => {
+  await notifyOffice(school.id, enquiry.id, input).catch((error) => {
     logger.error("Contact enquiry saved but the office was not alerted", {
       error: String(error),
       enquiryId: enquiry.id,

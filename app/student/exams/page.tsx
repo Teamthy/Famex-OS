@@ -161,6 +161,7 @@ export default function StudentExamsPage() {
                   .map((exam) => (
                     <div
                       key={exam.id}
+                      data-testid="student-exam-card"
                       className="rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 shadow-[var(--card-shadow)]"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-4">
