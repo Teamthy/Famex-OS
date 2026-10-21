@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Bell, LogOut, ShieldCheck } from "lucide-react";
+import { Bell, KeyRound, LogOut, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { PRODUCT_NAME } from "@/lib/brand";
 export default function PortalTopbar({ title = "Workspace" }: { title?: string }) {
@@ -28,6 +28,13 @@ export default function PortalTopbar({ title = "Workspace" }: { title?: string }
             className="rounded-full p-2 text-[var(--text-muted)] hover:bg-[var(--surface-card-hover)] hover:text-brand-green"
           >
             <Bell size={18} />
+          </Link>
+          <Link
+            href="/settings/security"
+            aria-label="Account security settings"
+            className="rounded-full p-2 text-[var(--text-muted)] hover:bg-[var(--surface-card-hover)] hover:text-brand-green"
+          >
+            <KeyRound size={18} />
           </Link>
           <span className="hidden text-right text-xs sm:block">
             <b className="block text-[var(--text-primary)]">{user?.name || "Account"}</b>

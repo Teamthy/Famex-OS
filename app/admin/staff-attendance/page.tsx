@@ -465,7 +465,7 @@ export default function AdminStaffAttendancePage() {
                       className="rounded-3xl border border-[var(--border-subtle)] bg-brand-navy p-5 text-white"
                     >
                       <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-green">
-                        Ykay staff badge
+                        FIS staff badge
                       </div>
                       <div className="mt-3 font-display text-2xl tracking-wide">
                         {b.displayName}

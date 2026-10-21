@@ -8,7 +8,7 @@ import { resolveAllowedOrigin } from "@/lib/cors";
  *
  *     "Access-Control-Allow-Origin": process.env.NEXT_PUBLIC_SITE_URL || "*"
  *
- * In production that is `https://ykaycollege.edu.ng`. Correct, and also the
+ * In production that is `https://fis.example.edu.ng`. Correct, and also the
  * reason a developer running the mobile app as a web build on localhost gets
  * "Failed to fetch" — the browser blocks the response before any application
  * code sees it, so the error names nothing useful and looks like the login is
@@ -19,7 +19,7 @@ import { resolveAllowedOrigin } from "@/lib/cors";
  * an unknown origin never gets in.
  */
 
-const SITE = "https://ykaycollege.edu.ng";
+const SITE = "https://fis.example.edu.ng";
 
 describe("resolveAllowedOrigin", () => {
   it("allows the configured site origin", () => {
@@ -67,8 +67,8 @@ describe("resolveAllowedOrigin", () => {
 
   it("does not allow a prefix or suffix impersonation", () => {
     for (const origin of [
-      "https://ykaycollege.edu.ng.evil.com",
-      "https://evilykaycollege.edu.ng",
+      "https://fis.example.edu.ng.evil.com",
+      "https://evilfis.example.edu.ng",
       "http://localhost:8081.evil.com",
     ]) {
       expect(resolveAllowedOrigin(origin, { siteUrl: SITE, extra: "http://localhost:8081" })).toBe(

@@ -18,7 +18,7 @@
     "postinstall": "prisma generate",
     "prebuild": "prisma generate",
     "db:seed": "tsx prisma/seed-all.ts",
-    "db:seed-ykay": "tsx prisma/seed-ykay-college.ts",
+    "db:seed-fis": "tsx prisma/seed-fis.ts",
     "db:seed-admin": "tsx prisma/seed.ts",
     "db:bootstrap-attendance": "tsx prisma/seed-attendance.ts",
     "db:bootstrap-finance": "tsx prisma/seed-finance.ts",

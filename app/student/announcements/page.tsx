@@ -61,7 +61,9 @@ export default function StudentAnnouncementsPage() {
             <h1 className="font-display text-[42px] md:text-[56px] tracking-[3px] text-white mb-4">
               SCHOOL <span className="text-brand-green">ANNOUNCEMENTS</span>
             </h1>
-            <p className="text-white/60">Stay updated with the latest news from Ykay College.</p>
+            <p className="text-white/60">
+              Stay updated with the latest news from Famex International Schools.
+            </p>
           </div>
         </section>
 

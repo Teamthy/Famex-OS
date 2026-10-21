@@ -36,14 +36,14 @@ if (!PASSWORD) {
 
 /** Seeded accounts, one per role. */
 const ACCOUNTS: Record<string, string> = {
-  ADMIN: "admin@ykaycollege.com",
-  DIRECTOR: "director@ykaycollege.com",
-  BURSAR: "bursar@ykaycollege.com",
-  COORDINATOR: "coordinator@ykaycollege.com",
-  HOD: "hod@ykaycollege.com",
-  TEACHER: "teacher1@ykaycollege.com",
-  STUDENT: "student1@ykaycollege.com",
-  PARENT: "parent1@ykaycollege.com",
+  ADMIN: "admin@fis.example.edu.ng",
+  DIRECTOR: "director@fis.example.edu.ng",
+  BURSAR: "bursar@fis.example.edu.ng",
+  COORDINATOR: "coordinator@fis.example.edu.ng",
+  HOD: "hod@fis.example.edu.ng",
+  TEACHER: "teacher1@fis.example.edu.ng",
+  STUDENT: "student1@fis.example.edu.ng",
+  PARENT: "parent1@fis.example.edu.ng",
 };
 
 /** Which role should be able to reach a given path prefix. */
@@ -154,7 +154,7 @@ async function login(email: string): Promise<string | null> {
     });
     if (!res.ok) return null;
     const raw = res.headers.get("set-cookie") || "";
-    const m = raw.match(/ykay_session=([^;]+)/);
+    const m = raw.match(/fis_session=([^;]+)/);
     return m ? m[1] : null;
   } catch {
     return null;
@@ -178,7 +178,7 @@ async function hit(path: string, cookie?: string): Promise<number> {
       redirect: "manual",
       headers: {
         Accept: "text/html,application/json,*/*",
-        ...(cookie ? { Cookie: `ykay_session=${cookie}` } : {}),
+        ...(cookie ? { Cookie: `fis_session=${cookie}` } : {}),
       },
       signal: ctrl.signal,
     });

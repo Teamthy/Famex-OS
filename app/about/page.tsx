@@ -25,8 +25,9 @@ export default async function AboutPage() {
                 text="OUR STORY"
               />
               <p className="font-body text-base md:text-xl text-[var(--text-secondary)] max-w-2xl leading-relaxed">
-                Founded with a vision to raise leaders through excellence in education, Ykay College
-                has grown into one of the most respected secondary schools in Ogun State.
+                Founded with a vision to raise leaders through excellence in education, Famex
+                International Schools has grown into one of the most respected secondary schools in
+                Ogun State.
               </p>
             </div>
           </section>
@@ -45,9 +46,9 @@ export default async function AboutPage() {
                   />
                   <div className="space-y-5 text-[var(--text-secondary)] font-body text-base leading-relaxed">
                     <p>
-                      Ykay College &amp; Leadership Academy was established on the conviction that
-                      education, when combined with moral formation and leadership training, creates
-                      students who will transform their communities.
+                      Famex International Schools was established on the conviction that education,
+                      when combined with moral formation and leadership training, creates students
+                      who will transform their communities.
                     </p>
                     <p>
                       {address ? `Located at ${address}. ` : null}The school serves families across
@@ -55,18 +56,19 @@ export default async function AboutPage() {
                       academic work and holistic personal development.
                     </p>
                     <p>
-                      Every student at Ykay College is seen not just as a learner, but as a future
-                      leader. Our teachers are selected for both their subject mastery and their
-                      commitment to mentoring young people. Our curriculum is aligned with the
-                      Nigerian Educational Research and Development Council (NERDC) and prepares
-                      students for WAEC, NECO, BECE, and university entrance examinations.
+                      Every student at Famex International Schools is seen not just as a learner,
+                      but as a future leader. Our teachers are selected for both their subject
+                      mastery and their commitment to mentoring young people. Our curriculum is
+                      aligned with the Nigerian Educational Research and Development Council (NERDC)
+                      and prepares students for WAEC, NECO, BECE, and university entrance
+                      examinations.
                     </p>
                   </div>
                 </div>
                 <div className="relative rounded-[2rem] overflow-hidden shadow-[var(--card-shadow-hover)]">
                   <img
-                    src="/home/ykay-students.png"
-                    alt="Ykay College students in school uniform"
+                    src="/home/fis-students.png"
+                    alt="Famex International Schools students in school uniform"
                     className="w-full h-full object-cover object-[center_20%] min-h-[400px]"
                   />
                 </div>

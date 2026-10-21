@@ -24,10 +24,10 @@ if (!PASSWORD) {
 }
 
 const ACCOUNTS: Record<string, string> = {
-  ADMIN: "admin@ykaycollege.com",
-  TEACHER: "teacher1@ykaycollege.com",
-  STUDENT: "student1@ykaycollege.com",
-  PARENT: "parent1@ykaycollege.com",
+  ADMIN: "admin@fis.example.edu.ng",
+  TEACHER: "teacher1@fis.example.edu.ng",
+  STUDENT: "student1@fis.example.edu.ng",
+  PARENT: "parent1@fis.example.edu.ng",
 };
 
 type Probe = {
@@ -136,7 +136,7 @@ async function login(email: string): Promise<string | null> {
     redirect: "manual",
   });
   if (!res.ok) return null;
-  const m = (res.headers.get("set-cookie") || "").match(/ykay_session=([^;]+)/);
+  const m = (res.headers.get("set-cookie") || "").match(/fis_session=([^;]+)/);
   return m ? m[1] : null;
 }
 
@@ -167,7 +167,7 @@ async function main() {
     let body: unknown = null;
     try {
       const res = await fetch(`${BASE}${probe.path}`, {
-        headers: { Cookie: `ykay_session=${cookie}`, Accept: "application/json" },
+        headers: { Cookie: `fis_session=${cookie}`, Accept: "application/json" },
         redirect: "manual",
       });
       status = res.status;

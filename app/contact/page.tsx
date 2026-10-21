@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -14,7 +14,7 @@ type EnquiryForm = { name: string; email: string; phone: string; message: string
 const EMPTY_FORM: EnquiryForm = { name: "", email: "", phone: "", message: "", website: "" };
 
 export default function ContactPage() {
-  const { address } = useSchoolProfile();
+  const { address, email, phone } = useSchoolProfile();
   const [form, setForm] = useState<EnquiryForm>(EMPTY_FORM);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,10 +84,12 @@ export default function ContactPage() {
                 />
                 <div className="space-y-4">
                   {[
-                    { icon: Mail, label: "Email", val: "info@ykaycollege.com" },
-                    { icon: Phone, label: "Phone", val: "0701 537 4411" },
-                    { icon: MessageCircle, label: "WhatsApp", val: "0701 537 4411" },
-                    // Shown only once the school has confirmed its address.
+                    // Contact channels come from the school profile (Admin >
+                    // School profile); a channel is shown only once the
+                    // school has confirmed it — never a hard-coded literal.
+                    ...(email ? [{ icon: Mail, label: "Email", val: email }] : []),
+                    ...(phone ? [{ icon: Phone, label: "Phone", val: phone }] : []),
+                    ...(phone ? [{ icon: MessageCircle, label: "WhatsApp", val: phone }] : []),
                     ...(address ? [{ icon: MapPin, label: "Address", val: address }] : []),
                   ].map((i) => (
                     <div

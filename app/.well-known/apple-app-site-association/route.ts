@@ -23,7 +23,7 @@ export const dynamic = "force-static";
  */
 export async function GET() {
   const teamId = process.env.APPLE_TEAM_ID;
-  const bundleId = process.env.IOS_BUNDLE_ID || "com.ykaycollege.app";
+  const bundleId = process.env.IOS_BUNDLE_ID || "com.famexinternationalschools.app";
 
   // No team ID means Universal Links are not configured yet. A 404 is honest;
   // a malformed association is worse than none, because iOS caches it.

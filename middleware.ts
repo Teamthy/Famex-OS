@@ -71,7 +71,7 @@ function logDenial(
  * passing the preflight buys nothing if the actual POST comes back carrying a
  * different origin. That mismatch was the "Failed to fetch" login bug — the
  * preflight said `http://localhost:8081` while a static header block in
- * next.config.ts stamped `https://ykaycollege.edu.ng` onto the POST.
+ * next.config.ts stamped `https://fis.example.edu.ng` onto the POST.
  */
 function applyCors(response: NextResponse, request: NextRequest): NextResponse {
   const origin = resolveAllowedOrigin(request.headers.get("origin"));
@@ -117,7 +117,7 @@ async function routeRequest(request: NextRequest) {
     return isApi ? applyCors(NextResponse.next(), request) : NextResponse.next();
   }
 
-  const token = request.cookies.get("ykay_session")?.value;
+  const token = request.cookies.get("fis_session")?.value;
   const secret = process.env.AUTH_SECRET;
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||

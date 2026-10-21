@@ -66,7 +66,7 @@ export async function GET() {
     status: entry.status,
   }));
 
-  // AUD-F5: the portal footer used to hardcode YKAY College's contact on
+  // AUD-F5: the portal footer used to hardcode the school's contact on
   // every tenant. Expose this school's public contact so the dashboard can
   // render the tenant's own details (a missing email is "" — the footer hides
   // the row rather than showing another school's address).

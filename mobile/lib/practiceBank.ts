@@ -1,5 +1,5 @@
 /**
- * Ykay College — practice question bank (full SSCE subject coverage).
+ * Famex International Schools — practice question bank (full SSCE subject coverage).
  * Self-contained (offline). MCQ + true/false, with explanations.
  */
 export type Difficulty = "easy" | "medium" | "hard";

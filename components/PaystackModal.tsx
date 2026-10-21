@@ -83,8 +83,8 @@ export default function PaystackModal({
               <div className="flex items-start gap-3 rounded-2xl bg-slate-50 p-4 text-sm">
                 <ShieldCheck className="mt-0.5 shrink-0 text-[#2b8a2b]" size={18} />
                 <p>
-                  Card details are entered only on Paystack&apos;s secure page. Ykay College never
-                  stores or processes raw card numbers.
+                  Card details are entered only on Paystack&apos;s secure page. Famex International
+                  Schools never stores or processes raw card numbers.
                 </p>
               </div>
 

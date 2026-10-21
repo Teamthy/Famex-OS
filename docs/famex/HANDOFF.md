@@ -47,10 +47,10 @@ Read in this order before any work:
 |---|---|---|
 | **W1** | Strip EDUos platform + Ykay arms; single-school boot; brand tokens; Licence & Usage; re-cut audit | ✅ **MERGED into main** — PR #1, 2026-10-14 (commits `a9451cd`, `ccaab0b` + this handoff commit). Gates green at merge; DB gates environment-blocked and stated in the PR. |
 | **W2** | Module registry drives nav/routes/entitlements; settings framework; first-run wizard; `check:modules` | ✅ **merged** — PR #2, merge commit `74f236c` (branch `arena/9abf8aef-famex-os`, 2026-10-14). All CI jobs green except the pre-existing red `Lighthouse budgets` workflow (also red on the W1 merge). |
-| **W3** | Double-entry ledger → Fees & Billing; bursar dashboard; gateway reconciliation | ✅ **stage A MERGED** (PR #4, `e96217a`) and **stage B MERGED** (PR #5, `193ff93`, 2026-10-15): discounts (F5-12), refunds (F5-13), credits (F5-11), transfers (F5-14), gateway settlement (F5-16), ageing + statements (F5-17/18), bursar queues (F5-19), receipts re-brand (F5-04/22) + `verify:ledger` extended to 12 steps. **Close-out still owed** (§9): instalment plans (F5-10), real-DB ledger backfill/opening balances, manual adjustments screen (F5-20), cashbook polish (F5-15/F5-23/F5-25), per-reference settlement matching |
-| W4 | Notification spine + WhatsApp Business (categories, receipts, cost) | pending |
+| **W3** | Double-entry ledger → Fees & Billing; bursar dashboard; gateway reconciliation | ✅ **stage A MERGED** (PR #4, `e96217a`) and **stage B MERGED** (PR #5, `193ff93`, 2026-10-15): discounts (F5-12), refunds (F5-13), credits (F5-11), transfers (F5-14), gateway settlement (F5-16), ageing + statements (F5-17/18), bursar queues (F5-19), receipts re-brand (F5-04/22) + `verify:ledger` extended to 12 steps. Instalment plans (F5-10) delivered 2026-10-21 (§4e). **Close-out still owed** (§9): real-DB ledger backfill/opening balances, manual adjustments screen (F5-20), cashbook polish (F5-15/F5-23/F5-25), per-reference settlement matching |
+| W4 | Notification spine + WhatsApp Business (categories, receipts, cost) | 🟡 **Core delivered 2026-10-21** (§4e): governed templates + versioning, NDPA consent, WhatsApp delivery receipts, per-channel cost reporting, real WhatsApp adapter. Owed (§9): Meta-approved template mapping for cold sends, Termii SMS DLR webhook, fee/result/admission flows fully on templates, consent self-service UI |
 | W5 | Admissions funnel, classes/streams, timetable, attendance, GPS clock-in | pending |
-| W6 | Marks → broadsheet → report cards → release; post-lock corrections | pending |
+| W6 | Marks → broadsheet → report cards → release; post-lock corrections | 🟡 **Post-lock correction workflow delivered 2026-10-21** (§4e): request → independent approval → apply with full history. Marks/broadsheet/report-card pipeline pre-exists from the base — verify the rest of the W6 catalogue before claiming W6 done |
 | W7 | CBT at 15,000 items + schoolId, blueprints, item analysis, offline centre | pending |
 | W8 | AI layer: prompt templates, router, metering, drafts-queue, redaction | pending |
 | W9 | AI Learning Hub e-learning + **virtual/live classes** (assigned URL) | pending |
@@ -201,29 +201,42 @@ PRs merged outside this board's order — the board in §3 still governs the *re
   - Real type/runtime bugs fixed behind the Prisma stub noise: lucide `Child`→`Baby`; staff-attendance page `Overview.fence`; `/api/public/staff` + `/api/public/calendar` used a non-existent `resolved.school` (now `.tenant`), a non-existent `School.flags` column (removed — endpoint exposes directory-safe fields only) and invented `AcademicSession`/`Term` field names (now `label`/`isCurrent`/`sessionId`/`startsOn`/`endsOn`, ordered by `Term.index`); missing `NextRequest` imports; `isValidPoint` now accepts `number | null` coordinates; `ParentLike.userId`; nav `operations` icon (`Boxes`) + `W16`/`W17` release tags.
 - **Verified locally (sandbox):** `check:modules`, `check:features`, `check:orphans`, `check:dead-ui`, `check:mobile`, `check:boundary`, `audit:deps`, Prettier check, full ESLint (0 errors), mobile `npm ci` + `tsc`. **Environment-blocked here** (Prisma engines/Postgres unavailable): `check:drift`, root `tsc` against the generated client, Vitest, `next build` — the PR's GitHub CI is the verdict for those; iterate there before requesting merge.
 
+## 4e. FIS rename + production core (2026-10-21, branch `arena/0e9f562e-famex-os`)
+
+Founder-directed core-first slice after PR #12 (CI/Lighthouse green, merged `4422fe9`). Locked scope: school renamed to FIS, go-live core first, **Q stays parked**, OCI deploy target unchanged.
+
+- **School rename → Famex International Schools (FIS).** Scripted rename of the school/tenant across runtime, seeds, public site, emails and mobile (product stays **Famex OS**). Slug default `famex-international-schools`; `prisma/seed-fis.ts` (`npm run db:seed-fis`); `FISLogo` component; brand ratchet burned **451 → 63 findings** (remainders are legitimate: the confirmed `ykaycollege.com` / `ykaycollege.edu.ng` mail/web domains — retained until an FIS domain is provided, never invented — frozen `eduos_` DB function names, legacy EduPortal mentions). Form-supplied school facts (phone, motto, Head of School) untouched. Contact page + WhatsApp float now read the School profile, no hard-coded contacts. Pre-release storage keys renamed (`fis_session`, `fis-offline`, `fis_offline.db`, PWA cache, rate-limit `fis:` prefixes) — **test devices should clear site/app data**; nothing was deployed, so no live data is orphaned. An existing DB keeps its current School row: update name/slug under Admin → School profile + `SCHOOL_NAME`/`SCHOOL_SLUG` env on deploy. `SystemFlags.maintenanceMessage` default renamed in schema **and** migration (factory-default rows only). Public marketing copy (Timeline history, statistics) is still placeholder content — the school must confirm/replace it (W12 CMS).
+- **Roles (B).** `UserRole` + `PROPRIETOR`, `PRINCIPAL`, `VICE_PRINCIPAL`, `LIBRARIAN`, `NURSE` (append-only migration `20261021100000_fis_production_core`). New prisma-free `lib/roles.ts` is the one vocabulary: **name the group, never re-derive it** (`LEADERSHIP_ROLES`, `FINANCE_ROLES`, `ACADEMIC_ADMIN_ROLES`, `OPERATIONS_ROLES`, `MFA_EXPECTED_ROLES`, …); `tests/lib/roles.test.ts` welds it to the Prisma enum. Guards/finance/adjustments/gradebook roles now read the groups.
+- **MFA (B).** Dependency-free TOTP (RFC 4226/6238, pinned by RFC test vectors), secrets AES-256-GCM at rest (`MFA_ENCRYPTION_KEY` or `AUTH_SECRET`), hashed single-use recovery codes. A correct password for an enrolled user returns a 5-minute **challenge, not a session** (`/api/auth/mfa/verify` exchanges it, rate-limited, re-checks active/suspended). Self-service at `/settings/security`; **mobile login has the code step too**. Enrolment is opt-in; leadership + bursar are `MFA_EXPECTED_ROLES` — enrol them first at go-live (forced-enrolment policy is a follow-up, not silently on).
+- **Instalment plans (F5-10, W3 close-out item 1).** Schedule-only design (§7): fragments never bill separately and there is **no new ledger posting rule** — paid/partial/overdue is a projection of the invoice's settled amount (pre-plan baseline excluded, sequence-order allocation). Sum must equal `balanceDue` exactly; one ACTIVE plan per invoice (service-enforced, Prisma can't model the partial unique); cancel keeps history + reason. API `/api/admin/fees/instalments` + bursar panel on the fees screen.
+- **Post-lock result corrections (W6).** Locked gradebooks only; old value captured server-side; exact values (no clamping); approver (academic admin) ≠ requester; stale-value conflict refuses apply; transactional recompute of total/grade stored on the request; warns when a report-card snapshot must be regenerated. API `/api/admin/gradebook/corrections` + panel on the gradebook-lock screen (request form takes an entry ID — teacher entry-picker is a follow-up).
+- **Comms governance (W4 core).** `MessageTemplate` per (school, key, channel) with strict `{{variable}}` rendering (missing = error, never blank), version on every edit, starter set seeded once (`ensureDefaultTemplates`, admin panel on the notifications screen). `CommunicationConsent` decides legality in one place: SYSTEM always sends, explicit opt-out wins, transactional default-allowed, **BROADCAST requires a recorded opt-in**; wired into `queueNotificationJob` after preferences. Real WhatsApp adapter (Cloud API, no silent SMS fallback in the dispatcher), provider message IDs recorded at accept, `/api/webhooks/whatsapp` promotes SENT→DELIVERED / FAILED by `providerMessageId` under HMAC (`WHATSAPP_APP_SECRET`, fail-closed in production), estimated `costKobo` per channel (env rates) + spend in the admin notifications API/UI. Cold business-initiated sends still need Meta-approved template mapping (§9).
+- **Schema:** 76 models. Six new tables, all with `schoolId` + explicit `eduos_apply_tenant_rls(...)`; `AlertDeliveryStatus.DELIVERED` appended; `NotificationJob` delivery/cost/template fields. Tenant-coverage checker gained a **reviewed provider-global exemption** for the WhatsApp webhook (printed every run; ratchet stays 14).
+- **Verified locally:** root + mobile `tsc` exit 0; Vitest **86 files / 961 tests** (incl. 44 new: roles weld, RFC TOTP vectors, instalment projection, correction validation, template rendering, consent policy, webhook transitions, cost estimator, iCal format); ESLint 0 errors; Prettier clean; `npm run audit` back to **0 blockers** (the previously-404 public iCal feed `/api/public/calendar.ics` is implemented, and the intentionally-public routes — MFA verify, WhatsApp webhook, readiness, public calendar/staff — are declared in the audit with their guard mechanisms); `audit:deps`, `audit:brand` (63), `check:modules`, `check:orphans` (86), `check:dead-ui` (94), `check:boundary` (158), tenant ratchet 14/14. DB gates (drift, RLS, admissions, ledger loop, build, Playwright, load) are CI-only here as ever — GitHub CI on this PR is the verdict.
+
 ## 5. Gates: commands + latest evidence + blockers
 
-Run from repo root. Latest (**W3 stage B, 2026-10-15**, branch `arena/f5d78cef-famex-os`, PR #5):
+Run from repo root. Latest (**FIS production core, 2026-10-21**, branch `arena/0e9f562e-famex-os`, §4e; prior PR #12 merged `4422fe9` with CI + Lighthouse green):
 
 | Gate | Command | Result (actual output) |
 |---|---|---|
 | typecheck | `npx tsc --noEmit` | exit 0 — no errors |
-| unit/integration | `npx vitest run` | `Test Files 77 passed (77)` / `Tests 917 passed (917)` (stage A: 76 / 898; W2: 72 / 843) |
-| lint | `npm run lint` | `✖ 96 problems (0 errors, 96 warnings)` — the new ones are `react-hooks/set-state-in-effect` on fetch-on-mount pages, the same pattern as the other ~40 portal pages |
+| unit/integration | `npx vitest run` | `Test Files 86 passed (86)` / `Tests 961 passed (961)` (stage B: 77 / 917) |
+| lint | `npm run lint` | `✖ 118 problems (0 errors, 118 warnings)` — warnings are the standing backlog (mainly `react-hooks/set-state-in-effect` on fetch-on-mount pages) |
 | formatting | `npx prettier --check .` | `All matched files use Prettier code style!` (main: 9 files failing) |
 | dep audit | `npm run audit:deps` | `Dependency audit passed.` (4 scoped, dated exclusions unchanged) |
-| project audit | `npm run audit` | `No blockers. 14 warning(s).` (main: 1 blocker — `/api/cbt/topics`, `/api/contact`) |
-| brand ratchet | `npm run audit:brand` | `Brand audit OK — 451 finding(s) across 147 file(s); baseline allows 451.` (banked via `--update`; receipts de-branded) |
+| project audit | `npm run audit` | `No blockers. 16 warning(s).` (warnings are pre-existing hardcoded-URL/unbounded-query backlog; the broken `/api/public/calendar.ics` link is now a real route) |
+| brand ratchet | `npm run audit:brand` | `Brand audit OK — 63 finding(s) across 38 file(s); baseline allows 63.` (FIS rename burned 451 → 63, banked via `--update`; remainders are the confirmed live domains + frozen `eduos_` DB identifiers) |
 | feature IDs | `npm run check:features` | OK — `Catalogue: 331 features parsed` / `§25 declares TOTAL 331 — matches.` |
-| orphans | `npm run check:orphans` | `All 80 portal pages are reachable.` (scans `lib/` too — the sidebar renders from `lib/nav.ts`) |
-| dead UI | `npm run check:dead-ui` | `Checked 87 portal pages.` / `No dead UI found.` |
-| modules | `npm run check:modules` | `Nav registry: 20 groups, 36 live items, 77 planned.` / `Modules: 22 declared, 22 used by nav/API.` / `Admin pages: 37 found, 36 linked.` / `Admin API directories: 26 owned, 65 guard calls.` / `Modules, nav and routes agree.` |
-| client boundary | `npm run check:boundary` | `Checking 153 client component(s)…` / `No client component reaches a server-only module.` |
+| orphans | `npm run check:orphans` | `All 86 portal pages are reachable.` |
+| dead UI | `npm run check:dead-ui` | `Checked 94 portal pages.` / `No dead UI found.` |
+| modules | `npm run check:modules` | `Nav registry: 21 groups, 41 live items, 77 planned.` / `Modules: 23 declared, 23 used by nav/API.` / `Admin pages: 42 found, 41 linked.` / `Admin API directories: 30 owned, 77 guard calls.` / `Modules, nav and routes agree.` |
+| client boundary | `npm run check:boundary` | `Checking 158 client component(s)…` / `No client component reaches a server-only module.` |
 | prisma schema | `npx prisma validate` | `The schema at prisma/schema.prisma is valid 🚀` (needs a dummy `DATABASE_URL`) |
-| tenant coverage | `npm run check:tenant-coverage` | exit 0 — 13 UNCOVERED, all pre-existing teacher/auth routes; CI's `--max-uncovered 18` still satisfied |
+| tenant coverage | `npm run check:tenant-coverage` | 14 UNCOVERED = CI baseline (`--max-uncovered 14`), all pre-existing; the WhatsApp webhook is a reviewed provider-global exemption printed on every run (no tenant context in Meta callbacks) |
 | ledger loop | `npm run verify:ledger` (`scripts/verify-ledger-loop.ts`) | **Blocked locally** (no Postgres). Runs in CI's `schema-drift` job on Postgres 17 — it is the only place the deferred balance trigger and the kobo reconciliation are proved for real |
 | DB gates | `check:drift`, migration apply, `verify:rls` + `verify:rls:coverage`, `verify:admissions`, `verify:ledger`, `db:seed*`, `npx playwright test` | **Blocked in the local sandbox** (no Postgres, Prisma engines stubbed → `check:drift` prints `DATABASE_URL is required`). **Run for real by CI on the W3 PR** (Postgres 17 service): "Apply migrations to a clean database", "Assert no schema drift", "Verify RLS tenant isolation", "Verify RLS coverage", "Verify admissions operations loop", "Verify the ledger (money loop)" (new), Build, Browser E2E, Load test, Mobile. W2's CI was green on all of these. `check:readiness` needs a *seeded* school and still has no CI step; apply the migration and seed on deploy before opening a term. |
-| Lighthouse budgets | GitHub `Lighthouse budgets` workflow | Red on `main`, on W1's PR and on W2's PR (`Run Lighthouse CI` exits 1, no `.lighthouseci/` report) — pre-existing, not a W2/W3 regression. |
+| Lighthouse budgets | GitHub `Lighthouse budgets` workflow | Green since PR #12 (`4422fe9`, 2026-10-20): home performance 0.88, LCP 3845ms, TBT 53ms, accessibility 0.96 (medians). Variance-prone — judge the exact PR head, never a single run. |
 
 Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only lowers; gate fails if it grows).
 
@@ -330,6 +343,17 @@ Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only
 
 ---
 
+### FIS production-core decisions (2026-10-21)
+
+- **The school is Famex International Schools (FIS); the product is Famex OS.** Only the school/tenant identity was renamed. The confirmed `ykaycollege.com` / `ykaycollege.edu.ng` domains stay until the school provides an FIS domain — never invent contact details (demo/test accounts use `fis.example.edu.ng`).
+- **Roles are named groups in `lib/roles.ts`** (prisma-free, welded to the enum by test). New code imports a group; it never hand-writes a role list.
+- **MFA:** password success alone never issues a session for an enrolled user — a 5-minute challenge is exchanged for the session after TOTP/recovery verification. Enrolment self-service; `MFA_EXPECTED_ROLES` (leadership + bursar) enrol first at go-live.
+- **Instalments are a schedule, not billing:** no new posting rule; fragment states are projected from the invoice's settled amount. Schedule must sum exactly to `balanceDue`; one ACTIVE plan per invoice.
+- **Result corrections:** locked-only, server-captured old value, approver ≠ requester, stale-value conflict refuses, applied total/grade stored on the history row. Report cards are snapshots — regenerate after an applied correction.
+- **Consent vs preferences are different layers:** preferences mute interruptions; `lib/communication-consent.ts` decides legality (SYSTEM always, explicit opt-out wins, BROADCAST needs recorded opt-in).
+- **WhatsApp dispatcher honesty:** a WHATSAPP job is never marked sent because an SMS fallback fired (`allowSmsFallback: false`); delivery is only ever claimed from the signature-verified webhook.
+- **Q remains parked** (payroll engine beyond W10 scope, biometrics/RFID, AI tutoring/proctoring) — no fake claims; offline fee entries stay `PENDING_REVIEW`, device-offline is never called LAN.
+
 ## 8. Landmines & gotchas
 
 - **Do not put `/*` inside a `//` line comment in `middleware.ts`** — `tests/lib/cors-response-headers.test.ts` strips comments naively and an unterminated `/*` swallows code, faking a CORS regression. (Bit us once; fixed by rewording.)
@@ -356,12 +380,14 @@ Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only
 
 ## 9. Next session: green CI first, then W3 close-out, then W4 (exact stop-point)
 
-**Immediate (2026-10-20, supersedes starting new feature work):** get the CI-rescue PR from
-`arena/ea852f26-famex-os` (§4d) fully green on GitHub and merged, so the multi-arch GHCR
-image publishes; then run the OCI staging drills (first-admin seed, restore, payment,
-admissions) per `docs/OCI-HOSTING.md`. Until that PR is green, treat any new CI failure
-layer it reveals (generated-client `tsc`, Vitest, `next build`, RLS/tenant ratchets, E2E)
-as the top priority — fix forward on that branch, never by editing applied migrations.
+**Immediate (2026-10-21):** merge this PR (§4e) when GitHub CI is green on its exact head
+(DB gates, build, Playwright and load test are CI-only from the sandbox), then deploy the
+published GHCR image via the OCI pack and run the staging drills in order: migrations →
+`db:seed-fis` (real structure + Head of School) → School profile/env confirmation
+(`SCHOOL_NAME`, domain, contacts) → backup/restore drill → Paystack test payment →
+admissions loop → MFA enrolment for leadership + bursar → WhatsApp webhook registration
+(`WHATSAPP_VERIFY_TOKEN` + `WHATSAPP_APP_SECRET`) and a real delivery receipt. Nothing is
+"go-live ready" until those drills pass against real infrastructure.
 
 **Where W3 stopped (2026-10-15, PR #5 from `arena/f5d78cef-famex-os`):** stage A (PR #4) built
 the ledger; stage B built the remaining money documents on it — discounts, refunds, credits,
@@ -372,9 +398,8 @@ do not start W4 until it is burned down or explicitly deferred by the founder.**
 
 ### W3 close-out (small, in order)
 
-1. **Instalment plans (F5-10)** — the one stage-B deferral: plan = schedule of due fragments
-   on an invoice, still settled through `postCompletedFeePayment` (no new posting rule needed
-   unless fragments bill separately — decide before coding).
+1. ✅ **Instalment plans (F5-10)** — DONE 2026-10-21 (§4e): schedule fragments only, still
+   settled through the invoice; no new posting rule (decision recorded in §7).
 2. **Go-live data (§9 of stage A, still owed):** `npm run ledger:backfill -- --apply`, opening
    balances via `postOpeningBalance`, `npm run verify:ledger` against a copy of the seeded DB.
    Needs a real Postgres — run it where one exists, paste the output in the PR.
@@ -385,10 +410,19 @@ do not start W4 until it is burned down or explicitly deferred by the founder.**
    payout window today; matching individual payment references from the gateway's settlement
    report is the follow-up.
 
-### Then W4 — Notification spine + WhatsApp Business
+### W4 follow-ups (core delivered in §4e) + next slices
 
-Per the catalogue §9 (Comms) and §3 board: categories, receipts, cost tracking; the email
-sender de-brand (`lib/email.ts`) rides along per the §7 brand ratchet (comms/email→W4).
+1. **Meta-approved template mapping** for business-initiated (cold) WhatsApp sends — the
+   adapter sends free-form text inside the 24h service window today; map governed template
+   keys to approved Meta template names as deployment configuration.
+2. **Termii SMS delivery-report webhook**, mirroring the WhatsApp receipt flow.
+3. Move fee reminders, report releases and admission updates fully onto governed templates
+   (`queueTemplatedNotification`) so every outbound send is traceable to a template version.
+4. **Consent self-service UI** in web settings + mobile (API at `/api/notifications/consent`
+   is ready); **teacher entry-picker** for correction requests (panel takes an entry ID today).
+5. Then the standing workstreams in board order (W5 depth, W7 item analysis @15k, W9 homework/
+   lesson content, W10 payroll, W12 CMS/NDPA) — real backends, never stubs. Library/inventory/
+   clinic still persist to JSON (`lib/module-store.ts`) and need real DB models before go-live claims.
 
 Rules for whoever continues: post through `lib/ledger-postings.ts`, never `postJournal` directly
 from a route; every new posting gets a deterministic idempotency key; corrections are counter-entries.

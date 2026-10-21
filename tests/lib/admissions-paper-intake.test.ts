@@ -5,7 +5,7 @@ import { idempotencyRequestHash } from "@/lib/idempotency";
 /**
  * Paper intake + offline fee recording.
  *
- * Ykay is moving from paper forms to online applications, so both intakes have
+ * FIS is moving from paper forms to online applications, so both intakes have
  * to feed the same review -> entrance -> enrolment pipeline. Two rules matter
  * most here and are pinned below:
  *

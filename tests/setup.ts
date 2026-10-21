@@ -27,6 +27,14 @@ const mockPrisma = {
     count: vi.fn(),
     groupBy: vi.fn(),
   },
+  mfaRecoveryCode: {
+    createMany: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    updateMany: vi.fn(),
+    deleteMany: vi.fn(),
+    count: vi.fn(),
+  },
   securityEvent: {
     create: vi.fn(),
     findMany: vi.fn(),
@@ -66,6 +74,8 @@ const mockPrisma = {
     findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
+    groupBy: vi.fn(),
   },
   notificationPreference: {
     findUnique: vi.fn(),
@@ -73,6 +83,19 @@ const mockPrisma = {
     upsert: vi.fn(),
     update: vi.fn(),
     deleteMany: vi.fn(),
+  },
+  communicationConsent: {
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    upsert: vi.fn(),
+    groupBy: vi.fn(),
+  },
+  messageTemplate: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
   },
   academicSession: {
     findFirst: vi.fn(),
@@ -190,6 +213,17 @@ const mockPrisma = {
     groupBy: vi.fn(),
     count: vi.fn(),
   },
+  feeInstalmentPlan: {
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    count: vi.fn(),
+  },
+  feeInstalment: {
+    createMany: vi.fn(),
+    findMany: vi.fn(),
+  },
   reportCard: {
     findFirst: vi.fn(),
     findMany: vi.fn(),
@@ -204,10 +238,19 @@ const mockPrisma = {
     update: vi.fn(),
   },
   gradebookEntry: {
+    findFirst: vi.fn(),
+    findUnique: vi.fn(),
     findMany: vi.fn(),
     createMany: vi.fn(),
     update: vi.fn(),
     upsert: vi.fn(),
+  },
+  resultCorrectionRequest: {
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    count: vi.fn(),
   },
   examAttempt: {
     findUnique: vi.fn(),
@@ -407,7 +450,7 @@ vi.mock("@/lib/prisma", () => ({
 
 // Mock next/headers
 //
-// `getSession()` reads BOTH transports: the `ykay_session` cookie (web) and the
+// `getSession()` reads BOTH transports: the `fis_session` cookie (web) and the
 // `Authorization: Bearer` header (mobile / API clients). Both must be mocked or
 // the header path throws "No 'headers' export is defined on the next/headers mock".
 vi.mock("next/headers", () => ({

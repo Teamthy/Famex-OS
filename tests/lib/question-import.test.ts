@@ -204,7 +204,7 @@ describe("importQuestionsFromDocx — prose", () => {
    */
   it("ignores the paper's header instead of reporting it as broken", () => {
     const docx = makeDocx(
-      paragraph("YKAY COLLEGE — SS 2 BIOLOGY — MIDTERM TEST") +
+      paragraph("FAMEX INTERNATIONAL SCHOOLS — SS 2 BIOLOGY — MIDTERM TEST") +
         paragraph("Answer all questions.") +
         paragraph("Time allowed: 45 minutes") +
         paragraph("1. What is 2+2?") +
@@ -242,7 +242,9 @@ describe("importQuestionsFromDocx — prose", () => {
   });
 
   it("reports an error when a document has a header and nothing else", () => {
-    const docx = makeDocx(paragraph("YKAY COLLEGE") + paragraph("Answer all questions."));
+    const docx = makeDocx(
+      paragraph("FAMEX INTERNATIONAL SCHOOLS") + paragraph("Answer all questions."),
+    );
 
     const result = importQuestionsFromDocx(docx);
 
@@ -311,7 +313,7 @@ describe("importQuestionsFromDocx — table", () => {
   it("ignores a table that is not a question bank and reads the prose instead", () => {
     const docx = makeDocx(
       tableXml([
-        ["School", "Ykay College"],
+        ["School", "Famex International Schools"],
         ["Term", "First Term"],
       ]) +
         paragraph("1. What is 2+2?") +
@@ -349,7 +351,7 @@ describe("looksLikeQuestionTable", () => {
   });
 
   it("rejects a cover-sheet table", () => {
-    expect(looksLikeQuestionTable(["school", "ykay college"])).toBe(false);
+    expect(looksLikeQuestionTable(["school", "fis college"])).toBe(false);
   });
 
   it("rejects an empty header row", () => {

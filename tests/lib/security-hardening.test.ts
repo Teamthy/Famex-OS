@@ -253,7 +253,7 @@ describe("CORS is owned by middleware alone", () => {
  */
 describe("no hardcoded seed credentials", () => {
   // Split so this file does not itself contain the literal it forbids.
-  const LEAKED = "Ykay@2026" + "!Secure";
+  const LEAKED = "FIS@2026" + "!Secure";
 
   it("the seed script has no fallback password", () => {
     const seed = readFileSync("prisma/seed-all.ts", "utf8");

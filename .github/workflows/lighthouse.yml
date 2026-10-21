@@ -65,7 +65,7 @@ jobs:
           node scripts/lighthouse-report-summary.mjs || true
           exit $code
         env:
-          LHCI_NAME: ykay-college
+          LHCI_NAME: famex-international-schools
         # lighthouserc.json points at the seeded standalone server via
         # e2e-server.mjs, so budgets measure the real production artefact.
 

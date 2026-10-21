@@ -21,7 +21,7 @@ export default function ServiceInfo() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/it-hub-classroom.jpg"
-              alt="Students working in the Ykay College IT hub"
+              alt="Students working in the Famex International Schools IT hub"
               className="h-56 w-full object-cover md:h-72 lg:h-full"
               loading="lazy"
             />
@@ -48,7 +48,7 @@ export default function ServiceInfo() {
                 </span>
               </h2>
               <p className="mt-3 font-body text-sm text-[var(--text-muted)]">
-                Ykay College &amp; Leadership Academy
+                Famex International Schools
               </p>
             </div>
 

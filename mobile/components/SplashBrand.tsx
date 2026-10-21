@@ -3,17 +3,17 @@ import { View, Animated, Easing } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/src/theme/colors";
 import { Gradients } from "@/src/theme/gradients";
-import { YkayCrest } from "@/components/YkayLogo";
+import { FISCrest } from "@/components/FISLogo";
 
 /**
  * Branded launch state.
  *
  * Replaces the bare ActivityIndicator that used to show while the session
- * resolves. The first thing a user sees is the Ykay crest on the brand
+ * resolves. The first thing a user sees is the FIS crest on the brand
  * gradient with a soft expanding brand ring and a gentle shimmer line — a
  * calm, premium first impression rather than a grey spinner.
  *
- * Colours come exclusively from the Ykay tokens.
+ * Colours come exclusively from the FIS tokens.
  */
 export function SplashBrand({ tagline = "Your school, on the go" }: { tagline?: string }) {
   const fade = useRef(new Animated.Value(0)).current;
@@ -103,7 +103,7 @@ export function SplashBrand({ tagline = "Your school, on the go" }: { tagline?: 
               justifyContent: "center",
             }}
           >
-            <YkayCrest size={72} />
+            <FISCrest size={72} />
           </View>
         </Animated.View>
 
@@ -117,7 +117,7 @@ export function SplashBrand({ tagline = "Your school, on the go" }: { tagline?: 
             marginTop: 26,
           }}
         >
-          Ykay College
+          Famex International Schools
         </Animated.Text>
         <Animated.Text
           style={{

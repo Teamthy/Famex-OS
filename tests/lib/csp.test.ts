@@ -9,7 +9,7 @@ function connectSrc(policy: string) {
 
 describe("buildContentSecurityPolicy", () => {
   it("allows the exact storage origin for uploads, and no wildcard storage host", () => {
-    const origin = "https://ykay-docs.s3.eu-west-2.amazonaws.com";
+    const origin = "https://fis-docs.s3.eu-west-2.amazonaws.com";
     const policy = buildContentSecurityPolicy({
       isProduction: true,
       plausible: false,
@@ -77,20 +77,20 @@ describe("storageUploadOrigin", () => {
   }> = [
     {
       name: "AWS virtual-hosted",
-      env: { S3_BUCKET: "ykay-docs", S3_REGION: "eu-west-2" },
+      env: { S3_BUCKET: "fis-docs", S3_REGION: "eu-west-2" },
       region: "eu-west-2",
     },
-    { name: "AWS us-east-1 default", env: { S3_BUCKET: "ykay-docs" }, region: "us-east-1" },
+    { name: "AWS us-east-1 default", env: { S3_BUCKET: "fis-docs" }, region: "us-east-1" },
     {
       name: "AWS path-style",
-      env: { S3_BUCKET: "ykay-docs", S3_REGION: "eu-west-2", S3_FORCE_PATH_STYLE: "true" },
+      env: { S3_BUCKET: "fis-docs", S3_REGION: "eu-west-2", S3_FORCE_PATH_STYLE: "true" },
       region: "eu-west-2",
       pathStyle: true,
     },
     {
       name: "custom endpoint, virtual-hosted (R2-style)",
       env: {
-        S3_BUCKET: "ykay-docs",
+        S3_BUCKET: "fis-docs",
         S3_REGION: "auto",
         S3_ENDPOINT: "https://acc123.r2.cloudflarestorage.com",
       },
@@ -100,7 +100,7 @@ describe("storageUploadOrigin", () => {
     {
       name: "custom endpoint, path-style (MinIO-style)",
       env: {
-        S3_BUCKET: "ykay-docs",
+        S3_BUCKET: "fis-docs",
         S3_REGION: "us-east-1",
         S3_ENDPOINT: "http://127.0.0.1:9000",
         S3_FORCE_PATH_STYLE: "true",
@@ -136,7 +136,7 @@ describe("storageUploadOrigin", () => {
   }
 
   it("returns null when credentials or the bucket are missing, or the endpoint is not a URL", () => {
-    expect(storageUploadOrigin({ S3_BUCKET: "ykay-docs" })).toBeNull();
+    expect(storageUploadOrigin({ S3_BUCKET: "fis-docs" })).toBeNull();
     expect(storageUploadOrigin({ ...credentials })).toBeNull();
     expect(
       storageUploadOrigin({ ...credentials, S3_BUCKET: "b", S3_ENDPOINT: "not a url" }),

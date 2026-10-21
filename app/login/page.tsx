@@ -11,8 +11,13 @@ import { useSchoolProfile } from "@/components/SchoolProfileContext";
 const destinations: Record<string, string> = {
   ADMIN: "/admin",
   DIRECTOR: "/admin",
+  PROPRIETOR: "/admin",
+  PRINCIPAL: "/admin",
+  VICE_PRINCIPAL: "/admin",
   COORDINATOR: "/admin-admissions",
   BURSAR: "/admin/fees",
+  LIBRARIAN: "/admin/library",
+  NURSE: "/admin/clinic",
   HOD: "/teacher/dashboard",
   TEACHER: "/teacher/dashboard",
   PARENT: "/parent/dashboard",
@@ -50,6 +55,9 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // Second factor (B): set when the password step answers mfaRequired.
+  const [mfaChallenge, setMfaChallenge] = useState("");
+  const [mfaCode, setMfaCode] = useState("");
 
   const portal = searchParams.get("portal") || "";
   const context = portalContext[portal] || {
@@ -72,6 +80,11 @@ function LoginForm() {
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error);
+      if (body.mfaRequired) {
+        // Password accepted; the session is issued only after the code step.
+        setMfaChallenge(body.challenge);
+        return;
+      }
       await refresh();
       // Only same-site paths are honoured; anything else falls back to the role's home page.
       const next = safeNextPath(searchParams.get("next"), window.location.origin);
@@ -83,13 +96,36 @@ function LoginForm() {
     }
   };
 
+  const submitMfa = async (event: FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/auth/mfa/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ challenge: mfaChallenge, code: mfaCode }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error);
+      await refresh();
+      const next = safeNextPath(searchParams.get("next"), window.location.origin);
+      router.replace(next ?? destinations[body.user.role] ?? "/");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Unable to verify that code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="grid min-h-screen place-items-center bg-brand-navy p-6">
       <div className="mx-auto grid max-w-5xl overflow-hidden rounded-[2rem] border border-white/10 bg-white shadow-2xl md:grid-cols-2">
         <section className="relative hidden min-h-[520px] overflow-hidden text-white md:block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/home/ykay-students.png"
+            src="/home/fis-students.png"
             alt="Students on campus"
             className="absolute inset-0 h-full w-full object-cover object-top"
           />
@@ -149,36 +185,75 @@ function LoginForm() {
               <AlertCircle size={17} /> {error}
             </p>
           )}
-          <form onSubmit={submit} className="mt-7 space-y-5">
-            <label className="block text-xs font-bold uppercase tracking-widest text-green-800">
-              Email
-              <input
-                required
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="login-field mt-2 w-full rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-brand-green/30"
-              />
-            </label>
-            <label className="block text-xs font-bold uppercase tracking-widest text-green-800">
-              Password
-              <input
-                required
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="login-field mt-2 w-full rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-brand-green/30"
-              />
-            </label>
-            <button
-              disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-green px-5 py-4 text-sm font-bold uppercase tracking-widest text-brand-navy transition hover:bg-brand-green-dark disabled:opacity-50"
-            >
-              <LockKeyhole size={16} /> {loading ? "Signing in" : "Sign in"}
-            </button>
-          </form>
+          {mfaChallenge ? (
+            <form onSubmit={submitMfa} className="mt-7 space-y-5">
+              <p className="text-sm leading-6 text-ink-600">
+                Enter the 6-digit code from your authenticator app — or one of your recovery codes —
+                to finish signing in.
+              </p>
+              <label className="block text-xs font-bold uppercase tracking-widest text-green-800">
+                Verification code
+                <input
+                  required
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  autoFocus
+                  value={mfaCode}
+                  onChange={(event) => setMfaCode(event.target.value)}
+                  className="login-field mt-2 w-full rounded-xl px-4 py-3 text-sm tracking-[0.3em] outline-none focus:ring-2 focus:ring-brand-green/30"
+                />
+              </label>
+              <button
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-green px-5 py-4 text-sm font-bold uppercase tracking-widest text-brand-navy transition hover:bg-brand-green-dark disabled:opacity-50"
+              >
+                <ShieldCheck size={16} /> {loading ? "Verifying" : "Verify & sign in"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMfaChallenge("");
+                  setMfaCode("");
+                  setPassword("");
+                }}
+                className="block w-full text-center text-sm font-semibold text-green-800 hover:underline"
+              >
+                Back to sign in
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={submit} className="mt-7 space-y-5">
+              <label className="block text-xs font-bold uppercase tracking-widest text-green-800">
+                Email
+                <input
+                  required
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="login-field mt-2 w-full rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-brand-green/30"
+                />
+              </label>
+              <label className="block text-xs font-bold uppercase tracking-widest text-green-800">
+                Password
+                <input
+                  required
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="login-field mt-2 w-full rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-brand-green/30"
+                />
+              </label>
+              <button
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-green px-5 py-4 text-sm font-bold uppercase tracking-widest text-brand-navy transition hover:bg-brand-green-dark disabled:opacity-50"
+              >
+                <LockKeyhole size={16} /> {loading ? "Signing in" : "Sign in"}
+              </button>
+            </form>
+          )}
           <Link
             href="/reset-password"
             className="mt-6 block text-center text-sm font-semibold text-green-800 hover:text-green-900 hover:underline"

@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
             kind: NotificationKind.REPORT_RELEASED,
             channel: AlertChannel.EMAIL,
             status: AlertDeliveryStatus.PENDING,
-            subject: "Report card released — Ykay College",
+            subject: "Report card released — Famex International Schools",
             body: msg,
             recipientName: d.studentProfile.guardianName,
             recipientEmail: d.studentProfile.guardianEmail,

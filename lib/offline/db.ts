@@ -3,7 +3,7 @@
 import { openDB, type IDBPDatabase } from "idb";
 
 /**
- * Offline IndexedDB store for the Ykay EduPortal.
+ * Offline IndexedDB store for the Famex OS.
  *
  * Two object stores:
  * 1. `cache` — cached API responses (keyed by URL) for offline reads.
@@ -13,7 +13,7 @@ import { openDB, type IDBPDatabase } from "idb";
  * No external service needed — just the `idb` package (~1KB).
  */
 
-const DB_NAME = "ykay-offline";
+const DB_NAME = "fis-offline";
 const DB_VERSION = 1;
 
 let dbPromise: Promise<IDBPDatabase> | null = null;

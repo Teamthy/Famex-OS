@@ -3,7 +3,7 @@ import Link from "next/link";
 import { WifiOff } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "You are offline | Ykay College",
+  title: "You are offline | Famex International Schools",
   robots: { index: false },
 };
 

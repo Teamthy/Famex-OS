@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 /**
  * Public runtime config for the mobile app.
  *
- * Ykay is distributing the Android app as a **sideloaded APK**, not through
+ * FIS is distributing the Android app as a **sideloaded APK**, not through
  * the Play Store. That removes the safety net a store provides:
  *
  *   - nothing nags a stale install to update
@@ -59,12 +59,12 @@ export async function GET(request: Request) {
       apkUrl: downloadUrl(),
       outdated,
       message: outdated
-        ? "This version of the Ykay College app is no longer supported. Please download the latest version."
+        ? "This version of the Famex International Schools app is no longer supported. Please download the latest version."
         : null,
       // Public school contact info for the in-app "School Info" screen. Plain
       // values — nothing sensitive, safe for any signed-in user to see.
       school: {
-        name: process.env.SCHOOL_NAME || "Ykay College & Leadership Academy",
+        name: process.env.SCHOOL_NAME || "Famex International Schools",
         motto: process.env.SCHOOL_MOTTO || "Excellence in Education",
         address: process.env.SCHOOL_ADDRESS || "",
         phone: process.env.SCHOOL_PHONE || "",

@@ -48,7 +48,7 @@ export default function StudentProfile() {
       <Button variant="ghost" fullWidth leftIcon={<LogOut size={18} color={colors.danger} />} onPress={() => router.push("/logout")} style={{ backgroundColor: colors.status.errorBg }}>
         <Body tone="primary" style={{ color: colors.danger }}>Sign Out</Body>
       </Button>
-      <Caption style={{ textAlign: "center", marginTop: spacing.xxl }}>Ykay College · Student Portal</Caption>
+      <Caption style={{ textAlign: "center", marginTop: spacing.xxl }}>Famex International Schools · Student Portal</Caption>
     </ScrollView>
   );
 }

@@ -56,7 +56,8 @@ export default function GalleryPage() {
                 text="CAMPUS GALLERY"
               />
               <p className="font-body text-base md:text-lg text-[var(--text-secondary)] max-w-xl">
-                A visual journey through our facilities, events, and student life at Ykay College.
+                A visual journey through our facilities, events, and student life at Famex
+                International Schools.
               </p>
             </div>
           </section>

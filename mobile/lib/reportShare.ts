@@ -25,7 +25,7 @@ type ReportLike = {
 
 export function buildReportSummary(report: ReportLike, studentName?: string): string {
   const lines: string[] = [];
-  lines.push("YKAY COLLEGE & LEADERSHIP ACADEMY");
+  lines.push("FAMEX INTERNATIONAL SCHOOLS");
   if (studentName) lines.push(`Student: ${studentName}`);
   if (report.termLabel || report.sessionLabel) {
     lines.push(`${report.termLabel ?? ""} ${report.sessionLabel ?? ""}`.trim());
@@ -46,7 +46,7 @@ export function buildReportSummary(report: ReportLike, studentName?: string): st
   if (report.classPosition) lines.push(`Position: ${report.classPosition}`);
   if (report.classTeacherRemark) lines.push(`\nTeacher's remark: ${report.classTeacherRemark}`);
   lines.push("");
-  lines.push("Official document of Ykay College & Leadership Academy.");
+  lines.push("Official document of Famex International Schools.");
   return lines.join("\n");
 }
 

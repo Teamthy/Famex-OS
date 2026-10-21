@@ -9,14 +9,14 @@ const TESTIMONIALS = [
     name: "Mrs. Chinwe Okafor",
     role: "Parent · JSS2 Parent",
     quote:
-      "Ykay College transformed my daughter. She now looks forward to school every day. The teachers are dedicated and communication is excellent — I get WhatsApp updates on her progress weekly.",
+      "Famex International Schools transformed my daughter. She now looks forward to school every day. The teachers are dedicated and communication is excellent — I get WhatsApp updates on her progress weekly.",
     rating: 5,
   },
   {
     name: "Adekunle Ogundipe",
     role: "Alumni · 2020 · Now at University of Lagos",
     quote:
-      "The academic foundation I got at Ykay prepared me for university. Their STEM program is exceptional. I graduated with distinction and got admission to study Medicine on my first attempt.",
+      "The academic foundation I got at FIS prepared me for university. Their STEM program is exceptional. I graduated with distinction and got admission to study Medicine on my first attempt.",
     rating: 5,
   },
   {
@@ -44,7 +44,7 @@ const TESTIMONIALS = [
     name: "Chukwuma Nwosu",
     role: "Alumni · 2019 · Software Engineer at Andela",
     quote:
-      "Started coding at Ykay's STEM club in JSS2. Today I write code for global startups. Grateful to Mr. Adeyemi who saw the spark in me.",
+      "Started coding at FIS's STEM club in JSS2. Today I write code for global startups. Grateful to Mr. Adeyemi who saw the spark in me.",
     rating: 5,
   },
 ];
@@ -68,7 +68,8 @@ export default function TestimonialsPage() {
                 <AnimatedText heavy stagger={0.034} text="SAY" delay={0.3} />
               </h1>
               <p className="text-white/60 mt-6 max-w-2xl mx-auto">
-                Hear from parents, students, and alumni about their Ykay College experience.
+                Hear from parents, students, and alumni about their Famex International Schools
+                experience.
               </p>
             </div>
           </section>

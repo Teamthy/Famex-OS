@@ -12,7 +12,7 @@ export default function AdmissionsBanner() {
     <section className="relative w-full overflow-hidden">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/home/ykay-students.png"
+        src="/home/fis-students.png"
         alt=""
         aria-hidden="true"
         loading="lazy"

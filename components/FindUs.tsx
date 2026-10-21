@@ -15,7 +15,7 @@ export default function FindUs() {
               FIND US
             </span>
             <h2 className="font-display text-[clamp(2.25rem,6.5vw,5.5rem)] leading-[0.86] tracking-[-0.015em] text-[var(--text-primary)] mb-8">
-              <AnimatedText heavy stagger={0.03} text="YKAY" delay={0.0} className="block" />
+              <AnimatedText heavy stagger={0.03} text="FIS" delay={0.0} className="block" />
               <span className="block text-brand-green">
                 <AnimatedText heavy stagger={0.03} text="COLLEGE" delay={0.1} />
               </span>
@@ -40,7 +40,7 @@ export default function FindUs() {
             <Link href="/news-events" className="block group">
               <div className="relative rounded-3xl overflow-hidden aspect-[16/10] mb-4 shadow-lg">
                 <img
-                  src="/home/ykay-students.png"
+                  src="/home/fis-students.png"
                   alt="School event"
                   loading="lazy"
                   decoding="async"
@@ -60,7 +60,7 @@ export default function FindUs() {
                   Admissions News · March 15, 2025
                 </div>
                 <h3 className="font-display text-[clamp(1.5rem,2.4vw,2.25rem)] leading-[0.95] tracking-[-0.01em] text-[var(--text-primary)] mb-3 group-hover:text-[var(--text-accent)] transition-colors">
-                  Ykay College Opens 2025 / 2026 Admissions
+                  Famex International Schools Opens 2025 / 2026 Admissions
                 </h3>
                 <p className="text-sm text-[var(--text-secondary)] mb-4 leading-relaxed">
                   Applications are now open for JSS1 through SS3. Apply online and track your

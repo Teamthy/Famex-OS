@@ -50,7 +50,8 @@ export default async function NewsPage() {
                 </span>
               </h1>
               <p className="mt-3 max-w-2xl text-sm text-white/65">
-                Official updates from Ykay College — published by the school communications team.
+                Official updates from Famex International Schools — published by the school
+                communications team.
               </p>
             </div>
           </section>

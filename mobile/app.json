@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "Ykay College",
-    "slug": "ykay-college",
+    "name": "Famex International Schools",
+    "slug": "famex-international-schools",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "ykaycollege",
+    "scheme": "famexinternationalschools",
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ykaycollege.app",
+      "bundleIdentifier": "com.famexinternationalschools.app",
       "associatedDomains": [
         "applinks:ykaycollege.com",
         "applinks:www.ykaycollege.com"
@@ -19,7 +19,7 @@
       "adaptiveIcon": {
         "backgroundColor": "#00072D"
       },
-      "package": "com.ykaycollege.app",
+      "package": "com.famexinternationalschools.app",
       "intentFilters": [
         {
           "action": "VIEW",
@@ -54,13 +54,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Ykay College to use the camera to scan staff attendance QR badges."
+          "cameraPermission": "Allow Famex International Schools to use the camera to scan staff attendance QR badges."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Ykay College to access your location to verify you are on school premises for GPS clock-in.",
+          "locationWhenInUsePermission": "Allow Famex International Schools to access your location to verify you are on school premises for GPS clock-in.",
           "isAndroidBackgroundLocationEnabled": false,
           "isIosBackgroundLocationEnabled": false
         }

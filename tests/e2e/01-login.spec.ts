@@ -73,7 +73,7 @@ test.describe.serial("login", () => {
     expect(page.url()).toContain("/login");
 
     const cookies = await page.context().cookies();
-    expect(cookies.find((c) => c.name === "ykay_session")).toBeFalsy();
+    expect(cookies.find((c) => c.name === "fis_session")).toBeFalsy();
   });
 
   test("a teacher cannot reach an admin API route", async ({ request }) => {
@@ -118,12 +118,12 @@ test.describe.serial("login", () => {
 
   test("the old hardcoded password no longer works", async ({ request }) => {
     const res = await request.post("/api/auth/login", {
-      data: { email: ACCOUNTS.bursar, password: "Ykay@2026" + "!Secure" },
+      data: { email: ACCOUNTS.bursar, password: "FIS@2026" + "!Secure" },
     });
     expect(
       res.ok(),
       "the old hardcoded password still works — this database was seeded before the fix",
     ).toBeFalsy();
-    expect(PASSWORD).not.toBe("Ykay@2026" + "!Secure");
+    expect(PASSWORD).not.toBe("FIS@2026" + "!Secure");
   });
 });

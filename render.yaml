@@ -1,4 +1,4 @@
-# Render Blueprint — Ykay College EduPortal production web service.
+# Render Blueprint — Famex International Schools EduPortal production web service.
 #
 # Create a Render PostgreSQL database separately, in the same region as this
 # web service. Set DATABASE_URL in the Render dashboard to that database's
@@ -10,7 +10,7 @@
 
 services:
   - type: web
-    name: ykay-college
+    name: famex-international-schools
     runtime: docker
     repo: https://github.com/Teamthy/ykay_eduport-
     plan: starter # $7/mo; free services sleep after 15 min idle

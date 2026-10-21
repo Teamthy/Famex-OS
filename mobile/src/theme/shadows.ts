@@ -1,6 +1,6 @@
 import type { ViewStyle } from "react-native";
 
-/** Ykay College — elevation/shadows. */
+/** Famex International Schools — elevation/shadows. */
 export const Shadows = {
   card: {
     shadowColor: "#000",

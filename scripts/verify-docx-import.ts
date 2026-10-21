@@ -39,7 +39,7 @@ async function main() {
   // A paper as a teacher would actually type it: no blank lines between
   // questions, mixed answer markers, mixed option markers, five options.
   const file = docx([
-    "YKAY COLLEGE — SS 2 BIOLOGY — MIDTERM TEST",
+    "FAMEX INTERNATIONAL SCHOOLS — SS 2 BIOLOGY — MIDTERM TEST",
     "Answer all questions.",
     "1. Which organelle is the powerhouse of the cell?",
     "A) Nucleus",
@@ -80,7 +80,7 @@ async function main() {
   ok(q4.type === "TRUE_FALSE" && q4.correctKey === "TRUE", "Q4 true/false");
   ok(q5.type === "ESSAY" && q5.marks === 15, "Q5 essay at 15 marks");
   ok(
-    !imported.questions.some((q) => /YKAY COLLEGE/i.test(q.questionText)),
+    !imported.questions.some((q) => /FAMEX INTERNATIONAL SCHOOLS/i.test(q.questionText)),
     "the title line was not imported as a question",
   );
 

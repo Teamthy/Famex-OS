@@ -56,7 +56,7 @@ function main() {
   if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
 
   const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const file = path.join(outDir, `ykay-${stamp}.dump`);
+  const file = path.join(outDir, `fis-${stamp}.dump`);
 
   console.log(`Backing up to ${file} ...`);
 
@@ -73,8 +73,8 @@ function main() {
         (rls
           ? "\n\nThis is the FORCE ROW LEVEL SECURITY problem. Use a dedicated,\n" +
             "read-only backup role that has BYPASSRLS:\n\n" +
-            "    CREATE ROLE ykay_backup LOGIN PASSWORD '<pw>' BYPASSRLS;\n" +
-            "    GRANT SELECT ON ALL TABLES IN SCHEMA public TO ykay_backup;\n\n" +
+            "    CREATE ROLE fis_backup LOGIN PASSWORD '<pw>' BYPASSRLS;\n" +
+            "    GRANT SELECT ON ALL TABLES IN SCHEMA public TO fis_backup;\n\n" +
             "Do NOT add BYPASSRLS to the application role — that disables tenant\n" +
             "isolation for every request. See docs/backup-restore.md."
           : ""),

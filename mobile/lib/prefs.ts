@@ -1,5 +1,5 @@
 /**
- * Ykay College — local user preferences.
+ * Famex International Schools — local user preferences.
  *
  * Small key/value store for device-local settings (biometric lock,
  * notification opt-outs). Uses expo-secure-store, which is already a
@@ -18,7 +18,7 @@ export type PrefKey =
   | "notifyFees"
   | "notifyResults";
 
-const PREFIX = "ykay_pref_";
+const PREFIX = "fis_pref_";
 
 /** Defaults applied when a preference has never been set on this device. */
 export const PREF_DEFAULTS: Record<PrefKey, boolean> = {

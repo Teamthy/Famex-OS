@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import PortalTopbar from "@/components/PortalTopbar";
 import AdminSidebar from "@/components/AdminSidebar";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import ResultCorrectionsPanel from "@/components/ResultCorrectionsPanel";
 import { useToast } from "@/components/Toast";
 import {
   CheckCircle2,
@@ -428,6 +429,8 @@ export default function AdminGradebookLockPage() {
                   </div>
                 </div>
               ) : null}
+
+              <ResultCorrectionsPanel />
             </div>
           </div>
         </section>

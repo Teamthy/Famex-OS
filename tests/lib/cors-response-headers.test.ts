@@ -20,7 +20,7 @@ import { join } from "node:path";
  *     OPTIONS /api/auth/login  Origin: http://localhost:8081
  *       -> access-control-allow-origin: http://localhost:8081     (middleware)
  *     POST    /api/auth/login  Origin: http://localhost:8081
- *       -> access-control-allow-origin: https://ykaycollege.edu.ng (next.config)
+ *       -> access-control-allow-origin: https://fis.example.edu.ng (next.config)
  *
  * The preflight passes, the real response is rejected, and the browser reports
  * a bare "TypeError: Failed to fetch" with no line number.

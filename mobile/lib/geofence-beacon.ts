@@ -21,7 +21,7 @@ import * as SecureStore from "expo-secure-store";
 import { haversineM } from "@/lib/location";
 import { staffMeApi, studentApi } from "@/lib/api";
 
-const BEACON_PREF = "ykay_beacon_enabled";
+const BEACON_PREF = "fis_beacon_enabled";
 async function getBeaconFlag(): Promise<boolean> {
   if (Platform.OS === "web") return true;
   try {

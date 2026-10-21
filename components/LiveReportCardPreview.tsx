@@ -63,7 +63,9 @@ export default function LiveReportCardPreview({
             <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-brand-green">
               Official Report Card
             </div>
-            <h2 className="mt-3 font-display text-4xl tracking-[0.12em]">YKAY COLLEGE</h2>
+            <h2 className="mt-3 font-display text-4xl tracking-[0.12em]">
+              FAMEX INTERNATIONAL SCHOOLS
+            </h2>
             <p className="mt-2 text-sm text-white/60">
               {sessionLabel} · {termLabel} · {reportNumber}
             </p>
@@ -223,9 +225,7 @@ export default function LiveReportCardPreview({
         <div className="text-right text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
           Official document of
           <br />
-          <span className="font-bold text-[var(--text-primary)]">
-            Ykay College &amp; Leadership Academy
-          </span>
+          <span className="font-bold text-[var(--text-primary)]">Famex International Schools</span>
         </div>
       </div>
     </div>

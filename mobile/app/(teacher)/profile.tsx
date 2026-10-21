@@ -64,7 +64,7 @@ export default function TeacherProfile() {
       <Button variant="ghost" fullWidth leftIcon={<LogOut size={18} color={colors.danger} />} onPress={() => router.push("/logout")} style={{ backgroundColor: colors.status.errorBg }}>
         <Body tone="primary" style={{ color: colors.danger }}>Sign Out</Body>
       </Button>
-      <Caption style={{ textAlign: "center", marginTop: spacing.xxl }}>Ykay College · Staff Portal</Caption>
+      <Caption style={{ textAlign: "center", marginTop: spacing.xxl }}>Famex International Schools · Staff Portal</Caption>
     </ScrollView>
   );
 }

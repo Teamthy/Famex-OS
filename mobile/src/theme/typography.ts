@@ -1,4 +1,4 @@
-/** Ykay College — typography. Anton (display) + DM Sans (body, 3 weights). */
+/** Famex International Schools — typography. Anton (display) + DM Sans (body, 3 weights). */
 
 export const Typography = {
   fontFamily: {

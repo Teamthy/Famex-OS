@@ -10,13 +10,13 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { login, logout } from "@/lib/api";
+import { login, logout, verifyMfa } from "@/lib/api";
 import { haptic } from "@/lib/haptics";
 import { useTheme } from "@/src/theme";
 import { Input } from "@/src/components/inputs";
 import { Button } from "@/src/components/buttons";
 import { BackgroundCarousel } from "@/src/components/carousel";
-import { YkayLogo } from "@/components/YkayLogo";
+import { FISLogo } from "@/components/FISLogo";
 import { useToast } from "@/components/MobileToast";
 import { Mail, Lock, ArrowRight, ShieldCheck, Eye, EyeOff, WifiOff } from "lucide-react-native";
 
@@ -41,11 +41,31 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [mfaChallenge, setMfaChallenge] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+
+  async function routeAfterLogin(user: { role?: string | null }) {
+    if (!ALLOWED_ROLES.includes(user.role ?? "")) {
+      await logout();
+      // Be specific about the role so a Bursar or Director isn't left wondering
+      // whether their account is broken — it's fine, it's just web-managed.
+      const roleName = user.role?.replaceAll("_", " ").toLowerCase() || "this account";
+      setFormError(
+        `${roleName} access is managed from the web portal — please sign in on a computer.`,
+      );
+      haptic("error");
+      return;
+    }
+    haptic("success");
+    toast("Signed in successfully.", "success");
+    if (user.role === "TEACHER" || user.role === "HOD") router.replace("/(teacher)/dashboard");
+    else if (user.role === "PARENT") router.replace("/(parent)/dashboard");
+    else if (user.role === "ADMIN") router.replace("/(admin)/dashboard");
+    else router.replace("/(student)/dashboard");
+  }
 
   async function handleLogin() {
     if (!email.trim() || !password) {
-      // Inline error instead of a modal Alert — the old flow fired a toast AND
-      // an OS dialog for the same mistake, which meant two dismissals.
       setFormError("Enter both your email and password.");
       haptic("warning");
       return;
@@ -53,26 +73,39 @@ export default function LoginScreen() {
     setFormError(null);
     setLoading(true);
     try {
-      const { user } = await login(email.trim(), password);
-      if (!ALLOWED_ROLES.includes(user.role)) {
-        await logout();
-        // Be specific about the role so a Bursar or Director isn't left wondering
-        // whether their account is broken — it's fine, it's just web-managed.
-        const roleName = user.role?.replaceAll("_", " ").toLowerCase() || "this account";
-        setFormError(
-          `${roleName} access is managed from the web portal — please sign in on a computer.`,
-        );
-        haptic("error");
+      const result = await login(email.trim(), password);
+      if (result.mfaRequired) {
+        // Password accepted, but no session exists yet — collect the second factor.
+        setMfaChallenge(result.challenge);
+        setMfaCode("");
         return;
       }
-      haptic("success");
-      toast("Signed in successfully.", "success");
-      if (user.role === "TEACHER" || user.role === "HOD") router.replace("/(teacher)/dashboard");
-      else if (user.role === "PARENT") router.replace("/(parent)/dashboard");
-      else if (user.role === "ADMIN") router.replace("/(admin)/dashboard");
-      else router.replace("/(student)/dashboard");
+      await routeAfterLogin(result.user);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Invalid email or password.";
+      setFormError(msg);
+      haptic("error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerifyMfa() {
+    if (!mfaChallenge) return;
+    if (mfaCode.trim().length < 6) {
+      setFormError("Enter the 6-digit code from your authenticator app, or a recovery code.");
+      haptic("warning");
+      return;
+    }
+    setFormError(null);
+    setLoading(true);
+    try {
+      const { user } = await verifyMfa(mfaChallenge, mfaCode.trim());
+      setMfaChallenge(null);
+      setMfaCode("");
+      await routeAfterLogin(user);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Invalid code.";
       setFormError(msg);
       haptic("error");
     } finally {
@@ -121,7 +154,7 @@ export default function LoginScreen() {
         >
           {/* ── Brand + welcome ── */}
           <View style={{ marginBottom: spacing.xl }}>
-            <YkayLogo size={46} textSize={19} />
+            <FISLogo size={46} textSize={19} />
 
             <Text
               style={{
@@ -144,11 +177,40 @@ export default function LoginScreen() {
                 maxWidth: 320,
               }}
             >
-              Sign in to your Ykay College portal.
+              Sign in to your Famex International Schools portal.
             </Text>
           </View>
 
           {/* ── Form ── */}
+          {mfaChallenge ? (
+            <View style={{ gap: spacing.md }}>
+              <Text
+                style={{
+                  color: colors.text.secondary,
+                  fontFamily: "DM Sans",
+                  fontSize: 14,
+                  lineHeight: 21,
+                }}
+              >
+                Two-factor authentication is on for this account. Enter the 6-digit code from
+                your authenticator app — or one of your recovery codes — to finish signing in.
+              </Text>
+              <Input
+                label="Authentication code"
+                placeholder="123456"
+                autoCapitalize="characters"
+                autoComplete="one-time-code"
+                value={mfaCode}
+                onChangeText={(t2) => {
+                  setMfaCode(t2);
+                  if (formError) setFormError(null);
+                }}
+                onSubmitEditing={handleVerifyMfa}
+                returnKeyType="go"
+                leftIcon={<ShieldCheck size={18} color={colors.text.muted} />}
+              />
+            </View>
+          ) : (
           <View style={{ gap: spacing.md }}>
             <Input
               label="Email"
@@ -192,6 +254,7 @@ export default function LoginScreen() {
               }
             />
           </View>
+          )}
 
           {/* One shared error slot, so a failure reads in a single place */}
           {formError ? (
@@ -222,6 +285,42 @@ export default function LoginScreen() {
             </View>
           ) : null}
 
+          {mfaChallenge ? (
+            <>
+              <Button
+                fullWidth
+                size="lg"
+                loading={loading}
+                onPress={handleVerifyMfa}
+                rightIcon={
+                  !loading ? <ShieldCheck size={19} color={colors.brand.white} /> : undefined
+                }
+                style={{ marginTop: spacing.lg }}
+              >
+                {loading ? "Verifying…" : "Verify & Sign In"}
+              </Button>
+              <TouchableOpacity
+                onPress={() => {
+                  setMfaChallenge(null);
+                  setMfaCode("");
+                  setFormError(null);
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={{ alignSelf: "center", marginTop: spacing.md }}
+              >
+                <Text
+                  style={{
+                    color: colors.text.secondary,
+                    fontSize: 13.5,
+                    fontFamily: "DM Sans Medium",
+                  }}
+                >
+                  Back to sign in
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
           <TouchableOpacity
             onPress={() => router.push("/forgot-password")}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -248,6 +347,8 @@ export default function LoginScreen() {
           >
             {loading ? "Signing in…" : "Sign In"}
           </Button>
+            </>
+          )}
 
           {/* ── Trust footer ── */}
           <View

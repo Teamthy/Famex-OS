@@ -15,7 +15,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const SECRET = "sk_test_verification_secret";
 
-const REFERENCE = "ykay_fee_abc123";
+const REFERENCE = "fis_fee_abc123";
 const AMOUNT_KOBO = 45_000_00;
 const EMAIL = "parent@example.com";
 

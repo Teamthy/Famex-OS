@@ -80,7 +80,7 @@ export default function SendResultsPage() {
   // Step 3
   const [channels, setChannels] = useState<Channel[]>(["sms", "whatsapp"]);
   const [customMessage, setCustomMessage] = useState(
-    "Dear {parent_name}, this is to inform you that {student_name} scored {score}% ({grade}) in the recent {assessment}. Please log in to the portal to view detailed report. Thank you. - Ykay College",
+    "Dear {parent_name}, this is to inform you that {student_name} scored {score}% ({grade}) in the recent {assessment}. Please log in to the portal to view detailed report. Thank you. - Famex International Schools",
   );
 
   // Step 4

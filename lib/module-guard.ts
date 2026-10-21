@@ -22,19 +22,20 @@
 import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { MODULES, type ModuleKey } from "@/lib/module-registry";
+import { ADMIN_WORKSPACE_ROLES as ADMIN_WORKSPACE_ROLE_NAMES } from "@/lib/roles";
 import { getEnabledModulesStrict } from "@/lib/modules";
 import { requireRole, type SessionUser } from "@/lib/session";
 
 export type ModuleGuardResult =
   { ok: true; user: SessionUser; enabled: Set<ModuleKey> } | { ok: false; response: NextResponse };
 
-/** Roles that work inside the admin workspace, when the caller does not say. */
-const ADMIN_WORKSPACE_ROLES: UserRole[] = [
-  UserRole.ADMIN,
-  UserRole.DIRECTOR,
-  UserRole.BURSAR,
-  UserRole.COORDINATOR,
-];
+/** Roles that work inside the admin workspace, when the caller does not say.
+ * The list itself lives in lib/roles.ts (B) so nav, guards and services can
+ * never drift apart; the cast is safe because tests/lib/roles.test.ts
+ * asserts the string union equals the Prisma UserRole enum. */
+const ADMIN_WORKSPACE_ROLES: UserRole[] = ADMIN_WORKSPACE_ROLE_NAMES.map(
+  (role) => role as unknown as UserRole,
+);
 
 export function moduleDisabledResponse(moduleKey: ModuleKey): NextResponse {
   const label = MODULES[moduleKey].label;

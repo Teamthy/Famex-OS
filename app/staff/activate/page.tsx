@@ -33,7 +33,7 @@ export default function Activate() {
     <main className="grid min-h-screen place-items-center bg-brand-navy p-5">
       <form onSubmit={submit} className="w-full max-w-md rounded-3xl bg-white p-8">
         <Link href="/" className="text-xs font-bold uppercase tracking-widest text-[#2b8a2b]">
-          Ykay EduPortal
+          Famex International Schools
         </Link>
         <h1 className="mt-4 font-display text-4xl tracking-widest text-brand-navy">
           ACTIVATE ACCOUNT

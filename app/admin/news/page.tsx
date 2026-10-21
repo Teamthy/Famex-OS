@@ -143,7 +143,7 @@ export default function AdminNewsPage() {
                       <input
                         value={form.title}
                         onChange={(event) => setForm({ ...form, title: event.target.value })}
-                        placeholder="e.g. Ykay Students Shine at Regional IT Bootcamp"
+                        placeholder="e.g. FIS Students Shine at Regional IT Bootcamp"
                         className="mt-2 w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--input-text)]"
                       />
                     </label>

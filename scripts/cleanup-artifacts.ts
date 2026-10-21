@@ -16,7 +16,7 @@ const PATTERNS = [
   /^phase-.*hotfix.*\.ps1$/i,
   /^Inject-.*\.ps1$/i,
   /^FULL_PHASE.*\.ps1$/i,
-  /^YKAY_Phase.*Inject\.ps1$/i,
+  /^FIS_Phase.*Inject\.ps1$/i,
   /^phase-.*-ingest-b64\.ps1$/i,
 ];
 

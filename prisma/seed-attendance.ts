@@ -130,7 +130,7 @@ async function main() {
 
   const teacherUser = await upsertPortalUser(
     {
-      email: env("BOOTSTRAP_TEACHER_EMAIL", "grace.o@ykaycollege.com"),
+      email: env("BOOTSTRAP_TEACHER_EMAIL", "grace.o@fis.example.edu.ng"),
       name: "Dr. Grace Okonkwo",
       role: UserRole.TEACHER,
       passwordEnv: "BOOTSTRAP_TEACHER_PASSWORD",
@@ -140,7 +140,7 @@ async function main() {
 
   const studentUser = await upsertPortalUser(
     {
-      email: env("BOOTSTRAP_STUDENT_EMAIL", "student.demo@ykaycollege.com"),
+      email: env("BOOTSTRAP_STUDENT_EMAIL", "student.demo@fis.example.edu.ng"),
       name: "Emmanuel Adebayo",
       role: UserRole.STUDENT,
       passwordEnv: "BOOTSTRAP_STUDENT_PASSWORD",
@@ -150,7 +150,7 @@ async function main() {
 
   const parentUser = await upsertPortalUser(
     {
-      email: env("BOOTSTRAP_PARENT_EMAIL", "parent.demo@ykaycollege.com"),
+      email: env("BOOTSTRAP_PARENT_EMAIL", "parent.demo@fis.example.edu.ng"),
       name: "Mrs. Chinwe Ogunlade",
       role: UserRole.PARENT,
       passwordEnv: "BOOTSTRAP_PARENT_PASSWORD",

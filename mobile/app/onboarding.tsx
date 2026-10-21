@@ -14,7 +14,7 @@ import {
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "@/src/theme";
-import { YkayLogo } from "@/components/YkayLogo";
+import { FISLogo } from "@/components/FISLogo";
 import { Button } from "@/src/components/buttons";
 import { haptic } from "@/lib/haptics";
 import { setPref } from "@/lib/prefs";
@@ -35,7 +35,7 @@ const { width: SCREEN_W } = Dimensions.get("window");
  * the same set the login carousel uses, so the very first impression of the
  * app is consistent with the sign-in screen the user lands on next.
  *
- * Colours come exclusively from the Ykay tokens (which mirror globals.css) —
+ * Colours come exclusively from the FIS tokens (which mirror globals.css) —
  * no new brand values are introduced here.
  */
 const PAGES = [
@@ -150,7 +150,7 @@ export default function OnboardingScreen() {
           zIndex: 5,
         }}
       >
-        <YkayLogo size={34} textSize={15} />
+        <FISLogo size={34} textSize={15} />
         {!last ? (
           <TouchableOpacity
             onPress={() => {

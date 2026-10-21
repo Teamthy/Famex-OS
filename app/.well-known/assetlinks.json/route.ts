@@ -24,7 +24,7 @@ export async function GET() {
     .split(",")
     .map((value) => value.trim().toUpperCase())
     .filter(Boolean);
-  const packageName = process.env.ANDROID_PACKAGE || "com.ykaycollege.app";
+  const packageName = process.env.ANDROID_PACKAGE || "com.famexinternationalschools.app";
 
   // Without a fingerprint the statement verifies nothing. Return 404 rather
   // than publishing an empty grant.

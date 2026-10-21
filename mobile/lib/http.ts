@@ -7,7 +7,7 @@ import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
 /**
- * Point this at the deployed Ykay College backend.
+ * Point this at the deployed Famex International Schools backend.
  * NATIVE production builds REQUIRE EXPO_PUBLIC_API_URL at build time — the
  * app throws on launch if it is missing rather than guessing a URL (see
  * eas.json profiles). Dev overrides with EXPO_PUBLIC_API_URL=http://<lan-ip>:3000.
@@ -45,7 +45,7 @@ export const API_BASE = IS_WEB
     ? CONFIGURED_API_URL.replace(/\/$/, "")
     : "http://localhost:3000";
 
-const SESSION_KEY = "ykay_session";
+const SESSION_KEY = "fis_session";
 
 /**
  * Token storage.
@@ -60,7 +60,7 @@ const SESSION_KEY = "ykay_session";
  * On web we use localStorage instead.
  *
  * This is not a security downgrade in the case that matters: on web the
- * session is carried by the httpOnly `ykay_session` cookie, which JS cannot
+ * session is carried by the httpOnly `fis_session` cookie, which JS cannot
  * read at all. The localStorage entry is only a "someone is signed in" flag.
  */
 const webStore = {
@@ -142,7 +142,7 @@ export async function authHeaders(): Promise<Record<string, string>> {
   const h: Record<string, string> = { "Content-Type": "application/json" };
   if (IS_WEB) return h; // cookie is sent by the browser, not by us
   const token = await getToken();
-  if (token) h["Cookie"] = `ykay_session=${token}`;
+  if (token) h["Cookie"] = `fis_session=${token}`;
   return h;
 }
 

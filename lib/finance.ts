@@ -6,6 +6,8 @@ import { requireRole } from "@/lib/session";
 export const FINANCE_ADMIN_ROLES = [
   UserRole.ADMIN,
   UserRole.DIRECTOR,
+  UserRole.PROPRIETOR,
+  UserRole.PRINCIPAL,
   UserRole.BURSAR,
   UserRole.COORDINATOR,
 ];

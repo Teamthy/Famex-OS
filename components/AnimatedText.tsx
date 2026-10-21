@@ -1,4 +1,4 @@
-// AnimatedText — server-safe typographic motion for Ykay College (CSS-only).
+// AnimatedText — server-safe typographic motion for Famex International Schools (CSS-only).
 //
 // Two pieces live here:
 //   AnimatedText — splits text into per-letter spans and springs each one in

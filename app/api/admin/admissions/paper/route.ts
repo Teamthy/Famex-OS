@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
 /**
  * Paper-form intake — office staff keying in a walk-in application.
  *
- * Ykay is mid-transition from paper to online. Until every parent applies
+ * FIS is mid-transition from paper to online. Until every parent applies
  * online, the front desk still receives handwritten forms, and those applicants
  * have to reach exactly the same review -> entrance -> enrolment pipeline as
  * online ones. Before this route there was no way in: the only creator was the

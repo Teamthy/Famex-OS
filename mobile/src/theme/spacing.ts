@@ -1,4 +1,4 @@
-/** Ykay College — spacing scale (px). */
+/** Famex International Schools — spacing scale (px). */
 export const Spacing = {
   xs: 4,
   sm: 8,

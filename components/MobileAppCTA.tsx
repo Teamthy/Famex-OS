@@ -31,7 +31,7 @@ export default async function MobileAppCTA() {
           <Reveal>
             <div>
               <span className="font-body text-[10px] font-bold tracking-[0.25em] uppercase text-brand-green block mb-4">
-                YKAY ON THE GO
+                FIS ON THE GO
               </span>
               <h2 className="font-display text-4xl md:text-6xl leading-[0.95] tracking-[2px] text-white mb-6">
                 THE SCHOOL IN <br />
@@ -83,7 +83,7 @@ export default async function MobileAppCTA() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={qr}
-                      alt="Scan to download the Ykay College app"
+                      alt="Scan to download the Famex International Schools app"
                       width={196}
                       height={196}
                     />

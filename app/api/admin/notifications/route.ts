@@ -42,10 +42,23 @@ export async function GET(request: NextRequest) {
     _count: true,
   });
 
+  // Estimated delivery spend (W4): costKobo is recorded when a provider
+  // accepts a job; only SENT/DELIVERED jobs ever cost money.
+  const spendRows = await prisma.notificationJob.groupBy({
+    by: ["channel"],
+    where: {
+      schoolId: user.schoolId,
+      status: { in: [AlertDeliveryStatus.SENT, AlertDeliveryStatus.DELIVERED] },
+    },
+    _sum: { costKobo: true },
+    _count: true,
+  });
+
   return NextResponse.json({
     summary: {
       pending: byStatus[AlertDeliveryStatus.PENDING] || 0,
       sent: byStatus[AlertDeliveryStatus.SENT] || 0,
+      delivered: byStatus[AlertDeliveryStatus.DELIVERED] || 0,
       failed: byStatus[AlertDeliveryStatus.FAILED] || 0,
       skipped: byStatus[AlertDeliveryStatus.SKIPPED] || 0,
     },
@@ -53,6 +66,11 @@ export async function GET(request: NextRequest) {
       channel: row.channel,
       status: row.status,
       count: row._count,
+    })),
+    spend: spendRows.map((row) => ({
+      channel: row.channel,
+      deliveredOrSentCount: row._count,
+      estimatedCostKobo: row._sum.costKobo ?? 0,
     })),
     jobs: jobs.map((job) => ({
       id: job.id,
@@ -67,6 +85,10 @@ export async function GET(request: NextRequest) {
       attempts: job.attempts,
       maxAttempts: job.maxAttempts,
       lastError: job.lastError,
+      providerMessageId: job.providerMessageId,
+      deliveredAt: job.deliveredAt?.toISOString() || null,
+      costKobo: job.costKobo,
+      templateKey: job.templateKey,
       nextAttemptAt: job.nextAttemptAt.toISOString(),
       sentAt: job.sentAt?.toISOString() || null,
       createdAt: job.createdAt.toISOString(),

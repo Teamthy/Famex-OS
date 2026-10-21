@@ -50,7 +50,7 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
           <View style={{ width: 88, height: 88, borderRadius: 26, backgroundColor: colors.brand.green, justifyContent: "center", alignItems: "center", marginBottom: spacing.lg }}>
             <Fingerprint size={44} color={colors.brand.white} />
           </View>
-          <H2 style={{ textAlign: "center" }}>Ykay College is locked</H2>
+          <H2 style={{ textAlign: "center" }}>Famex International Schools is locked</H2>
           <Body style={{ textAlign: "center", marginTop: spacing.xs, marginBottom: spacing.xxl }}>Authenticate to continue where you left off.</Body>
           <Button fullWidth size="lg" leftIcon={<Fingerprint size={18} color={colors.brand.white} />} onPress={tryUnlock}>Unlock with Biometrics</Button>
           <Button variant="ghost" onPress={usePassword} leftIcon={<LogOut size={16} color={colors.text.muted} />} style={{ marginTop: spacing.md }}>Use password instead</Button>

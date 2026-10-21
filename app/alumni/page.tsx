@@ -61,7 +61,7 @@ export default function AlumniPage() {
                 </span>
               </h1>
               <p className="text-white/60 mt-6 max-w-2xl mx-auto">
-                Ykay graduates are making waves across Nigeria and the world. Meet a few of them.
+                FIS graduates are making waves across Nigeria and the world. Meet a few of them.
               </p>
             </div>
           </section>

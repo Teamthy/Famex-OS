@@ -15,7 +15,7 @@
  */
 
 export function schoolSlugFromEnv(env: NodeJS.ProcessEnv = process.env): string {
-  return env.SCHOOL_SLUG || "ykay-college";
+  return env.SCHOOL_SLUG || "famex-international-schools";
 }
 
 /** The `create` half of the School upsert in getSchool() / prisma/seed.ts. */
@@ -25,7 +25,7 @@ export function schoolCreateDefaultsFromEnv(env: NodeJS.ProcessEnv = process.env
     slug,
     subdomain: slug,
     customDomain: env.SCHOOL_CUSTOM_DOMAIN?.trim() || undefined,
-    name: env.SCHOOL_NAME || "Ykay College & Leadership Academy",
+    name: env.SCHOOL_NAME || "Famex International Schools",
     // Empty until the school confirms it (School profile). Nothing is printed meanwhile.
     address: env.SCHOOL_ADDRESS?.trim() || "",
     phone: env.SCHOOL_PHONE || "+2347015374411",

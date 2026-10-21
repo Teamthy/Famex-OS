@@ -1,5 +1,5 @@
 /**
- * Complete Ykay College Seed Script
+ * Complete Famex International Schools Seed Script
  *
  * Seeds the database with:
  * - School profile
@@ -50,36 +50,36 @@ if (!DEFAULT_PASSWORD || DEFAULT_PASSWORD.length < 12) {
 
 const USERS = [
   // ── School Administration ──
-  { email: "admin@ykaycollege.com", name: "Adebayo Ogundimu", role: UserRole.ADMIN },
-  { email: "director@ykaycollege.com", name: "Dr. Folake Adeyemi", role: UserRole.DIRECTOR },
-  { email: "bursar@ykaycollege.com", name: "Mrs. Ngozi Eze", role: UserRole.BURSAR },
-  { email: "coordinator@ykaycollege.com", name: "Mr. Tunde Bakare", role: UserRole.COORDINATOR },
+  { email: "admin@fis.example.edu.ng", name: "Adebayo Ogundimu", role: UserRole.ADMIN },
+  { email: "director@fis.example.edu.ng", name: "Dr. Folake Adeyemi", role: UserRole.DIRECTOR },
+  { email: "bursar@fis.example.edu.ng", name: "Mrs. Ngozi Eze", role: UserRole.BURSAR },
+  { email: "coordinator@fis.example.edu.ng", name: "Mr. Tunde Bakare", role: UserRole.COORDINATOR },
 
   // ── Academic Staff ──
-  { email: "hod@ykaycollege.com", name: "Dr. Grace Okonkwo", role: UserRole.HOD },
-  { email: "teacher1@ykaycollege.com", name: "Mr. Emeka Nwosu", role: UserRole.TEACHER },
-  { email: "teacher2@ykaycollege.com", name: "Mrs. Amina Sule", role: UserRole.TEACHER },
-  { email: "teacher3@ykaycollege.com", name: "Mr. Kolawole Adeyemi", role: UserRole.TEACHER },
+  { email: "hod@fis.example.edu.ng", name: "Dr. Grace Okonkwo", role: UserRole.HOD },
+  { email: "teacher1@fis.example.edu.ng", name: "Mr. Emeka Nwosu", role: UserRole.TEACHER },
+  { email: "teacher2@fis.example.edu.ng", name: "Mrs. Amina Sule", role: UserRole.TEACHER },
+  { email: "teacher3@fis.example.edu.ng", name: "Mr. Kolawole Adeyemi", role: UserRole.TEACHER },
 ];
 
 const TEACHERS = [
   {
-    email: "hod@ykaycollege.com",
+    email: "hod@fis.example.edu.ng",
     roleLabel: "Head of Department",
     subjects: ["Mathematics", "Physics"],
   },
   {
-    email: "teacher1@ykaycollege.com",
+    email: "teacher1@fis.example.edu.ng",
     roleLabel: "Subject Teacher",
     subjects: ["English Language", "Literature"],
   },
   {
-    email: "teacher2@ykaycollege.com",
+    email: "teacher2@fis.example.edu.ng",
     roleLabel: "Subject Teacher",
     subjects: ["Chemistry", "Biology"],
   },
   {
-    email: "teacher3@ykaycollege.com",
+    email: "teacher3@fis.example.edu.ng",
     roleLabel: "Subject Teacher",
     subjects: ["Computer Science", "ICT"],
   },
@@ -100,7 +100,7 @@ const STUDENTS = [
     gender: "Female",
     classLevel: "JSS1",
     arm: "A",
-    parentEmail: "parent1@ykaycollege.com",
+    parentEmail: "parent1@fis.example.edu.ng",
     parentName: "Mr. Ogunlade",
     parentPhone: "08031234567",
   },
@@ -110,7 +110,7 @@ const STUDENTS = [
     gender: "Male",
     classLevel: "SS2",
     arm: "A",
-    parentEmail: "parent2@ykaycollege.com",
+    parentEmail: "parent2@fis.example.edu.ng",
     parentName: "Mrs. Adebayo",
     parentPhone: "08041234567",
   },
@@ -120,7 +120,7 @@ const STUDENTS = [
     gender: "Female",
     classLevel: "SS1",
     arm: "A",
-    parentEmail: "parent3@ykaycollege.com",
+    parentEmail: "parent3@fis.example.edu.ng",
     parentName: "Alhaji Ibrahim",
     parentPhone: "08051234567",
   },
@@ -130,7 +130,7 @@ const STUDENTS = [
     gender: "Male",
     classLevel: "JSS3",
     arm: "B",
-    parentEmail: "parent1@ykaycollege.com",
+    parentEmail: "parent1@fis.example.edu.ng",
     parentName: "Mr. Ogunlade",
     parentPhone: "08031234567",
   },
@@ -140,7 +140,7 @@ const STUDENTS = [
     gender: "Female",
     classLevel: "SS1",
     arm: "B",
-    parentEmail: "parent2@ykaycollege.com",
+    parentEmail: "parent2@fis.example.edu.ng",
     parentName: "Mrs. Adebayo",
     parentPhone: "08041234567",
   },
@@ -150,7 +150,7 @@ const STUDENTS = [
     gender: "Female",
     classLevel: "SS3",
     arm: "A",
-    parentEmail: "parent3@ykaycollege.com",
+    parentEmail: "parent3@fis.example.edu.ng",
     parentName: "Alhaji Ibrahim",
     parentPhone: "08051234567",
   },
@@ -170,7 +170,7 @@ async function hashPassword(password: string): Promise<string> {
 // ── Main ───────────────────────────────────────────────────────────
 
 async function main() {
-  console.log("\n🌱 Ykay College — Full Database Seed\n");
+  console.log("\n🌱 Famex International Schools — Full Database Seed\n");
   console.log("═══════════════════════════════════════════════════════\n");
 
   // 1. School
@@ -379,9 +379,9 @@ async function main() {
     // role STUDENT and no profile linked to one — so a fresh environment
     // could not sign in to the student portal at all, even though the
     // summary below advertises /student/dashboard. Previously only the first
-    // student got a login (student1@ykaycollege.com) and the rest had to be
+    // student got a login (student1@fis.example.edu.ng) and the rest had to be
     // wired up by running scripts/make-student-login.ts by hand for each one.
-    const studentEmail = `student${i + 1}@ykaycollege.com`;
+    const studentEmail = `student${i + 1}@fis.example.edu.ng`;
     const studentUser = await prisma.user.upsert({
       where: { schoolId_email: { schoolId: school.id, email: studentEmail } },
       update: {
@@ -548,10 +548,10 @@ async function main() {
   for (const u of USERS) {
     console.log(`   │ ${u.name.padEnd(35)} │ ${u.email.padEnd(28)} │ ${u.role.padEnd(15)} │`);
   }
-  // Students (one login each: student1@…student6@ykaycollege.com)
+  // Students (one login each: student1@…student6@fis.example.edu.ng)
   for (let i = 0; i < STUDENTS.length; i++) {
     const s = STUDENTS[i];
-    const email = `student${i + 1}@ykaycollege.com`;
+    const email = `student${i + 1}@fis.example.edu.ng`;
     console.log(
       `   │ ${`${s.firstName} ${s.lastName}`.padEnd(35)} │ ${email.padEnd(28)} │ STUDENT         │`,
     );
@@ -570,7 +570,7 @@ async function main() {
   console.log("\n   Portal URLs:");
   console.log("   • Admin:        /admin");
   console.log("   • Teacher:      /teacher/dashboard");
-  console.log("   • Student:      /student/dashboard  (student1@…student6@ykaycollege.com)");
+  console.log("   • Student:      /student/dashboard  (student1@…student6@fis.example.edu.ng)");
   console.log("   • Parent:       /parent/dashboard");
   console.log("");
 }

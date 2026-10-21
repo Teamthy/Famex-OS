@@ -648,7 +648,7 @@ function StudentStep({
   return (
     <div className="space-y-6">
       <p className="text-sm leading-6 text-[var(--text-secondary)]">
-        Tell us about the learner applying to Ykay College. Fields marked with{" "}
+        Tell us about the learner applying to Famex International Schools. Fields marked with{" "}
         <span className="font-bold text-brand-orange">*</span> are required.
       </p>
       <div className="grid gap-5 md:grid-cols-3">
@@ -1143,8 +1143,8 @@ function PaymentStep({
             <div className="flex gap-3">
               <LockKeyhole className="mt-0.5 shrink-0 text-brand-green" size={18} />
               <p className="text-sm leading-6 text-[var(--text-secondary)]">
-                You will complete payment in Paystack&apos;s secure checkout. Ykay College never
-                receives or stores your card, bank, or USSD details.
+                You will complete payment in Paystack&apos;s secure checkout. Famex International
+                Schools never receives or stores your card, bank, or USSD details.
               </p>
             </div>
           </div>

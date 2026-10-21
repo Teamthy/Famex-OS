@@ -1,4 +1,4 @@
-/** Ykay College — brand gradients (stop arrays for LinearGradient). */
+/** Famex International Schools — brand gradients (stop arrays for LinearGradient). */
 export const Gradients = {
   primary: ["#4EC54D", "#3AA93A"],
   accent: ["#4EC54D", "#FF6E00"],

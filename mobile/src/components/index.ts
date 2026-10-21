@@ -1,5 +1,5 @@
 /**
- * Ykay College — design system barrel.
+ * Famex International Schools — design system barrel.
  *
  * Lets screens import from a single place:
  *   import { Card, Button, StatCard, ProgressRing } from "@/src/components";

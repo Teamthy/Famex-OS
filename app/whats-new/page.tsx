@@ -65,7 +65,7 @@ export default function WhatsNewPage() {
                 </span>
               </h1>
               <p className="text-white/60 mt-6 max-w-2xl mx-auto">
-                Recent updates and improvements to Ykay College EduPortal.
+                Recent updates and improvements to Famex International Schools portal.
               </p>
             </div>
           </section>

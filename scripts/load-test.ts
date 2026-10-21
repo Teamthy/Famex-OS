@@ -11,7 +11,7 @@
  * WHAT IT ANSWERS
  * ---------------
  * The question a school actually has: "when every parent opens results at the
- * same time, does the site stay up, and how slow does it get?" Ykay is ~800
+ * same time, does the site stay up, and how slow does it get?" FIS is ~800
  * students, so realistic peak is a few hundred concurrent readers — not
  * thousands. This models that, not a synthetic million-user benchmark.
  *
@@ -47,11 +47,11 @@ if (!PASSWORD) {
 
 /** Read-heavy journeys, weighted the way a school's traffic actually falls. */
 const ACCOUNTS = [
-  { email: "parent1@ykaycollege.com", paths: ["/parent/dashboard", "/parent/fees"] },
-  { email: "parent2@ykaycollege.com", paths: ["/parent/dashboard", "/parent/report-cards"] },
-  { email: "student1@ykaycollege.com", paths: ["/student/dashboard", "/student/exams"] },
-  { email: "teacher1@ykaycollege.com", paths: ["/teacher/dashboard", "/teacher/gradebook"] },
-  { email: "admin@ykaycollege.com", paths: ["/admin", "/admin/fees"] },
+  { email: "parent1@fis.example.edu.ng", paths: ["/parent/dashboard", "/parent/fees"] },
+  { email: "parent2@fis.example.edu.ng", paths: ["/parent/dashboard", "/parent/report-cards"] },
+  { email: "student1@fis.example.edu.ng", paths: ["/student/dashboard", "/student/exams"] },
+  { email: "teacher1@fis.example.edu.ng", paths: ["/teacher/dashboard", "/teacher/gradebook"] },
+  { email: "admin@fis.example.edu.ng", paths: ["/admin", "/admin/fees"] },
 ];
 
 type Sample = { ms: number; status: number; path: string };
@@ -67,8 +67,8 @@ async function signIn(email: string): Promise<string | null> {
     });
     if (!res.ok) return null;
     const raw = res.headers.get("set-cookie") || "";
-    const match = /ykay_session=([^;]+)/.exec(raw);
-    return match ? `ykay_session=${match[1]}` : null;
+    const match = /fis_session=([^;]+)/.exec(raw);
+    return match ? `fis_session=${match[1]}` : null;
   } catch {
     return null;
   }

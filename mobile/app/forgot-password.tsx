@@ -13,7 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { requestPasswordReset } from "@/lib/api";
 import { useTheme } from "@/src/theme";
 import { Card, Input, Button, H3, Body, Caption } from "@/src/components";
-import { YkayLogo } from "@/components/YkayLogo";
+import { FISLogo } from "@/components/FISLogo";
 import { useToast } from "@/components/MobileToast";
 import { Mail, ArrowLeft, ArrowRight, MailCheck, ShieldCheck } from "lucide-react-native";
 
@@ -88,7 +88,7 @@ export default function ForgotPasswordScreen() {
           </TouchableOpacity>
 
           <View style={{ alignItems: "center", marginBottom: spacing.xl }}>
-            <YkayLogo size={56} textSize={22} />
+            <FISLogo size={56} textSize={22} />
           </View>
 
           {sent ? (
@@ -139,7 +139,7 @@ export default function ForgotPasswordScreen() {
             <Card variant="bordered" style={{ padding: spacing.lg }}>
               <H3>Reset your password</H3>
               <Body style={{ marginTop: 4, marginBottom: spacing.lg }}>
-                Enter the email linked to your Ykay College portal account and we&apos;ll send
+                Enter the email linked to your Famex International Schools portal account and we&apos;ll send
                 you a secure reset link.
               </Body>
 

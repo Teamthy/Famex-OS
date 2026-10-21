@@ -6,7 +6,7 @@ import { Radius } from "../../mobile/src/theme/radius";
 /**
  * The mobile design-system tokens are pure data (no React Native imports), so
  * they can be exercised under the repo's root vitest — no native test harness
- * needed. These pin the Ykay palette and spacing that every screen reads from
+ * needed. These pin the FIS palette and spacing that every screen reads from
  * the shared theme, so a token regression is caught here rather than showing up
  * as a wrong color in a screenshot.
  */

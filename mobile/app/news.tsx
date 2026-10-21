@@ -47,7 +47,7 @@ export default function SchoolNews() {
       }
     >
       <H2 style={{ marginBottom: spacing.xs }}>School News</H2>
-      <Caption style={{ marginBottom: spacing.lg }}>Updates from Ykay College.</Caption>
+      <Caption style={{ marginBottom: spacing.lg }}>Updates from Famex International Schools.</Caption>
 
       {!loading && error ? (
         <EmptyState icon={<Megaphone size={44} color={colors.border.strong} />} title={error} />

@@ -1,6 +1,7 @@
 import { AlertChannel, AlertDeliveryStatus, NotificationKind, Prisma } from "@prisma/client";
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
+import { sendWhatsapp } from "@/lib/whatsapp";
 
 /* ------------------------------------------------------------------
    Provider adapters
@@ -42,21 +43,21 @@ const emailAdapter: ChannelAdapter = {
     }
     try {
       const resend = new Resend(process.env.RESEND_API_KEY);
-      const from = process.env.EMAIL_FROM || "Ykay College <onboarding@resend.dev>";
-      const { error } = await resend.emails.send({
+      const from = process.env.EMAIL_FROM || "Famex International Schools <onboarding@resend.dev>";
+      const { data, error } = await resend.emails.send({
         from,
         to: job.recipientEmail,
         subject: job.subject,
         html: `<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;padding:24px;border:1px solid #E5E7EB;border-radius:12px">
-<h2 style="color:#0C1824;margin:0 0 4px">Ykay College &amp; Leadership Academy</h2>
+<h2 style="color:#0C1824;margin:0 0 4px">Famex International Schools</h2>
 <p style="color:#4EC54D;font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;margin:0 0 20px">${escapeHtml(kindLabelFromSubject(job.subject))}</p>
 <p style="color:#334155;line-height:1.7">${job.recipientName ? `Hello ${escapeHtml(job.recipientName)},<br/><br/>` : ""}${escapeHtml(job.body).replace(/\n/g, "<br/>")}</p>
-<p style="margin:24px 0"><a href="${siteUrl()}/portal" style="background:#4EC54D;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:bold;font-size:13px">Open EduPortal</a></p>
-<p style="color:#94A3B8;font-size:11px">This is an automated message from Ykay College EduPortal. Please do not reply directly to this email.</p>
+<p style="margin:24px 0"><a href="${siteUrl()}/portal" style="background:#4EC54D;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:bold;font-size:13px">Open the portal</a></p>
+<p style="color:#94A3B8;font-size:11px">This is an automated message from Famex International Schools. Please do not reply directly to this email.</p>
 </div>`,
       });
       if (error) return { ok: false, error: error.message || "Email provider error." };
-      return { ok: true };
+      return { ok: true, providerId: data?.id };
     } catch (sendError) {
       return {
         ok: false,
@@ -100,11 +101,12 @@ const smsAdapter: ChannelAdapter = {
       const payload = (await response.json().catch(() => null)) as {
         message?: string;
         smsStatus?: string;
+        message_id?: string;
       } | null;
       const ok =
         response.ok &&
         (payload?.smsStatus === "Message Sent" || payload?.message === "Successfully Sent");
-      if (ok) return { ok: true as const };
+      if (ok) return { ok: true as const, providerId: payload?.message_id };
       return {
         ok: false as const,
         error: `Termii error: ${response.status} ${payload?.message ?? response.statusText}`,
@@ -120,21 +122,41 @@ const smsAdapter: ChannelAdapter = {
   },
 };
 
-/** WhatsApp adapter stub — wire the WhatsApp Cloud API or Termii when needed. */
-function stubAdapter(channel: AlertChannel): ChannelAdapter {
-  return {
-    channel,
-    configured: false,
-    async send() {
-      return { ok: false, error: `${channel} provider is not configured yet.`, permanent: false };
-    },
-  };
-}
+/**
+ * WhatsApp adapter — the official Cloud API via lib/whatsapp.ts.
+ *
+ * Sends free-form text, which Meta only accepts inside the 24-hour
+ * customer-service window (i.e. after the parent has messaged the school).
+ * Business-initiated cold sends need a Meta-approved template whose name is
+ * mapped from the governed template key — that mapping is deployment
+ * configuration (Meta template approval), recorded as a HANDOFF follow-up.
+ * The SMS fallback inside sendWhatsapp is disabled here: a job queued as
+ * WHATSAPP must never be reported sent because an SMS went out instead —
+ * channel accounting and delivery receipts would both lie.
+ */
+const whatsappAdapter: ChannelAdapter = {
+  channel: AlertChannel.WHATSAPP,
+  get configured() {
+    return Boolean(process.env.WHATSAPP_PHONE_NUMBER_ID && process.env.WHATSAPP_ACCESS_TOKEN);
+  },
+  async send(job) {
+    if (!job.recipientPhone) {
+      return { ok: false, error: "No recipient phone on job.", permanent: true };
+    }
+    const result = await sendWhatsapp({
+      to: job.recipientPhone,
+      text: job.body,
+      allowSmsFallback: false,
+    });
+    if (result.channel === "whatsapp") return { ok: true, providerId: result.messageId };
+    return { ok: false, error: result.error ?? "WhatsApp send failed.", permanent: false };
+  },
+};
 
 const adapters: Record<AlertChannel, ChannelAdapter> = {
   [AlertChannel.EMAIL]: emailAdapter,
   [AlertChannel.SMS]: smsAdapter,
-  [AlertChannel.WHATSAPP]: stubAdapter(AlertChannel.WHATSAPP),
+  [AlertChannel.WHATSAPP]: whatsappAdapter,
 };
 
 function escapeHtml(value: string) {
@@ -163,6 +185,8 @@ export type QueueJobInput = {
   recipientEmail?: string | null;
   recipientPhone?: string | null;
   dedupeKey?: string | null;
+  /** Governed template this job was rendered from, when applicable. */
+  templateKey?: string | null;
   metadata?: Prisma.InputJsonValue;
   /**
    * The user this job is addressed to, when known.
@@ -193,6 +217,20 @@ export async function queueNotificationJob(input: QueueJobInput) {
     const { userAllowsDelivery } = await import("@/lib/notification-prefs");
     // Same predicate as push — one definition of "muted", not two.
     if (!(await userAllowsDelivery(input.recipientUserId, input.kind))) return null;
+
+    // Legal channel consent is separate from in-app category preferences.
+    // SYSTEM messages remain deliverable inside hasCommunicationConsent;
+    // broadcasts require recorded opt-in, and an explicit opt-out wins.
+    const { hasCommunicationConsent } = await import("@/lib/communication-consent");
+    if (
+      !(await hasCommunicationConsent({
+        userId: input.recipientUserId,
+        channel: input.channel,
+        kind: input.kind,
+      }))
+    ) {
+      return null;
+    }
   }
 
   if (input.dedupeKey) {
@@ -212,6 +250,7 @@ export async function queueNotificationJob(input: QueueJobInput) {
       recipientEmail: input.recipientEmail || null,
       recipientPhone: input.recipientPhone || null,
       dedupeKey: input.dedupeKey || null,
+      templateKey: input.templateKey || null,
       metadata: input.metadata,
     },
   });
@@ -302,6 +341,33 @@ async function deliverPush(input: InAppNotificationInput) {
 const BACKOFF_MINUTES = [5, 30, 120];
 const PROCESSING_LEASE_MS = 2 * 60_000;
 
+function positiveEnvInt(name: string, fallback: number): number {
+  const parsed = Number.parseInt(process.env[name] ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/**
+ * Estimated marginal delivery cost, recorded when a provider accepts a job.
+ * Provider invoices remain authoritative; rates are deployment-configurable
+ * because Termii/Meta pricing varies by route, category and contract. Email
+ * is plan-based through Resend, so inventing a per-message cost would be
+ * false precision and it remains null.
+ */
+export function estimateNotificationCostKobo(channel: AlertChannel, body: string): number | null {
+  if (channel === AlertChannel.SMS) {
+    const perSegment = positiveEnvInt("NOTIFICATION_SMS_COST_KOBO", 650);
+    const isUnicode = /[^\x00-\x7F]/.test(body);
+    const singleLimit = isUnicode ? 70 : 160;
+    const segmentLimit = isUnicode ? 67 : 153;
+    const segments = body.length <= singleLimit ? 1 : Math.ceil(body.length / segmentLimit);
+    return perSegment * Math.max(segments, 1);
+  }
+  if (channel === AlertChannel.WHATSAPP) {
+    return positiveEnvInt("NOTIFICATION_WHATSAPP_COST_KOBO", 500);
+  }
+  return null;
+}
+
 export async function dispatchDueNotifications(limit = 25) {
   const now = new Date();
   const due = await prisma.notificationJob.findMany({
@@ -354,6 +420,9 @@ export async function dispatchDueNotifications(limit = 25) {
         data: {
           status: AlertDeliveryStatus.SENT,
           sentAt: new Date(),
+          providerMessageId: result.providerId ?? null,
+          deliveredAt: null,
+          costKobo: estimateNotificationCostKobo(job.channel, job.body),
           attempts: { increment: 1 },
           lastError: null,
         },
@@ -409,7 +478,7 @@ export async function bridgeAttendanceAlerts(limit = 50) {
       schoolId: alert.schoolId,
       kind: NotificationKind.ATTENDANCE_ALERT,
       channel: alert.channel,
-      subject: "Attendance alert from Ykay College",
+      subject: "Attendance alert from Famex International Schools",
       body: alert.messagePreview,
       recipientName: alert.recipientName,
       recipientEmail: alert.recipientEmail,

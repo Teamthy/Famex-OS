@@ -95,7 +95,7 @@ function main() {
     console.error("   FAILED:", (dump.stderr || "").trim().split("\n")[0]);
     console.error(
       "\n   If this mentions row-level security, the dump role needs BYPASSRLS.\n" +
-        "   See docs/backup-restore.md — create a dedicated ykay_backup role.\n",
+        "   See docs/backup-restore.md — create a dedicated fis_backup role.\n",
     );
     process.exit(1);
   }
@@ -128,7 +128,7 @@ function main() {
   console.log(`   ${sourceCounts.size} tables, ${sourcePolicies} RLS policies`);
 
   // ── 3. Restore into a scratch database ────────────────────────────────
-  const scratch = `ykay_drill_${Date.now()}`;
+  const scratch = `fis_drill_${Date.now()}`;
   const adminUrl = SOURCE_URL.replace(/\/[^/?]+(\?|$)/, "/postgres$1");
   const scratchUrl = SOURCE_URL.replace(/\/[^/?]+(\?|$)/, `/${scratch}$1`);
 
