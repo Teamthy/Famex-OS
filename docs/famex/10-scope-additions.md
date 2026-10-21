@@ -64,11 +64,13 @@ Adopted convention for ALL nav, headers and buttons:
 
 ## 3. Virtual class system (weekend / special sessions) — W9
 
-Real requirement: a teacher or student can **schedule a virtual class** and
-**share a join link**; others join via the assigned link. Host link is never
-exposed beyond the assigned URL (F2 / W9 live-class rules). Ships in W9 with:
-schedule creation, join-link issue + revocation, attendance capture on join,
-recordings, and offline lesson download. NOT the removed `app/virtual` bridge
+Real requirement: a teacher can **schedule a virtual class** and assign its
+HTTPS meeting URL; students in that class join through FIS. The meeting URL is
+omitted from student lists and returned only by the audited in-window join
+action (F2-05). **Delivered 2026-10-21:** schedule creation, cancel/end,
+gated join, and launch capture. Recordings and offline lesson download remain
+separate W9 items. A launch record proves the student opened the meeting from
+FIS, not provider admission or duration. NOT the removed `app/virtual` bridge
 (that was the retired YK-Virtual SSO arm) — this is an in-product scheduler.
 
 ---

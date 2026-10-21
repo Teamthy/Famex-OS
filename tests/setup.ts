@@ -56,6 +56,7 @@ const mockPrisma = {
     update: vi.fn(),
     updateMany: vi.fn(),
     count: vi.fn(),
+    groupBy: vi.fn(),
   },
   parentProfile: {
     findFirst: vi.fn(),
@@ -96,6 +97,31 @@ const mockPrisma = {
     findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+  },
+  assignment: {
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  },
+  assignmentSubmission: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    upsert: vi.fn(),
+    update: vi.fn(),
+    aggregate: vi.fn(),
+  },
+  virtualClassSession: {
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+  },
+  virtualClassJoin: {
+    findMany: vi.fn(),
+    upsert: vi.fn(),
   },
   academicSession: {
     findFirst: vi.fn(),

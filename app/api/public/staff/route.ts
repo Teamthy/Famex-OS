@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { resolveTenantFromHost } from "@/lib/tenant";
+import { resolveSchoolForRequest } from "@/lib/school-resolution";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,13 +14,13 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const h = await headers();
   const host = h.get("x-forwarded-host") || h.get("host");
-  const resolved = await resolveTenantFromHost(host);
-  if (!resolved?.tenant) return NextResponse.json({ staff: [] });
+  const resolved = await resolveSchoolForRequest(host);
+  if (!resolved?.school) return NextResponse.json({ staff: [] });
 
   // Only directory-safe fields are exposed (name, role label, photo,
   // subjects) — there is no settings toggle for this endpoint yet.
   const teachers = await prisma.teacherProfile.findMany({
-    where: { schoolId: resolved.tenant.id, isActive: true },
+    where: { schoolId: resolved.school.id, isActive: true },
     select: {
       id: true,
       displayName: true,

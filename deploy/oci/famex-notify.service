@@ -1,0 +1,16 @@
+[Unit]
+Description=Dispatch Famex OS pending notifications (one tick)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Optional external tick for a Vercel staging deployment. OCI production does
+# not need this unit because deploy/oci/docker-compose.yml runs a cron
+# container every 60 seconds.
+# /opt/famex/famex-cron.env must contain:
+#   FAMEX_JOBS_URL=https://<vercel-staging>/api/jobs/dispatch-notifications
+#   JOBS_SECRET=<same value as staging CRON_SECRET / JOBS_SECRET, 16+ chars>
+EnvironmentFile=/opt/famex/famex-cron.env
+ExecStart=/usr/bin/curl -fsS --max-time 55 -X POST -H "Authorization: Bearer ${JOBS_SECRET}" "${FAMEX_JOBS_URL}"
+TimeoutStartSec=70

@@ -23,10 +23,14 @@ import {
   XCircle,
   Clock,
   CircleHelp,
+  BookOpenCheck,
+  MonitorPlay,
 } from "lucide-react";
 
 const SIDEBAR_ITEMS = [
   { label: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
+  { label: "Assignments", href: "/student/assignments", icon: BookOpenCheck },
+  { label: "Live Classes", href: "/student/virtual-classes", icon: MonitorPlay },
   { label: "Attendance", href: "/student/attendance", icon: CalendarDays },
   { label: "Timetable", href: "/student/timetable", icon: CalendarDays },
   { label: "CBT Tests", href: "/student/exams", icon: ClipboardCheck },

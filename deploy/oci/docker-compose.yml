@@ -110,7 +110,7 @@ services:
       MALWARE_SCANNER_URL: ${MALWARE_SCANNER_URL:-}
       # School profile / first-admin seed (prisma/seed.ts reads these when you
       # run `docker compose exec app node prisma/seed-admin.mjs` once).
-      SCHOOL_SLUG: ${SCHOOL_SLUG:-your-school}
+      SCHOOL_SLUG: ${SCHOOL_SLUG:-famex-international-schools}
       SCHOOL_NAME: ${SCHOOL_NAME:-}
       SCHOOL_ADDRESS: ${SCHOOL_ADDRESS:-}
       SCHOOL_PHONE: ${SCHOOL_PHONE:-}

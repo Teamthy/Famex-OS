@@ -1,0 +1,14 @@
+[Unit]
+Description=Run the Famex OS notification dispatcher every minute
+# Optional for Vercel staging. OCI production uses the cron container in
+# deploy/oci/docker-compose.yml instead; do not run two dispatchers against
+# the same production database.
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+AccuracySec=10s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

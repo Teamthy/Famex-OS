@@ -59,7 +59,7 @@ The base repository contains **two products**. We rebuild the school system.
 | `components/PlatformLanding.tsx`, `PLATFORM_MODE` branch in `app/page.tsx` | **Strip** | EDUos platform marketing page |
 | `app/super-admin/**` + `app/api/super-admin/**` (10 routes) | **Strip** | cross-tenant console: schools, impersonation, forensics |
 | `app/signup/**`, `app/api/platform/signup/route.ts`, `prisma/seed-plans.ts`, `Plan`/`PlanTier`/`Subscription` | **Strip** | self-serve tenant signup and SaaS plans |
-| `lib/tenant.ts` host/subdomain resolution | **Freeze** | one school, one domain |
+| Host/subdomain school resolution (formerly `lib/tenant.ts`) | **Removed 2026-10-21** | one personalised FIS school only; `lib/school-resolution.ts` resolves the configured school and hostnames never switch schools |
 | RLS enforcement migrations + `lib/db-rls.ts` policy work | **Freeze** | keep `schoolId` columns and the coverage check as hygiene; add no new policy work |
 | `app/it-portal/**`, `app/it-education/**`, `lib/it-education.ts`, IT API routes | **Retire** | Ykay's IT academy — replaced by the AI Learning Hub (F2) |
 | `app/virtual/**`, `components/VirtualBridge.tsx` | **Retire** | Ykay Virtual — replaced by in-portal live classes (F2-05) |

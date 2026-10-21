@@ -24,7 +24,7 @@ If a session ends mid-workstream, §9 must say exactly where it stopped and what
 ## 1. Repo & branch identity
 
 - Repo: `Teamthy/Famex-OS` (origin). W3 base commit: `ca1c10886f50b5c699dd0f0327f3d90606ed7c1f` (main, W1 + W2 merged); stage A merged at `e96217a` (PR #4).
-- **Session branches (fixed, one per session):** W3 stage A used `arena/ce3a9b67-famex-os` → PR #4 (merged); stage B used `arena/f5d78cef-famex-os` → PR #5 (merged `193ff93`); OCI hosting used `arena/ca91d7ae-famex-os` → PR #9 (merged `e9a1193`); **the CI-rescue session (2026-10-20) works on `arena/ea852f26-famex-os`** (base `1f50c0f`, PR #11). Always work/commit/push on your session branch; open PRs from it to `main`. Never create/switch/push other branches. (W1 used `arena/7f29531d-famex-os` → PR #1; W2 used `arena/9abf8aef-famex-os` → PR #2, merge `74f236c`.)
+- **Session branches (fixed, one per session):** W3 stage A used `arena/ce3a9b67-famex-os` → PR #4 (merged); stage B used `arena/f5d78cef-famex-os` → PR #5 (merged `193ff93`); OCI hosting used `arena/ca91d7ae-famex-os` → PR #9 (merged `e9a1193`); the CI-rescue session (2026-10-20) used `arena/ea852f26-famex-os` (base `1f50c0f`, PR #11/#12 lineage); FIS production core used `arena/0e9f562e-famex-os` → PR #13 (merged `fa8d092`, 2026-10-21). **The current single-school/assignments/live-classes/deployment session works only on `arena/cb6c3d85-famex-os`.** Always work/commit/push on your session branch; open PRs from it to `main`. Never create/switch/push other branches. (W1 used `arena/7f29531d-famex-os` → PR #1; W2 used `arena/9abf8aef-famex-os` → PR #2, merge `74f236c`.)
 - The old Ykay repo (`upstream`) is **read-only, out of bounds** (Rule 15). Never push/edit it.
 - Product: **Famex OS** — single-school Nigerian secondary-school OS (~3,000 users, 5-yr horizon). Rebuilt from a school EduPortal base with the SaaS platform layer removed.
 
@@ -53,7 +53,7 @@ Read in this order before any work:
 | W6 | Marks → broadsheet → report cards → release; post-lock corrections | 🟡 **Post-lock correction workflow delivered 2026-10-21** (§4e): request → independent approval → apply with full history. Marks/broadsheet/report-card pipeline pre-exists from the base — verify the rest of the W6 catalogue before claiming W6 done |
 | W7 | CBT at 15,000 items + schoolId, blueprints, item analysis, offline centre | pending |
 | W8 | AI layer: prompt templates, router, metering, drafts-queue, redaction | pending |
-| W9 | AI Learning Hub e-learning + **virtual/live classes** (assigned URL) | pending |
+| W9 | AI Learning Hub e-learning + **virtual/live classes** (assigned URL) | 🟡 **Live classes + assignments delivered 2026-10-21** (§4f): teacher schedules an HTTPS meeting URL, students join only in-window, FIS records the launch honestly (not in-call duration); teacher-set assignments support student submission and grading. AI Learning Hub remains pending |
 | W10 | HR + payroll | pending |
 | W11 | Parent PRM, Front Desk, Help Desk, **alumni 5-yr portal** | pending |
 | W12 | Website CMS, Licence & Usage full, hardening, NDPA/DPIA, UAT | pending |
@@ -65,7 +65,7 @@ Read in this order before any work:
 - **Platform strip (F0-26/27/28/30):** deleted `app/super-admin/**` + its 10 API routes (impersonation, broadcast, cross-school console), `app/signup/**` + `/api/platform/signup`, `Plan/PlanTier/Subscription` models + `seed-plans.ts`. Boot no longer seeds a super-admin; first ADMIN comes from `npm run db:seed` (`prisma/seed-all.ts`), then the W2 wizard. `app/page.tsx` boots to the school home (PlatformLanding + PLATFORM_MODE gone).
 - **Ykay arms retired (F0-29):** deleted `app/it-portal/**`, `app/it-education/**`, `lib/it-education.ts`, IT API routes, IT cert PDF, `it_education` module key, IT seeds/nav/stats; deleted `app/virtual/**` + `VirtualBridge` (YK-Virtual SSO bridge).
 - **Single-school identity (F0-21/23):** `lib/brand.ts` tokens (`PRODUCT_NAME="Famex OS"`, `getSchoolBrandTokens()`) drive name/colour/logo/site across `app/layout.tsx` (generateMetadata + JSON-LD), `Header`, `Footer`, `AdminSidebar`, student/admin ID cards, report-card PDF. `SchoolProfileContext` now carries `{name, address, phone, email}`. Neutral assets `public/logo.png` + `logo-280.webp` (old `ykay-logo*`, `logo-ykay.svg`, `it-education-hero.jpg` git-removed). Token-driven `app/manifest.ts`, `app/sitemap.ts`, `app/robots.ts` replaced brand-hardcoded statics (statics git-removed). `.env.example` re-cut (dead platform vars removed).
-- **Tenant freeze (F0-15 kept):** `lib/tenant.ts` + RLS untouched (schoolId hygiene retained); `lib/modules.ts` cleaned of `it_education`.
+- **Tenant freeze (F0-15 kept at W1):** `lib/tenant.ts` + RLS were untouched then (schoolId hygiene retained); `lib/modules.ts` cleaned of `it_education`. The runtime host/subdomain school-selection layer was removed in §4f (2026-10-21); `schoolId` + RLS remain only as invisible data-integrity guardrails.
 - **Subscriptions → Licence & Usage (F20-01):** `app/admin/licence/page.tsx` (client) + role-guarded `app/api/admin/licence/route.ts` (ADMIN/DIRECTOR) show licence identity, `School.modules` switches, honest unmetered usage, integration config.
 - **New gates:** `scripts/audit-brand.ts` (+ `scripts/brand-baseline.json` ratchet) → `npm run audit:brand`; `scripts/check-features.ts` → `npm run check:features`.
 - **Docs:** `docs/famex/10-scope-additions.md` (founder scope), README retitled to Famex OS.
@@ -214,28 +214,40 @@ Founder-directed core-first slice after PR #12 (CI/Lighthouse green, merged `442
 - **Schema:** 76 models. Six new tables, all with `schoolId` + explicit `eduos_apply_tenant_rls(...)`; `AlertDeliveryStatus.DELIVERED` appended; `NotificationJob` delivery/cost/template fields. Tenant-coverage checker gained a **reviewed provider-global exemption** for the WhatsApp webhook (printed every run; ratchet stays 14).
 - **Verified locally:** root + mobile `tsc` exit 0; Vitest **86 files / 961 tests** (incl. 44 new: roles weld, RFC TOTP vectors, instalment projection, correction validation, template rendering, consent policy, webhook transitions, cost estimator, iCal format); ESLint 0 errors; Prettier clean; `npm run audit` back to **0 blockers** (the previously-404 public iCal feed `/api/public/calendar.ics` is implemented, and the intentionally-public routes — MFA verify, WhatsApp webhook, readiness, public calendar/staff — are declared in the audit with their guard mechanisms); `audit:deps`, `audit:brand` (63), `check:modules`, `check:orphans` (86), `check:dead-ui` (94), `check:boundary` (158), tenant ratchet 14/14. DB gates (drift, RLS, admissions, ledger loop, build, Playwright, load) are CI-only here as ever — GitHub CI on this PR is the verdict.
 
+## 4f. Single-school lockdown, assignments, live classes, deployment + real E2E (2026-10-21, branch `arena/cb6c3d85-famex-os`)
+
+Founder correction after PR #13: Famex/FIS is **one personalised school, not multi-tenant**. This slice removes the remaining runtime school-selection behaviour, builds the two missing teaching workflows needed for honest end-to-end tests, and prepares OCI production + Vercel staging without running two production writers.
+
+- **Single-school lockdown (F0-15/F0-21).** Deleted `lib/tenant.ts`; new `lib/school-resolution.ts` resolves only the configured FIS `School` row (or the sole school if the slug has not been reconciled) and deliberately refuses to guess when multiple school rows exist without the configured slug. Hostnames, preview domains and `PLATFORM_BASE_DOMAIN` no longer select/switch schools; `PLATFORM_BASE_DOMAIN` is removed from env templates. Login, password reset, contact, news, public calendar/staff, iCal, layout branding and the public address all use `resolveSchoolForRequest()`. Internal `schoolId` columns and Postgres RLS remain as invisible integrity guardrails; they are not a tenant product surface. There was already no runtime platform school-signup route, and `lib/school.ts:getSchool()` remains the only runtime School upsert path. Brand baseline banked **63 → 62 findings / 38 → 37 files**.
+- **Assignments (F2-03).** Forward migration `20261021120000_assignments_virtual_classes` adds `Assignment` + `AssignmentSubmission` (plus live-class tables below), all `schoolId`-scoped with explicit legacy-named `eduos_apply_tenant_rls(...)` calls. Teachers can create/publish/close/delete-draft work only for an active class+subject they teach; students discover published/closed work only through `StudentProfile.currentClassId`, submit/resubmit text plus an optional credential-free HTTPS attachment link, and see late/graded/returned state. Overdue submissions remain possible while published and are marked late; graded work is locked unless returned. Teachers view the full roster (submitted/missing), grade with exact whole-number score validation, or return with required feedback. Screens: `/teacher/assignments`, `/student/assignments`; APIs under `/api/teacher/assignments*` and `/api/student/assignments*`; pure rules in `lib/assignments.ts` (7 unit tests). Binary file upload is **not** claimed in this slice — the attachment is an HTTPS link.
+- **Virtual/live classes (F2-05 + student side of F1-06; W9 live-class slice).** `VirtualClassSession` + `VirtualClassJoin`: a teacher schedules only for an active class+subject they teach, supplies a credential-free HTTPS meeting URL, start/end and an early-join window (0–120 minutes, max 12-hour session). Student list payloads never expose `meetingUrl`; the audited `POST /api/student/virtual-classes/[id]/join` returns it only when the server confirms the student is in the permitted window and upserts one launch record. UI copy is explicit: FIS proves the student launched the external meeting from FIS, not provider admission or time-in-call. Teachers can cancel/end and inspect launches by roster. Screens: `/teacher/virtual-classes`, `/student/virtual-classes`; pure rules in `lib/virtual-classes.ts` (4 unit tests). This is the assigned-URL model, not embedded WebRTC/proctoring.
+- **Navigation.** Teacher subject nav gains Assignments + Live Classes; student dashboard and the new student pages gain Assignments + Live Classes. Attendance register rows gained stable test IDs so the real register journey does not depend on fragile DOM ancestry.
+- **Real E2E.** `tests/e2e/04-exams.spec.ts` now creates/publishes a two-question CBT, has student1 sit and submit it in the browser, releases results, and proves API `GRADED`/2/2/100%. New `tests/e2e/07-learning-journeys.spec.ts` proves: teacher takes/locks a JSS1A register (student1 late + note, API-verified); teacher creates an assignment in UI → student submits → teacher grades 8/10 → student sees feedback; teacher schedules a live class → student list does not leak URL → student joins in-window and lands in the meeting popup → teacher sees launch; early join returns 409 without the URL; teacher/student assignment powers remain separate. Existing login/fees/admissions/staff-QR/rate-limit/axe journeys remain. DB-backed Playwright runs in GitHub CI or against seeded Vercel staging — never write journeys against production.
+- **Deployment preparation (P).** `docs/VERCEL-OCI-DEPLOY.md` is now the canonical split: **OCI production** (GHCR image gated on CI-successful `main`, Postgres in compose, pinned tag, first admin, backups) and **Vercel staging/preview** (Git integration, separate staging Postgres + Upstash, staging-only secrets in Vercel, migrate + `seed-all` only there). `vercel.json` declares framework/install/build + the daily cron. OCI env/compose defaults now resolve FIS (`famex-international-schools`) instead of a placeholder slug; stale EduPortal systemd units are renamed to `famex-notify.*`. Actual OCI VM/Vercel project creation still requires the owner to use their OCI/Vercel/provider consoles — no cloud token or password exists in the sandbox and none may be pasted into chat. After this PR merges, Docker Publish is the concrete OCI artifact to pull; attach the Vercel staging URL + staging E2E output to the deployment record once the owner connects the project.
+- **Verified locally:** Prisma validate + generated client; root `tsc` exit 0; mobile `tsc` exit 0; Vitest **88 files / 972 tests** (86/961 + 11 new assignment/live-class tests); full ESLint **0 errors / 122 warnings** (118 standing + 4 fetch-on-mount warnings on the new portal pages); Prettier clean; local Next production build compiled successfully; `npm run audit` **0 blockers / 16 warnings** (313 app files, 160 API routes); `audit:brand` 62/37; `audit:deps` passed; `check:modules`, `check:orphans` (90), `check:dead-ui` (98), `check:boundary` (165), `check:features` (331), school-scope ratchet still 14/14. Schema drift/RLS/DB-backed Playwright/load remain GitHub-CI-authoritative in this sandbox.
+
 ## 5. Gates: commands + latest evidence + blockers
 
-Run from repo root. Latest (**FIS production core, 2026-10-21**, branch `arena/0e9f562e-famex-os`, §4e; prior PR #12 merged `4422fe9` with CI + Lighthouse green):
+Run from repo root. Latest (**single-school + assignments/live classes + deployment prep, 2026-10-21**, branch `arena/cb6c3d85-famex-os`, §4f; prior PR #13 merged `fa8d092` with all seven GitHub checks green):
 
 | Gate | Command | Result (actual output) |
 |---|---|---|
 | typecheck | `npx tsc --noEmit` | exit 0 — no errors |
-| unit/integration | `npx vitest run` | `Test Files 86 passed (86)` / `Tests 961 passed (961)` (stage B: 77 / 917) |
-| lint | `npm run lint` | `✖ 118 problems (0 errors, 118 warnings)` — warnings are the standing backlog (mainly `react-hooks/set-state-in-effect` on fetch-on-mount pages) |
+| unit/integration | `npx vitest run` | `Test Files 88 passed (88)` / `Tests 972 passed (972)` (§4f adds 2 files / 11 tests over PR #13's 86 / 961) |
+| lint | `npm run lint` | `✖ 122 problems (0 errors, 122 warnings)` — 118 standing warnings plus 4 fetch-on-mount warnings on the new portal pages; no errors |
 | formatting | `npx prettier --check .` | `All matched files use Prettier code style!` (main: 9 files failing) |
 | dep audit | `npm run audit:deps` | `Dependency audit passed.` (4 scoped, dated exclusions unchanged) |
 | project audit | `npm run audit` | `No blockers. 16 warning(s).` (warnings are pre-existing hardcoded-URL/unbounded-query backlog; the broken `/api/public/calendar.ics` link is now a real route) |
-| brand ratchet | `npm run audit:brand` | `Brand audit OK — 63 finding(s) across 38 file(s); baseline allows 63.` (FIS rename burned 451 → 63, banked via `--update`; remainders are the confirmed live domains + frozen `eduos_` DB identifiers) |
+| brand ratchet | `npm run audit:brand` | `Brand audit OK — 62 finding(s) across 37 file(s); baseline allows 62.` (§4f removed the old school-resolution file/comment and banked 63 → 62 via `--update`; remainders are confirmed live domains + frozen `eduos_` DB identifiers) |
 | feature IDs | `npm run check:features` | OK — `Catalogue: 331 features parsed` / `§25 declares TOTAL 331 — matches.` |
-| orphans | `npm run check:orphans` | `All 86 portal pages are reachable.` |
-| dead UI | `npm run check:dead-ui` | `Checked 94 portal pages.` / `No dead UI found.` |
+| orphans | `npm run check:orphans` | `All 90 portal pages are reachable.` |
+| dead UI | `npm run check:dead-ui` | `Checked 98 portal pages.` / `No dead UI found.` |
 | modules | `npm run check:modules` | `Nav registry: 21 groups, 41 live items, 77 planned.` / `Modules: 23 declared, 23 used by nav/API.` / `Admin pages: 42 found, 41 linked.` / `Admin API directories: 30 owned, 77 guard calls.` / `Modules, nav and routes agree.` |
-| client boundary | `npm run check:boundary` | `Checking 158 client component(s)…` / `No client component reaches a server-only module.` |
+| client boundary | `npm run check:boundary` | `Checking 165 client component(s)…` / `No client component reaches a server-only module.` |
 | prisma schema | `npx prisma validate` | `The schema at prisma/schema.prisma is valid 🚀` (needs a dummy `DATABASE_URL`) |
-| tenant coverage | `npm run check:tenant-coverage` | 14 UNCOVERED = CI baseline (`--max-uncovered 14`), all pre-existing; the WhatsApp webhook is a reviewed provider-global exemption printed on every run (no tenant context in Meta callbacks) |
+| school-scope coverage (legacy script name) | `npm run check:tenant-coverage` | 14 UNCOVERED = CI baseline (`--max-uncovered 14`), all pre-existing; the WhatsApp webhook is a reviewed provider-global exemption printed on every run (Meta callbacks carry a provider message id, not a school context). This is a `schoolId` integrity ratchet, not evidence of a multi-tenant product surface |
 | ledger loop | `npm run verify:ledger` (`scripts/verify-ledger-loop.ts`) | **Blocked locally** (no Postgres). Runs in CI's `schema-drift` job on Postgres 17 — it is the only place the deferred balance trigger and the kobo reconciliation are proved for real |
-| DB gates | `check:drift`, migration apply, `verify:rls` + `verify:rls:coverage`, `verify:admissions`, `verify:ledger`, `db:seed*`, `npx playwright test` | **Blocked in the local sandbox** (no Postgres, Prisma engines stubbed → `check:drift` prints `DATABASE_URL is required`). **Run for real by CI on the W3 PR** (Postgres 17 service): "Apply migrations to a clean database", "Assert no schema drift", "Verify RLS tenant isolation", "Verify RLS coverage", "Verify admissions operations loop", "Verify the ledger (money loop)" (new), Build, Browser E2E, Load test, Mobile. W2's CI was green on all of these. `check:readiness` needs a *seeded* school and still has no CI step; apply the migration and seed on deploy before opening a term. |
+| DB gates + Browser E2E | `check:drift`, migration apply, `verify:rls` + `verify:rls:coverage`, `verify:admissions`, `verify:ledger`, `db:seed*`, `npx playwright test` | **DB-backed checks blocked in the local sandbox** (no Postgres; Prisma engines stubbed for generate/validate), although the local Next production build compiled successfully and Playwright lists the 13 exam/learning specs. GitHub CI on the exact §4f PR head is authoritative: Schema Drift applies `20261021120000_assignments_virtual_classes` to clean Postgres 17 and verifies RLS/admissions/ledger; Browser E2E seeds FIS and now includes full CBT sit→submit→marked, JSS1A attendance lock, assignment create→submit→grade, and live-class join/launch journeys. PR #13's seven checks were green on `d819895` before merge. `check:readiness` still needs a seeded school and has no CI step; run it on staging after migration/seed. |
 | Lighthouse budgets | GitHub `Lighthouse budgets` workflow | Green since PR #12 (`4422fe9`, 2026-10-20): home performance 0.88, LCP 3845ms, TBT 53ms, accessibility 0.96 (medians). Variance-prone — judge the exact PR head, never a single run. |
 
 Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only lowers; gate fails if it grows).
@@ -354,6 +366,13 @@ Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only
 - **WhatsApp dispatcher honesty:** a WHATSAPP job is never marked sent because an SMS fallback fired (`allowSmsFallback: false`); delivery is only ever claimed from the signature-verified webhook.
 - **Q remains parked** (payroll engine beyond W10 scope, biometrics/RFID, AI tutoring/proctoring) — no fake claims; offline fee entries stay `PENDING_REVIEW`, device-offline is never called LAN.
 
+### Single-school + learning/deployment decisions (2026-10-21)
+
+- **FIS is one personalised school, not a multi-tenant product.** Runtime code resolves only the configured school through `lib/school-resolution.ts`; hostnames/subdomains never switch schools and there is no platform school-signup/provisioning surface. `schoolId`/RLS remain internal integrity guardrails, not tenancy UX. If the configured slug is absent and multiple school rows exist, resolution returns no school rather than guessing.
+- **OCI is production; Vercel is staging/preview.** Never point both at the same production database or treat both as live writers. Vercel gets a separate staging database, staging-only secrets, test payment keys, and seeded accounts only there. Write-heavy Playwright journeys run in CI or Vercel staging, never production.
+- **Assignments:** teacher authority comes from an active class+subject teaching assignment; student authority comes from their current class. Published work accepts late submissions until closed and flags them late; graded work is locked unless explicitly returned. Attachment support in this slice is a credential-free HTTPS link, not binary upload.
+- **Live classes:** the meeting URL is a secret until join. Student lists omit it; only the audited in-window join endpoint returns it. A `VirtualClassJoin` proves launch intent from FIS, never provider admission, attention, or duration — reports and UI must keep that wording.
+
 ## 8. Landmines & gotchas
 
 - **Do not put `/*` inside a `//` line comment in `middleware.ts`** — `tests/lib/cors-response-headers.test.ts` strips comments naively and an unterminated `/*` swallows code, faking a CORS regression. (Bit us once; fixed by rewording.)
@@ -374,20 +393,24 @@ Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only
 - **Ledger amounts are kobo; every screen must render them with `formatKobo`** (or `formatKobo(x, {decimals: true})`
   on statements). Printing a kobo integer as naira makes a ₦8,500 payment read as ₦850,000.
 - **`lib/module-registry.ts` must stay prisma-free** and `lib/stages.ts`/`lib/stage-types.ts` must stay `@prisma/client`-free — client components import them; `check:boundary` fails otherwise.
-- **W2 migration is unapplied locally** (`20261014090000_w2_school_stages_and_settings`): 2 enums, `SchoolClass.stage` + backfill, `School.settings`, `StageConfig`, `GradeBand`, and **RLS (`eduos_apply_tenant_rls`) on both new tables** — the 2026-08 policy backfill only covers tables that existed then, so a new tenant table needs the explicit call or `verify:rls:coverage` fails the build (it caught this on the first CI run of the PR). Re-run `PRISMA_*` stub generate after any schema change (recipe in §6).
+- **W2 migration is unapplied locally** (`20261014090000_w2_school_stages_and_settings`): 2 enums, `SchoolClass.stage` + backfill, `School.settings`, `StageConfig`, `GradeBand`, and **RLS (`eduos_apply_tenant_rls`) on both new tables** — the 2026-08 policy backfill only covers tables that existed then, so every new `schoolId` table needs the explicit call or `verify:rls:coverage` fails the build (it caught this on the first CI run of the PR). Re-run `PRISMA_*` stub generate after any schema change (recipe in §6).
+- **Deployment secrets never transit chat or Git.** OCI values live only in `/opt/famex/.env` on the VM; Vercel staging values live only in the Vercel project settings. If a session lacks OCI/Vercel tokens, prepare the repo/runbook and state the owner-console step plainly — do not invent a live URL or ask for credentials.
 
 ---
 
 ## 9. Next session: green CI first, then W3 close-out, then W4 (exact stop-point)
 
-**Immediate (2026-10-21):** merge this PR (§4e) when GitHub CI is green on its exact head
-(DB gates, build, Playwright and load test are CI-only from the sandbox), then deploy the
-published GHCR image via the OCI pack and run the staging drills in order: migrations →
-`db:seed-fis` (real structure + Head of School) → School profile/env confirmation
-(`SCHOOL_NAME`, domain, contacts) → backup/restore drill → Paystack test payment →
-admissions loop → MFA enrolment for leadership + bursar → WhatsApp webhook registration
-(`WHATSAPP_VERIFY_TOKEN` + `WHATSAPP_APP_SECRET`) and a real delivery receipt. Nothing is
-"go-live ready" until those drills pass against real infrastructure.
+**Immediate (2026-10-21):** merge the §4f PR only when GitHub CI is green on its exact head
+(schema drift/RLS, build, the expanded Browser E2E, load, mobile and Lighthouse). Then:
+(1) confirm Docker Publish produced the GHCR image for the merge commit; (2) owner creates
+the OCI VM and deploys that pinned image as **production** (`docs/OCI-HOSTING.md`), creates
+the real first admin (never `seed-all` in production), confirms domain/profile/contacts,
+takes + restores a backup, enrols leadership/bursar MFA, and registers production
+Paystack/WhatsApp callbacks; (3) owner imports the repo into Vercel as **staging** with a
+separate staging Postgres + Upstash, migrates/seeds staging, attaches the staging URL, and
+runs `04-exams` + `07-learning-journeys` against it. Record the OCI image tag, production
+health output, Vercel staging URL and staging E2E output here. Nothing is "go-live ready"
+until those drills pass against real infrastructure.
 
 **Where W3 stopped (2026-10-15, PR #5 from `arena/f5d78cef-famex-os`):** stage A (PR #4) built
 the ledger; stage B built the remaining money documents on it — discounts, refunds, credits,
@@ -420,8 +443,9 @@ do not start W4 until it is burned down or explicitly deferred by the founder.**
    (`queueTemplatedNotification`) so every outbound send is traceable to a template version.
 4. **Consent self-service UI** in web settings + mobile (API at `/api/notifications/consent`
    is ready); **teacher entry-picker** for correction requests (panel takes an entry ID today).
-5. Then the standing workstreams in board order (W5 depth, W7 item analysis @15k, W9 homework/
-   lesson content, W10 payroll, W12 CMS/NDPA) — real backends, never stubs. Library/inventory/
+5. Then the standing workstreams in board order (W5 depth, W7 item analysis @15k, W9 lesson
+   notes/schemes + binary assignment uploads if the school requires files rather than HTTPS
+   links, W10 payroll, W12 CMS/NDPA) — real backends, never stubs. Library/inventory/
    clinic still persist to JSON (`lib/module-store.ts`) and need real DB models before go-live claims.
 
 Rules for whoever continues: post through `lib/ledger-postings.ts`, never `postJournal` directly

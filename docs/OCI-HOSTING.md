@@ -2,8 +2,10 @@
 
 Run the whole platform on **one free ARM VM**: app + Postgres + cron + backups
 behind HTTPS, for ₦0/month of server spend. This is "Path C" for the budget in
-[`operating-cost.md`](./operating-cost.md); the managed alternative is in
-[`VERCEL-OCI-DEPLOY.md`](./VERCEL-OCI-DEPLOY.md).
+[`operating-cost.md`](./operating-cost.md). OCI is the **production** target;
+Vercel is the separate staging/preview companion described in
+[`VERCEL-OCI-DEPLOY.md`](./VERCEL-OCI-DEPLOY.md), with its own staging
+database — never a second production writer.
 
 ```
                          ┌─────────────── OCI Ampere A1 VM (2 OCPU / 12 GB) ───────────────┐

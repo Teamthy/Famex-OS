@@ -2,17 +2,17 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { confirmedSchoolAddress } from "@/lib/school-address";
 import { schoolCreateDefaultsFromEnv, schoolSlugFromEnv } from "@/lib/school-defaults";
-import { resolveTenantFromHost } from "@/lib/tenant";
+import { resolveSchoolForRequest } from "@/lib/school-resolution";
 
 const schoolSlug = schoolSlugFromEnv();
 
 /**
- * Returns (and auto-creates/updates) the default school for single-tenant
- * deployments. For multi-tenancy, each school is created via onboarding.
+ * Returns (and auto-creates/updates) the one configured Famex International
+ * Schools row. This is the only runtime path that creates a School: FIS is a
+ * single personalised school, not a multi-tenant platform.
  *
- * When SCHOOL_CUSTOM_DOMAIN is set (e.g. "portal.ykaycollege.edu.ng"), the
- * school's customDomain is kept in sync so that resolveTenantFromHost finds
- * this school directly — even before the platform has a domain.
+ * SCHOOL_CUSTOM_DOMAIN is retained as profile metadata for canonical links;
+ * it no longer participates in selecting between schools.
  */
 export async function getSchool() {
   // Create-defaults live in lib/school-defaults.ts so the bundled first-admin
@@ -36,10 +36,10 @@ export async function getSchool() {
  */
 export async function getPublicSchoolAddress(): Promise<string | null> {
   const host = (await headers()).get("host");
-  const { tenant } = await resolveTenantFromHost(host);
-  if (!tenant) return null;
+  const { school: resolvedSchool } = await resolveSchoolForRequest(host);
+  if (!resolvedSchool) return null;
   const school = await prisma.school.findUnique({
-    where: { id: tenant.id },
+    where: { id: resolvedSchool.id },
     select: { address: true },
   });
   return confirmedSchoolAddress(school?.address);

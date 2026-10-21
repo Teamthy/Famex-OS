@@ -21,6 +21,8 @@ import {
   Send,
   Megaphone,
   MessageCircle,
+  BookOpenCheck,
+  MonitorPlay,
 } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 
@@ -122,6 +124,8 @@ export default function TeacherSidebar() {
 
   const subject: NavItem[] = [
     { label: "Gradebook", href: "/teacher/gradebook", icon: BookOpen },
+    { label: "Assignments", href: "/teacher/assignments", icon: BookOpenCheck },
+    { label: "Live Classes", href: "/teacher/virtual-classes", icon: MonitorPlay },
     { label: "Performance Records", href: "/teacher/performance-records", icon: BookOpen },
     { label: "Analytics", href: "/teacher/analytics", icon: BarChart3 },
   ];
