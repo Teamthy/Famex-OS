@@ -11,7 +11,7 @@ import { useAuth } from "@/components/AuthProvider";
 /**
  * Front-desk entry for handwritten application forms.
  *
- * Ykay still receives paper forms while moving parents online. This keys one in
+ * FIS still receives paper forms while moving parents online. This keys one in
  * and drops it into the same review -> entrance -> enrolment pipeline as an
  * online application, optionally recording the fee if it was paid at the desk.
  */

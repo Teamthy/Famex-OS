@@ -481,7 +481,7 @@ export default function UploadQuestionsPage() {
       // Same content for both: .docx is authored by opening this in Word.
       downloadBlob(
         new Blob([PROSE_TEMPLATE], { type: "text/plain;charset=utf-8" }),
-        "ykay-question-template.txt",
+        "fis-question-template.txt",
       );
       return;
     }
@@ -549,7 +549,7 @@ export default function UploadQuestionsPage() {
         .join("\n");
       downloadBlob(
         new Blob([csv], { type: "text/csv;charset=utf-8" }),
-        "ykay-question-template.csv",
+        "fis-question-template.csv",
       );
     }
   }

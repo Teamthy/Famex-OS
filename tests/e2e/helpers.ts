@@ -30,17 +30,17 @@ if (!PASSWORD) {
 }
 
 export const ACCOUNTS = {
-  admin: "admin@ykaycollege.com",
-  director: "director@ykaycollege.com",
-  bursar: "bursar@ykaycollege.com",
-  teacher: "teacher1@ykaycollege.com",
-  student: "student1@ykaycollege.com",
-  parent: "parent1@ykaycollege.com",
+  admin: "admin@fis.example.edu.ng",
+  director: "director@fis.example.edu.ng",
+  bursar: "bursar@fis.example.edu.ng",
+  teacher: "teacher1@fis.example.edu.ng",
+  student: "student1@fis.example.edu.ng",
+  parent: "parent1@fis.example.edu.ng",
 } as const;
 
 export type Role = keyof typeof ACCOUNTS;
 
-/** role -> `ykay_session=...` cookie value, populated on first use. */
+/** role -> `fis_session=...` cookie value, populated on first use. */
 const sessionCache = new Map<Role, string>();
 
 /** The landing path each role should reach after signing in. */
@@ -143,8 +143,8 @@ export async function loginViaForm(page: Page, role: Role) {
   await page.waitForLoadState("domcontentloaded");
 
   const cookies = await page.context().cookies();
-  const session = cookies.find((c) => c.name === "ykay_session");
-  expect(session, "no ykay_session cookie after sign-in").toBeTruthy();
+  const session = cookies.find((c) => c.name === "fis_session");
+  expect(session, "no fis_session cookie after sign-in").toBeTruthy();
 
   sessionCache.set(role, session!.value);
   return session!;
@@ -164,7 +164,7 @@ export async function useSession(context: BrowserContext, page: Page, role: Role
 
   await context.addCookies([
     {
-      name: "ykay_session",
+      name: "fis_session",
       value: sessionCache.get(role)!,
       domain: "127.0.0.1",
       path: "/",
@@ -177,7 +177,7 @@ export async function useSession(context: BrowserContext, page: Page, role: Role
 /** Sign in via the API and return the raw cookie header, for request-level tests. */
 export async function apiLogin(request: APIRequestContext, role: Role) {
   const cached = sessionCache.get(role);
-  if (cached) return `ykay_session=${cached}`;
+  if (cached) return `fis_session=${cached}`;
 
   // Stop immediately rather than adding to a pile of cascading 429s.
   if (fatalAuthError) throw new Error(fatalAuthError);
@@ -198,11 +198,11 @@ export async function apiLogin(request: APIRequestContext, role: Role) {
   }
 
   const raw = res.headers()["set-cookie"] || "";
-  const match = /ykay_session=([^;]+)/.exec(raw);
+  const match = /fis_session=([^;]+)/.exec(raw);
   expect(match, "no session cookie in login response").toBeTruthy();
 
   sessionCache.set(role, match![1]);
-  return `ykay_session=${match![1]}`;
+  return `fis_session=${match![1]}`;
 }
 
 /** Back-compat alias so specs can read naturally. */

@@ -95,7 +95,7 @@ export async function brandCard({
               color: "#ffffff",
             }}
           >
-            YKAY COLLEGE
+            FAMEX INTERNATIONAL SCHOOLS
           </div>
         </div>
         <div style={{ fontSize: 22, letterSpacing: 4, color: "#8aa3b8", fontWeight: 700 }}>

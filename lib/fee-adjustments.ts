@@ -31,7 +31,8 @@ export type AdjustmentActor = {
   role: string;
 };
 
-const APPROVER_ROLES = new Set(["ADMIN", "DIRECTOR"]);
+// Leadership approves money movements (lib/roles.ts LEADERSHIP_ROLES).
+const APPROVER_ROLES = new Set(["ADMIN", "DIRECTOR", "PROPRIETOR", "PRINCIPAL"]);
 
 function assertIntegerNaira(value: number, label: string) {
   if (!Number.isInteger(value) || value <= 0) {

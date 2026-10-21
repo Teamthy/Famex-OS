@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
-export const DEFAULT_SLUG = process.env.SCHOOL_SLUG || "ykay-college";
-/** Platform base domain, e.g. "ykay.app" — `<slug>.ykay.app` resolves to a tenant. */
+export const DEFAULT_SLUG = process.env.SCHOOL_SLUG || "famex-international-schools";
+/** Platform base domain, e.g. "fis.app" — `<slug>.fis.app` resolves to a tenant. */
 const PLATFORM_DOMAIN = (process.env.PLATFORM_BASE_DOMAIN || "").toLowerCase();
 
 export type ResolvedTenant = {
@@ -51,7 +51,7 @@ export async function resolveTenantFromHost(host: string | null): Promise<Tenant
     });
     if (byCustom) return { tenant: byCustom, matched: true };
 
-    // 2) Subdomain of the platform domain (e.g. stmarys.ykay.app)
+    // 2) Subdomain of the platform domain (e.g. stmarys.fis.app)
     if (PLATFORM_DOMAIN && clean.endsWith(`.${PLATFORM_DOMAIN}`)) {
       const sub = clean.slice(0, clean.length - PLATFORM_DOMAIN.length - 1);
       if (sub && sub !== "www" && !sub.includes(".")) {

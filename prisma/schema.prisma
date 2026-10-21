@@ -16,6 +16,18 @@ enum UserRole {
   TEACHER
   PARENT
   STUDENT
+  // Appended by 20261021100000_fis_production_core via ALTER TYPE … ADD VALUE,
+  // so they sit at the end of the Postgres enum — keep schema order in step.
+  // Distinct school-leadership and operations roles (B): previously a
+  // proprietor, principal, librarian and nurse all had to share ADMIN or
+  // TEACHER, which made least-privilege impossible. Role GROUP membership
+  // (who counts as leadership / finance / admin-workspace) lives in
+  // lib/roles.ts — never re-derive it at a call site.
+  PROPRIETOR
+  PRINCIPAL
+  VICE_PRINCIPAL
+  LIBRARIAN
+  NURSE
 }
 
 enum ApplicationStatus {
@@ -69,6 +81,10 @@ enum AlertDeliveryStatus {
   SENT
   FAILED
   SKIPPED
+  // Appended by 20261021100000_fis_production_core (W4 delivery receipts):
+  // SENT means the provider accepted the message; DELIVERED means the
+  // provider confirmed handset delivery via webhook. Keep at the end.
+  DELIVERED
 }
 
 enum AttendanceCorrectionStatus {
@@ -97,6 +113,27 @@ enum FeePaymentStatus {
   COMPLETED
   FAILED
   REFUNDED
+}
+
+// ── FIS production core (20261021100000) ────────────────────────────────────
+
+/// Instalment plans (F5-10): a schedule of due fragments against ONE invoice.
+/// Fragments never bill separately — payments still settle the invoice via
+/// postCompletedFeePayment, and each fragment's paid/overdue state is a
+/// projection of the invoice's settled amount in sequence order.
+enum FeeInstalmentPlanStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+/// Post-lock result corrections (W6): a locked gradebook entry changes only
+/// through request → decision, with the request row itself as the permanent
+/// change history.
+enum ResultCorrectionStatus {
+  PENDING
+  APPLIED
+  REJECTED
 }
 
 /// ── W3 ledger (F5-08/F5-09) ────────────────────────────────────────────────
@@ -279,6 +316,12 @@ model School {
   feeInvoices             FeeInvoice[]
   feePayments             FeePayment[]
   feePaymentAttempts      FeePaymentAttempt[]
+  feeInstalmentPlans      FeeInstalmentPlan[]
+  feeInstalments          FeeInstalment[]
+  resultCorrectionRequests ResultCorrectionRequest[]
+  mfaRecoveryCodes        MfaRecoveryCode[]
+  messageTemplates        MessageTemplate[]
+  communicationConsents   CommunicationConsent[]
   reportCards             ReportCard[]
   notificationJobs        NotificationJob[]
   userNotifications       UserNotification[]
@@ -329,6 +372,13 @@ model User {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   mustChangePassword Boolean   @default(false)
+  /// TOTP MFA (B, 20261021100000). The secret is stored AES-256-GCM
+  /// encrypted (lib/mfa.ts) — never plaintext, never returned after setup.
+  /// Login issues a full session only after the second factor verifies
+  /// when mfaEnabled is true.
+  mfaEnabled         Boolean   @default(false)
+  mfaSecretEncrypted String?
+  mfaEnrolledAt      DateTime?
 
   school                      School                        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   refreshTokens               RefreshToken[]
@@ -344,6 +394,8 @@ model User {
   messageParticipants         MessageParticipant[]
   sentMessages                Message[]
   notificationPreference      NotificationPreference?
+  mfaRecoveryCodes            MfaRecoveryCode[]
+  communicationConsents       CommunicationConsent[]
 
   @@unique([schoolId, email])
   @@index([schoolId, role])
@@ -712,6 +764,7 @@ model FeeInvoice {
   paymentAttempts FeePaymentAttempt[]
   discounts       FeeDiscount[]
   refunds         FeeRefund[]
+  instalmentPlans FeeInstalmentPlan[]
 
   /// One invoice per student per term when raised from a structure. This is
   /// what makes generation safely re-runnable.
@@ -1098,6 +1151,14 @@ model NotificationJob {
   nextAttemptAt  DateTime            @default(now())
   lastError      String?
   sentAt         DateTime?
+  /// W4 delivery receipts + cost (20261021100000): the provider's message id
+  /// is what a delivery webhook matches on; deliveredAt is set only from a
+  /// provider confirmation, never assumed from SENT. costKobo is the
+  /// provider-estimated/recorded cost so spend can be reported per channel.
+  providerMessageId String?
+  deliveredAt    DateTime?
+  costKobo       Int?
+  templateKey    String?
   metadata       Json?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
@@ -1108,6 +1169,7 @@ model NotificationJob {
   @@index([schoolId, kind, createdAt])
   @@index([schoolId, channel, status])
   @@index([status, nextAttemptAt])
+  @@index([providerMessageId])
 }
 
 /// Per-user notification opt-outs.
@@ -1239,6 +1301,7 @@ model SubjectGradebook {
   classroom      SchoolClass      @relation(fields: [classId], references: [id], onDelete: Cascade)
   teacherProfile TeacherProfile   @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
   entries        GradebookEntry[]
+  correctionRequests ResultCorrectionRequest[]
 
   @@unique([classId, subjectName, sessionLabel, termLabel])
   @@index([schoolId, status, updatedAt])
@@ -1265,6 +1328,7 @@ model GradebookEntry {
 
   gradebook      SubjectGradebook @relation(fields: [gradebookId], references: [id], onDelete: Cascade)
   studentProfile StudentProfile   @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  correctionRequests ResultCorrectionRequest[]
 
   @@unique([gradebookId, studentProfileId])
   @@index([studentProfileId, updatedAt])
@@ -1755,12 +1819,12 @@ model SecurityEvent {
 model SystemFlags {
   id                 String   @id @default("singleton")
   maintenanceMode    Boolean  @default(false)
-  maintenanceMessage String   @default("Ykay EduPortal is undergoing scheduled maintenance. Please try again shortly.")
+  maintenanceMessage String   @default("Famex International Schools portal is undergoing scheduled maintenance. Please try again shortly.")
   updatedAt          DateTime @updatedAt
   updatedByUserId    String?
 }
 
-// ── Multi-tenancy (Ykay platform) ──────────────────────────────────
+// ── Multi-tenancy (FIS platform) ──────────────────────────────────
 enum SchoolStatus {
   ACTIVE
   SUSPENDED
@@ -2174,4 +2238,164 @@ model GradeBand {
 
   @@unique([schoolId, stage, grade])
   @@index([schoolId, stage, order])
+}
+
+// ── FIS production core (20261021100000_fis_production_core) ─────────────────
+
+/// One-time MFA recovery codes (B). Only a SHA-256 hash is stored; the plain
+/// code is shown once at enrolment. usedAt is set on redemption — a code can
+/// never be spent twice.
+model MfaRecoveryCode {
+  id        String    @id @default(cuid())
+  schoolId  String
+  userId    String
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, usedAt])
+  @@index([schoolId])
+}
+
+/// Instalment plan header (F5-10). The plan schedules fragments of the
+/// invoice's balanceDue; it never creates a second receivable. Only one
+/// ACTIVE plan per invoice — enforced in lib/fee-instalments.ts (a partial
+/// unique index cannot be modelled in Prisma and would drift).
+model FeeInstalmentPlan {
+  id                    String                  @id @default(cuid())
+  schoolId              String
+  invoiceId             String
+  studentProfileId      String
+  status                FeeInstalmentPlanStatus @default(ACTIVE)
+  /// Whole naira, matching the invoice document. Equals the invoice's
+  /// balanceDue at creation; fragments must sum to exactly this.
+  totalScheduledNaira   Int
+  reason                String?
+  createdByUserId       String
+  cancelledByUserId     String?
+  cancelledAt           DateTime?
+  cancelReason          String?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  school      School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  invoice     FeeInvoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  instalments FeeInstalment[]
+
+  @@index([schoolId, status])
+  @@index([invoiceId, status])
+}
+
+/// One due fragment of an instalment plan. Paid/overdue state is NOT stored:
+/// it is projected from the invoice's settled amount allocated in sequence
+/// order (lib/fee-instalments.ts), so documents and schedule can never
+/// disagree about how much has been paid.
+model FeeInstalment {
+  id          String   @id @default(cuid())
+  schoolId    String
+  planId      String
+  sequence    Int
+  dueDate     DateTime
+  amountNaira Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  plan   FeeInstalmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, sequence])
+  @@index([schoolId, dueDate])
+  @@index([planId])
+}
+
+/// Post-lock result correction (W6). The ONLY way a LOCKED gradebook entry
+/// changes. oldValue/newValue are strings so the same row can carry a score
+/// or the teacher comment; numeric fields are validated against SCORE_LIMITS
+/// in lib/result-corrections.ts. The row is never deleted — it IS the
+/// change history an auditor reads.
+model ResultCorrectionRequest {
+  id               String                 @id @default(cuid())
+  schoolId         String
+  gradebookId      String
+  entryId          String
+  studentProfileId String
+  /// ca1 | ca2 | midterm | assignment | exam | comment
+  field            String
+  oldValue         String
+  newValue         String
+  reason           String
+  status           ResultCorrectionStatus @default(PENDING)
+  requestedByUserId String
+  decidedByUserId  String?
+  decidedAt        DateTime?
+  decisionNote     String?
+  /// Recomputed totals captured at apply time, so the history shows the
+  /// effect without re-deriving it from later state.
+  appliedTotal     Int?
+  appliedGrade     String?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  school    School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  gradebook SubjectGradebook @relation(fields: [gradebookId], references: [id], onDelete: Cascade)
+  entry     GradebookEntry   @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, status, createdAt])
+  @@index([entryId, status])
+  @@index([gradebookId])
+}
+
+/// Governed message template (W4). Free-text sends are how a school ends up
+/// with five different fee-reminder wordings and no idea which one a parent
+/// got. A send names a template key + variables; lib/message-templates.ts
+/// renders strictly (a missing variable is an error, never a blank).
+/// version increments on every edit so a past send can be traced to the
+/// wording that was live at the time.
+model MessageTemplate {
+  id              String           @id @default(cuid())
+  schoolId        String
+  key             String
+  kind            NotificationKind
+  channel         AlertChannel
+  subject         String
+  body            String
+  /// Declared {{variable}} names for this template (JSON string array).
+  variables       Json?
+  version         Int              @default(1)
+  isActive        Boolean          @default(true)
+  createdByUserId String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, key, channel])
+  @@index([schoolId, kind])
+}
+
+/// Channel-level communication consent (W4 / NDPA). Distinct from
+/// NotificationPreference (in-app category toggles): this is the legal
+/// opt-in record for reaching a person on WhatsApp/SMS/email per message
+/// kind, with the source that captured it. Absence of a row means "not yet
+/// asked" — transactional kinds fall back to the preference toggles, and
+/// lib/communication-consent.ts is the one place that decides.
+model CommunicationConsent {
+  id        String           @id @default(cuid())
+  schoolId  String
+  userId    String
+  channel   AlertChannel
+  kind      NotificationKind
+  optedIn   Boolean          @default(true)
+  source    String           @default("portal")
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channel, kind])
+  @@index([schoolId, channel, kind])
 }

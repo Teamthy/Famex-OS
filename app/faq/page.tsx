@@ -116,8 +116,8 @@ export default function FAQPage() {
                 </span>
               </h1>
               <p className="text-white/60 mt-6 max-w-2xl mx-auto">
-                Quick answers to the most common questions about Ykay College — admissions, fees,
-                academics, and our EduPortal.
+                Quick answers to the most common questions about Famex International Schools —
+                admissions, fees, academics, and our EduPortal.
               </p>
             </div>
           </section>

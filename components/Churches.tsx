@@ -66,9 +66,9 @@ export default function Departments() {
             A COMPLETE EDUCATIONAL ECOSYSTEM
           </h2>
           <p className="font-body text-sm md:text-base text-[var(--text-secondary)] leading-relaxed">
-            From Junior Secondary through Senior Secondary, Ykay College offers rigorous academic
-            tracks, world-class facilities, and leadership training designed to prepare students for
-            university and life.
+            From Junior Secondary through Senior Secondary, Famex International Schools offers
+            rigorous academic tracks, world-class facilities, and leadership training designed to
+            prepare students for university and life.
           </p>
         </div>
 

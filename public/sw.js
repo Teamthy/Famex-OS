@@ -1,4 +1,4 @@
-// Ykay College service worker — PWA offline shell.
+// Famex International Schools service worker — PWA offline shell.
 // Same proven strategy as the YK-Virtual worker:
 //   - App shell (/, /offline)        → precached at install
 //   - Hashed static assets           → cache-first (immutable, safe)
@@ -6,7 +6,7 @@
 //   - API calls                      → never cached (results/fees/portal data)
 //   - Google/Unsplash remote images  → stale-while-revalidate
 
-const CACHE = "ykay-college-v1";
+const CACHE = "famex-international-schools-v1";
 const SHELL = ["/", "/offline", "/admissions", "/about", "/contact", "/login"];
 const API_PREFIX = "/api/";
 

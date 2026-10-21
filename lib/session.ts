@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { NextResponse } from "next/server";
 
-export const SESSION_COOKIE = "ykay_session";
+export const SESSION_COOKIE = "fis_session";
 
 /**
  * Session lifetime.
@@ -63,6 +63,33 @@ export async function signSession(user: SessionUser & { tokenVersion?: number })
     .setIssuedAt()
     .setExpirationTime(SESSION_TTL_JOSE)
     .sign(secret());
+}
+
+/**
+ * MFA challenge token (B): issued after a CORRECT password when the account
+ * has a second factor enrolled. It is deliberately NOT a session — it
+ * carries no role/school claims, lives for five minutes, and the only
+ * consumer is POST /api/auth/mfa/verify, which exchanges it (plus a valid
+ * TOTP/recovery code) for a real session. verifySession() rejects it
+ * because the session claims are absent.
+ */
+export async function signMfaChallenge(userId: string) {
+  return new SignJWT({ purpose: "mfa" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(userId)
+    .setIssuedAt()
+    .setExpirationTime("5m")
+    .sign(secret());
+}
+
+export async function verifyMfaChallenge(token: string): Promise<string | null> {
+  try {
+    const { payload } = await jwtVerify(token, secret());
+    if (!payload.sub || payload.purpose !== "mfa") return null;
+    return payload.sub;
+  } catch {
+    return null;
+  }
 }
 
 export async function verifySession(token: string): Promise<SessionUser | null> {

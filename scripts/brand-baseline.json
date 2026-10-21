@@ -1,212 +1,57 @@
 {
-  "generatedAt": "2026-10-15T02:50:06.455Z",
-  "totalFindings": 451,
-  "files": 148,
+  "generatedAt": "2026-10-21T03:56:29.583Z",
+  "totalFindings": 63,
+  "files": 38,
   "allow": {
-    "app/about/page.tsx": {
-      "ykay": 5,
-      "leadership-academy": 1
-    },
     "app/academics/junior-secondary/page.tsx": {
       "eduportal": 1
     },
-    "app/admin/news/page.tsx": {
-      "ykay": 1
-    },
-    "app/admin/staff-attendance/page.tsx": {
-      "ykay": 1
-    },
-    "app/admin-admissions/paper/page.tsx": {
-      "ykay": 1
-    },
     "app/admissions/opengraph-image.tsx": {
-      "ykay": 2
-    },
-    "app/admissions/page.tsx": {
-      "ykay": 1,
-      "leadership-academy": 1
-    },
-    "app/alumni/page.tsx": {
       "ykay": 1
-    },
-    "app/api/admin/admissions/paper/route.ts": {
-      "ykay": 1
-    },
-    "app/api/admin/fees/reminders/route.ts": {
-      "ykay": 1,
-      "leadership-academy": 1
     },
     "app/api/admin/licence/route.ts": {
       "eduos": 1
     },
     "app/api/admin/report-cards/overview/route.ts": {
-      "ykay": 1,
       "eduportal": 1
-    },
-    "app/api/admin/report-cards/release/route.ts": {
-      "ykay": 1
     },
     "app/api/auth/logout/route.ts": {
       "eduportal": 1
     },
-    "app/api/mobile/config/route.ts": {
-      "ykay": 3,
-      "leadership-academy": 1
-    },
-    "app/api/student/dashboard/route.ts": {
-      "ykay": 1
-    },
-    "app/campus-life/page.tsx": {
-      "ykay": 1
-    },
     "app/careers/page.tsx": {
-      "ykay": 4,
+      "ykay": 3,
       "eduportal": 1
     },
-    "app/cbt/page.tsx": {
-      "ykay": 1
-    },
-    "app/contact/page.tsx": {
-      "ykay": 1
-    },
     "app/download/opengraph-image.tsx": {
-      "ykay": 2
-    },
-    "app/download/page.tsx": {
-      "ykay": 4
+      "ykay": 1
     },
     "app/faq/page.tsx": {
-      "ykay": 1,
       "eduportal": 2
     },
-    "app/gallery/page.tsx": {
-      "ykay": 1
-    },
-    "app/globals.css": {
-      "ykay": 1
-    },
-    "app/login/page.tsx": {
-      "ykay": 1
-    },
-    "app/news-events/page.tsx": {
-      "ykay": 1
-    },
-    "app/offline/page.tsx": {
-      "ykay": 1
-    },
     "app/opengraph-image.tsx": {
-      "ykay": 3,
-      "leadership-academy": 2
+      "ykay": 1
     },
     "app/page.tsx": {
       "eduos": 1
     },
     "app/privacy-policy/page.tsx": {
-      "ykay": 4,
-      "leadership-academy": 2
+      "ykay": 2
     },
     "app/reset-password/page.tsx": {
       "ykay": 1
     },
-    "app/settings/notifications/page.tsx": {
-      "ykay": 1
-    },
-    "app/staff/activate/page.tsx": {
+    "app/whats-new/page.tsx": {
       "ykay": 1,
       "eduportal": 1
     },
-    "app/student/announcements/page.tsx": {
-      "ykay": 1
-    },
-    "app/teacher/announcements/page.tsx": {
-      "ykay": 1
-    },
-    "app/teacher/send-results/page.tsx": {
-      "ykay": 1
-    },
-    "app/teacher/upload-questions/page.tsx": {
-      "ykay": 2
-    },
-    "app/testimonials/page.tsx": {
-      "ykay": 4
-    },
-    "app/verify/page.tsx": {
-      "ykay": 1
-    },
-    "app/verify/report/[reportNumber]/page.tsx": {
-      "ykay": 2,
-      "leadership-academy": 1
-    },
-    "app/whats-new/page.tsx": {
-      "ykay": 2,
-      "eduportal": 2
-    },
-    "components/AdmissionsBanner.tsx": {
-      "ykay": 1
-    },
-    "components/Analytics.tsx": {
-      "ykay": 1
-    },
-    "components/AnimatedText.tsx": {
-      "ykay": 1
-    },
-    "components/Churches.tsx": {
-      "ykay": 1
-    },
-    "components/CookieConsent.tsx": {
-      "ykay": 10
-    },
-    "components/FindUs.tsx": {
-      "ykay": 3
-    },
-    "components/Hero.tsx": {
-      "ykay": 5
-    },
-    "components/InstallPrompt.tsx": {
-      "ykay": 3
-    },
     "components/LiveReportCardPreview.tsx": {
-      "ykay": 3,
-      "leadership-academy": 1
-    },
-    "components/LoadingScreen.tsx": {
-      "ykay": 3
-    },
-    "components/MobileAppCTA.tsx": {
-      "ykay": 2
-    },
-    "components/PaystackModal.tsx": {
       "ykay": 1
-    },
-    "components/ReceiptModal.tsx": {
-      "ykay": 1
-    },
-    "components/ServiceInfo.tsx": {
-      "ykay": 2,
-      "leadership-academy": 1
     },
     "components/Services.tsx": {
       "eduportal": 1
     },
-    "components/Timeline.tsx": {
-      "ykay": 1,
-      "eduportal": 1,
-      "leadership-academy": 1
-    },
-    "components/WhatsAppFloat.tsx": {
-      "ykay": 1
-    },
-    "components/admissions/AdmissionApplicationForm.tsx": {
-      "ykay": 2
-    },
-    "components/cbt/CbtRunner.tsx": {
-      "ykay": 1
-    },
     "components/og.tsx": {
-      "ykay": 2
-    },
-    "docker-compose.prod.yml": {
-      "ykay": 8
+      "ykay": 1
     },
     "docker-entrypoint.sh": {
       "eduos": 1
@@ -221,265 +66,60 @@
       "eduos": 1
     },
     "lib/email.ts": {
-      "ykay": 6,
-      "eduportal": 4
-    },
-    "lib/notifications.ts": {
-      "ykay": 4,
-      "eduportal": 2,
-      "leadership-academy": 1
-    },
-    "lib/offline/db.ts": {
-      "ykay": 2,
       "eduportal": 1
     },
     "lib/rate-limit.ts": {
-      "ykay": 32,
       "yk-virtual": 1
     },
-    "lib/school.ts": {
-      "ykay": 1
-    },
     "lib/school-defaults.ts": {
-      "ykay": 3,
-      "leadership-academy": 1
-    },
-    "lib/session.ts": {
       "ykay": 1
     },
-    "lib/tenant.ts": {
-      "ykay": 4
-    },
-    "middleware.ts": {
-      "ykay": 2
-    },
-    "mobile/app/(parent)/profile.tsx": {
-      "ykay": 1
-    },
-    "mobile/app/(student)/profile.tsx": {
-      "ykay": 1
-    },
-    "mobile/app/(teacher)/profile.tsx": {
+    "lib/school.ts": {
       "ykay": 1
     },
     "mobile/app/admin-staff.tsx": {
       "ykay": 1
     },
     "mobile/app/forgot-password.tsx": {
-      "ykay": 5
-    },
-    "mobile/app/id-card.tsx": {
-      "ykay": 4
-    },
-    "mobile/app/landing.tsx": {
-      "ykay": 4,
-      "leadership-academy": 1
+      "ykay": 1
     },
     "mobile/app/login.tsx": {
-      "ykay": 5
-    },
-    "mobile/app/news.tsx": {
       "ykay": 1
-    },
-    "mobile/app/onboarding.tsx": {
-      "ykay": 4
     },
     "mobile/app/settings.tsx": {
-      "ykay": 4,
-      "leadership-academy": 1
+      "ykay": 3
     },
     "mobile/app.json": {
-      "ykay": 10
-    },
-    "mobile/components/BiometricGate.tsx": {
-      "ykay": 1
+      "ykay": 4
     },
     "mobile/components/SplashBrand.tsx": {
-      "ykay": 6,
       "leadership-academy": 1
-    },
-    "mobile/components/YkayLogo.tsx": {
-      "filename": 1,
-      "ykay": 4
     },
     "mobile/eas.json": {
       "ykay": 3
     },
-    "mobile/lib/api.ts": {
-      "ykay": 3
-    },
-    "mobile/lib/biometric.ts": {
-      "ykay": 1
-    },
-    "mobile/lib/http.ts": {
-      "ykay": 4
-    },
-    "mobile/lib/offline/db.ts": {
-      "ykay": 1
-    },
-    "mobile/lib/practiceBank.ts": {
-      "ykay": 1
-    },
-    "mobile/lib/practiceHistory.ts": {
-      "ykay": 1
-    },
-    "mobile/lib/prefs.ts": {
+    "prisma/seed-fis.ts": {
       "ykay": 2
-    },
-    "mobile/lib/reportShare.ts": {
-      "ykay": 2,
-      "leadership-academy": 2
-    },
-    "mobile/lib/theme.ts": {
-      "ykay": 1
-    },
-    "mobile/metro.config.js": {
-      "ykay": 2
-    },
-    "mobile/package-lock.json": {
-      "ykay": 2
-    },
-    "mobile/package.json": {
-      "ykay": 1
-    },
-    "mobile/src/components/index.ts": {
-      "ykay": 1
-    },
-    "mobile/src/components/navigation/index.tsx": {
-      "ykay": 3
-    },
-    "mobile/src/theme/colors.ts": {
-      "ykay": 1
-    },
-    "mobile/src/theme/gradients.ts": {
-      "ykay": 1
-    },
-    "mobile/src/theme/radius.ts": {
-      "ykay": 1
-    },
-    "mobile/src/theme/shadows.ts": {
-      "ykay": 1
-    },
-    "mobile/src/theme/spacing.ts": {
-      "ykay": 1
-    },
-    "mobile/src/theme/typography.ts": {
-      "ykay": 1
-    },
-    "package.json": {
-      "ykay": 2
-    },
-    "prisma/schema.prisma": {
-      "ykay": 2,
-      "eduportal": 1
-    },
-    "prisma/seed-all.ts": {
-      "ykay": 25
-    },
-    "prisma/seed-attendance.ts": {
-      "ykay": 3
-    },
-    "prisma/seed-ykay-college.ts": {
-      "filename": 1,
-      "ykay": 12,
-      "leadership-academy": 1
-    },
-    "prisma/seed.ts": {
-      "ykay": 1
     },
     "public/sw.js": {
-      "ykay": 2,
       "yk-virtual": 1
     },
     "render.yaml": {
-      "ykay": 3,
+      "ykay": 1,
       "eduportal": 1
     },
     "scripts/audit-project.ts": {
       "ykay": 5,
       "yk-virtual": 1
     },
-    "scripts/backup-db.ts": {
-      "ykay": 3
-    },
-    "scripts/cleanup-artifacts.ts": {
-      "ykay": 1
-    },
-    "scripts/e2e-full.ts": {
-      "ykay": 10
-    },
-    "scripts/e2e-mobile.ts": {
-      "ykay": 6
-    },
-    "scripts/load-test.ts": {
-      "ykay": 8
-    },
-    "scripts/make-student-login.ts": {
-      "ykay": 1
-    },
-    "scripts/restore-drill.ts": {
-      "ykay": 2
-    },
-    "scripts/seed-students.ts": {
-      "ykay": 4
-    },
-    "scripts/verify-docx-import.ts": {
-      "ykay": 2
-    },
     "scripts/verify-rls-coverage.ts": {
       "eduos": 5
     },
     "tests/e2e/00-home.spec.ts": {
-      "ykay": 2,
       "eduos": 1
-    },
-    "tests/e2e/01-login.spec.ts": {
-      "ykay": 3
-    },
-    "tests/e2e/99-rate-limit.spec.ts": {
-      "ykay": 2
-    },
-    "tests/e2e/helpers.ts": {
-      "ykay": 13
-    },
-    "tests/lib/admissions-paper-intake.test.ts": {
-      "ykay": 1
-    },
-    "tests/lib/cors-origins.test.ts": {
-      "ykay": 4
-    },
-    "tests/lib/cors-response-headers.test.ts": {
-      "ykay": 1
-    },
-    "tests/lib/csp.test.ts": {
-      "ykay": 7
-    },
-    "tests/lib/mobile-config.test.ts": {
-      "ykay": 1
-    },
-    "tests/lib/paystack-verify.test.ts": {
-      "ykay": 1
     },
     "tests/lib/prisma-runtime-deps.test.ts": {
       "eduos": 1
-    },
-    "tests/lib/qr.test.ts": {
-      "ykay": 1
-    },
-    "tests/lib/question-import.test.ts": {
-      "ykay": 4
-    },
-    "tests/lib/security-hardening.test.ts": {
-      "ykay": 1
-    },
-    "tests/lib/session.test.ts": {
-      "ykay": 1
-    },
-    "tests/mobile/theme.test.ts": {
-      "ykay": 1
-    },
-    "tests/setup.ts": {
-      "ykay": 1
     }
   }
 }

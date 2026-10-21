@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CreditCard, LoaderCircle, Search, Send } from "lucide-react";
 import AdminSidebar from "@/components/AdminSidebar";
 import PortalTopbar from "@/components/PortalTopbar";
+import InstalmentPlansPanel from "@/components/InstalmentPlansPanel";
 import { useToast } from "@/components/Toast";
 
 type FeesOverviewResponse = {
@@ -365,6 +366,8 @@ export default function AdminFeesPage() {
               </div>
             </>
           )}
+
+          <InstalmentPlansPanel />
         </section>
       </main>
     </>

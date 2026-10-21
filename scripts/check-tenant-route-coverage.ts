@@ -60,12 +60,25 @@ function delegateName(model: string): string {
   return model.charAt(0).toLowerCase() + model.slice(1);
 }
 
+/**
+ * Routes that legitimately CANNOT scope by schoolId because the caller is an
+ * external provider with no tenant context. Each entry needs a reason a
+ * reviewer can challenge — this list is the reviewed exception, not a bin
+ * for routes that merely forgot to filter. Exempt routes are printed on
+ * every run so they stay visible.
+ */
+const PROVIDER_GLOBAL_ROUTES: Record<string, string> = {
+  "app/api/webhooks/whatsapp/route.ts":
+    "Meta delivery callbacks carry no tenant context; matching is by providerMessageId (a globally unique wamid) under x-hub-signature-256 HMAC verification, so a callback can only touch the single job Meta issued that id for.",
+};
+
 const models = tenantModels();
 const routes = listRouteFiles(API_DIR);
 
 let rlsScoped = 0;
 let appFiltered = 0;
 const uncovered: string[] = [];
+const providerGlobal: string[] = [];
 
 const delegateCall = (model: string) =>
   new RegExp(
@@ -78,6 +91,12 @@ for (const route of routes) {
   const source = readFileSync(route, "utf8");
   const touched = [...models].filter((model) => delegateCall(model).test(source));
   if (touched.length === 0) continue;
+
+  const exemption = PROVIDER_GLOBAL_ROUTES[relative(ROOT, route)];
+  if (exemption) {
+    providerGlobal.push(`${relative(ROOT, route)} — ${exemption}`);
+    continue;
+  }
 
   if (/withSchool\s*\(/.test(source)) {
     rlsScoped += 1;
@@ -92,9 +111,13 @@ for (const route of routes) {
   );
 }
 
-console.log(`Tenant-model routes: ${rlsScoped + appFiltered + uncovered.length}`);
+console.log(
+  `Tenant-model routes: ${rlsScoped + appFiltered + uncovered.length + providerGlobal.length}`,
+);
 console.log(`  RLS-scoped (withSchool): ${rlsScoped}`);
 console.log(`  App-level schoolId filter present: ${appFiltered}`);
+console.log(`  Provider-global (reviewed exemption, no tenant context): ${providerGlobal.length}`);
+for (const line of providerGlobal) console.log(`    - ${line}`);
 console.log(`  UNCOVERED (no withSchool, no schoolId mention): ${uncovered.length}`);
 if (uncovered.length) {
   console.log("\nUNCOVERED routes (go verify each — imported helpers may filter internally):");

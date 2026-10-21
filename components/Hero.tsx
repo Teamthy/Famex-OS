@@ -3,7 +3,7 @@ import { Marquee } from "@/components/AnimatedText";
 
 /**
  * College home hero — full-bleed navy band, prebuiltui-style copy on the left,
- * Ykay student identity photograph on the right.
+ * FIS student identity photograph on the right.
  */
 export default function Hero() {
   return (
@@ -98,10 +98,10 @@ export default function Hero() {
               else, and let next/image serve a right-sized WebP. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/home/ykay-students-750.webp"
-            srcSet="/home/ykay-students-750.webp 750w, /home/ykay-students-1080.webp 1080w"
+            src="/home/fis-students-750.webp"
+            srcSet="/home/fis-students-750.webp 750w, /home/fis-students-1080.webp 1080w"
             sizes="(max-width: 768px) 100vw, 50vw"
-            alt="Ykay College students in school uniform"
+            alt="Famex International Schools students in school uniform"
             fetchPriority="high"
             decoding="async"
             width={533}

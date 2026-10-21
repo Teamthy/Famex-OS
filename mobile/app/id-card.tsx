@@ -6,7 +6,7 @@ import { useTheme } from "@/src/theme";
 import { Card } from "@/src/components/cards";
 import { Body, Caption, Label } from "@/src/components/typography";
 import { Screen, AppBar } from "@/src/components/layout";
-import { YkayLogo } from "@/components/YkayLogo";
+import { FISLogo } from "@/components/FISLogo";
 import { bodyFont } from "@/src/theme/typography";
 import { Mail, Hash, IdCard, ShieldCheck } from "lucide-react-native";
 
@@ -53,7 +53,7 @@ export default function StudentIdCard() {
             justifyContent: "space-between",
           }}
         >
-          <YkayLogo size={32} textSize={14} />
+          <FISLogo size={32} textSize={14} />
           <Label style={{ color: colors.brand.greenLight, fontSize: 10 }}>STUDENT</Label>
         </View>
 
@@ -127,7 +127,7 @@ export default function StudentIdCard() {
 
         <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs, marginTop: spacing.xl }}>
           <ShieldCheck size={15} color={colors.brand.greenLight} />
-          <Caption>Verified digital ID · Ykay College</Caption>
+          <Caption>Verified digital ID · Famex International Schools</Caption>
         </View>
       </View>
     </Screen>

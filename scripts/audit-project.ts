@@ -118,6 +118,9 @@ const ROUTE_ALLOW: Record<string, string> = {
   "/api/internal/security-event": "called by middleware via an absolute URL",
   "/api/jobs/dispatch-notifications": "cron target",
   "/api/health": "uptime monitoring",
+  "/api/health/ready": "readiness probe (load balancer / OCI health check)",
+  "/api/webhooks/whatsapp": "called by Meta (WhatsApp delivery receipts), not by us",
+  "/api/notifications/consent": "self-service consent API used by signed-in web/mobile clients",
   "/api/mobile/config": "mobile lib/updates.ts builds the URL with a template literal",
   "/api/auth/whoami": "diagnostic, entered by hand",
   "/api/admissions/apply": "public admissions form posts to it",
@@ -215,8 +218,20 @@ const PUBLIC_ROUTES = [
   "/api/auth/password-reset/request",
   "/api/auth/password-reset/confirm",
   "/api/auth/logout",
+  // Second-factor exchange: deliberately pre-session. The guard is the
+  // signed 5-minute MFA challenge + a valid TOTP/recovery code + rate
+  // limiting; a session cookie is only minted after all three pass.
+  "/api/auth/mfa/verify",
   "/api/health",
+  // Readiness probe for load balancers/OCI, same posture as /api/health.
+  "/api/health/ready",
   "/api/news",
+  // Public marketing data (academic calendar, iCal feed, staff directory):
+  // tenant resolved from host, directory-safe fields only, no personal data
+  // beyond what the public website already prints.
+  "/api/public/calendar",
+  "/api/public/calendar.ics",
+  "/api/public/staff",
   "/api/admissions/apply",
   "/api/admissions/draft",
   "/api/admissions/status",
@@ -225,6 +240,11 @@ const PUBLIC_ROUTES = [
   "/api/admissions/documents/confirm",
   "/api/admissions/payments/start",
   "/api/payments/paystack/webhook",
+  // Meta WhatsApp delivery receipts: authenticated by x-hub-signature-256
+  // HMAC when WHATSAPP_APP_SECRET is set (fail-closed in production), and
+  // matched by globally-unique provider message id — there is no user
+  // session to require.
+  "/api/webhooks/whatsapp",
   "/api/internal/security-event",
   "/api/jobs/dispatch-notifications",
   "/api/platform/signup",

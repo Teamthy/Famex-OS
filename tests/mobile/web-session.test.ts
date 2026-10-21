@@ -66,13 +66,22 @@ describe("mobile web build — session handling", () => {
 
   it("login does not rely on reading Set-Cookie when on web", () => {
     const code = stripComments(api);
-    const start = code.indexOf("export async function login");
+    // Token capture lives in captureSessionToken, shared by login() and the
+    // MFA verify exchange (both set the same session cookie). The web guard
+    // must live there, and both auth entry points must route through it.
+    const start = code.indexOf("async function captureSessionToken");
+    expect(start, "captureSessionToken should exist").toBeGreaterThan(-1);
     const body = code.slice(start, code.indexOf("\n}", start));
     expect(body).toMatch(/IS_WEB/);
     // The Set-Cookie scrape must be inside the non-web branch.
     const setCookieIdx = body.indexOf("set-cookie");
     const webIdx = body.indexOf("IS_WEB");
     expect(setCookieIdx).toBeGreaterThan(webIdx);
+    for (const fn of ["export async function login", "export async function verifyMfa"]) {
+      const fnStart = code.indexOf(fn);
+      expect(fnStart, `${fn} should exist`).toBeGreaterThan(-1);
+      expect(code.slice(fnStart, code.indexOf("\n}", fnStart))).toMatch(/captureSessionToken/);
+    }
   });
 
   /**

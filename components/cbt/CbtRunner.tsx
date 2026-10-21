@@ -46,7 +46,7 @@ type SubmitResponse = {
 
 const LETTERS = ["A", "B", "C", "D"];
 const EXAM_SECONDS_PER_Q = 45;
-const HISTORY_KEY = "ykay-cbt-history";
+const HISTORY_KEY = "fis-cbt-history";
 
 export function CbtRunner({ subject }: { subject: { slug: string; name: string } }) {
   const [phase, setPhase] = useState<Phase>("menu");

@@ -7,7 +7,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
 import { logger } from "@/lib/logger";
 
-const EMAIL = "student1@ykaycollege.com";
+const EMAIL = "student1@fis.example.edu.ng";
 
 // Operator-supplied, no fallback — this script previously hardcoded the same
 // literal that shipped in .env.example, which meant a known password on a real

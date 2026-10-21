@@ -8,7 +8,7 @@ export default function CookieConsent() {
   const [, setAccepted] = useState(false);
 
   useEffect(() => {
-    const consent = localStorage.getItem("ykay_cookie_consent");
+    const consent = localStorage.getItem("fis_cookie_consent");
     if (!consent) {
       setTimeout(() => setVisible(true), 1000);
     } else {
@@ -17,13 +17,13 @@ export default function CookieConsent() {
   }, []);
 
   const handleAccept = () => {
-    localStorage.setItem("ykay_cookie_consent", "accepted");
+    localStorage.setItem("fis_cookie_consent", "accepted");
     setAccepted(true);
     setVisible(false);
   };
 
   const handleReject = () => {
-    localStorage.setItem("ykay_cookie_consent", "rejected");
+    localStorage.setItem("fis_cookie_consent", "rejected");
     setVisible(false);
   };
 
@@ -33,7 +33,7 @@ export default function CookieConsent() {
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0F1F2E] border-t border-white/10 p-6 md:p-8 shadow-2xl shadow-black/40">
       <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-ykay-green/10 flex items-center justify-center text-ykay-green shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-brand-green/10 flex items-center justify-center text-brand-green shrink-0">
             <Cookie size={22} strokeWidth={2} />
           </div>
           <div>
@@ -49,7 +49,7 @@ export default function CookieConsent() {
               {["Essential", "Analytics", "Preferences"].map((label) => (
                 <span
                   key={label}
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold ${label === "Essential" ? "bg-ykay-green/15 text-ykay-green" : "bg-white/5 text-white/20"}`}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold ${label === "Essential" ? "bg-brand-green/15 text-brand-green" : "bg-white/5 text-white/20"}`}
                 >
                   {label === "Essential" ? (
                     <Check size={8} strokeWidth={3} />
@@ -71,7 +71,7 @@ export default function CookieConsent() {
           </button>
           <button
             onClick={handleAccept}
-            className="rounded-full px-6 py-2.5 bg-ykay-green text-white font-body text-xs font-bold hover:bg-ykay-green-dark transition-all shadow-lg shadow-ykay-green-20"
+            className="rounded-full px-6 py-2.5 bg-brand-green text-white font-body text-xs font-bold hover:bg-brand-green-dark transition-all shadow-lg shadow-brand-green/20"
           >
             Accept All
           </button>

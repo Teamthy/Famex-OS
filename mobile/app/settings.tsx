@@ -442,7 +442,7 @@ export default function SettingsScreen() {
       </Button>
 
       <View style={{ alignItems: "center", marginTop: spacing.xl }}>
-        <Caption style={{ fontSize: 11 }}>Ykay College &amp; Leadership Academy</Caption>
+        <Caption style={{ fontSize: 11 }}>Famex International Schools</Caption>
         {/* Read from expo-updates, not hardcoded.
             With a sideloaded APK there is no store listing to check, so this
             is the only way support can tell which build a parent is running —

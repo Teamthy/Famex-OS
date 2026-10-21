@@ -1,5 +1,5 @@
 /**
- * Seeds Ykay College with students and guarantees every active student has a
+ * Seeds Famex International Schools with students and guarantees every active student has a
  * login account (full name + the shared student password). Also backfills any
  * existing students that were created without a linked User.
  *
@@ -94,7 +94,7 @@ const LAST = [
 const pick = <T>(arr: T[], i: number) => arr[i % arr.length];
 
 function emailFor(studentId: string) {
-  return `${studentId.replace(/[^a-zA-Z0-9]/g, "").toLowerCase()}@students.ykaycollege.com`;
+  return `${studentId.replace(/[^a-zA-Z0-9]/g, "").toLowerCase()}@students.fis.example.edu.ng`;
 }
 
 /** Create (or reuse) a STUDENT user for a profile and link it. */
@@ -195,9 +195,9 @@ async function main() {
   console.log(`✓ Total active students now: ${total}`);
   console.log(
     `\n🎓 Students sign in with their FULL NAME (capitals) + the shared password` +
-      ` (${process.env.STUDENT_SHARED_PASSWORD || "YKAYSTUDENT2026"}).`,
+      ` (${process.env.STUDENT_SHARED_PASSWORD || "FISSTUDENT2026"}).`,
   );
-  console.log("   e.g. Name: CHINEDU OKAFOR  ·  Password: YKAYSTUDENT2026\n");
+  console.log("   e.g. Name: CHINEDU OKAFOR  ·  Password: FISSTUDENT2026\n");
 }
 
 main()

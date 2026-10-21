@@ -5,14 +5,14 @@ function client() {
   if (!key) throw new Error("RESEND_API_KEY is not configured.");
   return new Resend(key);
 }
-const from = () => process.env.EMAIL_FROM || "Ykay College <onboarding@resend.dev>";
+const from = () => process.env.EMAIL_FROM || "Famex International Schools <onboarding@resend.dev>";
 
 export async function sendPasswordResetEmail(input: { to: string; name: string; token: string }) {
   const url = `${(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "")}/reset-password?token=${encodeURIComponent(input.token)}`;
   await client().emails.send({
     from: from(),
     to: input.to,
-    subject: "Reset your Ykay College EduPortal password",
+    subject: "Reset your Famex International Schools portal password",
     html: `<p>Hello ${input.name},</p><p>Use the link below to reset your password. It expires in 30 minutes.</p><p><a href="${url}">Reset password</a></p><p>If you did not request this, you can ignore this email.</p>`,
   });
 }
@@ -27,7 +27,7 @@ export async function sendAdmissionDecisionEmail(input: {
     from: from(),
     to: input.to,
     subject: `Admissions update for ${input.studentName}`,
-    html: `<p>Hello,</p><p>There is an admissions update for <strong>${input.studentName}</strong>: <strong>${input.status.replaceAll("_", " ")}</strong>.</p>${input.note ? `<p>${input.note}</p>` : ""}<p>Please log in to the admissions status page or contact Ykay College for guidance.</p>`,
+    html: `<p>Hello,</p><p>There is an admissions update for <strong>${input.studentName}</strong>: <strong>${input.status.replaceAll("_", " ")}</strong>.</p>${input.note ? `<p>${input.note}</p>` : ""}<p>Please log in to the admissions status page or contact Famex International Schools for guidance.</p>`,
   });
 }
 
@@ -52,7 +52,7 @@ export async function sendParentWelcomeEmail(input: {
   temporaryPassword: string;
 }) {
   const base = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
-  const schoolName = process.env.SCHOOL_NAME || "Ykay College";
+  const schoolName = process.env.SCHOOL_NAME || "Famex International Schools";
   await client().emails.send({
     from: from(),
     to: input.to,
@@ -89,8 +89,8 @@ export async function sendStaffInviteEmail(input: {
   await client().emails.send({
     from: from(),
     to: input.to,
-    subject: `You're invited to join Ykay College EduPortal (${roleLabel})`,
-    html: `<p>Hello ${input.name},</p><p>You've been invited to join the Ykay College EduPortal as <strong>${roleLabel}</strong>.</p><p>Activate your account and set a password using the link below. The invitation expires in 7 days.</p><p><a href="${url}">Activate my account</a></p><p>If you weren't expecting this invitation, you can safely ignore this email.</p>`,
+    subject: `You're invited to join the Famex International Schools portal (${roleLabel})`,
+    html: `<p>Hello ${input.name},</p><p>You've been invited to join the Famex International Schools portal as <strong>${roleLabel}</strong>.</p><p>Activate your account and set a password using the link below. The invitation expires in 7 days.</p><p><a href="${url}">Activate my account</a></p><p>If you weren't expecting this invitation, you can safely ignore this email.</p>`,
   });
 }
 

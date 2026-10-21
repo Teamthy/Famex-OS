@@ -3,7 +3,7 @@ import { qrDataUrl } from "@/lib/qr";
 
 describe("qrDataUrl", () => {
   it("returns a PNG data URL generated locally", async () => {
-    const url = await qrDataUrl("YKAY|YKC/2026/001|Emmanuel Adebayo", 180);
+    const url = await qrDataUrl("FIS|YKC/2026/001|Emmanuel Adebayo", 180);
     expect(url.startsWith("data:image/png;base64,")).toBe(true);
     // A real PNG; the payload is never placed in a URL that points at another host.
     expect(url).not.toContain("qrserver");

@@ -7,7 +7,7 @@ const { getDefaultConfig } = require("expo/metro-config");
  * Running the app as a web build (`npm run web`) puts it on an origin like
  * http://localhost:8081. The deployed API answers every preflight with
  *
- *     access-control-allow-origin: https://ykaycollege.edu.ng
+ *     access-control-allow-origin: https://fis.example.edu.ng
  *
  * because that is NEXT_PUBLIC_SITE_URL. The browser therefore blocks the
  * response before any application code runs, and reports the unhelpful
@@ -33,7 +33,7 @@ const { getDefaultConfig } = require("expo/metro-config");
 
 const config = getDefaultConfig(__dirname);
 
-const API_TARGET = process.env.DEV_API_PROXY_TARGET || "https://ykay-eduport2.vercel.app";
+const API_TARGET = process.env.DEV_API_PROXY_TARGET || "https://fis-eduport2.vercel.app";
 
 const originalEnhance = config.server?.enhanceMiddleware;
 

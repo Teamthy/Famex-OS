@@ -132,8 +132,8 @@ export default function NotificationSettingsPage() {
               NOTIFICATION <span className="text-brand-green">SETTINGS</span>
             </h1>
             <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
-              Choose what Ykay College may contact you about. These settings apply to both push
-              notifications on the mobile app and email.
+              Choose what Famex International Schools may contact you about. These settings apply to
+              both push notifications on the mobile app and email.
             </p>
           </div>
         </section>

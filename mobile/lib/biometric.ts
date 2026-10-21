@@ -28,7 +28,7 @@ export async function biometricEnrolled(): Promise<boolean> {
   }
 }
 
-export async function authenticate(reason = "Unlock Ykay College"): Promise<boolean> {
+export async function authenticate(reason = "Unlock Famex International Schools"): Promise<boolean> {
   if (Platform.OS === "web") return true;
   try {
     const res = await LocalAuthentication.authenticateAsync({

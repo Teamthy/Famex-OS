@@ -1,4 +1,4 @@
-/** Ykay College — border radius scale (px). */
+/** Famex International Schools — border radius scale (px). */
 export const Radius = {
   xs: 4,
   sm: 8,

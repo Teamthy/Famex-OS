@@ -58,9 +58,9 @@ export default function AdmissionsPage() {
                 </span>
               </h1>
               <p className="mt-7 max-w-2xl text-base leading-7 text-white md:text-lg">
-                Apply to Ykay College &amp; Leadership Academy for JSS1 through SS3. Before you
-                begin, please prepare the applicant&apos;s birth certificate, passport photograph,
-                and most recent report card.
+                Apply to Famex International Schools for JSS1 through SS3. Before you begin, please
+                prepare the applicant&apos;s birth certificate, passport photograph, and most recent
+                report card.
               </p>
               <div className="mt-8 flex flex-wrap gap-3 text-sm text-white">
                 <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2">

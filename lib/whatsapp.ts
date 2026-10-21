@@ -32,20 +32,26 @@ export async function sendWhatsapp(params: {
   templateParams?: string[];
   text?: string;
   smsFallbackText?: string;
+  /**
+   * Callers that account per channel (the NotificationJob dispatcher) pass
+   * false: a job queued as WHATSAPP must never be marked sent because an SMS
+   * went out instead. Direct alert callers keep the fallback.
+   */
+  allowSmsFallback?: boolean;
 }): Promise<SendResult> {
   const to = normalise(params.to);
   if (!to) return { channel: "none", error: "Invalid recipient" };
+  const mayFallback = params.allowSmsFallback !== false;
 
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   if (!phoneId || !token) {
     // Fallback to SMS if a fallback message is provided.
-    if (params.smsFallbackText || params.text) {
+    if (mayFallback && (params.smsFallbackText || params.text)) {
       await sendSms({ to, message: params.smsFallbackText ?? params.text ?? "" });
       return { channel: "sms" };
     }
     if (process.env.NODE_ENV !== "production") {
-      // eslint-disable-next-line no-console
       console.log(`[whatsapp-dev] → ${to}: ${params.text ?? `template:${params.templateName}`}`);
     }
     return { channel: "none", error: "WhatsApp not configured" };
@@ -85,7 +91,7 @@ export async function sendWhatsapp(params: {
     const j = await res.json().catch(() => ({}));
     if (!res.ok || j.error) {
       // SMS fallback on failure
-      if (params.smsFallbackText || params.text) {
+      if (mayFallback && (params.smsFallbackText || params.text)) {
         await sendSms({ to, message: params.smsFallbackText ?? params.text ?? "" }).catch(() => {});
         return { channel: "sms", error: j.error?.message ?? `HTTP ${res.status}` };
       }
@@ -93,7 +99,7 @@ export async function sendWhatsapp(params: {
     }
     return { channel: "whatsapp", messageId: j.messages?.[0]?.id };
   } catch (err: any) {
-    if (params.smsFallbackText || params.text) {
+    if (mayFallback && (params.smsFallbackText || params.text)) {
       await sendSms({ to, message: params.smsFallbackText ?? params.text ?? "" }).catch(() => {});
       return { channel: "sms", error: err.message };
     }

@@ -20,7 +20,7 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
-const DISMISS_KEY = "ykay-install-dismissed-at";
+const DISMISS_KEY = "fis-install-dismissed-at";
 const COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
 
 function isIOS(): boolean {
@@ -97,11 +97,12 @@ export function InstallPrompt() {
         📲
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold text-[var(--text-primary)]">Install the Ykay app</p>
+        <p className="text-sm font-bold text-[var(--text-primary)]">Install the FIS app</p>
         {deferred ? (
           <>
             <p className="text-xs text-[var(--text-secondary)]">
-              Add Ykay College to your home screen — results, attendance and notices, full screen.
+              Add Famex International Schools to your home screen — results, attendance and notices,
+              full screen.
             </p>
             <div className="mt-1.5 flex gap-2">
               <button

@@ -3,7 +3,7 @@ import { View, TouchableOpacity, ViewStyle } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/src/theme";
-import { YkayLogo } from "@/components/YkayLogo";
+import { FISLogo } from "@/components/FISLogo";
 import { Bell } from "lucide-react-native";
 
 export interface AppHeaderProps {
@@ -34,7 +34,7 @@ export function AppHeader({ showLogo = true, title, onBellPress, right, style }:
         ...style,
       }}
     >
-      {showLogo ? <YkayLogo size={34} textSize={16} /> : <View />}
+      {showLogo ? <FISLogo size={34} textSize={16} /> : <View />}
       <View style={{ flex: 1, marginLeft: spacing.sm }} />
       <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
         {right}

@@ -20,7 +20,7 @@ import { test, expect } from "@playwright/test";
 test.describe("login rate limiting", () => {
   test("repeated bad passwords are eventually refused with 429", async ({ request }) => {
     // A throwaway address, so this cannot lock out a seeded account.
-    const email = `ratelimit-probe-${Date.now()}@ykaycollege.com`;
+    const email = `ratelimit-probe-${Date.now()}@fis.example.edu.ng`;
     let sawLimit = false;
     let attempts = 0;
 
@@ -46,7 +46,7 @@ test.describe("login rate limiting", () => {
 
   test("the limiter refuses per email, not just per IP", async ({ request }) => {
     // loginStrict allows 3 failures per 15 min for a single address.
-    const email = `strict-probe-${Date.now()}@ykaycollege.com`;
+    const email = `strict-probe-${Date.now()}@fis.example.edu.ng`;
     const statuses: number[] = [];
 
     for (let i = 0; i < 6; i++) {

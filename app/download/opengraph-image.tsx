@@ -1,6 +1,6 @@
 import { brandCard, OG_SIZE, OG_CONTENT_TYPE } from "@/components/og";
 
-export const alt = "Install the Ykay College app — iPhone and Android";
+export const alt = "Install the Famex International Schools app — iPhone and Android";
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
 

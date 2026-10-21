@@ -1,25 +1,30 @@
-﻿"use client";
+"use client";
 
 import { MessageCircle } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useSchoolProfile } from "@/components/SchoolProfileContext";
 
 export default function WhatsAppFloat() {
   const [visible, setVisible] = useState(false);
+  const { name, phone } = useSchoolProfile();
 
   useEffect(() => {
     const timer = setTimeout(() => setVisible(true), 2000);
     return () => clearTimeout(timer);
   }, []);
 
-  if (!visible) return null;
+  // The number is the school's confirmed public phone (School profile). No
+  // confirmed phone → no float, rather than a hard-coded number.
+  const digits = (phone || "").replace(/\D/g, "");
+  if (!visible || !digits) return null;
 
   const message = encodeURIComponent(
-    "Hello Ykay College, I'd like to learn more about admissions.",
+    `Hello ${name || "Famex International Schools"}, I'd like to learn more about admissions.`,
   );
 
   return (
     <a
-      href={`https://wa.me/2347015374411?text=${message}`}
+      href={`https://wa.me/${digits}?text=${message}`}
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-6 right-6 z-40 group"

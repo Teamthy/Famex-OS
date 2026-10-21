@@ -2,7 +2,7 @@ import { View, Text, Image } from "react-native";
 import { Colors } from "@/src/theme/colors";
 
 /**
- * Reusable Ykay College brand mark — logo image + wordmark.
+ * Reusable Famex International Schools brand mark — logo image + wordmark.
  * Uses assets/icon.png (replace with the designer's final logo anytime).
  *
  * The mark renders as a clean square with square corners (no rounded
@@ -11,7 +11,7 @@ import { Colors } from "@/src/theme/colors";
  * the asset itself — the component intentionally adds no background, rounding
  * or elevation of its own.
  */
-export function YkayLogo({ size = 42, showText = true, textSize = 18 }: { size?: number; showText?: boolean; textSize?: number }) {
+export function FISLogo({ size = 42, showText = true, textSize = 18 }: { size?: number; showText?: boolean; textSize?: number }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
       <Image
@@ -21,7 +21,7 @@ export function YkayLogo({ size = 42, showText = true, textSize = 18 }: { size?:
       />
       {showText && (
         <Text style={{ color: Colors.text.primary, fontSize: textSize, fontWeight: "800", letterSpacing: 0.3, fontFamily: "Anton" }} allowFontScaling={false}>
-          Ykay College
+          Famex International Schools
         </Text>
       )}
     </View>
@@ -29,7 +29,7 @@ export function YkayLogo({ size = 42, showText = true, textSize = 18 }: { size?:
 }
 
 /** The brand mark alone (no wordmark), rendered as a clean square, no shadow. */
-export function YkayCrest({ size = 32 }: { size?: number }) {
+export function FISCrest({ size = 32 }: { size?: number }) {
   return (
     <Image
       source={require("../assets/icon.png")}

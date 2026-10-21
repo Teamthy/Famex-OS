@@ -3,7 +3,7 @@
  * app migrates to the structured design system under `src/theme` + components.
  *
  * Values now come from the official tokens (src/theme/*), so existing screens
- * automatically pick up the correct Ykay palette, spacing & radius.
+ * automatically pick up the correct FIS palette, spacing & radius.
  */
 import { Colors } from "@/src/theme/colors";
 import { Spacing } from "@/src/theme/spacing";

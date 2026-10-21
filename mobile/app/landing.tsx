@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "@/src/theme";
-import { YkayLogo } from "@/components/YkayLogo";
+import { FISLogo } from "@/components/FISLogo";
 import { Button } from "@/src/components/buttons";
 import { BackgroundCarousel } from "@/src/components/carousel";
 import { haptic } from "@/lib/haptics";
@@ -49,7 +49,7 @@ export default function LandingScreen() {
       />
 
       <View style={{ flex: 1, padding: spacing.lg, paddingTop: 62, paddingBottom: 44 }}>
-        <YkayLogo size={38} textSize={16} />
+        <FISLogo size={38} textSize={16} />
 
         <View style={{ flex: 1, justifyContent: "flex-end" }}>
           <Text
@@ -61,7 +61,7 @@ export default function LandingScreen() {
               marginBottom: spacing.sm,
             }}
           >
-            YKAY COLLEGE &amp; LEADERSHIP ACADEMY
+            FAMEX INTERNATIONAL SCHOOLS
           </Text>
 
           <Text

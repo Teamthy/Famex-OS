@@ -47,7 +47,8 @@ export default function LoadingScreen() {
                 letterSpacing="8"
               >
                 <textPath href="#ring-path" startOffset="0%">
-                  YKAY COLLEGE · EXCELLENCE · LEADERSHIP · YKAY COLLEGE ·
+                  FAMEX INTERNATIONAL SCHOOLS · EXCELLENCE · LEADERSHIP · FAMEX INTERNATIONAL
+                  SCHOOLS ·
                 </textPath>
               </text>
             </svg>
@@ -63,7 +64,7 @@ export default function LoadingScreen() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo-280.webp"
-              alt="Ykay College Logo"
+              alt="Famex International Schools Logo"
               width={140}
               height={140}
               decoding="async"

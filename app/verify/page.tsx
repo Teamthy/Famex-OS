@@ -13,7 +13,7 @@ import { FileText, ArrowRight } from "lucide-react";
  *
  * The QR code on a report card carries the full URL (/verify/report/<n>), so a
  * scanner lands directly on the result. This page serves the human who has a
- * number but no QR. The IT-certificate verifier was retired with Ykay's IT
+ * number but no QR. The IT-certificate verifier was retired with FIS's IT
  * academy (W1); only report-card verification remains.
  */
 export default function VerifyEntryPage() {

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
-import { sessionCookie, signSession } from "@/lib/session";
+import { sessionCookie, signMfaChallenge, signSession } from "@/lib/session";
 import { resolveTenantFromHost } from "@/lib/tenant";
 import { recordSecurityEvent, getUserAgent } from "@/lib/forensics";
 import { enforceRateLimit, checkRateLimit } from "@/lib/rate-limit";
@@ -125,6 +125,25 @@ export async function POST(request: NextRequest) {
         reason: "Incorrect password.",
       });
       return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
+    }
+
+    // ── Second factor (B) ─────────────────────────────────────
+    // Password is correct but the account has TOTP enrolled: do NOT issue a
+    // session yet. The client exchanges this 5-minute challenge + a valid
+    // code at POST /api/auth/mfa/verify for the real session cookie.
+    if (user.mfaEnabled && user.mfaSecretEncrypted) {
+      const challenge = await signMfaChallenge(user.id);
+      await prisma.auditLog.create({
+        data: {
+          schoolId: user.schoolId,
+          actorUserId: user.id,
+          action: "USER_MFA_CHALLENGE_ISSUED",
+          entityType: "User",
+          entityId: user.id,
+          ipAddress: ip,
+        },
+      });
+      return NextResponse.json({ mfaRequired: true, challenge });
     }
 
     // ── Successful login ──────────────────────────────────────

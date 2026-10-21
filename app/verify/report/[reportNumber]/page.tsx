@@ -56,8 +56,8 @@ export default async function VerifyReportPage({
                   AUTHENTIC DOCUMENT
                 </h2>
                 <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                  This report card was officially issued and released by Ykay College &amp;
-                  Leadership Academy.
+                  This report card was officially issued and released by Famex International
+                  Schools.
                 </p>
                 <div className="mt-8 space-y-3 rounded-2xl bg-[var(--surface-disabled)] p-6 text-left text-sm">
                   {[
@@ -109,8 +109,9 @@ export default async function VerifyReportPage({
               </div>
             )}
             <p className="mt-6 text-center text-xs text-[var(--text-muted)]">
-              Verification reference: scan the QR code on any released Ykay College report card, or
-              enter the report number in the URL: /verify/report/&lt;report-number&gt;
+              Verification reference: scan the QR code on any released Famex International Schools
+              report card, or enter the report number in the URL:
+              /verify/report/&lt;report-number&gt;
             </p>
           </div>
         </section>

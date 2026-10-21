@@ -90,7 +90,7 @@ export default function ReceiptModal({ open, data, onClose }: Props) {
             className="bg-white rounded-3xl max-w-lg w-full shadow-2xl my-8 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header with Ykay branding */}
+            {/* Header with FIS branding */}
             <div className="bg-brand-navy p-6 text-white relative">
               <button
                 onClick={onClose}

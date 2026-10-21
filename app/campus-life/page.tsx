@@ -24,9 +24,9 @@ export default function CampusLifePage() {
                 text="BEYOND THE CLASSROOM"
               />
               <p className="font-body text-base md:text-lg text-[var(--text-secondary)] max-w-2xl leading-relaxed">
-                At Ykay College, education extends far beyond textbooks. Our students discover their
-                talents, build character, and develop leadership skills through clubs, sports, and
-                creative expression.
+                At Famex International Schools, education extends far beyond textbooks. Our students
+                discover their talents, build character, and develop leadership skills through
+                clubs, sports, and creative expression.
               </p>
             </div>
           </section>

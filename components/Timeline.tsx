@@ -6,7 +6,7 @@ const MILESTONES = [
   {
     year: "2012",
     title: "School Founded",
-    desc: "Ykay College opened with 48 students and 7 teaching staff.",
+    desc: "Famex International Schools opened with 48 students and 7 teaching staff.",
   },
   {
     year: "2015",
@@ -25,12 +25,12 @@ const MILESTONES = [
   },
   {
     year: "2023",
-    title: "Leadership Academy Launched",
+    title: "Leadership Development Launched",
     desc: "Added dedicated leadership development curriculum to distinguish our graduates.",
   },
   {
     year: "2025",
-    title: "EduPortal Launched",
+    title: "Famex OS Launched",
     desc: "Full digital school management platform for students, parents, teachers, and admin.",
   },
 ];

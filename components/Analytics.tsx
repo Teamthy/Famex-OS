@@ -1,7 +1,7 @@
 import Script from "next/script";
 
 // Analytics — privacy-friendly, cookieless, and OFF until configured.
-// Set NEXT_PUBLIC_PLAUSIBLE_DOMAIN (e.g. ykaycollege.edu.ng) in the environment
+// Set NEXT_PUBLIC_PLAUSIBLE_DOMAIN (e.g. fis.example.edu.ng) in the environment
 // and page views are measured. Without the env var this renders nothing
 // (no scripts, no requests, no consent banner needed — Plausible sets no
 // cookies and collects no personal data).

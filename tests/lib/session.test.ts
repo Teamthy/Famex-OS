@@ -88,7 +88,7 @@ describe("sessionCookie", () => {
   it("returns a cookie config with httpOnly", async () => {
     const { sessionCookie } = await import("@/lib/session");
     const cookie = sessionCookie("test-token");
-    expect(cookie.name).toBe("ykay_session");
+    expect(cookie.name).toBe("fis_session");
     expect(cookie.value).toBe("test-token");
     expect(cookie.options.httpOnly).toBe(true);
     expect(cookie.options.path).toBe("/");

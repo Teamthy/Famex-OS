@@ -7,9 +7,9 @@ import Footer from "@/components/Footer";
 import { apkQrDataUrl, requestOrigin } from "@/lib/apk";
 
 export const metadata: Metadata = {
-  title: "Install the Ykay College app — iPhone & Android",
+  title: "Install the Famex International Schools app — iPhone & Android",
   description:
-    "Install the Ykay College app straight from your browser on iPhone or Android — results, attendance, fees and school notices. No app store needed.",
+    "Install the Famex International Schools app straight from your browser on iPhone or Android — results, attendance, fees and school notices. No app store needed.",
 };
 
 /**
@@ -41,8 +41,8 @@ export default async function DownloadPage() {
             </h1>
 
             <p className="mt-5 max-w-lg font-body text-base leading-relaxed text-[var(--text-secondary)]">
-              The full Ykay College app — results, attendance, fees, timetables and school notices —
-              installed straight from this website in seconds. Works on{" "}
+              The full Famex International Schools app — results, attendance, fees, timetables and
+              school notices — installed straight from this website in seconds. Works on{" "}
               <b className="text-[var(--text-primary)]">iPhone and Android</b>, takes almost no
               space, updates itself, and needs no app store.
             </p>
@@ -59,7 +59,7 @@ export default async function DownloadPage() {
                     Tap <b className="text-[var(--text-primary)]">Install</b> on the banner, or menu{" "}
                     <b className="text-[var(--text-primary)]">⋮ → Install app</b>.
                   </li>
-                  <li>Confirm — the Ykay icon appears on your home screen.</li>
+                  <li>Confirm — the FIS icon appears on your home screen.</li>
                 </ol>
               </div>
               {/* iPhone */}

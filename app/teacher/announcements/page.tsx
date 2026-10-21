@@ -444,7 +444,7 @@ export default function BulkAnnouncementPage() {
                     <div className="flex items-center gap-2 mb-2">
                       <Sparkles size={12} className="text-brand-green" />
                       <span className="text-[9px] uppercase tracking-widest text-brand-green font-bold">
-                        Ykay College
+                        Famex International Schools
                       </span>
                       {priority === "urgent" && (
                         <span className="text-[9px] px-2 py-0.5 rounded-full bg-red-500 text-white font-bold">

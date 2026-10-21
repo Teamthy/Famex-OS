@@ -79,36 +79,36 @@ function inMemoryCheck(
 // ── Limiter configuration ────────────────────────────────────────
 const limiterConfig = {
   // Admissions
-  draft: { maxRequests: 5, windowMs: 3_600_000, prefix: "ykay:admissions:draft" },
-  upload: { maxRequests: 40, windowMs: 3_600_000, prefix: "ykay:admissions:upload" },
-  payment: { maxRequests: 8, windowMs: 3_600_000, prefix: "ykay:admissions:payment" },
-  status: { maxRequests: 30, windowMs: 600_000, prefix: "ykay:admissions:status" },
-  contact: { maxRequests: 5, windowMs: 3_600_000, prefix: "ykay:contact" },
+  draft: { maxRequests: 5, windowMs: 3_600_000, prefix: "fis:admissions:draft" },
+  upload: { maxRequests: 40, windowMs: 3_600_000, prefix: "fis:admissions:upload" },
+  payment: { maxRequests: 8, windowMs: 3_600_000, prefix: "fis:admissions:payment" },
+  status: { maxRequests: 30, windowMs: 600_000, prefix: "fis:admissions:status" },
+  contact: { maxRequests: 5, windowMs: 3_600_000, prefix: "fis:contact" },
   // Authentication — brute-force / credential-stuffing protection
-  login: { maxRequests: 10, windowMs: 900_000, prefix: "ykay:auth:login" }, // 10 attempts per 15 min
-  loginStrict: { maxRequests: 3, windowMs: 900_000, prefix: "ykay:auth:login-strict" }, // 3 failures per 15 min (per email — FAILURES only, see checkRateLimit)
+  login: { maxRequests: 10, windowMs: 900_000, prefix: "fis:auth:login" }, // 10 attempts per 15 min
+  loginStrict: { maxRequests: 3, windowMs: 900_000, prefix: "fis:auth:login-strict" }, // 3 failures per 15 min (per email — FAILURES only, see checkRateLimit)
   // Federated College SSO was retired with YK Virtual (W1); its limiters are
   // removed. Auth brute-force protection is covered by login/loginStrict below.
-  passwordReset: { maxRequests: 3, windowMs: 3_600_000, prefix: "ykay:auth:pw-reset" }, // 3 resets per hour
-  changePassword: { maxRequests: 5, windowMs: 3_600_000, prefix: "ykay:auth:pw-change" }, // 5 changes per hour
-  signup: { maxRequests: 5, windowMs: 3_600_000, prefix: "ykay:signup" }, // 5 signups per hour
+  passwordReset: { maxRequests: 3, windowMs: 3_600_000, prefix: "fis:auth:pw-reset" }, // 3 resets per hour
+  changePassword: { maxRequests: 5, windowMs: 3_600_000, prefix: "fis:auth:pw-change" }, // 5 changes per hour
+  signup: { maxRequests: 5, windowMs: 3_600_000, prefix: "fis:signup" }, // 5 signups per hour
   // Staff activation — the endpoint is unauthenticated by necessity (the
   // account does not exist yet), so the invite token is the only secret
   // protecting staff-account creation. Throttle guessing.
-  staffActivate: { maxRequests: 10, windowMs: 3_600_000, prefix: "ykay:staff:activate" },
+  staffActivate: { maxRequests: 10, windowMs: 3_600_000, prefix: "fis:staff:activate" },
   // Bulk communications — sending results to parents, publishing news or an
   // announcement, or messaging a family. A teacher is rate-limited per account
   // so a misbehaving client (or a stuck retry loop) cannot spam every parent's
   // inbox. Generous limits: they protect against abuse, not legitimate use.
-  sendResults: { maxRequests: 20, windowMs: 3_600_000, prefix: "ykay:teacher:send-results" },
-  announcement: { maxRequests: 30, windowMs: 3_600_000, prefix: "ykay:teacher:announcement" },
-  newsPost: { maxRequests: 30, windowMs: 3_600_000, prefix: "ykay:admin:news" },
-  message: { maxRequests: 60, windowMs: 3_600_000, prefix: "ykay:messages" },
+  sendResults: { maxRequests: 20, windowMs: 3_600_000, prefix: "fis:teacher:send-results" },
+  announcement: { maxRequests: 30, windowMs: 3_600_000, prefix: "fis:teacher:announcement" },
+  newsPost: { maxRequests: 30, windowMs: 3_600_000, prefix: "fis:admin:news" },
+  message: { maxRequests: 60, windowMs: 3_600_000, prefix: "fis:messages" },
   // Public practice-CBT funnel (quiz draw, per-question check, attempt save).
   // Deliberately generous for a legitimate practice session; non-critical so
   // the public page keeps working on the in-memory fallback, but it bounds
   // question-bank enumeration and spam attempts rows.
-  cbt: { maxRequests: 240, windowMs: 3_600_000, prefix: "ykay:cbt" },
+  cbt: { maxRequests: 240, windowMs: 3_600_000, prefix: "fis:cbt" },
 } as const;
 
 const redisLimiters: Record<string, Ratelimit | null> = redis
@@ -116,82 +116,82 @@ const redisLimiters: Record<string, Ratelimit | null> = redis
       draft: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(5, "1 h"),
-        prefix: "ykay:admissions:draft",
+        prefix: "fis:admissions:draft",
       }),
       upload: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(40, "1 h"),
-        prefix: "ykay:admissions:upload",
+        prefix: "fis:admissions:upload",
       }),
       payment: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(8, "1 h"),
-        prefix: "ykay:admissions:payment",
+        prefix: "fis:admissions:payment",
       }),
       status: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(30, "10 m"),
-        prefix: "ykay:admissions:status",
+        prefix: "fis:admissions:status",
       }),
       contact: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(5, "1 h"),
-        prefix: "ykay:contact",
+        prefix: "fis:contact",
       }),
       login: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(10, "15 m"),
-        prefix: "ykay:auth:login",
+        prefix: "fis:auth:login",
       }),
       loginStrict: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(3, "15 m"),
-        prefix: "ykay:auth:login-strict",
+        prefix: "fis:auth:login-strict",
       }),
       passwordReset: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(3, "1 h"),
-        prefix: "ykay:auth:pw-reset",
+        prefix: "fis:auth:pw-reset",
       }),
       changePassword: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(5, "1 h"),
-        prefix: "ykay:auth:pw-change",
+        prefix: "fis:auth:pw-change",
       }),
       signup: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(5, "1 h"),
-        prefix: "ykay:signup",
+        prefix: "fis:signup",
       }),
       staffActivate: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(10, "1 h"),
-        prefix: "ykay:staff:activate",
+        prefix: "fis:staff:activate",
       }),
       sendResults: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(20, "1 h"),
-        prefix: "ykay:teacher:send-results",
+        prefix: "fis:teacher:send-results",
       }),
       announcement: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(30, "1 h"),
-        prefix: "ykay:teacher:announcement",
+        prefix: "fis:teacher:announcement",
       }),
       newsPost: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(30, "1 h"),
-        prefix: "ykay:admin:news",
+        prefix: "fis:admin:news",
       }),
       message: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(60, "1 h"),
-        prefix: "ykay:messages",
+        prefix: "fis:messages",
       }),
       cbt: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(240, "1 h"),
-        prefix: "ykay:cbt",
+        prefix: "fis:cbt",
       }),
     }
   : {};

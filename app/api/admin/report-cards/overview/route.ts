@@ -174,7 +174,7 @@ export async function PATCH(request: NextRequest) {
           schoolId: user.schoolId,
           kind: NotificationKind.REPORT_RELEASED,
           channel: AlertChannel.EMAIL,
-          subject: "Report card released — Ykay College",
+          subject: "Report card released — Famex International Schools",
           body: message,
           recipientName: student.guardianName,
           recipientEmail: student.guardianEmail,

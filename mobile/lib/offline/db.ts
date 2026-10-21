@@ -22,7 +22,7 @@ let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 function getDb() {
   if (!dbPromise) {
     dbPromise = (async () => {
-      const db = await SQLite.openDatabaseAsync("ykay_offline.db");
+      const db = await SQLite.openDatabaseAsync("fis_offline.db");
       await db.execAsync(`
         PRAGMA journal_mode = 'WAL';
         CREATE TABLE IF NOT EXISTS cache (

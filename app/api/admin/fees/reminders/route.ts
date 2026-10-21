@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       `has an outstanding balance of ₦${amount.toLocaleString()} on invoice ${invoice.invoiceNumber} ` +
       `(${invoice.title}, ${invoice.termLabel}).\n\n` +
       `Please pay via the parent portal or contact the bursary office.\n` +
-      `Ykay College & Leadership Academy`;
+      `Famex International Schools`;
 
     if (input.channel === "EMAIL" && email) {
       await queueNotificationJob({

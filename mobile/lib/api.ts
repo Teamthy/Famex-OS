@@ -1,7 +1,7 @@
 /**
- * Ykay College — mobile API client.
+ * Famex International Schools — mobile API client.
  *
- * Single-tenant client for the Ykay College portal. Talks to the SAME backend
+ * Single-tenant client for the Famex International Schools portal. Talks to the SAME backend
  * as the web app. Offline-aware: reads go through a network-first cache
  * (cachedGet) and offline-safe writes are queued (apiQueued → queuedWrite).
  *
@@ -73,10 +73,35 @@ export async function apiQueued<T = unknown>(
 
 // ── Auth ──────────────────────────────────────────────────
 
-export async function login(
-  email: string,
-  password: string,
-): Promise<{ user: SessionUser; token: string }> {
+export type LoginResult =
+  | { mfaRequired: true; challenge: string }
+  | { mfaRequired: false; user: SessionUser; token: string };
+
+/**
+ * Recover the session token from an auth response.
+ *
+ * NATIVE: there is no cookie jar, so we scrape `Set-Cookie` off the response
+ * and replay it manually on later requests.
+ *
+ * WEB: `Set-Cookie` is a FORBIDDEN RESPONSE HEADER — browsers filter it out
+ * of `res.headers` unconditionally, so scraping always returned "" on web
+ * and the root layout bounced the user back to login. The real httpOnly
+ * cookie travels automatically via `credentials: "include"`; all we need
+ * locally is a marker that a session exists.
+ */
+async function captureSessionToken(res: Response): Promise<string> {
+  let token = "";
+  if (IS_WEB) {
+    token = "web-session"; // marker only; the httpOnly cookie is the real auth
+  } else {
+    const setCookie = res.headers.get("set-cookie") || "";
+    token = setCookie.match(/fis_session=([^;]+)/)?.[1] || "";
+  }
+  if (token) await setToken(token);
+  return token;
+}
+
+export async function login(email: string, password: string): Promise<LoginResult> {
   const res = await fetch(`${API_BASE}/api/auth/login`, {
     ...fetchOptions,
     method: "POST",
@@ -86,33 +111,30 @@ export async function login(
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Login failed");
 
-  /**
-   * Recover the session token.
-   *
-   * NATIVE: there is no cookie jar, so we scrape `Set-Cookie` off the response
-   * and replay it manually on later requests.
-   *
-   * WEB: `Set-Cookie` is a FORBIDDEN RESPONSE HEADER — the Fetch spec requires
-   * browsers to filter it out of `res.headers` unconditionally. So the line
-   * below always returned `null` on web, `token` was always `""`, `setToken`
-   * was never called, and the root layout's `getMe()` bailed at
-   * `if (!token) return null` — bouncing the user straight back to the login
-   * screen it had just accepted them through. It reads like a rejected
-   * password; it is actually a header the browser is required to hide.
-   *
-   * The real cookie IS set (httpOnly), and travels automatically now that
-   * requests use `credentials: "include"`. All we need locally is a marker
-   * that a session exists, so the layout's `if (!token)` gate passes.
-   */
-  let token = "";
-  if (IS_WEB) {
-    token = "web-session"; // marker only; the httpOnly cookie is the real auth
-  } else {
-    const setCookie = res.headers.get("set-cookie") || "";
-    token = setCookie.match(/ykay_session=([^;]+)/)?.[1] || "";
+  // Accounts with a second factor enrolled get NO session yet — only a
+  // five-minute challenge to exchange at /api/auth/mfa/verify with a code.
+  if (data.mfaRequired && typeof data.challenge === "string") {
+    return { mfaRequired: true, challenge: data.challenge };
   }
 
-  if (token) await setToken(token);
+  const token = await captureSessionToken(res);
+  return { mfaRequired: false, user: data.user, token };
+}
+
+/** Exchange an MFA challenge + TOTP/recovery code for the real session. */
+export async function verifyMfa(
+  challenge: string,
+  code: string,
+): Promise<{ user: SessionUser; token: string }> {
+  const res = await fetch(`${API_BASE}/api/auth/mfa/verify`, {
+    ...fetchOptions,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ challenge, code }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Invalid code.");
+  const token = await captureSessionToken(res);
   return { user: data.user, token };
 }
 

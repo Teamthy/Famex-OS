@@ -44,7 +44,8 @@ async function ensureSchool() {
 async function main() {
   const email = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
   const password = process.env.INITIAL_ADMIN_PASSWORD;
-  const name = process.env.INITIAL_ADMIN_NAME?.trim() || "Ykay College Administrator";
+  const name =
+    process.env.INITIAL_ADMIN_NAME?.trim() || "Famex International Schools Administrator";
   if (!email || !password || password.length < 12)
     throw new Error(
       "Set INITIAL_ADMIN_EMAIL and an INITIAL_ADMIN_PASSWORD of at least 12 characters in .env before seeding.",

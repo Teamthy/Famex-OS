@@ -1,5 +1,5 @@
 /**
- * YKAY College — real onboarding seed.
+ * Famex International Schools — real onboarding seed.
  *
  * Seeds the school's ACTUAL academic structure from the onboarding data form:
  *   - School profile (name, motto, contact)
@@ -13,7 +13,7 @@
  * script. For a throwaway demo environment use `npm run db:seed` instead.
  *
  * Usage:
- *   HO_PASSWORD="<12+ chars>" npm run db:seed-ykay
+ *   HO_PASSWORD="<12+ chars>" npm run db:seed-fis
  *
  * The Head of School is created with mustChangePassword = true, so the seeded
  * password is only ever a first-login credential.
@@ -35,16 +35,16 @@ const HO_PASSWORD = process.env.HO_PASSWORD?.trim() || "";
 if (!HO_PASSWORD || HO_PASSWORD.length < 12) {
   console.error("\n✖ HO_PASSWORD is required and must be at least 12 characters.\n");
   console.error("  Set it for this run only — do not commit it:\n");
-  console.error('    bash:       HO_PASSWORD="<a strong password>" npm run db:seed-ykay');
-  console.error('    PowerShell: $env:HO_PASSWORD="<a strong password>"; npm run db:seed-ykay\n');
+  console.error('    bash:       HO_PASSWORD="<a strong password>" npm run db:seed-fis');
+  console.error('    PowerShell: $env:HO_PASSWORD="<a strong password>"; npm run db:seed-fis\n');
   process.exit(1);
 }
 
 // ── School identity (onboarding form, Sections A & B) ──────────────
 
 const SCHOOL = {
-  name: "Ykay College & Leadership Academy",
-  slug: process.env.SCHOOL_SLUG || "ykay-college",
+  name: "Famex International Schools",
+  slug: process.env.SCHOOL_SLUG || "famex-international-schools",
   // Form: motto given as "…Raising Role Models". The leading ellipsis is
   // treated as a truncation of a longer phrase we were not given.
   motto: "Raising Role Models",
@@ -129,7 +129,7 @@ const JSS_SUBJECTS: SubjectDef[] = [
  *
  * The new national curriculum sets five core areas: English Language, General
  * Mathematics, Citizenship & Heritage Studies, Digital Technologies, and one
- * Trade Subject. Ykay's trade subject is Fashion Design & Garment Making.
+ * Trade Subject. FIS's trade subject is Fashion Design & Garment Making.
  * Everything else is a pathway subject (Sciences / Humanities / Business) and
  * is therefore ELECTIVE — chosen per student, not auto-enrolled.
  */
@@ -184,7 +184,7 @@ const SS_SUBJECTS: SubjectDef[] = [
 // ── Main ───────────────────────────────────────────────────────────
 
 async function main() {
-  console.log("\n🌱 YKAY College — real onboarding seed\n");
+  console.log("\n🌱 Famex International Schools — real onboarding seed\n");
   console.log("═══════════════════════════════════════════════════════\n");
 
   // 1. School profile
@@ -314,7 +314,7 @@ async function main() {
 
   // ── Summary ──────────────────────────────────────────────────────
   console.log("═══════════════════════════════════════════════════════");
-  console.log("✅ YKAY College onboarded.\n");
+  console.log("✅ Famex International Schools onboarded.\n");
   console.log("   First login:");
   console.log(`     ${HEAD_OF_SCHOOL.email}   (password from HO_PASSWORD)`);
   console.log("     → you will be required to change it immediately\n");
@@ -332,7 +332,7 @@ async function main() {
 
 main()
   .catch((error) => {
-    logger.error("❌ YKAY College seed failed:", {
+    logger.error("❌ Famex International Schools seed failed:", {
       error: error instanceof Error ? error.message : String(error),
     });
     process.exit(1);

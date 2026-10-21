@@ -4,7 +4,7 @@ import { isOlderThan } from "@/lib/app-version";
 /**
  * Minimum supported app version.
  *
- * Ykay distributes the Android app as a sideloaded APK, not through the Play
+ * FIS distributes the Android app as a sideloaded APK, not through the Play
  * Store. Nothing nags a stale install, an APK forwarded on WhatsApp can be
  * installed months later, and OTA updates replace JavaScript only — so a build
  * whose NATIVE layer is too old cannot be rescued over the air.

@@ -31,7 +31,7 @@ export default function PrivacyPolicyPage() {
                     </span>
                   </h1>
                   <p className="font-body text-base md:text-lg text-white/80">
-                    Ykay College &amp; Leadership Academy — NDPR Compliance Statement
+                    Famex International Schools — NDPR Compliance Statement
                   </p>
                 </div>
               </div>
@@ -54,9 +54,9 @@ export default function PrivacyPolicyPage() {
                   </h2>
                 </div>
                 <p className="font-body text-sm text-[var(--text-secondary)] leading-relaxed mb-4">
-                  Ykay College &amp; Leadership Academy is committed to protecting the privacy and
-                  personal data of all students, parents, staff, and stakeholders in accordance with
-                  the Nigeria Data Protection Regulation (NDPR) 2019.
+                  Famex International Schools is committed to protecting the privacy and personal
+                  data of all students, parents, staff, and stakeholders in accordance with the
+                  Nigeria Data Protection Regulation (NDPR) 2019.
                 </p>
                 <p className="font-body text-sm text-[var(--text-secondary)] leading-relaxed">
                   We collect, process, and store personal data only for legitimate educational,

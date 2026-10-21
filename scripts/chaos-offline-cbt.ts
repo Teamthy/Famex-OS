@@ -16,8 +16,8 @@
  *   BASE_URL       Base URL of the running Famex-OS instance.
  *                  Default: http://127.0.0.1:3000
  *   SEED_PASSWORD  Password for the seeded admin/student/teacher accounts.
- *   STUDENT_EMAIL  Override student account (default: student1@ykaycollege.com).
- *   ADMIN_EMAIL    Override admin account (default: admin@ykaycollege.com).
+ *   STUDENT_EMAIL  Override student account (default: student1@fis.example.edu.ng).
+ *   ADMIN_EMAIL    Override admin account (default: admin@fis.example.edu.ng).
  *
  * Exit code is non-zero if any scenario fails.
  */
@@ -29,8 +29,8 @@ if (!PASSWORD) {
   console.error("SEED_PASSWORD required.");
   process.exit(1);
 }
-const STUDENT_EMAIL = process.env.STUDENT_EMAIL || "student1@ykaycollege.com";
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@ykaycollege.com";
+const STUDENT_EMAIL = process.env.STUDENT_EMAIL || "student1@fis.example.edu.ng";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@fis.example.edu.ng";
 
 type ScenarioResult = { name: string; pass: boolean; detail?: string };
 
@@ -352,7 +352,7 @@ function buildAnswers(n: number, seed: string) {
       // The logged-in teacher may not own this exam; just assert that the route
       // returns a well-formed response (403 if the teacher doesn't own it, JSON
       // with `items` if they do — anything except 404 means mounted).
-      const teacherCookie = await login("teacher1@ykaycollege.com", PASSWORD).catch(
+      const teacherCookie = await login("teacher1@fis.example.edu.ng", PASSWORD).catch(
         () => adminCookie,
       );
       const r = await asFetch(teacherCookie, `/api/teacher/exams/${exam.id}/marking`);

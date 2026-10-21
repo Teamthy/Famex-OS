@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import PortalTopbar from "@/components/PortalTopbar";
 import AdminSidebar from "@/components/AdminSidebar";
+import MessageTemplatesPanel from "@/components/MessageTemplatesPanel";
 import { useToast } from "@/components/Toast";
 import {
   BellRing,
@@ -22,7 +23,7 @@ type Job = {
   id: string;
   kind: string;
   channel: "EMAIL" | "SMS" | "WHATSAPP";
-  status: "PENDING" | "SENT" | "FAILED" | "SKIPPED";
+  status: "PENDING" | "SENT" | "DELIVERED" | "FAILED" | "SKIPPED";
   recipientName: string | null;
   recipientEmail: string | null;
   recipientPhone: string | null;
@@ -37,7 +38,8 @@ type Job = {
 };
 
 type Response = {
-  summary: { pending: number; sent: number; failed: number; skipped: number };
+  summary: { pending: number; sent: number; delivered: number; failed: number; skipped: number };
+  spend?: Array<{ channel: string; deliveredOrSentCount: number; estimatedCostKobo: number }>;
   channels: Array<{ channel: string; status: string; count: number }>;
   jobs: Job[];
 };
@@ -46,6 +48,7 @@ const TABS = [
   { key: "", label: "All" },
   { key: "PENDING", label: "Pending" },
   { key: "SENT", label: "Sent" },
+  { key: "DELIVERED", label: "Delivered" },
   { key: "FAILED", label: "Failed" },
   { key: "SKIPPED", label: "Skipped" },
 ];
@@ -53,7 +56,7 @@ const TABS = [
 const CHANNEL_ICON = { EMAIL: Mail, SMS: Smartphone, WHATSAPP: MessageSquare };
 
 function statusChip(status: Job["status"]) {
-  if (status === "SENT") return "bg-brand-green/10 text-brand-green";
+  if (status === "SENT" || status === "DELIVERED") return "bg-brand-green/10 text-brand-green";
   if (status === "PENDING") return "bg-brand-orange/10 text-brand-orange";
   if (status === "FAILED") return "bg-red-500/10 text-red-500";
   return "bg-[var(--surface-disabled)] text-[var(--text-muted)]";
@@ -172,7 +175,7 @@ export default function AdminNotificationsPage() {
               ) : null}
 
               {/* Summary + dispatch */}
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
                 {data
                   ? [
                       {
@@ -185,6 +188,12 @@ export default function AdminNotificationsPage() {
                         label: "Sent",
                         value: data.summary.sent,
                         icon: CheckCircle2,
+                        tone: "text-brand-green",
+                      },
+                      {
+                        label: "Delivered",
+                        value: data.summary.delivered,
+                        icon: BellRing,
                         tone: "text-brand-green",
                       },
                       {
@@ -227,6 +236,18 @@ export default function AdminNotificationsPage() {
                   </span>
                 </button>
               </div>
+
+              {data?.spend?.length ? (
+                <p className="text-xs text-[var(--text-muted)]">
+                  Estimated delivery spend:{" "}
+                  {data.spend
+                    .map(
+                      (row) =>
+                        `${row.channel} ₦${(row.estimatedCostKobo / 100).toLocaleString("en-NG", { maximumFractionDigits: 0 })} (${row.deliveredOrSentCount} sent)`,
+                    )
+                    .join(" · ")}
+                </p>
+              ) : null}
 
               {/* Tabs */}
               <div className="flex flex-wrap gap-2">
@@ -347,6 +368,8 @@ export default function AdminNotificationsPage() {
                   ) : null}
                 </div>
               ) : null}
+
+              <MessageTemplatesPanel />
             </div>
           </div>
         </section>

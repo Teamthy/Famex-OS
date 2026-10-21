@@ -12,6 +12,8 @@ export const GRADEBOOK_TEACHER_ROLES: UserRole[] = [
 export const GRADEBOOK_ADMIN_ROLES: UserRole[] = [
   UserRole.ADMIN,
   UserRole.DIRECTOR,
+  UserRole.PRINCIPAL,
+  UserRole.VICE_PRINCIPAL,
   UserRole.COORDINATOR,
 ];
 

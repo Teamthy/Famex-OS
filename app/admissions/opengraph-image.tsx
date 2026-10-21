@@ -1,6 +1,6 @@
 import { brandCard, OG_SIZE, OG_CONTENT_TYPE } from "@/components/og";
 
-export const alt = "Admissions open at Ykay College — apply online";
+export const alt = "Admissions open at Famex International Schools — apply online";
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
 

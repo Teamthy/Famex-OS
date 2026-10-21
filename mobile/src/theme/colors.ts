@@ -1,4 +1,4 @@
-/** Ykay College — brand colours (mirrors web globals.css). */
+/** Famex International Schools — brand colours (mirrors web globals.css). */
 export const Colors = {
   brand: {
     green: "#4EC54D",
