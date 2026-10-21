@@ -39,8 +39,9 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  # IMAGE_NAME is derived as lowercase, since GHCR names must be lowercase.
-  IMAGE_NAME: ${{ github.repository }}
+  # The GHCR image name is computed in a job step below: github.repository
+  # preserves the owner/repo case (Teamthy/Famex-OS), but GHCR repository
+  # names must be lowercase or buildx rejects the tag before building.
 
 jobs:
   build-and-push:
@@ -51,6 +52,10 @@ jobs:
       packages: write
 
     steps:
+      - name: Compute lowercase GHCR image name
+        id: image
+        run: echo "name=$(printf '%s' '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
       - name: "Gate: publish only when CI passed on this commit"
         if: github.event_name == 'workflow_run'
         run: |
@@ -89,7 +94,7 @@ jobs:
             TAG="${GITHUB_REF_NAME//[^a-zA-Z0-9._-]/-}"
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "IMAGE=${{ env.IMAGE_NAME }}:$TAG" >> "$GITHUB_OUTPUT"
+          echo "IMAGE=${{ steps.image.outputs.name }}:$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -105,8 +110,8 @@ jobs:
           # must build its own layers rather than sharing one build's output.
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ steps.meta.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:latest
           # NEXT_PUBLIC_* values are inlined at build time (see Dockerfile).
           # They are public, so they come from repo *Variables* (Settings →
           # Secrets and variables → Actions → Variables), never Secrets.
@@ -126,4 +131,4 @@ jobs:
       - name: Image summary
         run: |
           echo "Published ${{ env.REGISTRY }}/${{ steps.meta.outputs.IMAGE }}"
-          echo "Pull: docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}"
+          echo "Pull: docker pull ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ steps.meta.outputs.tag }}"
