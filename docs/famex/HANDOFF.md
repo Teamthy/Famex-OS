@@ -24,7 +24,7 @@ If a session ends mid-workstream, §9 must say exactly where it stopped and what
 ## 1. Repo & branch identity
 
 - Repo: `Teamthy/Famex-OS` (origin). W3 base commit: `ca1c10886f50b5c699dd0f0327f3d90606ed7c1f` (main, W1 + W2 merged); stage A merged at `e96217a` (PR #4).
-- **Session branches (fixed, one per session):** W3 stage A used `arena/ce3a9b67-famex-os` → PR #4 (merged); stage B used `arena/f5d78cef-famex-os` → PR #5 (merged `193ff93`); OCI hosting used `arena/ca91d7ae-famex-os` → PR #9 (merged `e9a1193`); the CI-rescue session (2026-10-20) used `arena/ea852f26-famex-os` (base `1f50c0f`, PR #11/#12 lineage); FIS production core used `arena/0e9f562e-famex-os` → PR #13 (merged `fa8d092`, 2026-10-21); the single-school/assignments/live-classes/deployment slice used the same current session branch → PR #14 (merged `c586c4a`, 2026-10-21). **The current GHCR publish-fix follow-up also works only on `arena/cb6c3d85-famex-os`.** Always work/commit/push on your session branch; open PRs from it to `main`. Never create/switch/push other branches. (W1 used `arena/7f29531d-famex-os` → PR #1; W2 used `arena/9abf8aef-famex-os` → PR #2, merge `74f236c`.)
+- **Session branches (fixed, one per session):** W3 stage A used `arena/ce3a9b67-famex-os` → PR #4 (merged); stage B used `arena/f5d78cef-famex-os` → PR #5 (merged `193ff93`); OCI hosting used `arena/ca91d7ae-famex-os` → PR #9 (merged `e9a1193`); the CI-rescue session (2026-10-20) used `arena/ea852f26-famex-os` (base `1f50c0f`, PR #11/#12 lineage); FIS production core used `arena/0e9f562e-famex-os` → PR #13 (merged `fa8d092`, 2026-10-21); the single-school/assignments/live-classes/deployment slice used `arena/cb6c3d85-famex-os` → PR #14 (merged `c586c4a`, 2026-10-21) and PR #15 (GHCR lowercase publish fix, merged `1163ebb`, 2026-10-21). **The current production-readiness audit session works only on `arena/7e03c832-famex-os`, grafted from merged `main` at `1163ebb`.** Always work/commit/push on your session branch; open PRs from it to `main`. Never create/switch/push other branches. (W1 used `arena/7f29531d-famex-os` → PR #1; W2 used `arena/9abf8aef-famex-os` → PR #2, merge `74f236c`.)
 - The old Ykay repo (`upstream`) is **read-only, out of bounds** (Rule 15). Never push/edit it.
 - Product: **Famex OS** — single-school Nigerian secondary-school OS (~3,000 users, 5-yr horizon). Rebuilt from a school EduPortal base with the SaaS platform layer removed.
 
@@ -230,9 +230,18 @@ Founder correction after PR #13: Famex/FIS is **one personalised school, not mul
 
 PR #14 (`8704113`) passed all seven GitHub checks — Lint & Type Check, Schema Drift, Build, Browser E2E, Load test, Mobile and Lighthouse — and merged as `c586c4a`; the post-merge `main` CI also passed. The gated **Docker Publish** run then failed before building with `invalid tag "ghcr.io/Teamthy/Famex-OS:main": repository name must be lowercase` (the same latent failure as earlier merges). Root cause: the workflow used `${{ github.repository }}` directly despite a comment claiming it was lowercase. This follow-up computes the lowercase GHCR image name in a job step and uses it for every tag/summary reference, so the next CI-successful `main` publish can actually produce `ghcr.io/teamthy/famex-os:main` for OCI. No OCI VM or Vercel project has been created from the sandbox; those remain the owner-console steps in `docs/VERCEL-OCI-DEPLOY.md`.
 
+## 4h. Master production-readiness & launch-certification audit (2026-10-23, branch `arena/7e03c832-famex-os`)
+
+Independent audit of merged `main` at exact commit `1163ebbc5a2a467cb4401e37294931cc2d9d4f83`. Deliverable package: `docs/audits/2026-10-23-production-readiness-1163ebb/` (executive summary, scorecard, launch-blocker register, critical journeys, security/privacy, reliability, performance/capacity, remediation roadmap, conditional release runbook, final certification).
+
+- **Certification: NO-GO** for production with real students/parents/staff, real admissions/documents, authoritative exams/results, clinic records, or real money. Synthetic-data staging only until a patched successor is recertified at its own exact commit.
+- Principal blockers: current critical dependency gate failure for pinned Next/Sentry/DOMPurify; public CBT answer oracle; admissions documents satisfying checks by type without clean verified stored content; fee-payment replay not bound to the intended attempt; broken/incomplete student-parent provisioning; newer-role page dead ends; exam subject/timing/offline-replay gaps; report/public-verification integrity; OCI notification sidecar auth mismatch; DB owner/RLS posture; JSON clinic/library/inventory; unverified live deployment, restore, rollback, providers, devices, and capacity.
+- Exact-commit GitHub evidence remains green (CI `39561208778`, Lighthouse `39561208768`, Docker Publish `39561859369`, all head `1163ebb`) and is explicitly treated as necessary but insufficient. GHCR digest/tags, OCI/Vercel live resources, restore/rollback, provider receipts, and production-like load remain **NOT VERIFIED/BLOCKED**.
+- No source fixes, production deployment, or production-data changes were made in this audit session. Next engineering work must follow the audit roadmap P0 order before any owner-side launch steps in §9 are treated as go-live work.
+
 ## 5. Gates: commands + latest evidence + blockers
 
-Run from repo root. Latest (**single-school + assignments/live classes + deployment prep/GHCR fix, 2026-10-21**, branch `arena/cb6c3d85-famex-os`, §§4f–4g; PR #14 merged `c586c4a` after all seven GitHub checks and post-merge `main` CI passed):
+Run from repo root. Historical delivery gates below are the **single-school + assignments/live classes + deployment prep/GHCR fix** evidence from 2026-10-21 (branch `arena/cb6c3d85-famex-os`, §§4f–4g; PR #14 merged `c586c4a`, PR #15 merged `1163ebb`). They are superseded for launch purposes by the 2026-10-23 audit in §4h: exact-commit GitHub CI/Lighthouse/Docker Publish passed, but the production-readiness certification is **NO-GO**.
 
 | Gate | Command | Result (actual output) |
 |---|---|---|
@@ -240,7 +249,7 @@ Run from repo root. Latest (**single-school + assignments/live classes + deploym
 | unit/integration | `npx vitest run` | `Test Files 88 passed (88)` / `Tests 972 passed (972)` (§4f adds 2 files / 11 tests over PR #13's 86 / 961) |
 | lint | `npm run lint` | `✖ 122 problems (0 errors, 122 warnings)` — 118 standing warnings plus 4 fetch-on-mount warnings on the new portal pages; no errors |
 | formatting | `npx prettier --check .` | `All matched files use Prettier code style!` (main: 9 files failing) |
-| dep audit | `npm run audit:deps` | `Dependency audit passed.` (4 scoped, dated exclusions unchanged) |
+| dep audit | `npm run audit:deps` | Passed in the 2026-10-21 delivery/CI context. **2026-10-23 audit recheck FAIL:** `node scripts/audit-deps.mjs` exits 1 for pinned `next@16.4.0`, `@sentry/nextjs@10.69.0`, and `dompurify@3.4.16`; do not launch `1163ebb` without a patched successor and a fresh green gate |
 | project audit | `npm run audit` | `No blockers. 16 warning(s).` (warnings are pre-existing hardcoded-URL/unbounded-query backlog; the broken `/api/public/calendar.ics` link is now a real route) |
 | brand ratchet | `npm run audit:brand` | `Brand audit OK — 62 finding(s) across 37 file(s); baseline allows 62.` (§4f removed the old school-resolution file/comment and banked 63 → 62 via `--update`; remainders are confirmed live domains + frozen `eduos_` DB identifiers) |
 | feature IDs | `npm run check:features` | OK — `Catalogue: 331 features parsed` / `§25 declares TOTAL 331 — matches.` |
@@ -404,18 +413,17 @@ Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only
 
 ## 9. Next session: green CI first, then W3 close-out, then W4 (exact stop-point)
 
-**Immediate (2026-10-21):** PR #14 is merged (`c586c4a`) after green CI. Merge the §4g
-GHCR lowercase publish fix only when its exact head is green, then (1) confirm the
-post-merge Docker Publish run produced `ghcr.io/teamthy/famex-os:main` (or dispatch it
-manually on `main` if the workflow_run did not fire); (2) owner creates
-the OCI VM and deploys that pinned image as **production** (`docs/OCI-HOSTING.md`), creates
-the real first admin (never `seed-all` in production), confirms domain/profile/contacts,
-takes + restores a backup, enrols leadership/bursar MFA, and registers production
-Paystack/WhatsApp callbacks; (3) owner imports the repo into Vercel as **staging** with a
-separate staging Postgres + Upstash, migrates/seeds staging, attaches the staging URL, and
-runs `04-exams` + `07-learning-journeys` against it. Record the OCI image tag, production
-health output, Vercel staging URL and staging E2E output here. Nothing is "go-live ready"
-until those drills pass against real infrastructure.
+**Immediate (2026-10-23):** PR #14 (`c586c4a`) and PR #15 (`1163ebb`) are merged, and exact-commit
+CI/Lighthouse/Docker Publish passed. The later master audit (§4h) nevertheless certifies
+`1163ebb` as **NO-GO** for real production. Do **not** deploy it with real users/data/keys,
+real admissions/documents, authoritative exams/results, clinic records, or real money.
+Next work is the audit roadmap in `docs/audits/2026-10-23-production-readiness-1163ebb/08-remediation-roadmap.md`:
+patch dependencies and the release path; close public-CBT/admissions/finance/identity/RBAC/exam/report/notification/privacy P0s;
+then deploy a **new** release candidate to isolated Vercel staging and OCI only for rehearsals.
+Owner-side OCI/Vercel creation may proceed for synthetic staging/rehearsal, but production
+enablement waits for a successor-commit certificate, verified GHCR digest, provider test
+receipts, timed restore, rollback drill, target-shape load evidence, and named school sign-off.
+Nothing is "go-live ready" until those drills pass against real infrastructure.
 
 **Where W3 stopped (2026-10-15, PR #5 from `arena/f5d78cef-famex-os`):** stage A (PR #4) built
 the ledger; stage B built the remaining money documents on it — discounts, refunds, credits,
