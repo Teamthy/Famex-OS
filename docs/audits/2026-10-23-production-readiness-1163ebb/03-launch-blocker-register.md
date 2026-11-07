@@ -17,7 +17,18 @@
 
 ## B-02 — Public CBT APIs expose an answer oracle and unauthenticated attempt surface
 
-- **Severity/status:** P0 / FAIL
+- **Severity/status:** P0 / **FIXED** — routes deleted
+- **Fix:** `app/api/cbt/{check,quiz,attempts,subjects,topics}` and the orphaned
+  `components/cbt/CbtRunner.tsx` are deleted. Nothing in the product imported
+  the component and the `/cbt` pages redirect to login, so the surface had no
+  legitimate caller — the removal costs no functionality. `lib/cbt.ts`
+  (`gradeAttempt`, `shuffled`) is pure and stays, still covered by
+  `tests/lib/cbt-scoring.test.ts`; the server-side grading survives, the
+  disclosure does not. The `PUBLIC_ROUTES` allowlist entry in
+  `scripts/audit-project.ts` is removed with a note explaining why, and
+  `tests/lib/cbt-public-oracle.test.ts` fails if either comes back or if any
+  unauthenticated route begins returning a `correctIndex`. `npm run audit` now
+  reports **0 blockers**.
 - **Evidence:** `app/cbt/page.tsx` and `app/cbt/[slug]/page.tsx` redirect to login, but `app/api/cbt/check/route.ts` remains public. At lines 34–42 it loads `correctIndex`/`explanation` by arbitrary `questionId` and returns correctness, `correctIndex`, and `explanation`. Related public quiz/attempt routes were inventoried under `app/api/cbt/`.
 - **Impact:** Anyone who obtains a question ID can interrogate the answer key one question at a time; unauthenticated attempts can pollute analytics/results. Rate limiting slows abuse but does not make disclosure safe.
 - **Required fix:** Remove public CBT APIs from production, or bind every check/attempt to an authenticated, server-issued practice attempt with per-question commit state and no reusable question-ID oracle. Keep assessment question banks separate from public practice content.

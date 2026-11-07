@@ -258,16 +258,20 @@ const PUBLIC_ROUTES = [
   // personal data. Unauthenticated on purpose — it is the shop window that
   // the marketing pages render.
   "/api/it/catalog",
-  // CBT (computer-based testing) is a public practice tool: anyone can browse
-  // subjects, pull a randomized quiz (answers never leave the server), check
-  // one question, or submit an attempt for SERVER-SIDE grading. No personal
-  // data is stored unless the caller chooses to include a name.
-  "/api/cbt/subjects",
-  "/api/cbt/topics",
-  "/api/cbt/quiz",
-  "/api/cbt/check",
-  "/api/cbt/attempts",
 ];
+// REMOVED: /api/cbt/{subjects,topics,quiz,check,attempts}.
+//
+// These were listed as public practice endpoints. They were not practice: the
+// only client was components/cbt/CbtRunner.tsx, which nothing imported, and the
+// /cbt pages redirect to login. What actually shipped was an unauthenticated
+// endpoint that took a question id and returned correctIndex plus the
+// explanation — an answer-key oracle for any bank a school exam drew from
+// (audit B-02, P0). Rate limiting slowed enumeration; it did not prevent it.
+//
+// The routes and the dead component are gone. If public practice returns it
+// must bind every check to an authenticated, server-issued attempt with
+// per-question commit state, and keep assessment banks separate — the note
+// below is kept so the next person reads why they are not in this list.
 const unguarded: string[] = [];
 for (const file of routeFiles) {
   const endpoint = "/" + relative(join(ROOT, "app"), dirname(file)).split("\\").join("/");
