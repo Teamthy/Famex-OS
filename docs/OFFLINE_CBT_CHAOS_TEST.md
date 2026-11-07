@@ -6,18 +6,67 @@ must produce the expected result; any failure blocks deployment.
 
 ## Automated runner
 
-A server-side automator covering the contract-level scenarios (download,
-double-submit idempotency, late flag, role gating, corrupt payload, answer-key
-leak, blank script, health, replay mounting, teacher marking) is checked in
-at `scripts/chaos-offline-cbt.ts`. Run it against any live instance:
+A server-side automator covering the contract-level scenarios is checked in at
+`scripts/chaos-offline-cbt.ts`. Run it against any live instance:
 
 ```
 BASE_URL=https://staging.famex.os SEED_PASSWORD="..." npm run test:chaos:cbt
 ```
 
-It exits non-zero on any failure and prints a per-scenario pass/fail table.
+It exits non-zero on any failure and prints a per-scenario pass/fail table. What
+it asserts:
+
+1. a downloaded package carries questions, a manifest and a signature;
+2. it carries no answer key (the device records, the server marks);
+3. a double-submit resolves to exactly one attempt;
+4. an answer whose question no longer exists is counted, not silently dropped;
+5. a manifest altered after signing is reported, not trusted;
+6. a sitting past the paper's duration is held for a teacher, not auto-scored;
+7. a non-student cannot replay an attempt;
+8. a malformed replay is a 4xx, never a 500;
+9. `/api/health` is ok;
+10. the teacher marking queue is mounted.
+
 The manual scenarios below cover device-level UX (airplane-mode start, hard
 quit, app-restore) that the API-level runner cannot drive.
+
+## Replay contract
+
+The endpoints the runner exercises, exactly as they parse:
+
+```
+GET  /api/student/exams/:id/offline-package
+     → { canStart, refusal, attemptId, savedAnswers,
+         exam: { id, title, durationMinutes, ... },
+         manifest: { examId, packetId, fingerprint, questionCount, totalMarks,
+                     durationMinutes, sessionLabel, termIndex, downloadedAt },
+         signature,
+         questions: [{ id, type, questionText, marks, options }] }
+
+POST /api/student/exams/:id/attempt/offline-replay
+     { clientAttemptId, startedAt, submittedAt, durationMinutes,
+       answers: [{ questionId, response }], finalize,
+       manifest, signature }
+     → { ok, attemptId, acceptedAnswers, orphanedAnswers, missingAnswers,
+         packetMismatch, lateForReview }
+```
+
+`durationMinutes` — not milliseconds. The route rejects a payload whose duration
+differs from the paper's by more than two minutes, because a sitting cannot be
+mapped onto a paper of a different length.
+
+`answers` is an ARRAY of `{questionId, response}`, and the response must be for a
+question that exists on the current paper. Anything else is reported back in
+`orphanedAnswers` rather than being silently accepted or silently discarded.
+
+`packetMismatch` is `NO_SIGNATURE`, `BAD_SIGNATURE` or `FINGERPRINT_MISMATCH`.
+None of them rejects the sitting: a paper that really was sat must not be thrown
+away because a teacher fixed a typo overnight. They are recorded on the attempt
+so a teacher can see the sitting arrived against a different version.
+
+`lateForReview` is true when the reported start and submit times exceed the
+paper's duration plus a five-minute grace. Those sittings are held at
+`SUBMITTED` for a human rather than scored.
 
 ## Setup
 
