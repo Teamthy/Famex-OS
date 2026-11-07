@@ -1,3 +1,4 @@
+import { documentCompleteness, documentRefusalMessage } from "@/lib/admissions-documents";
 import { AdmissionDocumentType, PaymentProvider, PaymentStatus } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { APPLICATION_FEE_KOBO, startPaymentSchema } from "@/lib/admissions";
@@ -44,12 +45,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const uploaded = new Set<AdmissionDocumentType>(
-      application.documents.map((document) => document.type),
+    // A document only counts once its scan verdict says it is usable.
+    //
+    // This used to be a Set of TYPES, so a row that existed at all satisfied
+    // the requirement — including one still PENDING and one a scanner had
+    // already marked INFECTED. The application advanced and the office was
+    // told the file was in order. See lib/admissions-documents.ts.
+    const completeness = documentCompleteness(
+      requiredDocumentTypes,
+      application.documents.map((document) => ({
+        type: document.type,
+        scanStatus: document.scanStatus,
+      })),
     );
-    if (!requiredDocumentTypes.every((type) => uploaded.has(type))) {
+    if (!completeness.complete) {
       return jsonNoStore(
-        { error: "Please upload all required documents before payment." },
+        { error: documentRefusalMessage(completeness), documents: completeness },
         { status: 422 },
       );
     }
