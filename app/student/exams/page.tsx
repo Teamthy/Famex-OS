@@ -5,6 +5,7 @@ import Link from "next/link";
 import PortalTopbar from "@/components/PortalTopbar";
 import { useToast } from "@/components/Toast";
 import { getPaper, listPapers, savePaper } from "@/lib/offline/exam-store";
+import { warmExamPage } from "@/lib/offline/warm";
 import type { StoredPaper } from "@/lib/offline-exam";
 import {
   Award,
@@ -205,7 +206,18 @@ export default function StudentExamsPage() {
         };
         await savePaper(paper);
         await syncDownloaded();
-        toast("Paper saved on this device. It will open without a network.", "success");
+        // The questions are on the device; the SCREEN that renders them is not
+        // until it has been visited once, because Next.js caches route chunks
+        // per visit. Ask the service worker to cache the runner now, while
+        // there is a connection — this is the difference between "your paper
+        // is here" and a blank page on exam morning.
+        const warmed = await warmExamPage(examId);
+        toast(
+          warmed || !("serviceWorker" in navigator)
+            ? "Paper saved on this device. It will open without a network."
+            : "Paper saved. Open it once while you have signal to make sure it loads offline.",
+          warmed || !("serviceWorker" in navigator) ? "success" : "info",
+        );
       } catch (downloadError) {
         toast(
           downloadError instanceof Error ? downloadError.message : "Unable to download this paper.",
