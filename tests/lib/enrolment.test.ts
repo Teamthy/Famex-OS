@@ -401,3 +401,214 @@ describe("onboardStudent", () => {
     });
   });
 });
+
+/**
+ * Carrying subjects across a class change.
+ *
+ * Promotion moved the class and left the subjects alone. For JSS3 → SS1 that is
+ * wrong in the most visible way possible: the student arrives in SS1 still
+ * enrolled in Basic Science, sees no senior exam they are entitled to, and is
+ * on no register for one they should be on. The report card a term later is
+ * missing half its subjects and nobody knows why.
+ */
+describe("rolloverSubjectsForClassChange", () => {
+  const SENIOR = { id: "cls_ss1", level: "SS1", displayName: "SS 1A" };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrisma.studentSubject.create.mockResolvedValue({});
+    mockPrisma.studentSubject.update.mockResolvedValue({});
+    mockPrisma.studentSubject.updateMany.mockResolvedValue({ count: 1 });
+  });
+
+  it("does nothing when the level has not changed", async () => {
+    // A repeater, or a move between arms of the same level: same catalogue.
+    mockPrisma.schoolClass.findFirst.mockImplementation(async (args: { where?: { id?: string } }) =>
+      args?.where?.id === "cls_1" ? CLASSROOM : { ...CLASSROOM, id: "cls_2", displayName: "JSS 1B" },
+    );
+
+    const { rolloverSubjectsForClassChange } = await import("@/lib/enrolment");
+    const result = await rolloverSubjectsForClassChange({
+      tx: mockPrisma as never,
+      schoolId: SCHOOL,
+      studentProfileId: STUDENT,
+      fromClassId: "cls_1",
+      toClassId: "cls_2",
+    });
+
+    expect(result).toMatchObject({ added: 0, reactivated: 0, deactivated: 0 });
+    // Not one write: the student's subjects are already right.
+    expect(mockPrisma.studentSubject.create).not.toHaveBeenCalled();
+    expect(mockPrisma.studentSubject.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("assigns the new level's compulsory subjects", async () => {
+    mockPrisma.schoolClass.findFirst.mockImplementation(async (args: { where?: { id?: string } }) =>
+      args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
+    );
+    mockPrisma.subject.findMany.mockResolvedValue([
+      { id: "sub_physics", name: "Physics" },
+      { id: "sub_chem", name: "Chemistry" },
+    ]);
+    mockPrisma.studentSubject.findMany.mockResolvedValue([]);
+
+    const { rolloverSubjectsForClassChange } = await import("@/lib/enrolment");
+    const result = await rolloverSubjectsForClassChange({
+      tx: mockPrisma as never,
+      schoolId: SCHOOL,
+      studentProfileId: STUDENT,
+      fromClassId: CLASS,
+      toClassId: "cls_ss1",
+    });
+
+    expect(result.added).toBe(2);
+    const created = mockPrisma.studentSubject.create.mock.calls.map(
+      (call) => (call[0] as { data: { subjectId: string } }).data.subjectId,
+    );
+    expect(created.sort()).toEqual(["sub_chem", "sub_physics"]);
+  });
+
+  it("retires the old level's compulsory subjects", async () => {
+    mockPrisma.schoolClass.findFirst.mockImplementation(async (args: { where?: { id?: string } }) =>
+      args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
+    );
+    mockPrisma.subject.findMany.mockResolvedValue([{ id: "sub_physics", name: "Physics" }]);
+    // The JSS3 student's junior compulsory subject, still active.
+    mockPrisma.studentSubject.findMany.mockResolvedValue([
+      {
+        id: "ss_1",
+        subjectId: "sub_basic_science",
+        isActive: true,
+        subject: { name: "Basic Science", level: "JSS1", category: "COMPULSORY" },
+      },
+    ]);
+
+    const { rolloverSubjectsForClassChange } = await import("@/lib/enrolment");
+    const result = await rolloverSubjectsForClassChange({
+      tx: mockPrisma as never,
+      schoolId: SCHOOL,
+      studentProfileId: STUDENT,
+      fromClassId: CLASS,
+      toClassId: "cls_ss1",
+    });
+
+    expect(result.deactivated).toBe(1);
+    expect(mockPrisma.studentSubject.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ subjectId: "sub_basic_science" }),
+        data: { isActive: false },
+      }),
+    );
+  });
+
+  it("does not touch a subject both levels call compulsory", async () => {
+    // English and Mathematics are compulsory in JSS1 and in SS1. Retiring and
+    // re-adding them would rewrite the student's history for no reason.
+    mockPrisma.schoolClass.findFirst.mockImplementation(async (args: { where?: { id?: string } }) =>
+      args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
+    );
+    mockPrisma.subject.findMany.mockResolvedValue([{ id: "sub_english", name: "English Language" }]);
+    mockPrisma.studentSubject.findMany.mockResolvedValue([
+      {
+        id: "ss_1",
+        subjectId: "sub_english",
+        isActive: true,
+        subject: { name: "English Language", level: "SS1", category: "COMPULSORY" },
+      },
+    ]);
+
+    const { rolloverSubjectsForClassChange } = await import("@/lib/enrolment");
+    const result = await rolloverSubjectsForClassChange({
+      tx: mockPrisma as never,
+      schoolId: SCHOOL,
+      studentProfileId: STUDENT,
+      fromClassId: CLASS,
+      toClassId: "cls_ss1",
+    });
+
+    expect(result).toMatchObject({ added: 0, reactivated: 0, deactivated: 0 });
+    expect(mockPrisma.studentSubject.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("keeps electives rather than guessing whether they still exist", async () => {
+    // The student chose Further Mathematics. Whether SS1 offers it is not
+    // something to infer from a class change; dropping it would silently drop
+    // a real choice.
+    mockPrisma.schoolClass.findFirst.mockImplementation(async (args: { where?: { id?: string } }) =>
+      args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
+    );
+    mockPrisma.subject.findMany.mockResolvedValue([]);
+    mockPrisma.studentSubject.findMany.mockResolvedValue([
+      {
+        id: "ss_1",
+        subjectId: "sub_further",
+        isActive: true,
+        subject: { name: "Further Mathematics", level: "JSS1", category: "ELECTIVE" },
+      },
+    ]);
+
+    const { rolloverSubjectsForClassChange } = await import("@/lib/enrolment");
+    const result = await rolloverSubjectsForClassChange({
+      tx: mockPrisma as never,
+      schoolId: SCHOOL,
+      studentProfileId: STUDENT,
+      fromClassId: CLASS,
+      toClassId: "cls_ss1",
+    });
+
+    expect(result.keptElectives).toBe(1);
+    expect(result.deactivated).toBe(0);
+    expect(mockPrisma.studentSubject.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("re-activates a compulsory subject the student had dropped", async () => {
+    mockPrisma.schoolClass.findFirst.mockImplementation(async (args: { where?: { id?: string } }) =>
+      args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
+    );
+    mockPrisma.subject.findMany.mockResolvedValue([{ id: "sub_physics", name: "Physics" }]);
+    mockPrisma.studentSubject.findMany.mockResolvedValue([
+      {
+        id: "ss_9",
+        subjectId: "sub_physics",
+        isActive: false,
+        subject: { name: "Physics", level: "SS1", category: "COMPULSORY" },
+      },
+    ]);
+
+    const { rolloverSubjectsForClassChange } = await import("@/lib/enrolment");
+    const result = await rolloverSubjectsForClassChange({
+      tx: mockPrisma as never,
+      schoolId: SCHOOL,
+      studentProfileId: STUDENT,
+      fromClassId: CLASS,
+      toClassId: "cls_ss1",
+    });
+
+    expect(result.reactivated).toBe(1);
+    expect(mockPrisma.studentSubject.update).toHaveBeenCalledWith({
+      where: { id: "ss_9" },
+      data: { isActive: true },
+    });
+  });
+
+  it("warns, rather than failing, when the new level has no catalogue", async () => {
+    // A school that has not set up SS1 yet. Refusing the promotion would strand
+    // the whole year; the admin needs to be told instead.
+    mockPrisma.schoolClass.findFirst.mockImplementation(async (args: { where?: { id?: string } }) =>
+      args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
+    );
+    mockPrisma.subject.findMany.mockResolvedValue([]);
+    mockPrisma.studentSubject.findMany.mockResolvedValue([]);
+
+    const { rolloverSubjectsForClassChange } = await import("@/lib/enrolment");
+    const result = await rolloverSubjectsForClassChange({
+      tx: mockPrisma as never,
+      schoolId: SCHOOL,
+      studentProfileId: STUDENT,
+      fromClassId: CLASS,
+      toClassId: "cls_ss1",
+    });
+
+    expect(result.warnings.join(" ")).toMatch(/no compulsory subjects/i);
+  });
+});

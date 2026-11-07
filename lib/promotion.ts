@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { promotionVerdict } from "@/lib/results-engine";
 import { stageForLevel } from "@/lib/stages";
 import { isTerminalLevel, nextLevelFor } from "@/lib/academic-session";
+import { rolloverSubjectsForClassChange } from "@/lib/enrolment";
 
 /**
  * End-of-session promotion.
@@ -272,6 +273,10 @@ export type CommitResult = {
   graduated: number;
   withdrawn: number;
   transferred: number;
+  /** Subject rows added, re-activated or retired by the rollover. */
+  subjectsTouched: number;
+  /** Anything an admin should look at afterwards: a level with no catalogue. */
+  warnings: string[];
 };
 
 /**
@@ -313,6 +318,8 @@ export async function commitPromotion(params: {
     graduated: 0,
     withdrawn: 0,
     transferred: 0,
+    subjectsTouched: 0,
+    warnings: [],
   };
 
   await prisma.$transaction(async (tx) => {
@@ -334,7 +341,13 @@ export async function commitPromotion(params: {
     const now = new Date();
 
     for (const d of decisions) {
-      // Close the outgoing enrolment with its outcome.
+      // Close the outgoing enrolment with its outcome. Read it first: its
+      // classId is where the student is coming FROM, which the subject
+      // rollover below needs.
+      const outgoing = await tx.studentEnrolment.findFirst({
+        where: { schoolId, sessionId: fromSessionId, studentProfileId: d.studentProfileId },
+        select: { classId: true },
+      });
       await tx.studentEnrolment.updateMany({
         where: { schoolId, sessionId: fromSessionId, studentProfileId: d.studentProfileId },
         data: { outcome: d.outcome, completedAt: now },
@@ -357,6 +370,28 @@ export async function commitPromotion(params: {
           where: { id: d.studentProfileId },
           data: { currentClassId: d.targetClassId as string },
         });
+
+        // Carry the SUBJECTS across with the class.
+        //
+        // Without this a JSS3 student arrives in SS1 still enrolled in Basic
+        // Science: they see no senior exam they are entitled to, appear on no
+        // register for one they should be on, and the report card they get a
+        // term later is missing half their subjects. A repeater keeps the same
+        // level, where rolloverSubjectsForClassChange is a no-op.
+        const rollover = await rolloverSubjectsForClassChange({
+          tx,
+          schoolId,
+          studentProfileId: d.studentProfileId,
+          // The enrolment being closed is the authority on where they were:
+          // it is the same source buildPlan() used to propose this move.
+          fromClassId: outgoing?.classId ?? null,
+          toClassId: d.targetClassId as string,
+        });
+        result.subjectsTouched += rollover.added + rollover.reactivated + rollover.deactivated;
+        for (const warning of rollover.warnings) {
+          result.warnings.push(`${d.studentProfileId}: ${warning}`);
+        }
+
         if (d.outcome === EnrolmentOutcome.PROMOTED) result.promoted++;
         else result.repeated++;
       } else {

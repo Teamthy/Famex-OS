@@ -310,8 +310,11 @@ const mockPrisma = {
     create: vi.fn(),
   },
   studentSubject: {
+    findFirst: vi.fn(),
     findMany: vi.fn(),
+    create: vi.fn(),
     createMany: vi.fn(),
+    update: vi.fn(),
     updateMany: vi.fn(),
     upsert: vi.fn(),
   },

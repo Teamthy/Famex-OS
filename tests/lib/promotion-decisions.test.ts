@@ -285,6 +285,19 @@ describe("POST /api/admin/promotion", () => {
     mockPrisma.studentEnrolment.count.mockResolvedValue(0);
     mockPrisma.studentEnrolment.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.studentEnrolment.create.mockResolvedValue({});
+    // The subject rollover that now runs with each class move.
+    mockPrisma.studentEnrolment.findFirst.mockResolvedValue({ classId: "c_jss1a" });
+    mockPrisma.schoolClass.findFirst.mockImplementation(async (args: unknown) => {
+      const where = (args as { where?: { id?: string } })?.where;
+      if (where?.id === "c_jss2a") return { id: "c_jss2a", level: "JSS2", displayName: "JSS 2A" };
+      if (where?.id === "c_jss1a") return { id: "c_jss1a", level: "JSS1", displayName: "JSS 1A" };
+      return null;
+    });
+    mockPrisma.subject.findMany.mockResolvedValue([]);
+    mockPrisma.studentSubject.findMany.mockResolvedValue([]);
+    mockPrisma.studentSubject.create.mockResolvedValue({});
+    mockPrisma.studentSubject.update.mockResolvedValue({});
+    mockPrisma.studentSubject.updateMany.mockResolvedValue({ count: 0 });
     mockPrisma.studentProfile.update.mockResolvedValue({ userId: null });
     mockPrisma.auditLog.create.mockResolvedValue({});
   });

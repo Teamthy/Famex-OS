@@ -313,3 +313,151 @@ export async function studentSubjectNames(params: {
   });
   return rows.map((row) => row.subject.name);
 }
+
+/** What a student's subject list looks like after a move to a new class. */
+export type SubjectRolloverOutcome = {
+  added: number;
+  reactivated: number;
+  deactivated: number;
+  keptElectives: number;
+  warnings: string[];
+};
+
+/**
+ * Carry a student's SUBJECTS forward when their class changes.
+ *
+ * A student's subjects are stored once, against the student, with no link to
+ * the class they were assigned for. Promotion moved the class and left the
+ * subjects alone, which is right for nine cases out of ten and wrong for the
+ * one that matters:
+ *
+ *   JSS3 → SS1. The senior compulsory subjects (English, Mathematics plus the
+ *   student's chosen science/arts/commercial track) are different, and the
+ *   junior ones are not theirs any more. The student arrived in SS1 still
+ *   enrolled in Basic Science, saw no senior exam they were entitled to, and
+ *   appeared on nobody's register for one they should have been on.
+ *
+ * The same thing happens in reverse for a transfer down, and on any move where
+ * a level's compulsory list changed between sessions.
+ *
+ * ── The rules
+ *
+ *   Compulsory subjects at the new level are assigned automatically, exactly
+ *   as at admission: they are compulsory by definition.
+ *
+ *   Compulsory subjects from the OLD level are deactivated — but only those the
+ *   new level does not also require. A subject both levels call compulsory
+ *   (English, Mathematics) is untouched, so no history is rewritten.
+ *
+ *   Electives are KEPT. They were a real choice by the student, and the ones
+ *   that do not exist at the new level were almost certainly not offered;
+ *   dropping them silently would be guessing. They are deactivated only when
+ *   they cannot belong to the student any more, and the caller is told.
+ *
+ * MUST run inside the same transaction as the class move: a student whose class
+ * changed and whose subjects did not is exactly the half-state this prevents.
+ */
+export async function rolloverSubjectsForClassChange(params: {
+  tx: Tx;
+  schoolId: string;
+  studentProfileId: string;
+  /** The class the student is leaving. Null when this is their first class. */
+  fromClassId: string | null;
+  toClassId: string;
+}): Promise<SubjectRolloverOutcome> {
+  const { tx, schoolId, studentProfileId } = params;
+  const warnings: string[] = [];
+
+  const to = await tx.schoolClass.findFirst({
+    where: { id: params.toClassId, schoolId },
+    select: { id: true, level: true, displayName: true },
+  });
+  if (!to) throw new Error("CLASS_NOT_FOUND");
+
+  const from = params.fromClassId
+    ? await tx.schoolClass.findFirst({
+        where: { id: params.fromClassId, schoolId },
+        select: { id: true, level: true },
+      })
+    : null;
+
+  // Nothing to do when the level is unchanged: same level, same catalogue.
+  if (from && from.level === to.level) {
+    return { added: 0, reactivated: 0, deactivated: 0, keptElectives: 0, warnings };
+  }
+
+  const newCompulsory = await tx.subject.findMany({
+    where: {
+      schoolId,
+      level: to.level,
+      category: SubjectCategory.COMPULSORY,
+      isActive: true,
+    },
+    select: { id: true, name: true },
+  });
+  const newCompulsoryIds = new Set(newCompulsory.map((subject) => subject.id));
+
+  if (!newCompulsory.length) {
+    warnings.push(
+      `No compulsory subjects are configured for ${to.level}. ${to.displayName} will see no subjects until the catalogue is set up.`,
+    );
+  }
+
+  // Everything the student is currently enrolled in — active or not — so a
+  // re-run reactivates rather than duplicates.
+  const existing = await tx.studentSubject.findMany({
+    where: { schoolId, studentProfileId },
+    select: {
+      id: true,
+      subjectId: true,
+      isActive: true,
+      subject: { select: { name: true, level: true, category: true } },
+    },
+  });
+  const existingById = new Map(existing.map((row) => [row.subjectId, row]));
+
+  // ── Assign the new level's compulsory subjects ─────────────────────────────
+  let added = 0;
+  let reactivated = 0;
+  for (const subject of newCompulsory) {
+    const row = existingById.get(subject.id);
+    if (!row) {
+      await tx.studentSubject.create({
+        data: { schoolId, studentProfileId, subjectId: subject.id },
+      });
+      added += 1;
+    } else if (!row.isActive) {
+      // A compulsory subject the student had dropped — possibly a bad edit, or
+      // a level they passed through before. Compulsory is compulsory.
+      await tx.studentSubject.update({
+        where: { id: row.id },
+        data: { isActive: true },
+      });
+      reactivated += 1;
+    }
+  }
+
+  // ── Retire what the new level does not require ─────────────────────────────
+  //
+  // Only COMPULSORY rows from a different level are retired. An elective is
+  // left alone: it is the student's choice, and whether the new level offers it
+  // is not something to guess at from here.
+  let deactivated = 0;
+  let keptElectives = 0;
+  for (const row of existing) {
+    if (!row.isActive) continue;
+    if (newCompulsoryIds.has(row.subjectId)) continue;
+    if (row.subject.category !== SubjectCategory.COMPULSORY) {
+      keptElectives += 1;
+      continue;
+    }
+    if (row.subject.level === to.level) continue;
+    await tx.studentSubject.updateMany({
+      where: { schoolId, studentProfileId, subjectId: row.subjectId },
+      data: { isActive: false },
+    });
+    deactivated += 1;
+  }
+
+  return { added, reactivated, deactivated, keptElectives, warnings };
+}

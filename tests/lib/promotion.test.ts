@@ -261,6 +261,28 @@ describe("commitPromotion", () => {
     // Leaver handling reads back userId to close the login, so the update must
     // resolve to something. Default to a student who HAS an account.
     mockPrisma.studentProfile.update.mockResolvedValue({ userId: "u9" });
+
+    // The subject rollover reads the destination class and the student's
+    // current subject rows. Default: a destination one level up, and a student
+    // with no subjects on file, so behaviour without a catalogue is unchanged.
+    mockPrisma.schoolClass.findFirst.mockImplementation(
+      async (args: unknown) => {
+        const where = (args as { where?: { id?: string } })?.where;
+        if (where?.id === "c_jss2a") {
+          return { id: "c_jss2a", level: "JSS2", displayName: "JSS 2A" };
+        }
+        if (where?.id === "c_jss1a") {
+          return { id: "c_jss1a", level: "JSS1", displayName: "JSS 1A" };
+        }
+        return null;
+      },
+    );
+    mockPrisma.subject.findMany.mockResolvedValue([]);
+    mockPrisma.studentSubject.findMany.mockResolvedValue([]);
+    mockPrisma.studentSubject.create.mockResolvedValue({});
+    mockPrisma.studentSubject.update.mockResolvedValue({});
+    mockPrisma.studentSubject.updateMany.mockResolvedValue({ count: 0 });
+    mockPrisma.studentEnrolment.findFirst.mockResolvedValue({ classId: "c_jss1a" });
   });
 
   it("refuses to promote a session into itself", async () => {

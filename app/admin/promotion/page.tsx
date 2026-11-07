@@ -81,6 +81,8 @@ export default function PromotionPage() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<null | Record<string, number>>(null);
   const [auditWarning, setAuditWarning] = useState<string | null>(null);
+  /** Anything the rollover could not resolve, e.g. a level with no subjects. */
+  const [rolloverWarnings, setRolloverWarnings] = useState<string[]>([]);
 
   // Seed the overrides from the proposal once it arrives.
   useEffect(() => {
@@ -189,6 +191,7 @@ export default function PromotionPage() {
 
       setDone(j.result);
       setAuditWarning(j.auditRecorded === false ? (j.recordError ?? "unknown error") : null);
+      setRolloverWarnings((j.result?.warnings as string[] | undefined) ?? []);
       toast("Session rolled over.", "success");
       await refetch();
     } catch (e) {
@@ -254,6 +257,27 @@ export default function PromotionPage() {
                     Every student&apos;s previous class is preserved in their enrolment history, and
                     the average each decision was based on is stored with it.
                   </p>
+                  {rolloverWarnings.length > 0 ? (
+                    <div className="mt-4 rounded-xl border border-brand-orange/40 bg-brand-orange/10 p-4 text-left">
+                      <p className="text-xs font-bold text-brand-orange">
+                        {rolloverWarnings.length} subject issue
+                        {rolloverWarnings.length === 1 ? "" : "s"} to check
+                      </p>
+                      <ul className="mt-2 space-y-1 text-[11px] text-brand-orange/90">
+                        {rolloverWarnings.slice(0, 8).map((warning, index) => (
+                          <li key={index}>{warning}</li>
+                        ))}
+                        {rolloverWarnings.length > 8 ? (
+                          <li>…and {rolloverWarnings.length - 8} more.</li>
+                        ) : null}
+                      </ul>
+                      <p className="mt-2 text-[11px] text-brand-orange/80">
+                        The students have been moved. Their subjects may need attention in the
+                        subject catalogue.
+                      </p>
+                    </div>
+                  ) : null}
+
                   {auditWarning ? (
                     <p className="text-xs text-brand-orange mt-2">
                       The session rolled over, but the decision history could not be saved:{" "}
