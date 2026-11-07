@@ -3,6 +3,7 @@
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
+import { useAuth } from "@/components/AuthProvider";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import {
   answeredCount as countAnswered,
@@ -15,7 +16,7 @@ import {
   startClock,
   type StoredPaper,
 } from "@/lib/offline-exam";
-import { getPaper, queueSubmission, savePaper } from "@/lib/offline/exam-store";
+import { getOwnPaper, queueSubmission, savePaper } from "@/lib/offline/exam-store";
 import { flushExamSubmissions } from "@/lib/offline/sync";
 import {
   AlertTriangle,
@@ -116,6 +117,8 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
   const { id } = use(params);
   const router = useRouter();
   const { toast } = useToast();
+  // Papers are per-browser, so ownership has to be checked by the page.
+  const { user } = useAuth();
 
   const [data, setData] = useState<RunnerData | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -187,7 +190,9 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
     (async () => {
       try {
         // 1. A paper already downloaded: sit it with no network at all.
-        const stored = await getPaper(id);
+        // getOwnPaper, not getPaper: on a shared device the store may hold a
+        // paper left by another account, and this page would happily sit it.
+        const stored = await getOwnPaper(id, user ? { id: user.id } : null);
         if (stored && stored.questions.length) {
           const action = paperAction(stored);
           if (action === "SUBMITTED") {
@@ -262,6 +267,7 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
           deadlineAt: clock.deadlineAt,
           status: "IN_PROGRESS",
           downloadedAt: body.manifest.downloadedAt,
+          ownerUserId: user?.id ?? null,
           questions: body.questions.map((question) => ({
             id: question.id,
             type: question.type,
@@ -339,7 +345,10 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
     return () => {
       cancelled = true;
     };
-  }, [id]);
+    // `user` is a dependency: the load decides ownership, and AuthProvider
+    // resolves the session after first paint. Without it, a reload would look
+    // for the paper as "nobody" and report it missing.
+  }, [id, user]);
 
   // Keep the device copy of the answers current on every change.
   const persistAnswers = useCallback(async (next: Record<string, string>) => {

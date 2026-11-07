@@ -6,7 +6,9 @@
  * Kept in its own IndexedDB database, separate from the general API cache in
  * `lib/offline/db.ts`, because `cacheClear()` runs on sign-out and a school
  * switch. An exam paper and a student's answers must not be wiped by that —
- * until they sync, the device holds the only copy.
+ * until they sync, the device holds the only copy. Sign-out uses
+ * `planSignOut()` (lib/offline/session.ts) to pick which papers are safe to
+ * delete; AWAITING_SYNC and IN_PROGRESS papers are never among them.
  *
  * Everything here degrades to a no-op rather than throwing when IndexedDB is
  * unavailable (private mode on some browsers, a locked-down kiosk). The runner
@@ -22,6 +24,7 @@ import {
   type StoredPaper,
   type StoredSubmission,
 } from "@/lib/offline-exam";
+import { ownsPaper } from "@/lib/offline/session";
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
@@ -65,6 +68,56 @@ export async function getPaper(examId: string): Promise<StoredPaper | null> {
     return ((await (await getDB()).get(PAPERS_STORE, examId)) as StoredPaper | undefined) ?? null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * The paper, but only if it belongs to this user.
+ *
+ * `getPaper` returns whatever is in the browser's store. On a shared device
+ * that is the previous student's paper, and the runner opening it would hand
+ * one child another child's exam. Every reader that acts on behalf of a
+ * signed-in user goes through here.
+ */
+export async function getOwnPaper(
+  examId: string,
+  user: { id: string } | null,
+): Promise<StoredPaper | null> {
+  const paper = await getPaper(examId);
+  if (!paper) return null;
+  return ownsPaper(paper, user) ? paper : null;
+}
+
+/** Papers this user may see. Another account's papers are omitted entirely. */
+export async function listOwnPapers(user: { id: string } | null): Promise<StoredPaper[]> {
+  const rows = await listPapers();
+  return rows.filter((paper) => ownsPaper(paper, user));
+}
+
+/**
+ * Delete the papers named by a sign-out plan, plus every pending submission.
+ *
+ * Called on sign-out. Only papers that are safe to lose are named by
+ * `planSignOut()` — a submission the server has not accepted is never listed —
+ * so this cannot destroy the only copy of a sitting.
+ */
+export async function purgePapers(examIds: readonly string[]): Promise<void> {
+  if (!available()) return;
+  try {
+    const db = await getDB();
+    await Promise.all(examIds.map((id) => db.delete(PAPERS_STORE, id)));
+    // A submission whose answers were kept would otherwise be sent by the next
+    // account to sign in on this device.
+    const keep = new Set(examIds);
+    const pending = (await db.getAll(SUBMISSIONS_STORE)) as StoredSubmission[];
+    await Promise.all(
+      pending
+        .filter((submission) => keep.has(submission.examId))
+        .map((submission) => db.delete(SUBMISSIONS_STORE, submission.id)),
+    );
+  } catch {
+    // The cache and queue are cleared regardless; a stale paper is deleted on
+    // the next sign-out.
   }
 }
 

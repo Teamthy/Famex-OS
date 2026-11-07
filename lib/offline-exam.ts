@@ -71,6 +71,21 @@ export type StoredPaper = {
    * server's copy is an optimisation, this one is the record.
    */
   answers?: Record<string, string>;
+  /**
+   * The user who downloaded this paper.
+   *
+   * IndexedDB belongs to the BROWSER, not the account, so on a shared device
+   * the next student to sign in could open a paper the previous one left
+   * behind. Storage is not a security boundary here; this field is, and
+   * `ownsPaper()` in lib/offline/session.ts enforces it.
+   *
+   * Nullable: papers downloaded before this field existed have no owner. They
+   * are treated as the current user's rather than being refused — stranding
+   * them mid exam-period would be worse than the gap they represent.
+   */
+  ownerUserId?: string | null;
+  /** The school the owner belonged to, for cache scoping. */
+  ownerSchoolId?: string | null;
 };
 
 /** A finished sitting waiting for connectivity. */

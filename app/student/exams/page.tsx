@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import PortalTopbar from "@/components/PortalTopbar";
+import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/components/Toast";
-import { getPaper, listPapers, savePaper } from "@/lib/offline/exam-store";
+import { getOwnPaper, listOwnPapers, savePaper } from "@/lib/offline/exam-store";
 import { warmExamPage } from "@/lib/offline/warm";
 import type { StoredPaper } from "@/lib/offline-exam";
 import {
@@ -94,6 +95,9 @@ type Response = {
 };
 
 export default function StudentExamsPage() {
+  // Who this paper belongs to. IndexedDB is per-browser, not per-account, so a
+  // downloaded paper must record its owner or the next student could open it.
+  const { user } = useAuth();
   const [data, setData] = useState<Response | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -103,11 +107,17 @@ export default function StudentExamsPage() {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [q, setQ] = useState("");
 
-  /** Which papers are already on this device, so the list can say so. */
+  /**
+   * Which papers are already on this device, so the list can say so.
+   *
+   * Own papers only. IndexedDB is per-browser, so on a shared device this
+   * store can hold another student's paper — showing them "already on this
+   * device" would tell one child that another child's exam is here.
+   */
   const syncDownloaded = useCallback(async () => {
-    const papers = await listPapers();
+    const papers = await listOwnPapers(user ? { id: user.id } : null);
     setDownloaded(new Set(papers.filter((paper) => paper.questions.length > 0).map((p) => p.examId)));
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     (async () => {
@@ -140,7 +150,7 @@ export default function StudentExamsPage() {
     async (examId: string) => {
       setDownloading(examId);
       try {
-        const existing = await getPaper(examId);
+        const existing = await getOwnPaper(examId, user ? { id: user.id } : null);
         if (existing && existing.questions.length) {
           toast("This paper is already on this device.", "info");
           await syncDownloaded();
@@ -196,6 +206,7 @@ export default function StudentExamsPage() {
           deadlineAt: null,
           status: "DOWNLOADED",
           downloadedAt: body.manifest.downloadedAt,
+          ownerUserId: user?.id ?? null,
           questions: body.questions.map((question) => ({
             id: question.id,
             type: question.type,
@@ -227,7 +238,7 @@ export default function StudentExamsPage() {
         setDownloading(null);
       }
     },
-    [syncDownloaded, toast],
+    [syncDownloaded, toast, user],
   );
 
   return (
