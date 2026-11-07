@@ -39,6 +39,8 @@ const SIDEBAR_ITEMS = [
 type Report = {
   id: string;
   reportNumber: string;
+  /** The PUBLIC identifier: what the QR code and /verify/report carry. */
+  verificationCode: string | null;
   sessionLabel: string;
   termLabel: string;
   status: string;
@@ -154,6 +156,7 @@ export default function StudentReportCardsPage() {
       classTeacherRemark: selected.classTeacherRemark,
       directorRemark: selected.directorRemark,
       reportNo: selected.reportNumber,
+      verificationCode: selected.verificationCode,
     });
   };
 

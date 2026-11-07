@@ -84,6 +84,8 @@ export function reportStatusLabel(status: ReportCardStatus) {
 export function mapReportCardCard(reportCard: {
   id: string;
   reportNumber: string;
+  /** Present on every card issued after the verification migration. */
+  verificationCode?: string | null;
   sessionLabel: string;
   termLabel: string;
   status: ReportCardStatus;
@@ -95,6 +97,8 @@ export function mapReportCardCard(reportCard: {
   return {
     id: reportCard.id,
     reportNumber: reportCard.reportNumber,
+    // The PUBLIC identifier. reportNumber is for humans reading the paper.
+    verificationCode: reportCard.verificationCode ?? null,
     sessionLabel: reportCard.sessionLabel,
     termLabel: reportCard.termLabel,
     status: reportCard.status,

@@ -47,6 +47,15 @@ export function generateReportCardPDF(data: {
   classTeacherRemark: string;
   directorRemark: string;
   reportNo: string;
+  /**
+   * The public verification code, printed beneath the QR square.
+   *
+   * NOT reportNo: that is RC/{year}/T{term}/{studentId}, and the verification
+   * page shows the child's name and grades. Printing the report number as the
+   * thing to type in would have restored exactly the enumeration the code
+   * exists to stop. Optional so a preview of an ungenerated card still renders.
+   */
+  verificationCode?: string | null;
 }) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const W = 210;

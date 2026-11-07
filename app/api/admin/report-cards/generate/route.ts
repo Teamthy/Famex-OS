@@ -9,6 +9,7 @@ import {
 import { GRADEBOOK_ADMIN_ROLES, waecGrade } from "@/lib/gradebook";
 import { indexFeeBalances, tallyAttendance } from "@/lib/report-cards";
 import { prisma } from "@/lib/prisma";
+import { newVerificationCode } from "@/lib/verification";
 import { getClientIp } from "@/lib/requests";
 import { requireModule } from "@/lib/module-guard";
 
@@ -433,6 +434,10 @@ export async function POST(request: NextRequest) {
             studentProfileId: student.id,
             parentProfileId: student.parentLinks[0]?.parentProfileId || null,
             reportNumber,
+            // The public QR code carries this, not the number: a report number
+            // is guessable from a student id, and the verify page shows the
+            // child's name and grades.
+            verificationCode: newVerificationCode(),
             sessionLabel,
             termLabel,
             classNameSnapshot: schoolClass.displayName,

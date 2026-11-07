@@ -14,6 +14,12 @@ type SubjectRow = {
 
 type PreviewProps = {
   reportNumber: string;
+  /**
+   * The public identifier the QR code carries. Falls back to the report number
+   * for a preview of a card that has not been generated yet — a draft preview
+   * has no real card to verify, and nothing is released at that point.
+   */
+  verificationCode?: string | null;
   studentName: string;
   studentClass: string;
   studentId: string;
@@ -34,6 +40,7 @@ type PreviewProps = {
 
 export default function LiveReportCardPreview({
   reportNumber,
+  verificationCode,
   studentName,
   studentClass,
   studentId,
@@ -205,7 +212,7 @@ export default function LiveReportCardPreview({
       <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border-subtle)] px-8 py-6">
         <div className="flex items-center gap-4">
           <QrImage
-            value={`${typeof window !== "undefined" ? window.location.origin : "https://ykaycollege.edu.ng"}/verify/report/${encodeURIComponent(reportNumber)}`}
+            value={`${typeof window !== "undefined" ? window.location.origin : "https://ykaycollege.edu.ng"}/verify/report/${encodeURIComponent(verificationCode || reportNumber)}`}
             size={96}
             alt="Report verification QR code"
             className="h-[72px] w-[72px] rounded-lg border border-[var(--border-subtle)] bg-white p-1"
@@ -218,7 +225,7 @@ export default function LiveReportCardPreview({
               Scan the QR code or visit:
             </div>
             <div className="text-xs font-bold text-brand-green break-all">
-              /verify/report/{reportNumber}
+              /verify/report/{verificationCode || reportNumber}
             </div>
           </div>
         </div>

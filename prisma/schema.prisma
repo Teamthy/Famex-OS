@@ -1174,6 +1174,17 @@ model ReportCard {
   studentProfileId   String
   parentProfileId    String?
   reportNumber       String           @unique
+  /// High-entropy code for PUBLIC verification.
+  ///
+  /// reportNumber is `RC/{year}/T{term}/{studentId}` — readable, printable, and
+  /// guessable by anyone who knows a child's school ID number. The public
+  /// /verify/report page used to key on it, so a stranger could enumerate
+  /// pupils and read their names, classes and grades.
+  ///
+  /// This is the value the QR code carries. Absent on cards issued before it
+  /// existed; those stay verifiable by reportNumber, which is the pre-existing
+  /// behaviour and no worse than it was.
+  verificationCode   String?          @unique
   sessionLabel       String
   termLabel          String
   classNameSnapshot  String
