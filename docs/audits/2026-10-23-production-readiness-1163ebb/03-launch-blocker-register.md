@@ -68,7 +68,25 @@
 
 ## B-07 — Authenticated exam entitlement, timing, and offline replay are not examination-safe
 
-- **Severity/status:** P0 / FAIL
+- **Severity/status:** P0 / **PARTIALLY FIXED** — timing defects closed; device binding still open
+- **Fixed (this branch):**
+  - *Theory time.* The list advertised "durationMinutes objective + theoryMinutes
+    theory" but every deadline used `durationMinutes` alone. `examMinutes()`
+    (lib/exams.ts) is now the single source for the total, and the attempt,
+    offline-package and replay routes all use it.
+  - *Subject authorization.* Confirmed present: all three routes resolve the
+    student's subject enrolment via `studentSubjectIds()` and refuse with
+    `NOT_ENROLLED`. Cross-subject IDOR no longer reproduces.
+  - *Unbounded replay timing.* `offlineTimingProblem()` (lib/offline-packet.ts)
+    refuses a sitting that predates its own download, starts in the future,
+    submits before it starts, or falls far outside the paper's window. Late
+    syncs remain accepted.
+  - Regression tests: `tests/lib/exam-minutes.test.ts` (incl. a static guard on
+    all three routes), `tests/lib/offline-packet.test.ts` (`offlineTimingProblem`).
+- **Still open:** binding a replay to a specific device/attempt nonce, and
+  authoritative server-issued deadlines for offline sittings. Both need a
+  design decision (a device identity store) rather than a patch; recorded here
+  rather than claimed done.
 - **Evidence:** Student exam lists are subject-filtered, but source review of `app/api/student/exams/[id]/attempt/route.ts`, `.../offline-package/route.ts`, and `.../attempt/offline-replay/route.ts` found authorization centered on current class. Advertised `theoryMinutes` is not consistently included in attempt/offline deadlines derived from `durationMinutes`. Offline replay accepts broad client-supplied timing assertions.
 - **Impact:** A student may access an exam for a subject they do not take, lose theory time, or replay manipulated offline timing. Results become contestable.
 - **Required fix:** Authorize by current enrolment + subject + exam publication window on every attempt/package/replay endpoint; make server-issued attempt deadlines authoritative; sign offline packages and replay envelopes; bind device/attempt/nonce; reject stale or altered timing.
@@ -132,7 +150,18 @@
 
 ## B-15 — Mobile/web offline data survives logout on shared devices
 
-- **Severity/status:** P1, P0 for shared-device deployment / FAIL
+- **Severity/status:** P1, P0 for shared-device deployment / **FIXED (web)**
+- **Fixed (this branch):** `cacheClear()` had no callers and `AuthProvider` cleared
+  nothing on sign-out; `getPaper()`/`listPapers()` had no owner check, so the
+  runner would sit whatever paper was on the device. Sign-out now runs
+  `clearDeviceData()`, which uses `planSignOut()` (lib/offline/session.ts) to
+  delete cached data, queued writes (after saying so) and papers the server
+  already has — and to KEEP a paper that is AWAITING_SYNC or IN_PROGRESS, whose
+  answers are the only copy in existence. `StoredPaper.ownerUserId` plus
+  `getOwnPaper()`/`listOwnPapers()` refuse another account's paper. 24 tests,
+  nine of them on the call graph, since the shipped bug was a correct decision
+  nobody called. **Still open: the mobile app (`mobile/lib/offline/db.ts`) and
+  encryption at rest for the exam store.**
 - **Evidence:** `mobile/app/logout.tsx` calls `logout()`; `mobile/lib/http.ts:108–125` clears the token, while `mobile/lib/offline/db.ts:134` exposes a separate `clearOfflineData()`. Offline exams use a different database (`famex_offline.db`) from the general cache (`fis_offline.db`). Web logout in `components/AuthProvider.tsx` posts to `/api/auth/logout` without clearing the `fis-offline` IndexedDB in the inspected flow.
 - **Impact:** The next user of a shared phone/browser may see cached student, fee, message, or exam data.
 - **Required fix:** Namespace offline data by user/school, encrypt sensitive stores where appropriate, and clear or lock all per-user stores on logout/session revocation; preserve only explicitly anonymous public cache.
