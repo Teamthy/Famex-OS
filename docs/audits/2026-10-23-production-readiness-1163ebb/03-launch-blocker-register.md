@@ -52,7 +52,22 @@
 
 ## B-05 — Student and parent account provisioning can strand or expose users
 
-- **Severity/status:** P0 / FAIL
+- **Severity/status:** P0 / **PARTIALLY FIXED** — provisioning and enforcement closed
+- **Fixed (this branch):**
+  - *No student login path.* `POST /api/admin/students/[id]/login` provisions an
+    account from the student number; `PATCH` resets one with a required reason
+    and bumps `tokenVersion`. Previously the only way was a server-side script.
+  - *`mustChangePassword` was not enforced on the API.* The portal redirect
+    existed for pages only; `/api/*` is not under `/admin`, so it never met the
+    check. `lib/password-gate.ts` now gates every API route in middleware,
+    before the protected-prefix branch, with a 403 and
+    `PASSWORD_CHANGE_REQUIRED`. Verified by mutation.
+  - The temporary password is returned once for delivery, never stored, and
+    never reusable: the account is created with `mustChangePassword: true`.
+- **Still open:** one-time activation links (the credential is currently handed
+  over by a clerk), guardian-link verification, forced charge on the MOBILE
+  client (mobile has no gate at all), and a bulk import with dry-run. Recorded
+  rather than claimed.
 - **Evidence:** Actual login in `app/api/auth/login/route.ts` is lowercased email + bcrypt password with school resolution. `scripts/seed-students.ts:122–125` says shared-password login does not use the stored hash and sets a random hash; lines 198–200 nevertheless advertise a hard-coded shared password (redacted). No supported in-product student-login provisioning/reset workflow was found. `scripts/make-student-login.ts` sets `mustChangePassword:false`. Student-creation flows were also found to create/reuse parent accounts from unverified email and return temporary passwords to staff.
 - **Impact:** Students may be enrolled without usable credentials; staff workarounds invite shared passwords, account takeover, and support chaos at term start.
 - **Required fix:** Build audited admin provisioning and reset flows: unique school email/identifier policy, one-time activation links, forced first-password change, guardian-link verification, bulk import with dry-run/errors, and no password disclosure to staff after creation.
