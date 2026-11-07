@@ -261,6 +261,96 @@ export function classifyOfflineTiming(params: {
   };
 }
 
+/**
+ * Can a claimed sitting actually have happened?
+ *
+ * The replay endpoint grades whatever the device hands it, and the only timing
+ * evidence is the client's own `startedAt`/`submittedAt`. `classifyOfflineTiming`
+ * checks the sitting is not LONGER than the paper allows, but nothing checked
+ * that it could have happened at all: a device could claim a sitting before its
+ * paper was downloaded, or a year after the term closed, and the server would
+ * accept it.
+ *
+ * Left unbounded, this is a way to write an attempt into a term that has been
+ * compiled and released. The window is deliberately generous — a paper
+ * downloaded on Friday for a Monday exam, a student who sat it and had no
+ * signal until the following week — because the cost of refusing a real sitting
+ * is far higher than the cost of accepting a slightly stale one. What it
+ * refuses is the impossible, not the inconvenient.
+ *
+ * Returns null when the timing is plausible, or a reason when it is not.
+ */
+export function offlineTimingProblem(params: {
+  startedAt: string;
+  submittedAt: string | null;
+  /** When the device downloaded the paper. Null for clients that omit it. */
+  downloadedAt: string | null;
+  /** The exam's window, when it has one. */
+  scheduledFor?: string | null;
+  availableUntil?: string | null;
+  /** How long a sitting may remain unsent. */
+  maxStaleDays?: number;
+  now?: Date;
+}): { code: "STARTED_BEFORE_DOWNLOAD" | "STARTED_IN_FUTURE" | "SUBMITTED_BEFORE_STARTED" | "STALE_SITTING"; message: string } | null {
+  const now = params.now ?? new Date();
+  const maxStaleMs = (params.maxStaleDays ?? 30) * 24 * 60 * 60_000;
+  const started = new Date(params.startedAt).getTime();
+  const submitted = params.submittedAt ? new Date(params.submittedAt).getTime() : null;
+  const downloaded = params.downloadedAt ? new Date(params.downloadedAt).getTime() : null;
+
+  if (!Number.isFinite(started)) {
+    return { code: "STARTED_IN_FUTURE", message: "The start time on this sitting is not a date." };
+  }
+
+  // A sitting cannot start before the paper was on the device. Allowed a
+  // minute of slack: the device writes startedAt milliseconds after the
+  // download in a fast tap-through, and clock ordering across two writes is
+  // not something to refuse a child's exam over.
+  if (downloaded !== null && Number.isFinite(downloaded) && started < downloaded - 60_000) {
+    return {
+      code: "STARTED_BEFORE_DOWNLOAD",
+      message: "This sitting claims to have started before the paper was downloaded to the device.",
+    };
+  }
+
+  // Nor in the future. A device clock set forward is the usual cause, and it
+  // must not be able to create a sitting that has not happened.
+  if (started > now.getTime() + 5 * 60_000) {
+    return {
+      code: "STARTED_IN_FUTURE",
+      message: "This sitting claims to have started in the future. Check the device clock.",
+    };
+  }
+
+  if (submitted !== null && Number.isFinite(submitted) && submitted < started) {
+    return {
+      code: "SUBMITTED_BEFORE_STARTED",
+      message: "This sitting claims to have been submitted before it started.",
+    };
+  }
+
+  // The window, when there is one. A paper closes at availableUntil; a sitting
+  // that began long after it closed is not a late sync, it is a new attempt.
+  const until = params.availableUntil ? new Date(params.availableUntil).getTime() : null;
+  if (until !== null && Number.isFinite(until) && started > until + maxStaleMs) {
+    return {
+      code: "STALE_SITTING",
+      message: "This sitting was made long after the paper closed and cannot be accepted.",
+    };
+  }
+
+  // No window: fall back to age. A sitting unsent for a month is a data-entry
+  // problem, not a connectivity one.
+  if (started < now.getTime() - maxStaleMs * 3) {
+    return {
+      code: "STALE_SITTING",
+      message: "This sitting is too old to accept. Ask your teacher to record it.",
+    };
+  }
+
+  return null;
+}
+
 /** Human explanation for a late offline sitting, shown to the student. */
 export function lateSittingMessage(overrunMinutes: number): string {
   return `Your answers are saved, but this sitting ran ${overrunMinutes} minute(s) past the paper's time. Your teacher will review it before it is scored.`;

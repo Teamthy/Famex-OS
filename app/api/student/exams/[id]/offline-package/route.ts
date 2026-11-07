@@ -7,6 +7,7 @@ import {
   type OfflinePacketManifest,
 } from "@/lib/offline-packet";
 import { prisma } from "@/lib/prisma";
+import { examMinutes } from "@/lib/exams";
 import { examAvailability, startWindowRefusal, studentSubjectIds, attemptDeadline } from "@/lib/subjects";
 
 export const dynamic = "force-dynamic";
@@ -155,7 +156,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
               // The window bounds the sitting, not just the duration: starting a
               // minute before close must not buy a full extra paper.
               deadlineAt: attemptDeadline({
-                durationMinutes: exam.durationMinutes,
+                durationMinutes: examMinutes(exam),
                 availableUntil: exam.availableUntil,
               }),
               deliveryMode: "OFFLINE",
@@ -220,7 +221,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
     fingerprint,
     questionCount: exam.questions.length,
     totalMarks,
-    durationMinutes: exam.durationMinutes,
+    durationMinutes: examMinutes(exam),
     sessionLabel,
     termIndex,
     downloadedAt: new Date().toISOString(),
@@ -275,7 +276,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
         subjectName: exam.subjectName,
         examType: exam.examType,
         instructions: exam.instructions,
-        durationMinutes: exam.durationMinutes,
+        durationMinutes: examMinutes(exam),
         passMark: exam.passMark,
         className: exam.classId,
         scheduledFor: exam.scheduledFor?.toISOString() ?? null,

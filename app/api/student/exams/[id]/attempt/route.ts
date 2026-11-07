@@ -4,6 +4,7 @@ import { z } from "zod";
 import { finalizeAttempt, getStudentExamContext } from "@/lib/exams";
 import { getStudentFeeLock } from "@/lib/fee-lock";
 import { prisma } from "@/lib/prisma";
+import { examMinutes } from "@/lib/exams";
 import { attemptDeadline, startWindowRefusal } from "@/lib/subjects";
 
 export const dynamic = "force-dynamic";
@@ -132,8 +133,11 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
               attemptNumber: (existing?.attemptNumber || 0) + 1,
               // Bounded by the window as well as the duration: starting a minute
               // before close must not buy a full extra sitting.
+              // examMinutes(), not durationMinutes: the list advertises
+              // objective + theory time, so the deadline has to cover both or
+              // the theory half is lost on every sitting.
               deadlineAt: attemptDeadline({
-                durationMinutes: exam.durationMinutes,
+                durationMinutes: examMinutes(exam),
                 availableUntil: exam.availableUntil,
               }),
             },
@@ -191,7 +195,7 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
       title: exam.title,
       subjectName: exam.subjectName,
       instructions: exam.instructions,
-      durationMinutes: exam.durationMinutes,
+      durationMinutes: examMinutes(exam),
     },
     questions: ordered.map((question) => ({
       id: question.id,

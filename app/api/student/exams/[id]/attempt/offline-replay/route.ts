@@ -3,8 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { finalizeAttempt, getStudentExamContext } from "@/lib/exams";
 import { getStudentFeeLock } from "@/lib/fee-lock";
-import { classifyOfflineTiming, reconcileAnswers, verifyPacket } from "@/lib/offline-packet";
+import { classifyOfflineTiming, offlineTimingProblem, reconcileAnswers, verifyPacket } from "@/lib/offline-packet";
 import { prisma } from "@/lib/prisma";
+import { examMinutes } from "@/lib/exams";
 
 export const dynamic = "force-dynamic";
 
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
   // A paper whose duration no longer matches the device's is genuinely stale —
   // the sitting cannot be mapped onto this paper at all.
-  if (Math.abs(body.durationMinutes - exam.durationMinutes) > 2) {
+  if (Math.abs(body.durationMinutes - examMinutes(exam)) > 2) {
     return NextResponse.json(
       { error: "This paper changed since it was downloaded. Your answers were not saved.", code: "STALE_PACKAGE" },
       { status: 409 },
@@ -113,10 +114,28 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     return NextResponse.json({ error: "Invalid start time." }, { status: 400 });
   }
 
+  // Before grading anything: could this sitting have happened? The only
+  // timing evidence here is the device's own account, and without a
+  // plausibility bound a device can write an attempt into a term that has
+  // already been compiled and released.
+  const timingProblem = offlineTimingProblem({
+    startedAt: body.startedAt,
+    submittedAt: body.submittedAt ?? null,
+    downloadedAt: body.manifest?.downloadedAt ?? null,
+    availableUntil: exam.availableUntil ? exam.availableUntil.toISOString() : null,
+    scheduledFor: exam.scheduledFor ? exam.scheduledFor.toISOString() : null,
+  });
+  if (timingProblem) {
+    return NextResponse.json(
+      { error: timingProblem.message, code: timingProblem.code },
+      { status: 409 },
+    );
+  }
+
   const timing = classifyOfflineTiming({
     startedAt: body.startedAt,
     submittedAt: body.submittedAt ?? null,
-    durationMinutes: exam.durationMinutes,
+    durationMinutes: examMinutes(exam),
   });
 
   // Verify the packet the device sat, against the paper as it stands now.
@@ -230,7 +249,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       }
     }
 
-    const deadlineAt = new Date(startedMs + exam.durationMinutes * 60_000);
+    const deadlineAt = new Date(startedMs + examMinutes(exam) * 60_000);
     try {
       serverAttempt = await prisma.$transaction(async (tx) => {
         if (latest && latest.status !== ExamAttemptStatus.IN_PROGRESS) {

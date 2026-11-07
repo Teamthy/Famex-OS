@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   classifyOfflineTiming,
   fingerprintQuestions,
+  offlineTimingProblem,
   lateSittingMessage,
   reconcileAnswers,
   signPacket,
@@ -242,6 +243,109 @@ describe("reconcileAnswers", () => {
   it("handles an empty paper", () => {
     const result = reconcileAnswers({ answers: [], currentQuestions: [] });
     expect(result).toMatchObject({ currentTotalMarks: 0, accepted: [], missing: [] });
+  });
+});
+
+describe("offlineTimingProblem", () => {
+  // The only timing evidence on a replay is the device's own account of when
+  // the paper was sat. classifyOfflineTiming() bounds how LONG a sitting was;
+  // nothing bounded when it could have HAPPENED, so a device could claim a
+  // sitting from before it downloaded the paper, or from a year ago, and the
+  // server would take it — including into a term already compiled and released.
+  const now = new Date("2026-11-10T12:00:00.000Z");
+  const base = {
+    downloadedAt: "2026-11-01T08:00:00.000Z",
+    startedAt: "2026-11-01T09:00:00.000Z",
+    submittedAt: "2026-11-01T09:50:00.000Z",
+    now,
+  };
+
+  it("accepts an ordinary sitting", () => {
+    expect(offlineTimingProblem(base)).toBeNull();
+  });
+
+  it("accepts a sitting synced days later", () => {
+    // The normal case this must never refuse: sat on Monday, no signal until
+    // the student reaches a town.
+    expect(
+      offlineTimingProblem({ ...base, submittedAt: "2026-11-08T09:50:00.000Z" }),
+    ).toBeNull();
+  });
+
+  it("accepts a start a few seconds before the download finished", () => {
+    // Two IndexedDB writes in a fast tap-through; ordering is not exact.
+    expect(
+      offlineTimingProblem({ ...base, startedAt: "2026-11-01T07:59:40.000Z" }),
+    ).toBeNull();
+  });
+
+  it("refuses a sitting that started before its paper was downloaded", () => {
+    // The answers could not have existed on this device.
+    const problem = offlineTimingProblem({
+      ...base,
+      downloadedAt: "2026-11-01T10:00:00.000Z",
+      startedAt: "2026-11-01T09:00:00.000Z",
+    });
+    expect(problem?.code).toBe("STARTED_BEFORE_DOWNLOAD");
+  });
+
+  it("refuses a sitting that claims to start in the future", () => {
+    const problem = offlineTimingProblem({
+      ...base,
+      startedAt: "2026-12-01T09:00:00.000Z",
+      submittedAt: "2026-12-01T09:50:00.000Z",
+    });
+    expect(problem?.code).toBe("STARTED_IN_FUTURE");
+  });
+
+  it("refuses a submission timestamped before its own start", () => {
+    const problem = offlineTimingProblem({
+      ...base,
+      submittedAt: "2026-11-01T08:30:00.000Z",
+    });
+    expect(problem?.code).toBe("SUBMITTED_BEFORE_STARTED");
+  });
+
+  it("refuses a sitting begun long after the paper closed", () => {
+    // Not a late sync — a way to write an attempt into a finished term.
+    const problem = offlineTimingProblem({
+      ...base,
+      availableUntil: "2026-10-01T00:00:00.000Z",
+      downloadedAt: null,
+      startedAt: "2026-11-01T09:00:00.000Z",
+    });
+    expect(problem?.code).toBe("STALE_SITTING");
+  });
+
+  it("still accepts a sitting inside a long-closed window when it is only days old", () => {
+    const problem = offlineTimingProblem({
+      ...base,
+      availableUntil: "2026-10-30T00:00:00.000Z",
+      downloadedAt: null,
+      startedAt: "2026-11-01T09:00:00.000Z",
+    });
+    expect(problem).toBeNull();
+  });
+
+  it("refuses an ancient sitting when the paper has no window at all", () => {
+    const problem = offlineTimingProblem({
+      ...base,
+      downloadedAt: null,
+      startedAt: "2026-06-01T09:00:00.000Z",
+      submittedAt: "2026-06-01T09:50:00.000Z",
+    });
+    expect(problem?.code).toBe("STALE_SITTING");
+  });
+
+  it("does not refuse a sitting merely because the manifest omitted downloadedAt", () => {
+    // Older clients do not send it. Refusing them would fail every sitting from
+    // a device that has not updated — exactly when there is no way to retry.
+    expect(offlineTimingProblem({ ...base, downloadedAt: null })).toBeNull();
+  });
+
+  it("gives the student a reason they can act on", () => {
+    const problem = offlineTimingProblem({ ...base, startedAt: "not a date" });
+    expect(problem?.message).toMatch(/not a date/i);
   });
 });
 
