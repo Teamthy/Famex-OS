@@ -36,7 +36,17 @@
 
 ## B-03 — Admissions documents can pass by type without a clean, verified stored file
 
-- **Severity/status:** P0 / FAIL
+- **Severity/status:** P0 / **PARTIALLY FIXED** — completeness now requires a usable scan verdict
+- **Fixed (this branch):** both `payments/start` and `submit` built completeness
+  from document TYPES, so a row that existed at all counted — including one
+  still `PENDING` and one already marked `INFECTED`. `lib/admissions-documents.ts`
+  now allows only `CLEAN`/`SKIPPED`, and the refusal names the actual problem
+  (missing vs still scanning vs failed the scan) instead of telling every parent
+  to re-upload. 18 tests, two of them static guards on the routes.
+- **Still open:** magic-byte/MIME verification at upload, checksum and length
+  binding, quarantine download handling, and deletion of infected or replaced
+  objects in storage. Those need the storage layer and cannot be verified here
+  without an object store.
 - **Evidence:** `app/api/admissions/payments/start/route.ts:48` and `app/api/admissions/submit/route.ts:59` build completeness from `application.documents.map((document) => document.type)`. `app/api/admin/admissions/route.ts:30` selects document `id`, `type`, `fileName`, and `sizeBytes`, not a scan verdict. Source review also found presigned upload/confirmation gaps around stored MIME/magic bytes, checksum/length binding, quarantine, and deletion of infected/replaced objects in `lib/storage.ts`, `lib/security.ts`, `lib/malware.ts`, and the admissions document routes.
 - **Impact:** Pending/infected or substituted content can be treated as satisfying an admissions requirement; staff may download malicious files; child identity/medical documents may remain in unsafe locations.
 - **Required fix:** Require `CLEAN` scan state plus verified size, checksum, MIME, and magic bytes before payment/submission/review; quarantine infected objects; delete or isolate replaced objects; show scan state to reviewers; use short-lived authorized downloads with audit logs.
