@@ -44,7 +44,18 @@ export default function LoginScreen() {
   const [mfaChallenge, setMfaChallenge] = useState<string | null>(null);
   const [mfaCode, setMfaCode] = useState("");
 
-  async function routeAfterLogin(user: { role?: string | null }) {
+  async function routeAfterLogin(user: {
+    role?: string | null;
+    mustChangePassword?: boolean;
+  }) {
+    // A temporary password must be replaced before anything is shown. The web
+    // portal has always enforced this; the app did not, so a clerk's temporary
+    // password opened the portal's data on the phone and stayed valid.
+    if (user.mustChangePassword) {
+      toast("Choose a new password to finish signing in.", "info");
+      router.replace("/change-password");
+      return;
+    }
     if (!ALLOWED_ROLES.includes(user.role ?? "")) {
       await logout();
       // Be specific about the role so a Bursar or Director isn't left wondering

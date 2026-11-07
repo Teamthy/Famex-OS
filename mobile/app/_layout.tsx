@@ -91,6 +91,9 @@ export default function RootLayout() {
       <Stack.Screen name="login" redirect={!!resolvedUser} />
       <Stack.Screen name="onboarding" redirect={!!resolvedUser} />
       <Stack.Screen name="forgot-password" redirect={!!resolvedUser} />
+      {/* Reachable while signed in: it is where a temporary password is
+          replaced, and the redirect below would otherwise bounce it. */}
+      <Stack.Screen name="change-password" />
       <Stack.Screen name="settings" />
       <Stack.Screen name="logout" />
       <Stack.Screen name="admin-student-detail" />
