@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PEOPLE_ADMIN_ROLES, oneTimeSecret, passwordHash, uniqueStudentNumber } from "@/lib/people";
 import { getClientIp } from "@/lib/requests";
 import { sendParentWelcomeEmail } from "@/lib/email";
+import { onboardStudent } from "@/lib/enrolment";
 import { requireModule } from "@/lib/module-guard";
 import { logger } from "@/lib/logger";
 import {
@@ -21,6 +22,14 @@ const schema = z.object({
   entranceScore: z.number().int().min(0).max(100),
   entrancePassed: z.boolean(),
   placementNote: z.string().trim().max(500).optional(),
+  /**
+   * Electives chosen at admission.
+   *
+   * Optional, and deliberately so: a JSS class has no electives and the clerk
+   * may legitimately not be managing them. Omitted means "leave whatever is
+   * there alone"; an explicit empty array means "this student takes none".
+   */
+  electiveSubjectIds: z.array(z.string().min(1)).max(30).optional(),
 });
 export async function POST(request: NextRequest) {
   const guard = await requireModule("admissions", PEOPLE_ADMIN_ROLES);
@@ -199,6 +208,23 @@ export async function POST(request: NextRequest) {
           isPrimary: true,
         },
       });
+
+      /**
+       * Onboarding, INSIDE the enrolment transaction.
+       *
+       * A student who exists without subjects cannot sit an exam, appears in no
+       * subject teacher's roster and is skipped by the promotion rollover. Doing
+       * this after the commit — or worse, in a separate request the UI fires
+       * afterwards — produces exactly that whenever the second request is lost.
+       * If onboarding fails, the admission did not happen.
+       */
+      const onboarding = await onboardStudent({
+        tx,
+        schoolId: user.schoolId,
+        studentProfileId: student.id,
+        classId: lockedClass.id,
+        electiveSubjectIds: input.electiveSubjectIds,
+      });
       await tx.admissionApplication.update({
         where: { id: application.id },
         data: {
@@ -223,6 +249,10 @@ export async function POST(request: NextRequest) {
             studentId: number,
             className: lockedClass.displayName,
             entranceScore: input.entranceScore,
+            subjectsAssigned: onboarding.subjectsAssigned,
+            electivesAssigned: onboarding.electivesAssigned,
+            enrolmentCreated: onboarding.enrolmentCreated,
+            onboardingWarnings: onboarding.warnings.length,
           },
         },
       });
@@ -250,6 +280,7 @@ export async function POST(request: NextRequest) {
         parentCreated,
         parentDisplayName: parent.displayName,
         className: lockedClass.displayName,
+        onboarding,
       };
     });
     // Email the parent their portal credentials.
@@ -284,6 +315,21 @@ export async function POST(request: NextRequest) {
         temporaryPassword: result.parentCreated ? tempPassword : null,
         mustChangePassword: result.parentCreated,
         welcomeEmailSent,
+      },
+      /**
+       * What onboarding actually did, and what it could not.
+       *
+       * The warnings are the point: a clerk who admitted a student into a
+       * class whose subject teachers are not yet assigned needs to know that
+       * now, not in six weeks when a paper has no marks against it.
+       */
+      onboarding: {
+        subjectsAssigned: result.onboarding.subjectsAssigned,
+        electivesAssigned: result.onboarding.electivesAssigned,
+        enrolmentCreated: result.onboarding.enrolmentCreated,
+        classTeacher: result.onboarding.classTeacher,
+        subjectTeachers: result.onboarding.subjectTeachers,
+        warnings: result.onboarding.warnings,
       },
     };
     // The transaction stored the replay response with welcomeEmailSent=false

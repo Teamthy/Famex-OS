@@ -233,12 +233,24 @@ export function examAvailability(params: {
   scheduledFor: Date | null;
   availableUntil: Date | null;
   hasSubmitted: boolean;
+  /**
+   * An unused retake the teacher granted for THIS paper.
+   *
+   * A retake exists precisely because the student missed the paper — a
+   * glitch, an absence, a family emergency. Refusing them at the closed
+   * window would make the grant meaningless: the teacher would enable the
+   * retake and the student would still be locked out. A granted retake
+   * therefore outranks the window, and only the window.
+   */
+  hasRetake?: boolean;
   now?: Date;
 }): ExamAvailability {
   // A submitted attempt outranks every window: once it is done, it is done.
+  // (A retake reverses `hasSubmitted` for the caller, not the window.)
   if (params.hasSubmitted) return "COMPLETED";
 
   const now = params.now ?? new Date();
+  if (params.hasRetake) return "READY";
   if (params.scheduledFor && now < params.scheduledFor) return "UPCOMING";
   if (params.availableUntil && now > params.availableUntil) return "CLOSED";
   return "READY";
@@ -257,9 +269,36 @@ export function examAvailability(params: {
 export function startWindowRefusal(params: {
   scheduledFor: Date | null;
   availableUntil: Date | null;
+  /**
+   * An unused retake grant for this paper.
+   *
+   * The one exception to the window, and deliberately narrow: it lets a
+   * student sit a paper they were granted a retake for, after the window has
+   * closed, and it never opens a paper early (a retake cannot be granted for
+   * a paper that has not opened yet, and if the data says otherwise the
+   * earlier branch still refuses).
+   */
+  hasRetake?: boolean;
   now?: Date;
 }): { code: "NOT_OPEN_YET" | "WINDOW_CLOSED"; message: string } | null {
   const now = params.now ?? new Date();
+
+  if (params.hasRetake) {
+    // Still never early: a retake is for a paper that has already run.
+    if (params.scheduledFor && now < params.scheduledFor) {
+      return {
+        code: "NOT_OPEN_YET",
+        message: `This exam opens ${params.scheduledFor.toLocaleString("en-NG", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+          hour: "numeric",
+          minute: "2-digit",
+        })}.`,
+      };
+    }
+    return null;
+  }
 
   if (params.scheduledFor && now < params.scheduledFor) {
     return {

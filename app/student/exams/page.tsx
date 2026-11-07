@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import PortalTopbar from "@/components/PortalTopbar";
+import { useToast } from "@/components/Toast";
+import { getPaper, listPapers, savePaper } from "@/lib/offline/exam-store";
+import type { StoredPaper } from "@/lib/offline-exam";
 import {
   Award,
   BookOpen,
@@ -17,6 +20,8 @@ import {
   Lock,
   XCircle,
   Search,
+  Download,
+  CheckCircle,
 } from "lucide-react";
 
 /** "Mon 14 Sep, 9:00 am" — a student needs the day and the time, not an ISO string. */
@@ -62,6 +67,11 @@ type ExamCard = {
   feeLocked: boolean;
   canStart: boolean;
   canResume: boolean;
+  /** The paper carries questions and is published — it can be sat offline. */
+  offlineReady: boolean;
+  sessionLabel: string | null;
+  termIndex: number | null;
+  termLabel: string | null;
   attempt: {
     id: string;
     status: string;
@@ -72,6 +82,11 @@ type ExamCard = {
   } | null;
 };
 
+/** Small readability shim so the card markup stays a single expression. */
+function downloadededMarker(downloaded: Set<string>, examId: string) {
+  return downloaded.has(examId);
+}
+
 type Response = {
   student: { displayName: string; studentId: string };
   exams: ExamCard[];
@@ -81,7 +96,17 @@ export default function StudentExamsPage() {
   const [data, setData] = useState<Response | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { toast } = useToast();
+  /** Exam ids whose paper is on this device, ready to sit with no network. */
+  const [downloaded, setDownloaded] = useState<Set<string>>(new Set());
+  const [downloading, setDownloading] = useState<string | null>(null);
   const [q, setQ] = useState("");
+
+  /** Which papers are already on this device, so the list can say so. */
+  const syncDownloaded = useCallback(async () => {
+    const papers = await listPapers();
+    setDownloaded(new Set(papers.filter((paper) => paper.questions.length > 0).map((p) => p.examId)));
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -95,8 +120,103 @@ export default function StudentExamsPage() {
       } finally {
         setLoading(false);
       }
+      await syncDownloaded();
     })();
-  }, []);
+  }, [syncDownloaded]);
+
+  /**
+   * Download a paper for offline sitting.
+   *
+   * The list is the only place a student can prepare in advance, and preparing
+   * in advance is the whole difference between "the network died during my
+   * exam" and "the network died, my paper is here". The download is offered
+   * before the paper is opened so the student is not depending on the exam-day
+   * connection for the one request that has to work.
+   *
+   * It does NOT start the clock: the sitting begins when the paper is opened.
+   */
+  const downloadPaper = useCallback(
+    async (examId: string) => {
+      setDownloading(examId);
+      try {
+        const existing = await getPaper(examId);
+        if (existing && existing.questions.length) {
+          toast("This paper is already on this device.", "info");
+          await syncDownloaded();
+          return;
+        }
+        const response = await fetch(`/api/student/exams/${examId}/offline-package`, {
+          cache: "no-store",
+        });
+        const body = (await response.json()) as {
+          canStart: boolean;
+          refusal: string | null;
+          attemptId: string | null;
+          exam: {
+            id: string;
+            title: string;
+            subjectName: string;
+            examType: string;
+            instructions: string | null;
+            durationMinutes: number;
+            passMark: number;
+            className: string;
+          };
+          manifest: StoredPaper["manifest"];
+          signature: string;
+          questions: Array<{
+            id: string;
+            type: "MCQ" | "TRUE_FALSE" | "FILL_BLANK" | "ESSAY";
+            questionText: string;
+            marks: number;
+            options: Array<{ key: string; text: string }>;
+          }>;
+          savedAnswers?: Array<{ questionId: string; response: string | null }>;
+          error?: string;
+        };
+        if (!response.ok) throw new Error(body.error || "Unable to download this paper.");
+        if (!body.canStart) throw new Error(body.refusal || "This paper is not open right now.");
+
+        const paper: StoredPaper = {
+          id: body.exam.id,
+          examId: body.exam.id,
+          manifest: body.manifest,
+          signature: body.signature,
+          title: body.exam.title,
+          subjectName: body.exam.subjectName,
+          className: body.exam.className,
+          examType: body.exam.examType,
+          instructions: body.exam.instructions,
+          passMark: body.exam.passMark,
+          serverAttemptId: body.attemptId,
+          // Deliberately NOT started: downloading is preparation, opening is
+          // the sitting. A student who downloads tonight must not lose an hour.
+          startedAt: null,
+          deadlineAt: null,
+          status: "DOWNLOADED",
+          downloadedAt: body.manifest.downloadedAt,
+          questions: body.questions.map((question) => ({
+            id: question.id,
+            type: question.type,
+            questionText: question.questionText,
+            options: question.options,
+            marks: question.marks,
+          })),
+        };
+        await savePaper(paper);
+        await syncDownloaded();
+        toast("Paper saved on this device. It will open without a network.", "success");
+      } catch (downloadError) {
+        toast(
+          downloadError instanceof Error ? downloadError.message : "Unable to download this paper.",
+          "error",
+        );
+      } finally {
+        setDownloading(null);
+      }
+    },
+    [syncDownloaded, toast],
+  );
 
   return (
     <>
@@ -249,6 +369,24 @@ export default function StudentExamsPage() {
                               {exam.feeLocked ? "Fees outstanding" : exam.availabilityLabel}
                             </span>
                           ) : null}
+                          {downloadededMarker(downloaded, exam.id) ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-green/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+                              <CheckCircle size={11} /> Ready offline
+                            </span>
+                          ) : exam.offlineReady && (exam.canStart || exam.canResume) ? (
+                            <button
+                              onClick={() => void downloadPaper(exam.id)}
+                              disabled={downloading === exam.id}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:border-brand-green hover:text-brand-green disabled:opacity-40"
+                            >
+                              {downloading === exam.id ? (
+                                <LoaderCircle size={11} className="animate-spin" />
+                              ) : (
+                                <Download size={11} />
+                              )}
+                              {downloading === exam.id ? "Saving…" : "Save to device"}
+                            </button>
+                          ) : null}
                           {exam.canResume ? (
                             <Link
                               href={`/student/exams/${exam.id}`}
@@ -269,6 +407,24 @@ export default function StudentExamsPage() {
                     </div>
                   ))
               : null}
+
+            {/* The next thing a student looks for after an exam is the mark.
+                A released term result lives in Term Results, and saying so here
+                stops the hunt through the dashboard. */}
+            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] px-5 py-4">
+              <Award className="text-brand-green" size={16} />
+              <p className="flex-1 text-xs text-[var(--text-secondary)]">
+                Your marks appear under Term Results once your school releases the term. Marks
+                entered offline are kept on your device until they sync, and are graded on the
+                server.
+              </p>
+              <Link
+                href="/student/results"
+                className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-green hover:bg-brand-green/10"
+              >
+                Term Results
+              </Link>
+            </div>
 
             {!loading && data && !data.exams.length ? (
               <div className="rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-12 text-center shadow-[var(--card-shadow)]">

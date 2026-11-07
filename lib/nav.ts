@@ -205,6 +205,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     icon: "results",
     moduleKey: "report_cards",
     items: [
+      live("Term Results", "/admin/results", "W6"),
       live("Report Cards", "/admin/report-cards", "W6"),
       live("Broadsheet", "/admin/broadsheet", "W6"),
       planned("Term Report", "W6"),

@@ -107,6 +107,123 @@ describe("buildPlan", () => {
   });
 });
 
+describe("buildPlan with compiled results", () => {
+  function result(
+    studentProfileId: string,
+    average: number,
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      studentProfileId,
+      termIndex: 3,
+      cumulativeAverage: average,
+      cumulativeGrade: "B3",
+      termsCounted: 3,
+      ...overrides,
+    };
+  }
+
+  it("repeats a student whose year average is below the pass mark", async () => {
+    mockPrisma.studentEnrolment.findMany.mockResolvedValue([enrolment("s1", CLASSES[0])]);
+    mockPrisma.termResult.findMany.mockResolvedValue([result("s1", 32)]);
+
+    const { buildPlan } = await import("@/lib/promotion");
+    const [row] = await buildPlan(SCHOOL, SESSION_A);
+
+    expect(row.proposedOutcome).toBe("REPEATED");
+    // A repeater stays in their own class — not the next level's same arm.
+    expect(row.targetClassId).toBe(CLASSES[0].id);
+  });
+
+  it("still proposes the next class for a student who passed", async () => {
+    mockPrisma.studentEnrolment.findMany.mockResolvedValue([enrolment("s1", CLASSES[0])]);
+    mockPrisma.termResult.findMany.mockResolvedValue([result("s1", 71)]);
+
+    const { buildPlan } = await import("@/lib/promotion");
+    const [row] = await buildPlan(SCHOOL, SESSION_A);
+
+    expect(row.proposedOutcome).toBe("PROMOTED");
+    expect(row.targetClassName).toBe("JSS2A");
+    expect(row.yearAverage).toBe(71);
+  });
+
+  it("uses the school's own pass mark for the student's stage", async () => {
+    mockPrisma.studentEnrolment.findMany.mockResolvedValue([enrolment("s1", CLASSES[0])]);
+    mockPrisma.termResult.findMany.mockResolvedValue([result("s1", 45)]);
+    // This school requires 50 for its junior secondary stage.
+    mockPrisma.stageConfig.findMany.mockResolvedValue([
+      { stage: "JUNIOR_SECONDARY", passMark: 50 },
+    ] as never);
+
+    const { buildPlan } = await import("@/lib/promotion");
+    const [row] = await buildPlan(SCHOOL, SESSION_A);
+
+    expect(row.proposedOutcome).toBe("REPEATED");
+  });
+
+  it("flags a student with no compiled result rather than guessing", async () => {
+    mockPrisma.studentEnrolment.findMany.mockResolvedValue([enrolment("s1", CLASSES[0])]);
+    mockPrisma.termResult.findMany.mockResolvedValue([]);
+
+    const { buildPlan } = await import("@/lib/promotion");
+    const [row] = await buildPlan(SCHOOL, SESSION_A);
+
+    expect(row.yearAverage).toBeNull();
+    expect(row.academicProposal).toBe("UNKNOWN");
+    expect(row.academicNote).toMatch(/no compiled result/i);
+  });
+
+  it("warns when fewer than three terms have been released", async () => {
+    mockPrisma.studentEnrolment.findMany.mockResolvedValue([enrolment("s1", CLASSES[0])]);
+    mockPrisma.termResult.findMany.mockResolvedValue([result("s1", 80, { termsCounted: 1 })]);
+    mockPrisma.classTermResult.findMany.mockResolvedValue([
+      { classId: CLASSES[0].id, termIndex: 1 },
+    ] as never);
+
+    const { buildPlan } = await import("@/lib/promotion");
+    const [row] = await buildPlan(SCHOOL, SESSION_A);
+
+    expect(row.academicNote).toMatch(/1 of 3/);
+  });
+
+  it("takes the most recent term's cumulative figure", async () => {
+    mockPrisma.studentEnrolment.findMany.mockResolvedValue([enrolment("s1", CLASSES[0])]);
+    mockPrisma.termResult.findMany.mockResolvedValue([
+      result("s1", 55, { termIndex: 2, cumulativeAverage: 55 }),
+      result("s1", 68, { termIndex: 3, cumulativeAverage: 68 }),
+    ]);
+
+    const { buildPlan } = await import("@/lib/promotion");
+    const [row] = await buildPlan(SCHOOL, SESSION_A);
+
+    expect(row.yearAverage).toBe(68);
+    expect(row.termsCounted).toBe(3);
+  });
+
+  it("graduates a terminal class whatever the average", async () => {
+    mockPrisma.studentEnrolment.findMany.mockResolvedValue([enrolment("s2", CLASSES[3])]);
+    mockPrisma.termResult.findMany.mockResolvedValue([result("s2", 20)]);
+
+    const { buildPlan } = await import("@/lib/promotion");
+    const [row] = await buildPlan(SCHOOL, SESSION_A);
+
+    expect(row.proposedOutcome).toBe("GRADUATED");
+  });
+
+  it("reads results for the session being closed, not the current one", async () => {
+    mockPrisma.studentEnrolment.findMany.mockResolvedValue([enrolment("s1", CLASSES[0])]);
+    mockPrisma.academicSession.findFirst.mockResolvedValue({ label: "2025/2026" });
+
+    const { buildPlan } = await import("@/lib/promotion");
+    await buildPlan(SCHOOL, SESSION_A);
+
+    const call = mockPrisma.termResult.findMany.mock.calls[0] as unknown as [
+      { where: { sessionLabel: string } },
+    ];
+    expect(call[0].where.sessionLabel).toBe("2025/2026");
+  });
+});
+
 describe("summarisePlan", () => {
   it("counts each proposed outcome and any blockers", async () => {
     const { summarisePlan } = await import("@/lib/promotion");
@@ -123,6 +240,11 @@ describe("summarisePlan", () => {
       graduating: 1,
       repeating: 1,
       blocked: 1,
+      // None of these synthetic rows carries a year average, which is exactly
+      // the case the summary must surface: a plan built without result evidence
+      // needs a human, not a click-through.
+      needingReview: 0,
+      withoutResults: 4,
     });
   });
 });

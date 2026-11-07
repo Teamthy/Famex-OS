@@ -64,9 +64,23 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
     // until now it let a stale tab or a typed URL start an exam days early.
     // Note this guards NEW attempts only: an attempt already in progress falls
     // into the resume branch above and keeps its own clock.
+    // A granted retake is the one exception to the window: the paper was missed
+    // through no fault of the student, and the teacher has already decided they
+    // may sit it. Refusing them here made every grant a dead end.
+    const retakeGrant = await prisma.examRetake.findUnique({
+      where: {
+        examId_studentProfileId: {
+          examId: exam.id,
+          studentProfileId: studentContext.studentProfile.id,
+        },
+      },
+      select: { used: true },
+    });
+
     const refusal = startWindowRefusal({
       scheduledFor: exam.scheduledFor,
       availableUntil: exam.availableUntil,
+      hasRetake: Boolean(retakeGrant && !retakeGrant.used),
     });
     if (refusal) {
       return NextResponse.json({ error: refusal.message, code: refusal.code }, { status: 409 });

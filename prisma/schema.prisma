@@ -297,6 +297,52 @@ enum ExamAttemptStatus {
   GRADED
 }
 
+/// Where a sitting physically happened. See ExamAttempt.deliveryMode.
+enum ExamDeliveryMode {
+  ONLINE
+  OFFLINE
+  SYNCED
+}
+
+/// How a compiled result line was arrived at, so a printed score can always be
+/// traced back to the thing that produced it.
+enum ResultSource {
+  /// Written by a subject teacher in the gradebook. The normal path.
+  GRADEBOOK
+  /// Pulled from a CBT sitting because no gradebook line existed — a school
+  /// that runs every assessment on the CBT engine never opens a gradebook.
+  CBT
+  /// Set by hand outside the gradebook.
+  MANUAL
+}
+
+/// Lifecycle of a class's results for one term.
+enum ClassResultStatus {
+  /// Being compiled; nothing visible to students or parents.
+  DRAFT
+  /// Marks final for the class, every line frozen. Report cards generate from
+  /// it.
+  COMPILED
+  /// Students and parents can see the term.
+  RELEASED
+}
+
+/// Whether a compiled line counts toward averages and positions.
+enum ResultLineStatus {
+  INCLUDED
+  EXCLUDED
+}
+
+/// End-of-session promotion state for one student.
+enum PromotionStatus {
+  PENDING
+  PROMOTED
+  REPEATED
+  GRADUATED
+  WITHDRAWN
+  TRANSFERRED
+}
+
 enum StaffAttendanceEventType {
   CHECK_IN
   CHECK_OUT
@@ -382,6 +428,9 @@ model School {
   contactEnquiries        ContactEnquiry[]
   stageConfigs            StageConfig[]
   gradeBands              GradeBand[]
+  termResults             TermResult[]
+  classTermResults        ClassTermResult[]
+  promotionRecords        PromotionRecord[]
   ledgerAccounts          LedgerAccount[]
   ledgerJournals          LedgerJournal[]
   ledgerLines             LedgerLine[]
@@ -514,6 +563,8 @@ model SchoolClass {
   virtualClassSessions VirtualClassSession[]
   enrolments         StudentEnrolment[]
   timetableSlots     TimetableSlot[]
+  termResults        TermResult[]
+  classTermResults   ClassTermResult[]
 
   @@unique([schoolId, displayName])
   @@index([schoolId, level, arm])
@@ -570,6 +621,8 @@ model StudentProfile {
   behaviorRecords      BehaviorRecord[]
   enrolments           StudentEnrolment[]
   studentSubjects      StudentSubject[]
+  termResults          TermResult[]
+  promotionRecords     PromotionRecord[]
   ledgerLines          LedgerLine[]
 
   @@unique([schoolId, studentId])
@@ -1376,6 +1429,17 @@ model Exam {
   teacherProfileId String
   subjectName      String
   title            String
+  /// Which term this paper belongs to (1 | 2 | 3) and the session it was set
+  /// in. Stamped when the exam is created.
+  ///
+  /// These did not exist, so a paper was implicitly "now": every exam a class
+  /// sat landed in whichever term happened to be current when results were
+  /// compiled. A First Term paper could be pulled into Third Term's marks, and
+  /// a resit sat in Second Term could overwrite a First Term score. The result
+  /// compiler reads these columns; null only on rows that predate them, which
+  /// the resolver stamps from the term in force rather than from "today".
+  termIndex        Int?
+  sessionLabel     String?
   examType         String     @default("CA")
   durationMinutes  Int        @default(30)
   totalMarks       Int        @default(0)
@@ -1450,6 +1514,25 @@ model ExamAttempt {
   /// Prisma can model (the expression index it replaces was invisible to
   /// schema.prisma and failed the drift gate).
   clientAttemptId  String?
+  /// Where the student physically sat the paper.
+  ///
+  ///   ONLINE  — an ordinary in-browser sitting; answers stream to us.
+  ///   OFFLINE — started with no connectivity. Until it is replayed the only
+  ///             copy is on the device, so the student's exam list must not
+  ///             offer a second start.
+  ///   SYNCED  — an offline sitting whose answers have reached the server.
+  ///
+  /// Exposed to the student (so the app can say "saved on this device") and to
+  /// the teacher (so an exams officer can tell a paper that arrived hours late
+  /// from one that was live the whole time).
+  deliveryMode     ExamDeliveryMode  @default(ONLINE)
+  /// Device-reported start and end. Kept apart from `startedAt`/`submittedAt`
+  /// (the server's own timestamps) precisely so the two can be compared.
+  offlineStartedAt DateTime?
+  offlineEndedAt   DateTime?
+  /// Set when this attempt's score was adopted into a compiled term result, so
+  /// a later sitting cannot silently move an already-compiled number.
+  resultAdoptedAt  DateTime?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
@@ -1461,6 +1544,9 @@ model ExamAttempt {
   @@index([examId, status])
   @@index([studentProfileId, createdAt])
   @@index([examId, studentProfileId, clientAttemptId])
+  /// "Is there an offline sitting I should not offer again?" — read on every
+  /// student exam list load.
+  @@index([studentProfileId, deliveryMode, status])
 }
 
 model ExamAnswer {
@@ -1490,6 +1576,212 @@ model ExamRetake {
   studentProfile StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
 
   @@unique([examId, studentProfileId])
+}
+
+// ── Term results: the compilation layer ───────────────────────────────────
+//
+// A "result" used to exist only as prose: SubjectGradebook held 100-mark
+// entries, ReportCard held a snapshot generated from a LOCKED gradebook, and
+// Exam/ExamAttempt held CBT scores that went nowhere near either.
+//
+// That worked one subject at a time and fell apart on what a school actually
+// needs: a cumulative view that carries across First → Second → Third Term
+// (the year average had to be recomputed by hand from printouts), CBT marks
+// and gradebook marks feeding ONE subject score rather than two, a term that
+// is closed rather than continuously editable, and a promotion decision that
+// reads the year instead of a single term.
+//
+// TermResult / TermResultSubject are that missing middle layer. They are
+// DERIVED — the compiler writes them from gradebooks + CBT — and then frozen.
+// Report cards read them, so a printed card and the cumulative total can never
+// disagree.
+
+/// One student's result for one term in one class.
+model TermResult {
+  id               String           @id @default(cuid())
+  schoolId         String
+  studentProfileId String
+  classId          String
+  sessionLabel     String
+  termIndex        Int
+  termLabel        String
+  status           ResultLineStatus @default(INCLUDED)
+  /// Sum of every INCLUDED subject total.
+  totalScore       Int              @default(0)
+  /// Number of INCLUDED subjects the total is divided by. Stored rather than
+  /// counted on read: a subject dropped later must not silently change a
+  /// result that was already compiled and printed.
+  subjectCount     Int              @default(0)
+  /// Whole-number percentage of the term.
+  average          Int              @default(0)
+  grade            String           @default("F9")
+  /// Position within the class for THIS term, e.g. "3rd of 42".
+  position         String?
+  positionNumber   Int?
+  /// Running cumulative average across terms 1..N of the session. Equals
+  /// `average` in term 1; by term 3 it is the year average promotion reads.
+  cumulativeAverage Int             @default(0)
+  cumulativeGrade  String           @default("F9")
+  /// How many terms the cumulative figure covers (1..3).
+  termsCounted     Int              @default(0)
+  /// Set when the class result was compiled. Present == frozen.
+  compiledAt       DateTime?
+  compiledByUserId String?
+  /// The class (form) teacher's remark, written HERE rather than on the report
+  /// card so it survives being written before the term's cards are generated
+  /// and cannot be wiped by a recompile. Card generation copies it across.
+  classTeacherRemark        String?
+  classTeacherRemarkByUserId String?
+  classTeacherRemarkAt      DateTime?
+  /// Head of school's remark, copied onto the card.
+  directorRemark   String?
+  /// When the next term begins — printed on the card, editable per term.
+  nextResumption   String?
+  /// Attendance for THIS term, snapshotted at compile time. Counting it at
+  /// print time meant a card reprinted a month later showed a different figure
+  /// as more registers were taken.
+  attendancePresent Int             @default(0)
+  attendanceTotal   Int             @default(0)
+  /// Outstanding fees at compile time. Cumulative, not term-scoped — see the
+  /// note in the report-card generator.
+  feeBalance        Int             @default(0)
+  /// Snapshot so nothing on the student has to be re-read at print time.
+  classNameSnapshot String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  school         School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentProfile StudentProfile  @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  classroom      SchoolClass     @relation(fields: [classId], references: [id], onDelete: Restrict)
+  subjects       TermResultSubject[]
+
+  /// One result per student per term per session. Recompiling updates it.
+  @@unique([studentProfileId, sessionLabel, termIndex])
+  @@index([schoolId, sessionLabel, termIndex, classId])
+  @@index([classId, sessionLabel, termIndex, positionNumber])
+}
+
+/// One subject line inside a TermResult.
+model TermResultSubject {
+  id           String           @id @default(cuid())
+  termResultId String
+  /// Subject name as taught, matching SubjectGradebook.subjectName. A string,
+  /// not a FK: legacy gradebooks predate the Subject table, and renaming a
+  /// subject must not rewrite history.
+  subjectName  String
+  subjectId    String?
+  /// Where the scores came from — see ResultSource.
+  source       ResultSource     @default(GRADEBOOK)
+  status       ResultLineStatus @default(INCLUDED)
+  ca1          Int              @default(0)
+  ca2          Int              @default(0)
+  midterm      Int              @default(0)
+  assignment   Int              @default(0)
+  exam         Int              @default(0)
+  total        Int              @default(0)
+  grade        String           @default("F9")
+  /// CBT sittings rolled into this line (0 when none were sat).
+  cbtAttempts  Int              @default(0)
+  /// Sum of those sittings' scores, out of cbtMaxMarks.
+  cbtScore     Int              @default(0)
+  cbtMaxMarks  Int              @default(0)
+  /// The sitting the exam component came from, so a printed score can be traced
+  /// back to one attempt. Null when CBT was not the source.
+  cbtAttemptId String?
+  /// Subject teacher's comment, copied from the gradebook at compile time so
+  /// the report card is a true snapshot.
+  comment      String?
+  /// Position within the class for THIS subject, and the class's mean total for
+  /// it — both printed on a report card ("3rd · class avg 61") and snapshotted
+  /// because they stop being computable once the roster changes.
+  positionNumber Int?
+  classAverage   Int            @default(0)
+  sortOrder    Int              @default(0)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  termResult TermResult @relation(fields: [termResultId], references: [id], onDelete: Cascade)
+
+  @@unique([termResultId, subjectName])
+  @@index([termResultId, sortOrder])
+}
+
+/// A class's result state for one term. One row per class per term per session.
+///
+/// This is the "close the term" control. While DRAFT the compiler can be re-run;
+/// once COMPILED the numbers are frozen and report cards may be generated from
+/// them; once RELEASED they are visible to students and parents.
+model ClassTermResult {
+  id               String            @id @default(cuid())
+  schoolId         String
+  classId          String
+  sessionLabel     String
+  termIndex        Int
+  termLabel        String
+  status           ClassResultStatus @default(DRAFT)
+  compiledAt       DateTime?
+  compiledByUserId String?
+  releasedAt       DateTime?
+  releasedByUserId String?
+  /// Counts as at compile time, so the screen can show what changed since.
+  studentCount     Int               @default(0)
+  classAverage     Int               @default(0)
+  highestAverage   Int               @default(0)
+  lowestAverage    Int               @default(0)
+  notes            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  school    School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classroom SchoolClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, sessionLabel, termIndex])
+  @@index([schoolId, sessionLabel, termIndex, status])
+}
+
+/// End-of-session promotion decision for one student.
+///
+/// StudentEnrolment records what HAPPENED; this records the DECISION and the
+/// evidence behind it — the year average it was based on, any override, and who
+/// signed off. A school must be able to answer "why was this child promoted?"
+/// three years later.
+model PromotionRecord {
+  id               String          @id @default(cuid())
+  schoolId         String
+  studentProfileId String
+  fromSessionId    String
+  fromSessionLabel String
+  toSessionId      String?
+  toSessionLabel   String?
+  fromClassId      String
+  fromClassName    String
+  toClassId        String?
+  toClassName      String?
+  status           PromotionStatus @default(PENDING)
+  /// The Third Term cumulative average at decision time.
+  yearAverage      Int?
+  yearGrade        String?
+  /// True when an admin changed the proposed outcome. The reason is required in
+  /// that case, and both the proposal and the final call are kept.
+  isOverride       Boolean         @default(false)
+  proposedStatus   PromotionStatus?
+  overrideReason   String?
+  decidedByUserId  String?
+  decidedAt        DateTime?
+  /// Why a student was held back from commit: a missing destination class, no
+  /// compiled result, or another pending row.
+  blocker          String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  school         School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentProfile StudentProfile  @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  fromSession    AcademicSession @relation("PromotionFrom", fields: [fromSessionId], references: [id], onDelete: Cascade)
+  toSession      AcademicSession? @relation("PromotionTo", fields: [toSessionId], references: [id], onDelete: SetNull)
+
+  @@unique([studentProfileId, fromSessionId])
+  @@index([schoolId, fromSessionId, status])
+  @@index([toSessionId])
 }
 
 model NewsPost {
@@ -2063,10 +2355,12 @@ model AcademicSession {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  school        School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  terms         Term[]
-  enrolments    StudentEnrolment[]
-  feeStructures FeeStructure[]
+  school         School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  terms          Term[]
+  enrolments     StudentEnrolment[]
+  feeStructures  FeeStructure[]
+  promotionsFrom PromotionRecord[] @relation("PromotionFrom")
+  promotionsTo   PromotionRecord[] @relation("PromotionTo")
 
   @@unique([schoolId, label])
   @@index([schoolId, isCurrent])
