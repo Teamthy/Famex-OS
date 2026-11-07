@@ -11,6 +11,7 @@ import {
   CalendarDays,
   CreditCard,
   FileText,
+  KeyRound,
   LoaderCircle,
   Phone,
   School,
@@ -41,6 +42,8 @@ type Payload = {
     displayName: string;
     studentId: string;
     isActive: boolean;
+    /** Present when this student has a login; null when they have none. */
+    userId?: string | null;
     gender?: string | null;
     dateOfBirth?: string | null;
     currentClass: { id: string; displayName: string } | null;
@@ -89,6 +92,17 @@ export default function AdminStudentDetailPage({ params }: { params: Promise<{ i
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [loginBusy, setLoginBusy] = useState(false);
+  /**
+   * The credential, held in memory only.
+   *
+   * It is shown once, for the clerk to read to the parent or to print, and is
+   * gone on the next load. Nothing here writes it to storage — a password a
+   * school keeps is a password somebody will eventually use.
+   */
+  const [issuedLogin, setIssuedLogin] = useState<{ email: string; temporaryPassword: string } | null>(
+    null,
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -111,6 +125,42 @@ export default function AdminStudentDetailPage({ params }: { params: Promise<{ i
 
   const student = data?.student;
   const fees = data?.fees;
+
+  /**
+   * Create or reset this student's login.
+   *
+   * Audit B-05: a student could be admitted through the product and still have
+   * no way to sign in, because the only path was a script on the server. The
+   * account is created with a temporary password that must be changed at first
+   * sign-in, and the password is shown to the clerk exactly once.
+   */
+  const manageLogin = useCallback(
+    async (mode: "create" | "reset") => {
+      setLoginBusy(true);
+      try {
+        const response = await fetch(`/api/admin/students/${id}/login`, {
+          method: mode === "create" ? "POST" : "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body:
+            mode === "create"
+              ? undefined
+              : JSON.stringify({ reason: "Reset by an administrator from the student profile." }),
+        });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Could not set up the login.");
+        setIssuedLogin({
+          email: body.login.email,
+          temporaryPassword: body.login.temporaryPassword,
+        });
+        await load();
+      } catch (issue) {
+        setError(issue instanceof Error ? issue.message : "Could not set up the login.");
+      } finally {
+        setLoginBusy(false);
+      }
+    },
+    [id, load],
+  );
 
   return (
     <>
@@ -173,6 +223,79 @@ export default function AdminStudentDetailPage({ params }: { params: Promise<{ i
 
               {!loading && student && fees ? (
                 <>
+                  {/* Login: without one the child cannot use the portal at all,
+                      and the only fix used to be a script on the server. */}
+                  <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6">
+                    <h2 className="inline-flex items-center gap-2 font-display text-lg tracking-widest text-[var(--text-primary)]">
+                      <KeyRound size={16} className="text-brand-green" /> PORTAL LOGIN
+                    </h2>
+
+                    {issuedLogin ? (
+                      <div className="mt-4 rounded-xl border border-brand-orange/40 bg-brand-orange/10 p-4">
+                        <p className="text-xs font-bold text-brand-orange">
+                          Read this to the parent now — it is not shown again
+                        </p>
+                        <div className="mt-3 space-y-2 text-sm">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                              Email
+                            </span>
+                            <span className="font-mono font-medium text-[var(--text-primary)]">
+                              {issuedLogin.email}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                              Temporary password
+                            </span>
+                            <span className="font-mono font-medium text-[var(--text-primary)]">
+                              {issuedLogin.temporaryPassword}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="mt-3 text-[11px] text-brand-orange/80">
+                          They will be asked to choose their own password before they can see
+                          anything else.
+                        </p>
+                        <button
+                          onClick={() => setIssuedLogin(null)}
+                          className="mt-3 rounded-lg border border-brand-orange/40 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-orange hover:bg-brand-orange/10"
+                        >
+                          I have written it down
+                        </button>
+                      </div>
+                    ) : student.userId ? (
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-sm text-[var(--text-secondary)]">
+                          This student can sign in to the portal.
+                        </p>
+                        <button
+                          onClick={() => void manageLogin("reset")}
+                          disabled={loginBusy}
+                          className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:border-brand-orange hover:text-brand-orange disabled:opacity-40"
+                        >
+                          {loginBusy ? <LoaderCircle size={12} className="animate-spin" /> : <KeyRound size={12} />}
+                          Reset password
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-sm text-[var(--text-secondary)]">
+                          No login yet. Without one this student cannot see their timetable,
+                          exams, results or fees.
+                        </p>
+                        <button
+                          onClick={() => void manageLogin("create")}
+                          disabled={loginBusy}
+                          className="inline-flex items-center gap-2 rounded-xl bg-brand-green px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-brand-navy hover:bg-brand-green-dark disabled:opacity-40"
+                        >
+                          {loginBusy ? <LoaderCircle size={12} className="animate-spin" /> : <KeyRound size={12} />}
+                          Create login
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Fees first: it is the question an admin is usually on the
                       phone about. */}
                   <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6">

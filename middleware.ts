@@ -2,6 +2,7 @@ import { jwtVerify } from "jose";
 import { NextRequest, NextResponse } from "next/server";
 import { resolveAllowedOrigin } from "@/lib/cors";
 import { buildContentSecurityPolicy, storageUploadOrigin } from "@/lib/csp";
+import { mustCompletePasswordChange, PASSWORD_CHANGE_REQUIRED } from "@/lib/password-gate";
 
 const protectedPrefixes = [
   "/admin",
@@ -64,6 +65,26 @@ function logDenial(
 }
 
 /**
+ * Does this request's session still owe a password change?
+ *
+ * Shares the secret and the algorithm with the page gate below rather than
+ * importing lib/session.ts, which pulls Prisma and `next/headers` into the edge
+ * bundle. Any failure to read the token answers "no": this gate must never be
+ * the thing that locks a legitimate user out of signing in.
+ */
+async function pendingPasswordChange(request: NextRequest): Promise<boolean> {
+  const token = request.cookies.get("fis_session")?.value;
+  const secret = process.env.AUTH_SECRET;
+  if (!token || !secret || secret.length < 32) return false;
+  try {
+    const { payload } = await jwtVerify(token, encoder.encode(secret));
+    return payload.mustChangePassword === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Stamp the resolved CORS headers onto a response.
  *
  * This MUST be applied to the real response, not only to the preflight.
@@ -113,6 +134,28 @@ async function routeRequest(request: NextRequest) {
   if (publicPaths.some((path) => pathname.startsWith(path))) {
     return isApi ? applyCors(NextResponse.next(), request) : NextResponse.next();
   }
+
+  /**
+   * The password-change gate, for API routes.
+   *
+   * Pages have been gated for a while (below). The API was not: `/api/admin/…`
+   * does not start with `/admin`, so a session carrying a temporary password
+   * walked straight past — the portal UI was blocked while every endpoint
+   * behind it answered normally, which is the opposite of a gate.
+   *
+   * Done HERE, before the protected-prefix check, because this is the only
+   * point both kinds of route pass through.
+   */
+  if (isApi) {
+    const pending = await pendingPasswordChange(request);
+    if (pending && mustCompletePasswordChange(pathname)) {
+      return applyCors(
+        NextResponse.json(PASSWORD_CHANGE_REQUIRED, { status: 403 }),
+        request,
+      );
+    }
+  }
+
   if (!protectedPrefixes.some((prefix) => pathname.startsWith(prefix))) {
     return isApi ? applyCors(NextResponse.next(), request) : NextResponse.next();
   }
