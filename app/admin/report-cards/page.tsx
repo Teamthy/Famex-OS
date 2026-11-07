@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import PortalTopbar from "@/components/PortalTopbar";
 import AdminSidebar from "@/components/AdminSidebar";
 import LiveReportCardPreview from "@/components/LiveReportCardPreview";
-import { CheckCircle2, Clock, FileText, LoaderCircle, Mail } from "lucide-react";
+import { CheckCircle2, Clock, FileText, LoaderCircle, Mail, Printer } from "lucide-react";
 
 type Report = {
   id: string;
   reportNumber: string;
+  /** The public identifier used by /report-cards/[code]/print. */
+  verificationCode: string | null;
   sessionLabel: string;
   termLabel: string;
   classNameSnapshot: string;
@@ -275,6 +277,16 @@ export default function AdminReportCardsPage() {
                                 >
                                   View
                                 </button>
+                                {report.verificationCode ? (
+                                  <a
+                                    href={`/report-cards/${encodeURIComponent(report.verificationCode)}/print`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="ml-2 inline-flex items-center gap-1 rounded-full bg-brand-navy/10 px-3 py-1.5 text-[10px] font-bold text-brand-navy transition-all hover:bg-brand-navy hover:text-white"
+                                  >
+                                    <Printer size={10} /> Print
+                                  </a>
+                                ) : null}
                                 <button
                                   onClick={() =>
                                     void updateStatus(

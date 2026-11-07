@@ -70,6 +70,10 @@ export async function GET(request: NextRequest) {
     reports: reports.map((report) => ({
       id: report.id,
       reportNumber: report.reportNumber,
+      // The public identifier, needed to open the printable sheet. Without it
+      // the admin screen could not print a card at all — only the student and
+      // parent screens could.
+      verificationCode: report.verificationCode ?? null,
       sessionLabel: report.sessionLabel,
       termLabel: report.termLabel,
       classNameSnapshot: report.classNameSnapshot,
