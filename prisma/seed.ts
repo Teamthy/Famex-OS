@@ -61,8 +61,22 @@ async function main() {
       passwordHash,
       isActive: true,
       isSuspended: false,
+      // The password came from an environment variable, which means it was
+      // typed into a shell, a CI secret or a chat message before it was
+      // typed here. It is a first-login credential, not a permanent one:
+      // middleware refuses every page and every API route until it is
+      // replaced. ONBOARDING-GAPS.md has claimed this since it was written;
+      // the code did not do it.
+      mustChangePassword: true,
     },
-    create: { email, name, role: UserRole.ADMIN, schoolId: school.id, passwordHash },
+    create: {
+      email,
+      name,
+      role: UserRole.ADMIN,
+      schoolId: school.id,
+      passwordHash,
+      mustChangePassword: true,
+    },
   });
   console.log(`Initial admin is ready: ${email}`);
 }

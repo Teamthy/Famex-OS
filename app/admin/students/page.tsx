@@ -55,8 +55,21 @@ export default function StudentsPage() {
       return;
     }
     setOpen(false);
+    const assigned: number = j.subjects?.assigned ?? 0;
+    const warnings: string[] = j.subjects?.warnings ?? [];
+    // Say the subject count out loud. "Enrolled" with zero subjects is a
+    // student who cannot sit an exam, and the school needs to know at the
+    // moment of enrolment, not when the first CBT paper fails to appear.
+    const subjectLine =
+      assigned > 0
+        ? `${assigned} subject${assigned === 1 ? "" : "s"} assigned.`
+        : "No subjects were assigned.";
     setNotice(
-      `${j.student.displayName} enrolled in ${j.student.className}. ${j.parentAccount?.temporaryPassword ? `Temporary parent password (show once): ${j.parentAccount.temporaryPassword}` : "Parent account is already linked; no new password was created."}`,
+      `${j.student.displayName} enrolled in ${j.student.className}. ${subjectLine} ${
+        j.parentAccount?.temporaryPassword
+          ? `Temporary parent password (show once): ${j.parentAccount.temporaryPassword}`
+          : "Parent account is already linked; no new password was created."
+      }${warnings.length ? ` — ${warnings.join(" ")}` : ""}`,
     );
     await load();
   }
