@@ -34,6 +34,9 @@ describe("each path that creates a student must onboard them", () => {
   const paths = [
     "app/api/admin/students/route.ts",
     "app/api/admin/admissions/enroll/route.ts",
+    // The form teacher's route. A teacher admitting a walk-in is the same act
+    // as an administrator doing it, and had the same subjectless outcome.
+    "app/api/teacher/students/route.ts",
   ];
 
   for (const file of paths) {
@@ -53,11 +56,37 @@ describe("each path that creates a student must onboard them", () => {
     });
   }
 
-  it("the direct enrol path passes the current session when there is one", () => {
-    const src = code(read("app/api/admin/students/route.ts"));
-    expect(src).toMatch(/academicSession\.findFirst/);
-    expect(src).toMatch(/isCurrent:\s*true/);
-    expect(src).toMatch(/sessionId:\s*currentSession\?\.id\s*\?\?\s*null/);
+  for (const file of [
+    "app/api/admin/students/route.ts",
+    "app/api/teacher/students/route.ts",
+  ]) {
+    it(`${file} passes the current session when there is one`, () => {
+      const src = code(read(file));
+      expect(src).toMatch(/academicSession\.findFirst/);
+      expect(src).toMatch(/isCurrent:\s*true/);
+      expect(src).toMatch(/sessionId:\s*currentSession\?\.id\s*\?\?\s*null/);
+    });
+
+    it(`${file} accepts the subjects the caller ticked`, () => {
+      const src = code(read(file));
+      expect(src).toMatch(/subjectIds/);
+      expect(src).toMatch(/assignStudentSubjects\(/);
+    });
+  }
+
+  it("the teacher's subject checklist comes from the catalogue, pre-ticked", () => {
+    // The whole point of the teacher feature: their own assigned subjects are
+    // ticked for them, resolved from the free-text assignment onto real rows.
+    const src = code(read("app/api/teacher/students/route.ts"));
+    expect(src).toMatch(/resolveTeacherSubjects\(/);
+    expect(src).toMatch(/assignedToMe/);
+    expect(src).toMatch(/teachableSubjects/);
+  });
+
+  it("the teacher form sends every ticked subject, not just the first", () => {
+    // FormData.get would keep one checkbox; getAll is required.
+    const page = read("app/teacher/students/page.tsx");
+    expect(page).toMatch(/getAll\("subjectId"\)/);
   });
 
   it("the direct enrol path tells the caller what was assigned", () => {

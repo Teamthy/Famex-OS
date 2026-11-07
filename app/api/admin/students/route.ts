@@ -5,6 +5,7 @@ import { getClientIp } from "@/lib/requests";
 import { PEOPLE_ADMIN_ROLES, oneTimeSecret, passwordHash, uniqueStudentNumber } from "@/lib/people";
 import { requireModule } from "@/lib/module-guard";
 import { onboardStudent } from "@/lib/enrolment";
+import { assignStudentSubjects } from "@/lib/enrolment-subjects";
 import { logger } from "@/lib/logger";
 import {
   completeReservedIdempotency,
@@ -29,6 +30,13 @@ const schema = z.object({
     (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
     z.string().trim().toLowerCase().email().optional(),
   ),
+  /**
+   * Subjects to enrol the student in, in addition to the compulsory ones their
+   * level implies. Omitted means "compulsory only", which is what a school
+   * with a fully compulsory catalogue wants. Ids outside the student's level
+   * are rejected by assignStudentSubjects rather than trusted.
+   */
+  subjectIds: z.array(z.string().trim().min(1)).max(30).optional(),
 });
 export async function GET() {
   const guard = await requireModule("users", PEOPLE_ADMIN_ROLES);
@@ -239,6 +247,21 @@ export async function POST(request: NextRequest) {
         classId: lockedClass.id,
         sessionId: currentSession?.id ?? null,
       });
+
+      // Anything the school ticked beyond the compulsory set. Electives are
+      // per-student by definition, so onboardStudent cannot infer them.
+      if (input.subjectIds?.length) {
+        const extra = await assignStudentSubjects(tx, {
+          schoolId: user.schoolId,
+          studentProfileId: student.id,
+          level: lockedClass.level,
+          subjectIds: input.subjectIds,
+        });
+        if (extra.rejected.length)
+          onboarding.warnings.push(
+            `${extra.rejected.length} chosen subject(s) are not offered at ${lockedClass.level} and were ignored.`,
+          );
+      }
 
       await tx.auditLog.create({
         data: {

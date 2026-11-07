@@ -302,6 +302,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     moduleKey: "users",
     items: [
       live("Students", "/admin/students", "W5"),
+      live("Profile completeness", "/admin/students/completeness", "W5"),
       live("Staff", "/admin/staff", "W5"),
       planned("Parents", "W11"),
       planned("Alumni", "W11", {

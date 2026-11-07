@@ -5,6 +5,7 @@ import { cacheGet, cacheSet } from "@/lib/offline/db";
 import { BookOpen, LoaderCircle, Search, UserPlus, Users, X } from "lucide-react";
 import TeacherSidebar from "@/components/TeacherSidebar";
 import PortalTopbar from "@/components/PortalTopbar";
+import { GRADE_LABELS, gradeStudentCompleteness } from "@/lib/student-completeness";
 
 type Assignment = {
   id: string;
@@ -27,6 +28,22 @@ type Student = {
   guardianName: string | null;
   guardianPhone: string | null;
   canManage: boolean;
+};
+
+type TeachableSubject = {
+  id: string;
+  name: string;
+  code: string | null;
+  category: string;
+  assignedToMe: boolean;
+};
+
+type TeachableClass = {
+  classId: string;
+  className: string;
+  level: string;
+  subjects: TeachableSubject[];
+  unresolved: Array<{ typed: string; ambiguous: boolean }>;
 };
 
 type Suggestion = {
@@ -64,6 +81,9 @@ export default function TeacherStudentsPage() {
   const [loading, setLoading] = useState(true);
   const [, setIsStale] = useState(false);
   const [open, setOpen] = useState(false);
+  const [teachable, setTeachable] = useState<TeachableClass[]>([]);
+  /** Which class the enrol form is targeting — drives the subject checklist. */
+  const [enrolClassId, setEnrolClassId] = useState("");
 
   const load = useCallback(async () => {
     const url = "/api/teacher/students";
@@ -75,6 +95,7 @@ export default function TeacherStudentsPage() {
       setStudents(j.students || []);
       setSuggestions(j.suggestions || []);
       setTeacher(j.teacher || { displayName: "", isFormTeacher: false, isSubjectTeacher: false });
+      setTeachable(j.teachableSubjects || []);
       setIsStale(true);
       setLoading(false);
     }
@@ -89,6 +110,7 @@ export default function TeacherStudentsPage() {
       setStudents(j.students || []);
       setSuggestions(j.suggestions || []);
       setTeacher(j.teacher || { displayName: "", isFormTeacher: false, isSubjectTeacher: false });
+      setTeachable(j.teachableSubjects || []);
       setIsStale(false);
       await cacheSet(url, j);
     } catch (e) {
@@ -106,6 +128,28 @@ export default function TeacherStudentsPage() {
     () => assignments.filter((a) => a.role === "FORM_TEACHER"),
     [assignments],
   );
+
+  /**
+   * Completeness, graded in the browser from data this page already has.
+   *
+   * Deliberately NOT another API call: the teacher's roster is at most a few
+   * hundred rows, the inputs are already in `students`, and the grading function
+   * is pure — so the score cannot disagree with the school-wide page. Subjects
+   * are the one thing this endpoint does not return, so they are not counted
+   * here rather than guessed at.
+   */
+  const completeness = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof gradeStudentCompleteness>>();
+    for (const s of students)
+      map.set(
+        s.id,
+        gradeStudentCompleteness({
+          guardianPhone: s.guardianPhone,
+          guardianName: s.guardianName,
+        }),
+      );
+    return map;
+  }, [students]);
 
   const shown = useMemo(() => {
     return students.filter((s) => {
@@ -126,7 +170,10 @@ export default function TeacherStudentsPage() {
     setError("");
     setNotice("");
     const fd = new FormData(e.currentTarget);
-    const body = Object.fromEntries(fd.entries());
+    const body: Record<string, unknown> = Object.fromEntries(fd.entries());
+    // Checkboxes arrive as repeated "subjectId" entries. getAll, not get:
+    // FormData.get would keep only the first ticked subject.
+    body.subjectIds = fd.getAll("subjectId").filter((v): v is string => typeof v === "string");
     const r = await fetch("/api/teacher/students", {
       method: "POST",
       headers: {
@@ -144,8 +191,12 @@ export default function TeacherStudentsPage() {
     const temp = j.parentAccount?.temporaryPassword
       ? ` Parent temp password (copy now): ${j.parentAccount.temporaryPassword}`
       : "";
+    const subjectCount: number = j.subjects?.assigned ?? 0;
+    const warnings: string[] = j.subjects?.warnings ?? [];
     setNotice(
-      `Enrolled ${j.student.displayName} (${j.student.studentId}) into ${j.student.className}.${temp}`,
+      `Enrolled ${j.student.displayName} (${j.student.studentId}) into ${j.student.className}. ` +
+        `${subjectCount > 0 ? `${subjectCount} subject${subjectCount === 1 ? "" : "s"} assigned.` : "No subjects were assigned."}` +
+        `${warnings.length ? ` ${warnings.join(" ")}` : ""}${temp}`,
     );
     await load();
   }
@@ -302,6 +353,7 @@ export default function TeacherStudentsPage() {
                   <tr>
                     <th className="p-4">Student</th>
                     <th className="p-4">Class</th>
+                    <th className="p-4">Profile</th>
                     <th className="p-4">Guardian</th>
                     <th className="p-4">Access</th>
                   </tr>
@@ -316,6 +368,28 @@ export default function TeacherStudentsPage() {
                         </span>
                       </td>
                       <td className="p-4">{s.className}</td>
+                      <td className="p-4">
+                        {(() => {
+                          const grade = completeness.get(s.id);
+                          if (!grade) return "—";
+                          return (
+                            <span
+                              className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                                grade.criticalMissing > 0
+                                  ? "bg-amber-500/15 text-amber-600"
+                                  : "bg-brand-green/15 text-brand-green"
+                              }`}
+                              title={
+                                grade.missing.length
+                                  ? `Missing: ${grade.missing.map((m) => m.label).join(", ")}`
+                                  : "Nothing missing"
+                              }
+                            >
+                              {grade.score}% · {GRADE_LABELS[grade.grade]}
+                            </span>
+                          );
+                        })()}
+                      </td>
                       <td className="p-4">
                         {s.guardianName || "—"}
                         <span className="mt-1 block text-xs text-[var(--text-muted)]">
@@ -418,6 +492,8 @@ export default function TeacherStudentsPage() {
                 <select
                   name="classId"
                   required
+                  value={enrolClassId}
+                  onChange={(event) => setEnrolClassId(event.target.value)}
                   className="mt-2 w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-sm normal-case"
                 >
                   <option value="">Select class</option>
@@ -430,6 +506,17 @@ export default function TeacherStudentsPage() {
                 </select>
               </label>
             </div>
+
+            {/* ── Subject checklist ────────────────────────────────────────
+                Ticking nothing is what left earlier students with no exams,
+                no roster entry and no report-card marks, so the list is shown
+                as soon as a class is chosen and the teacher's own subjects
+                arrive pre-ticked. */}
+            {enrolClassId ? (
+              <SubjectChecklist
+                entry={teachable.find((t) => t.classId === enrolClassId)}
+              />
+            ) : null}
             <p className="mt-5 text-xs text-[var(--text-muted)]">
               Requests are idempotent. A new parent account receives a one-time temporary password
               shown once.
@@ -441,5 +528,78 @@ export default function TeacherStudentsPage() {
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * The subject checklist for the enrol form.
+ *
+ * Pre-ticks the subjects this teacher is assigned to teach in this class, but
+ * the teacher is the authority on what the child actually takes — a form
+ * teacher enrolling a new pupil may not teach them anything. Compulsory
+ * subjects are added server-side regardless, so unticking one is not a way to
+ * drop Mathematics.
+ */
+function SubjectChecklist({ entry }: { entry?: TeachableClass }) {
+  if (!entry)
+    return (
+      <p className="mt-5 rounded-xl border border-[var(--border-subtle)] p-4 text-xs text-[var(--text-muted)]">
+        Select a class to choose subjects.
+      </p>
+    );
+
+  if (!entry.subjects.length)
+    return (
+      <p className="mt-5 rounded-xl border border-amber-400/60 bg-amber-400/10 p-4 text-xs">
+        No subjects are set up for {entry.level} yet, so this student will have none until an
+        administrator adds them under Subjects. The student will still be enrolled.
+      </p>
+    );
+
+  return (
+    <fieldset className="mt-5 rounded-2xl border border-[var(--border-subtle)] p-4">
+      <legend className="px-2 text-xs font-bold uppercase tracking-widest">
+        Subjects for this student
+      </legend>
+      <p className="mb-3 text-xs text-[var(--text-muted)]">
+        Your own subjects in {entry.className} are already ticked.
+      </p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {entry.subjects.map((subject) => (
+          <label
+            key={subject.id}
+            className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] p-3 text-sm"
+          >
+            <input
+              type="checkbox"
+              name="subjectId"
+              value={subject.id}
+              defaultChecked={subject.assignedToMe}
+              className="size-4 accent-[var(--brand-green,#7AB93F)]"
+            />
+            <span className="min-w-0">
+              {subject.name}
+              {subject.code ? (
+                <span className="ml-1 text-[var(--text-muted)]">({subject.code})</span>
+              ) : null}
+              {subject.assignedToMe ? (
+                <span className="ml-2 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+                  mine
+                </span>
+              ) : null}
+            </span>
+          </label>
+        ))}
+      </div>
+      {entry.unresolved.length ? (
+        <p className="mt-3 rounded-xl border border-amber-400/60 bg-amber-400/10 p-3 text-xs">
+          {entry.unresolved.length} of your subject assignments could not be matched to the
+          subject catalogue ({entry.unresolved.map((u) => u.typed).join(", ")}
+          {entry.unresolved.some((u) => u.ambiguous) ? " — more than one subject matches" : ""}).
+          Ask an administrator to correct them under Staff assignments; until then those subjects
+          cannot be ticked here.
+        </p>
+      ) : null}
+    </fieldset>
   );
 }
