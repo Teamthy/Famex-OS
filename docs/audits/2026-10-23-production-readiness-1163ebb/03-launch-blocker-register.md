@@ -94,7 +94,20 @@
 
 ## B-08 — Gradebook/report outputs can be incomplete, stale, or publicly guessable
 
-- **Severity/status:** P0 / FAIL
+- **Severity/status:** P0 / **PARTIALLY FIXED** — public disclosure closed
+- **Fixed (this branch):** the public verification identifier. `/verify/report/`
+  was keyed on `RC/{year}/T{term}/{studentId}` — guessable from a student id
+  printed on ID cards — and rendered the child's name, id, class and grades.
+  `GET /api/alumni/transcript?reportNumber=…` was a second, worse oracle (full
+  subject breakdown, anonymous, zero callers) and is deleted. Cards now carry a
+  `verificationCode` (128 bits, unique, backfilled by migration); the public
+  page looks up by code alone, with no report-number fallback. 15 tests in
+  `tests/lib/report-verification.test.ts`, including one that fails if the
+  lookup ever matches on a report number again.
+- **Still open:** explicit missing/absent/exempt/not-enrolled modelling in
+  `lib/gradebook.ts`, completeness gates on generation/release, and snapshot
+  invalidation after corrections. These are grading-correctness changes (they
+  alter what a released grade MEANS) and are not attempted here.
 - **Evidence:** Source review of `lib/gradebook.ts`, `lib/report-cards.ts`, result-correction code, broadsheet routes, and public verification found missing/absent/exempt work collapsing to zero, whole-class treatment despite electives, rankings over incomparable subject sets, correction workflows reporting affected report cards without regenerating them, and deterministic public verification identifiers of the form `RC/{session}/T{term}/{studentId}`.
 - **Impact:** Incorrect grades/ranks, stale official reports, and unauthorized disclosure of a child's results.
 - **Required fix:** Model missing/absent/exempt/not-enrolled explicitly; block generation/release on completeness rules; version snapshots and regenerate/invalidate after corrections; use high-entropy verification tokens with rate limits and minimal public fields.
