@@ -31,6 +31,13 @@ type PlanRow = {
   targetClassId: string | null;
   targetClassName: string | null;
   blocker: string | null;
+  /** The Third Term cumulative average, when results are compiled. */
+  yearAverage: number | null;
+  yearGrade: string | null;
+  termsCounted: number;
+  /** What the results alone proposed, before the class ladder is applied. */
+  academicProposal: "PROMOTE" | "REPEAT" | "GRADUATE" | "UNKNOWN";
+  academicNote: string | null;
 };
 
 type Payload = {
@@ -42,7 +49,11 @@ type Payload = {
     graduating: number;
     repeating: number;
     blocked: number;
+    needingReview?: number;
+    withoutResults?: number;
   };
+  needingReview?: number;
+  withoutResults?: number;
   rows: PlanRow[];
 };
 
@@ -59,16 +70,23 @@ export default function PromotionPage() {
   const { data, loading, error, refetch } = useApi<Payload>("/api/admin/promotion");
 
   const [decisions, setDecisions] = useState<Record<string, Outcome>>({});
+  /**
+   * Reasons for rows the admin changed. Required before commit: an override
+   * with no explanation is the exact record a parent will ask about later.
+   */
+  const [reasons, setReasons] = useState<Record<string, string>>({});
   const [toSessionId, setToSessionId] = useState("");
   const [query, setQuery] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<null | Record<string, number>>(null);
+  const [auditWarning, setAuditWarning] = useState<string | null>(null);
 
   // Seed the overrides from the proposal once it arrives.
   useEffect(() => {
     if (!data?.rows) return;
     setDecisions(Object.fromEntries(data.rows.map((r) => [r.studentProfileId, r.proposedOutcome])));
+    setReasons({});
     if (data.targets.length === 1) setToSessionId(data.targets[0].id);
   }, [data]);
 
@@ -113,7 +131,27 @@ export default function PromotionPage() {
     [rows, decisions],
   );
 
-  const canCommit = !!toSessionId && rows.length > 0 && unresolved.length === 0 && !busy;
+  /**
+   * Rows where the admin's call differs from what the results proposed. These
+   * need a reason before they can be committed — `isOverride` in the audit
+   * record is only meaningful if the reason behind it was captured.
+   */
+  const overridden = useMemo(
+    () =>
+      rows.filter((r) => {
+        const o = decisions[r.studentProfileId] ?? r.proposedOutcome;
+        return r.academicProposal !== "UNKNOWN" && o !== r.proposedOutcome;
+      }),
+    [rows, decisions],
+  );
+
+  const unexplained = useMemo(
+    () => overridden.filter((r) => (reasons[r.studentProfileId] ?? "").trim().length < 4),
+    [overridden, reasons],
+  );
+
+  const canCommit =
+    !!toSessionId && rows.length > 0 && unresolved.length === 0 && unexplained.length === 0 && !busy;
 
   async function commit() {
     setBusy(true);
@@ -126,7 +164,15 @@ export default function PromotionPage() {
             : outcome === "REPEATED"
               ? r.currentClassId
               : null;
-        return { studentProfileId: r.studentProfileId, outcome, targetClassId };
+        return {
+          studentProfileId: r.studentProfileId,
+          outcome,
+          targetClassId,
+          overrideReason:
+            r.academicProposal !== "UNKNOWN" && outcome !== r.proposedOutcome
+              ? (reasons[r.studentProfileId] ?? "").trim() || null
+              : null,
+        };
       });
 
       const res = await fetch("/api/admin/promotion", {
@@ -142,6 +188,7 @@ export default function PromotionPage() {
       if (!res.ok) throw new Error(j.error || "Promotion failed.");
 
       setDone(j.result);
+      setAuditWarning(j.auditRecorded === false ? (j.recordError ?? "unknown error") : null);
       toast("Session rolled over.", "success");
       await refetch();
     } catch (e) {
@@ -151,6 +198,12 @@ export default function PromotionPage() {
       setConfirming(false);
     }
   }
+
+  /** Identity, not the row objects: the row map rebuilds them each render. */
+  const overriddenIds = useMemo(
+    () => new Set(overridden.map((r) => r.studentProfileId)),
+    [overridden],
+  );
 
   return (
     <>
@@ -198,8 +251,16 @@ export default function PromotionPage() {
                     graduated · {done.withdrawn + done.transferred} left
                   </p>
                   <p className="text-xs text-[var(--text-muted)] mt-3">
-                    Every student&apos;s previous class is preserved in their enrolment history.
+                    Every student&apos;s previous class is preserved in their enrolment history, and
+                    the average each decision was based on is stored with it.
                   </p>
+                  {auditWarning ? (
+                    <p className="text-xs text-brand-orange mt-2">
+                      The session rolled over, but the decision history could not be saved:{" "}
+                      {auditWarning}. Do not re-run the promotion — the enrolments are already
+                      correct.
+                    </p>
+                  ) : null}
                   <a
                     href="/admin/sessions"
                     className="inline-block mt-5 rounded-xl bg-brand-green px-5 py-2.5 text-xs font-bold text-brand-navy hover:bg-brand-green-dark"
@@ -273,6 +334,23 @@ export default function PromotionPage() {
                     </div>
                   </div>
 
+                  {(data!.needingReview ?? 0) > 0 || (data!.withoutResults ?? 0) > 0 ? (
+                    <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 flex items-start gap-2">
+                      <AlertTriangle size={15} className="mt-0.5 shrink-0 text-blue-400" />
+                      <div>
+                        <p className="text-sm font-bold text-blue-400">
+                          {data!.withoutResults ?? 0} student
+                          {data!.withoutResults === 1 ? " has" : "s have"} no compiled result
+                        </p>
+                        <p className="text-xs text-blue-400/80 mt-1">
+                          They can still be promoted, but the decision will be recorded with no
+                          average behind it. Compile and release their results first if the term is
+                          finished.
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+
                   {unresolved.length > 0 ? (
                     <div className="rounded-2xl border border-brand-orange/40 bg-brand-orange/10 p-4">
                       <div className="flex items-start gap-2">
@@ -337,6 +415,29 @@ export default function PromotionPage() {
                                   {r.blocker}
                                 </div>
                               ) : null}
+                              <div className="text-[11px] text-[var(--text-muted)] mt-1">
+                                {r.yearAverage == null ? (
+                                  <span className="text-brand-orange font-semibold">
+                                    No compiled result for this session
+                                  </span>
+                                ) : (
+                                  <>
+                                    Year average{" "}
+                                    <span className="font-semibold text-[var(--text-primary)]">
+                                      {Math.round(r.yearAverage)}%
+                                    </span>
+                                    {r.yearGrade ? ` (${r.yearGrade})` : ""}
+                                    {r.termsCounted < 3
+                                      ? ` · only ${r.termsCounted} of 3 terms counted`
+                                      : ""}
+                                  </>
+                                )}
+                              </div>
+                              {r.academicNote ? (
+                                <div className="text-[11px] text-brand-orange/90 mt-0.5">
+                                  {r.academicNote}
+                                </div>
+                              ) : null}
                             </div>
 
                             <select
@@ -356,6 +457,22 @@ export default function PromotionPage() {
                               ))}
                             </select>
                           </div>
+                          {overriddenIds.has(r.studentProfileId) ? (
+                            <div className="mt-3">
+                              <label className="text-[10px] font-bold uppercase tracking-widest text-brand-orange">
+                                Why? (required — this goes in the student&apos;s record)
+                              </label>
+                              <input
+                                value={reasons[r.studentProfileId] ?? ""}
+                                onChange={(e) =>
+                                  setReasons((m) => ({ ...m, [r.studentProfileId]: e.target.value }))
+                                }
+                                placeholder="e.g. Long absence in the second and third terms"
+                                maxLength={500}
+                                className="mt-1 w-full rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-brand-orange"
+                              />
+                            </div>
+                          ) : null}
                         </div>
                       );
                     })}
@@ -371,7 +488,9 @@ export default function PromotionPage() {
                         ? "Choose a target session"
                         : unresolved.length > 0
                           ? `${unresolved.length} student${unresolved.length === 1 ? "" : "s"} need a destination`
-                          : `Commit promotion for ${rows.length} students`}
+                          : unexplained.length > 0
+                            ? `${unexplained.length} change${unexplained.length === 1 ? "" : "s"} need a reason`
+                            : `Commit promotion for ${rows.length} students`}
                     </button>
                   </div>
                 </>

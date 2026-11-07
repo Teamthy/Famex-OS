@@ -445,6 +445,27 @@ export function summarisePlan(rows: PlanRow[]) {
   };
 }
 
+/**
+ * Map the evidence's proposal onto a stored status.
+ *
+ * `academicProposal` is what the year's results alone suggest and is worded as
+ * a verb — PROMOTE / REPEAT / GRADUATE / UNKNOWN — so it cannot be fed to
+ * statusFor(), whose input is an EnrolmentOutcome. Translating here keeps the
+ * two vocabularies from bleeding into each other.
+ */
+function statusForProposal(proposal: PlanRow["academicProposal"]): PromotionStatus | null {
+  switch (proposal) {
+    case "PROMOTE":
+      return PromotionStatus.PROMOTED;
+    case "REPEAT":
+      return PromotionStatus.REPEATED;
+    case "GRADUATE":
+      return PromotionStatus.GRADUATED;
+    default:
+      return null;
+  }
+}
+
 /** Map the academic outcome onto the stored promotion status. */
 function statusFor(outcome: EnrolmentOutcome) {
   switch (outcome) {
@@ -488,8 +509,14 @@ export async function recordPromotionDecisions(params: {
       // An override is only recorded when the final call differs from what the
       // results alone proposed. Silently writing "override" on every row would
       // destroy the audit signal.
+      //
+      // academicProposal is a VERB ("PROMOTE"), not a PromotionStatus
+      // ("PROMOTED") — passing it straight to statusFor() fell through its
+      // default and stored PENDING, which then compared unequal to every real
+      // status. The effect was that every row in every run was flagged as an
+      // override, which is the same as having no flag at all.
       const proposedStatus =
-        row.academicProposal === "UNKNOWN" ? null : statusFor(row.academicProposal as EnrolmentOutcome);
+        row.academicProposal === "UNKNOWN" ? null : statusForProposal(row.academicProposal);
       const isOverride = proposedStatus !== null && proposedStatus !== status;
       const payload = {
         schoolId: params.schoolId,

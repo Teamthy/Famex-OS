@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireModule } from "@/lib/module-guard";
-import { buildPlan, commitPromotion, summarisePlan } from "@/lib/promotion";
+import { buildPlan, commitPromotion, recordPromotionDecisions, summarisePlan } from "@/lib/promotion";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +59,10 @@ export async function GET(request: NextRequest) {
     fromSession: { id: from.id, label: from.label },
     targets: targets.map((s) => ({ id: s.id, label: s.label })),
     summary: summarisePlan(rows),
+    // The flag totals on their own, so a caller does not have to recompute them
+    // from `summary` — and so the review screen can warn before anyone commits.
+    needingReview: rows.filter((r) => r.academicNote != null).length,
+    withoutResults: rows.filter((r) => r.yearAverage == null).length,
     rows,
   });
 }
@@ -72,6 +76,8 @@ const commitSchema = z.object({
         studentProfileId: z.string().trim().min(1),
         outcome: z.nativeEnum(EnrolmentOutcome),
         targetClassId: z.string().trim().min(1).nullable().optional(),
+        /** Required when the admin's call differs from what the results proposed. */
+        overrideReason: z.string().trim().min(4).max(500).nullable().optional(),
       }),
     )
     .min(1),
@@ -119,19 +125,91 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  let result: Awaited<ReturnType<typeof commitPromotion>>;
   try {
-    const result = await commitPromotion({
+    result = await commitPromotion({
       schoolId: user.schoolId,
       fromSessionId: input.fromSessionId,
       toSessionId: input.toSessionId,
       decisions: input.decisions,
       actorUserId: user.id,
     });
-    return NextResponse.json({ ok: true, result });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Promotion failed." },
       { status: 409 },
     );
   }
+
+  // The enrolments are written. Now write down what was decided and on what
+  // evidence, which is the part a parent or an auditor asks about a year later.
+  //
+  // Deliberately AFTER the commit and deliberately non-fatal: if this write
+  // fails, the school has still rolled over correctly and the failure is
+  // reported alongside a success, rather than a half-rolled-over session.
+  // Re-running the whole promotion to retry an audit row would be far worse.
+  let auditRecorded = true;
+  let recordError: string | null = null;
+  try {
+    const [fromSession, toSession, plan] = await Promise.all([
+      prisma.academicSession.findFirst({
+        where: { id: input.fromSessionId, schoolId: user.schoolId },
+        select: { label: true },
+      }),
+      prisma.academicSession.findFirst({
+        where: { id: input.toSessionId, schoolId: user.schoolId },
+        select: { label: true },
+      }),
+      buildPlan(user.schoolId, input.fromSessionId),
+    ]);
+
+    const byStudent = new Map(plan.map((r) => [r.studentProfileId, r]));
+    const reasonFor = new Map(
+      input.decisions.map((d) => [d.studentProfileId, d.overrideReason ?? null]),
+    );
+
+    // A decision that buildPlan no longer proposes is still recorded — the
+    // admin made it, and dropping it would leave a gap in the history. The
+    // row simply carries no evidence and is flagged as such.
+    const rows = input.decisions.map((d) => {
+      const planned = byStudent.get(d.studentProfileId);
+      return {
+        ...(planned ?? {
+          studentProfileId: d.studentProfileId,
+          displayName: "",
+          studentId: "",
+          currentClassId: "",
+          currentClassName: "",
+          currentLevel: "",
+          arm: "",
+          targetClassId: null,
+          targetClassName: null,
+          blocker: null,
+          yearAverage: null,
+          yearGrade: null,
+          termsCounted: 0,
+          academicProposal: "UNKNOWN" as const,
+          academicNote: null,
+        }),
+        proposedOutcome: d.outcome,
+        targetClassId: d.targetClassId ?? planned?.targetClassId ?? null,
+        overrideReason: reasonFor.get(d.studentProfileId) ?? null,
+      };
+    });
+
+    await recordPromotionDecisions({
+      schoolId: user.schoolId,
+      fromSessionId: input.fromSessionId,
+      toSessionId: input.toSessionId,
+      actorUserId: user.id,
+      plan: rows,
+      fromSessionLabel: fromSession?.label ?? "",
+      toSessionLabel: toSession?.label ?? null,
+    });
+  } catch (e) {
+    auditRecorded = false;
+    recordError = e instanceof Error ? e.message : "Could not record the decisions.";
+  }
+
+  return NextResponse.json({ ok: true, result, auditRecorded, recordError });
 }

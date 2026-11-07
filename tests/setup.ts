@@ -130,6 +130,7 @@ const mockPrisma = {
     update: vi.fn(),
     updateMany: vi.fn(),
     deleteMany: vi.fn(),
+    count: vi.fn().mockResolvedValue(0),
   },
   term: {
     findFirst: vi.fn(),
