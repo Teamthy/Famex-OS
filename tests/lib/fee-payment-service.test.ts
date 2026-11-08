@@ -79,13 +79,31 @@ describe("postCompletedFeePayment — amount validation", () => {
   });
 });
 
+/**
+ * A stored payment that matches baseInput exactly.
+ *
+ * Replay protection is now conditional on the stored row being the SAME
+ * payment (see "replay must be the same payment" below), so these idempotency
+ * tests need a realistic row rather than {id, reference}.
+ */
+const storedPayment = {
+  id: "pay_existing",
+  reference: baseInput.reference,
+  schoolId: baseInput.schoolId,
+  invoiceId: baseInput.invoiceId,
+  studentProfileId: baseInput.studentProfileId,
+  amount: baseInput.amount,
+  method: baseInput.method,
+  status: "COMPLETED",
+};
+
 describe("postCompletedFeePayment — idempotency (double-charge prevention)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("returns the existing payment and flags replay when the reference was already posted", async () => {
-    const existing = { id: "pay_existing", reference: baseInput.reference, amount: 25_000 };
+    const existing = { ...storedPayment };
     mockPrisma.feePayment.findUnique.mockResolvedValue(existing);
 
     const { postCompletedFeePayment } = await import("@/lib/fee-payment-service");
@@ -96,7 +114,7 @@ describe("postCompletedFeePayment — idempotency (double-charge prevention)", (
   });
 
   it("does NOT touch the invoice balance on replay", async () => {
-    mockPrisma.feePayment.findUnique.mockResolvedValue({ id: "pay_existing" });
+    mockPrisma.feePayment.findUnique.mockResolvedValue({ ...storedPayment });
 
     const { postCompletedFeePayment } = await import("@/lib/fee-payment-service");
     await postCompletedFeePayment(baseInput);
@@ -107,7 +125,7 @@ describe("postCompletedFeePayment — idempotency (double-charge prevention)", (
   });
 
   it("is safe to call repeatedly — Paystack retries the same reference", async () => {
-    mockPrisma.feePayment.findUnique.mockResolvedValue({ id: "pay_existing" });
+    mockPrisma.feePayment.findUnique.mockResolvedValue({ ...storedPayment });
     const { postCompletedFeePayment } = await import("@/lib/fee-payment-service");
 
     const results = await Promise.all([
@@ -256,5 +274,92 @@ describe("postCompletedFeePayment — successful post", () => {
     await postCompletedFeePayment(baseInput);
 
     expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * Replay binding (B-04).
+ *
+ * A reference arrives from a parent's browser and from Paystack's webhook, so
+ * "this reference exists" says nothing about WHICH payment it is. The service
+ * used to return the stored row on a reference match alone, which let a
+ * replayed reference be reported as success against the wrong invoice, child,
+ * amount or method — money booked nowhere the caller could see.
+ */
+describe("postCompletedFeePayment — replay must be the same payment", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const stored = {
+    id: "pay_existing",
+    reference: baseInput.reference,
+    schoolId: "school_1",
+    invoiceId: "inv_1",
+    studentProfileId: "stu_1",
+    amount: 25_000,
+    method: "PAYSTACK",
+    status: "COMPLETED",
+  };
+
+  it("returns the same payment when every immutable field matches", async () => {
+    mockPrisma.feePayment.findUnique.mockResolvedValue(stored);
+    const { postCompletedFeePayment } = await import("@/lib/fee-payment-service");
+    const result = await postCompletedFeePayment(baseInput);
+    expect(result.replay).toBe(true);
+    expect(result.payment.id).toBe("pay_existing");
+    // Nothing was posted a second time.
+    expect(mockPrisma.feePayment.create).not.toHaveBeenCalled();
+    expect(mockPrisma.feeInvoice.updateMany).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["invoice", { invoiceId: "inv_OTHER" }],
+    ["student", { studentProfileId: "stu_OTHER" }],
+    ["amount", { amount: 30_000 }],
+    ["method", { method: "CASH" as const }],
+    ["school", { schoolId: "school_OTHER" }],
+  ])("refuses a replay that differs by %s", async (_label, override) => {
+    mockPrisma.feePayment.findUnique.mockResolvedValue(stored);
+    const { postCompletedFeePayment, FeePaymentReferenceConflict } = await import(
+      "@/lib/fee-payment-service"
+    );
+    await expect(
+      postCompletedFeePayment({ ...baseInput, ...override }),
+    ).rejects.toBeInstanceOf(FeePaymentReferenceConflict);
+    // Critically: it did not silently succeed, and did not post anything.
+    expect(mockPrisma.feePayment.create).not.toHaveBeenCalled();
+  });
+
+  it("names what disagreed, so finance can find both payments", async () => {
+    mockPrisma.feePayment.findUnique.mockResolvedValue(stored);
+    const { postCompletedFeePayment } = await import("@/lib/fee-payment-service");
+    await expect(
+      postCompletedFeePayment({ ...baseInput, invoiceId: "inv_OTHER", amount: 1 }),
+    ).rejects.toMatchObject({
+      code: "PAYMENT_REFERENCE_CONFLICT",
+      existingPaymentId: "pay_existing",
+      mismatches: ["invoice", "amount"],
+    });
+  });
+
+  it("does not treat an unfinished payment as proof of payment", async () => {
+    // A PENDING/FAILED row with this reference must not be reported as paid.
+    mockPrisma.feePayment.findUnique.mockResolvedValue({ ...stored, status: "PENDING" });
+    const { postCompletedFeePayment, FeePaymentReferenceConflict } = await import(
+      "@/lib/fee-payment-service"
+    );
+    await expect(postCompletedFeePayment(baseInput)).rejects.toBeInstanceOf(
+      FeePaymentReferenceConflict,
+    );
+  });
+
+  it("still posts normally when the reference is new", async () => {
+    mockPrisma.feePayment.findUnique.mockResolvedValue(null);
+    primeSuccessfulPost();
+    const { postCompletedFeePayment } = await import("@/lib/fee-payment-service");
+    const result = await postCompletedFeePayment(baseInput);
+    expect(result.replay).toBe(false);
+    expect(mockPrisma.feePayment.create).toHaveBeenCalledTimes(1);
   });
 });

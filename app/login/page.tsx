@@ -7,22 +7,32 @@ import { safeNextPath } from "@/lib/safe-redirect";
 import { LockKeyhole, ShieldCheck, AlertCircle, GraduationCap, User, Users } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { useSchoolProfile } from "@/components/SchoolProfileContext";
+import { portalHome } from "@/lib/portal-access";
 
-const destinations: Record<string, string> = {
-  ADMIN: "/admin",
-  DIRECTOR: "/admin",
-  PROPRIETOR: "/admin",
-  PRINCIPAL: "/admin",
-  VICE_PRINCIPAL: "/admin",
+/**
+ * Where each role lands after sign-in.
+ *
+ * Derived from lib/portal-access.ts rather than written out again. This table
+ * and the middleware used to be two lists that disagreed: the login screen
+ * sent a principal to /admin, middleware refused it because a principal was
+ * not on ITS list, and the redirect fell through to /student/dashboard — also
+ * refused. The principal could not get in at all.
+ *
+ * A role that is not in the map lands on its portal home, which every role in
+ * the enum is guaranteed to be allowed into.
+ */
+const DESTINATION_OVERRIDES: Record<string, string> = {
+  // A central-admissions desk is a different job from running the school.
   COORDINATOR: "/admin-admissions",
+  // The bursar's day starts in fees, not on the dashboard.
   BURSAR: "/admin/fees",
-  LIBRARIAN: "/admin/library",
-  NURSE: "/admin/clinic",
-  HOD: "/teacher/dashboard",
-  TEACHER: "/teacher/dashboard",
-  PARENT: "/parent/dashboard",
-  STUDENT: "/student/dashboard",
 };
+
+/** Resolve a role to a portal it is guaranteed to be allowed into. */
+function loginDestination(role: string): string {
+  return DESTINATION_OVERRIDES[role] ?? portalHome(role);
+}
+
 
 const portalContext: Record<string, { heading: string; sub: string; icon: typeof GraduationCap }> =
   {
@@ -88,7 +98,7 @@ function LoginForm() {
       await refresh();
       // Only same-site paths are honoured; anything else falls back to the role's home page.
       const next = safeNextPath(searchParams.get("next"), window.location.origin);
-      router.replace(next ?? destinations[body.user.role] ?? "/");
+      router.replace(next ?? loginDestination(body.user.role));
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to sign in.");
     } finally {
@@ -111,7 +121,7 @@ function LoginForm() {
       if (!response.ok) throw new Error(body.error);
       await refresh();
       const next = safeNextPath(searchParams.get("next"), window.location.origin);
-      router.replace(next ?? destinations[body.user.role] ?? "/");
+      router.replace(next ?? loginDestination(body.user.role));
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to verify that code.");
     } finally {

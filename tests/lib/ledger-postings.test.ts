@@ -216,7 +216,19 @@ describe("wiring — the documents that already existed now post", () => {
     const { postCompletedFeePayment } = await import("@/lib/fee-payment-service");
 
     // The unique reference already exists — this is the retry of a webhook.
-    db.feePayment.findUnique.mockResolvedValue({ id: "pay_1", amount: 25_000 });
+    // The row must describe the SAME payment: replay protection now compares
+    // every immutable field, because a reference alone says nothing about which
+    // invoice or child it settled (B-04).
+    db.feePayment.findUnique.mockResolvedValue({
+      id: "pay_1",
+      reference: "YKC-PAY-2026-ABCDEF123456",
+      schoolId: "school_1",
+      invoiceId: "inv_1",
+      studentProfileId: "stu_1",
+      amount: 25_000,
+      method: "PAYSTACK",
+      status: "COMPLETED",
+    });
 
     const result = await postCompletedFeePayment({
       schoolId: "school_1",

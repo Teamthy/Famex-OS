@@ -7,7 +7,10 @@ import {
   generatePaymentReference,
   generateUniqueReceiptNumber,
 } from "@/lib/finance";
-import { postCompletedFeePayment } from "@/lib/fee-payment-service";
+import {
+  FeePaymentReferenceConflict,
+  postCompletedFeePayment,
+} from "@/lib/fee-payment-service";
 import { getClientIp } from "@/lib/requests";
 import { requireModule } from "@/lib/module-guard";
 import { isOfflineReplay } from "@/lib/fee-guard";
@@ -232,6 +235,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ payment: result.payment, replay: result.replay });
   } catch (error) {
+    // A reused reference is a 409, not a 400: the input was well-formed, the
+    // conflict is with state. A bursar retrying after a 400 will keep failing.
+    if (error instanceof FeePaymentReferenceConflict) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: 409 },
+      );
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unable to process payment." },
       { status: 400 },

@@ -2,7 +2,10 @@ import { FeePaymentMethod, PaymentStatus } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { getParentFinanceContext } from "@/lib/finance";
-import { postCompletedFeePayment } from "@/lib/fee-payment-service";
+import {
+  FeePaymentReferenceConflict,
+  postCompletedFeePayment,
+} from "@/lib/fee-payment-service";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { PaystackVerificationError, verifyPaystackTransaction } from "@/lib/paystack";
@@ -138,6 +141,32 @@ export async function POST(request: NextRequest) {
       replay: result.replay,
     });
   } catch (error) {
+    /**
+     * A reused reference is a definite answer, and not this caller's payment.
+     *
+     * It must not be reported as "inconclusive, try again": retrying cannot
+     * help, because the reference is what the provider will keep returning.
+     * The attempt is left PENDING — the money may well have been taken — and
+     * flagged for finance to reconcile against the payment already stored.
+     */
+    if (error instanceof FeePaymentReferenceConflict) {
+      logger.error("Fee payment reference reused for a different payment", {
+        reference: error.reference,
+        existingPaymentId: error.existingPaymentId,
+        mismatches: error.mismatches,
+        attemptId: attempt.id,
+        invoiceId: attempt.invoiceId,
+      });
+      return jsonNoStore(
+        {
+          error:
+            "This payment reference has already been used for a different payment. Nothing has been recorded twice; please contact the bursary so both payments can be reconciled.",
+          code: error.code,
+        },
+        { status: 409 },
+      );
+    }
+
     // Only a DEFINITIVE "no" from Paystack may fail the attempt. An
     // inconclusive verification — network error, timeout, 429, malformed
     // response — leaves the attempt PENDING so the parent can retry and the

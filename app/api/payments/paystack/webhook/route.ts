@@ -2,7 +2,10 @@ import { FeePaymentMethod, PaymentStatus } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { APPLICATION_FEE_KOBO } from "@/lib/admissions";
 import { markApplicationPaid } from "@/lib/admission-service";
-import { postCompletedFeePayment } from "@/lib/fee-payment-service";
+import {
+  FeePaymentReferenceConflict,
+  postCompletedFeePayment,
+} from "@/lib/fee-payment-service";
 import { prisma } from "@/lib/prisma";
 import { toPrismaJson, verifyPaystackWebhookSignature } from "@/lib/paystack";
 import { jsonNoStore } from "@/lib/requests";
@@ -89,6 +92,24 @@ export async function POST(request: NextRequest) {
     await markApplicationPaid(application.applicationId, reference, toPrismaJson(payload));
     return jsonNoStore({ ok: true });
   } catch (error) {
+    /**
+     * A reference conflict means the money is real but already booked elsewhere.
+     *
+     * Paystack retries a 5xx until it gives up, which helps nobody: the same
+     * conflict will be there each time. Acknowledge it so the retries stop,
+     * and log at error level with the reference so finance can find both
+     * payments. Silently returning 200 without the log would be the worst
+     * outcome — the money would be invisible.
+     */
+    if (error instanceof FeePaymentReferenceConflict) {
+      logger.error("Paystack webhook: reference already used for a different payment", {
+        reference: error.reference,
+        existingPaymentId: error.existingPaymentId,
+        mismatches: error.mismatches,
+      });
+      return jsonNoStore({ ok: true, reconciled: false });
+    }
+
     logger.error("Paystack webhook failed", {
       error: error instanceof Error ? error.message : String(error),
     });

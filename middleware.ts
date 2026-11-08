@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveAllowedOrigin } from "@/lib/cors";
 import { buildContentSecurityPolicy, storageUploadOrigin } from "@/lib/csp";
 import { mustCompletePasswordChange, PASSWORD_CHANGE_REQUIRED } from "@/lib/password-gate";
+import { canAccessPath, refusalRedirect } from "@/lib/portal-access";
 
 const protectedPrefixes = [
   "/admin",
@@ -25,11 +26,21 @@ const protectedPrefixes = [
 const publicPaths = ["/staff/activate"];
 const encoder = new TextEncoder();
 
-function destinationFor(role: string) {
-  if (["ADMIN", "DIRECTOR", "COORDINATOR", "BURSAR"].includes(role)) return "/admin";
-  if (["TEACHER", "HOD"].includes(role)) return "/teacher/dashboard";
-  if (role === "PARENT") return "/parent/dashboard";
-  return "/student/dashboard";
+/**
+ * Where a role belongs now lives in lib/portal-access.ts, shared with the login
+ * screen and the API guards. It used to be a local list here that was narrower
+ * than lib/roles.ts: any role it did not name — proprietor, principal,
+ * vice-principal, librarian, nurse — fell through to /student/dashboard, which
+ * the access check then refused, sending them back here in an endless redirect
+ * on the account that owns the school.
+ */
+
+/** Refuse with 403 rather than redirect into the page we just came from. */
+function forbid(request: NextRequest, role: string, pathname: string) {
+  const url = new URL("/forbidden", request.url);
+  url.searchParams.set("from", pathname);
+  url.searchParams.set("role", role);
+  return NextResponse.rewrite(url, { status: 403 });
 }
 
 /**
@@ -181,23 +192,7 @@ async function routeRequest(request: NextRequest) {
       return NextResponse.redirect(new URL("/change-password", request.url));
     }
 
-    const changePasswordPath = pathname.startsWith("/change-password");
-    const adminPath = pathname.startsWith("/admin") || pathname.startsWith("/admin-admissions");
-    const teacherPath = pathname.startsWith("/teacher");
-    const parentPath = pathname.startsWith("/parent");
-    const studentPath = pathname.startsWith("/student");
-    const staffPath = pathname.startsWith("/staff");
-
-    const allowed =
-      changePasswordPath ||
-      (adminPath && ["ADMIN", "DIRECTOR", "COORDINATOR", "BURSAR"].includes(role)) ||
-      (teacherPath && ["TEACHER", "HOD", "ADMIN", "DIRECTOR"].includes(role)) ||
-      (parentPath && role === "PARENT") ||
-      (studentPath && role === "STUDENT") ||
-      (staffPath &&
-        ["TEACHER", "HOD", "ADMIN", "DIRECTOR", "COORDINATOR", "BURSAR"].includes(role));
-
-    if (!allowed) {
+    if (!canAccessPath(role, pathname)) {
       logDenial(
         "AUTH_DENIED_INSUFFICIENT_ROLE",
         pathname,
@@ -205,7 +200,17 @@ async function routeRequest(request: NextRequest) {
         `Role ${role} cannot access ${pathname}.`,
         ip,
       );
-      return NextResponse.redirect(new URL(destinationFor(role), request.url));
+      /**
+       * Send them home only if that is somewhere else.
+       *
+       * When the destination IS the page they asked for, the redirect is a
+       * loop: /admin → /admin → /admin. That is exactly what a principal hit.
+       * A 403 with the reason is worse to look at and far better to be stuck
+       * in, because it can be read and reported.
+       */
+      const destination = refusalRedirect(role, pathname);
+      if (destination === null) return forbid(request, role, pathname);
+      return NextResponse.redirect(new URL(destination, request.url));
     }
     return NextResponse.next();
   } catch {

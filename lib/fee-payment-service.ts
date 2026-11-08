@@ -10,6 +10,31 @@ import { computeInvoiceStatus, generateUniqueReceiptNumber } from "@/lib/finance
 import { postPaymentReceipt } from "@/lib/ledger-postings";
 
 /**
+ * A reference was reused for a payment that is not the one already stored.
+ *
+ * Distinct from a validation error: the caller must not retry, and the two
+ * payments involved need a human. Routes map this to a 409.
+ */
+export class FeePaymentReferenceConflict extends Error {
+  readonly code = "PAYMENT_REFERENCE_CONFLICT" as const;
+  readonly reference: string;
+  readonly existingPaymentId: string;
+  readonly mismatches: string[];
+
+  constructor(reference: string, existingPaymentId: string, mismatches: string[]) {
+    super(
+      `Payment reference ${reference} has already been used for a different payment (${mismatches.join(
+        ", ",
+      )}). This payment has not been recorded; finance must reconcile the two.`,
+    );
+    this.name = "FeePaymentReferenceConflict";
+    this.reference = reference;
+    this.existingPaymentId = existingPaymentId;
+    this.mismatches = mismatches;
+  }
+}
+
+/**
  * Atomically post a completed school-fee payment.
  * - Unique payment.reference makes retries idempotent.
  * - Invoice balance is reserved with updateMany (optimistic concurrency).
@@ -45,6 +70,44 @@ export async function postCompletedFeePayment(input: {
   return prisma.$transaction(async (tx) => {
     const existing = await tx.feePayment.findUnique({ where: { reference: input.reference } });
     if (existing) {
+      /**
+       * A replay is only a replay if it is the SAME payment.
+       *
+       * This used to return the existing row on a reference match alone. The
+       * reference arrives from a client (a parent's verification call) and
+       * from Paystack's webhook, so "reference exists" says nothing about
+       * which invoice, student or amount it settled. A replayed reference
+       * could therefore be reported as success against the wrong financial
+       * context: the caller believes invoice A is paid, while the money sits
+       * against invoice B — or on a different child entirely.
+       *
+       * Now every immutable field the caller supplied must match the stored
+       * payment. Anything else is a conflict, and finance has to look at it.
+       * The one field deliberately not compared is `attemptId`: the attempt
+       * row is created before the payment, and a legitimate retry of the same
+       * attempt must still succeed.
+       */
+      const mismatches: string[] = [];
+      if (existing.schoolId !== input.schoolId) mismatches.push("school");
+      if (existing.invoiceId !== input.invoiceId) mismatches.push("invoice");
+      if (existing.studentProfileId !== input.studentProfileId) mismatches.push("student");
+      if (existing.amount !== input.amount) mismatches.push("amount");
+      if (existing.method !== input.method) mismatches.push("method");
+
+      if (mismatches.length > 0) {
+        // Deliberately not a silent success and not a generic failure: the
+        // caller needs to know a reference was reused, because one of the two
+        // payments is unaccounted for.
+        throw new FeePaymentReferenceConflict(input.reference, existing.id, mismatches);
+      }
+
+      // A payment that did not complete is not proof of payment.
+      if (existing.status !== FeePaymentStatus.COMPLETED) {
+        throw new FeePaymentReferenceConflict(input.reference, existing.id, [
+          `status:${existing.status}`,
+        ]);
+      }
+
       return { payment: existing, replay: true as const };
     }
 

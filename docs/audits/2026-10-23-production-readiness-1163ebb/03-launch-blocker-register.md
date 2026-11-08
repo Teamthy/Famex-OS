@@ -54,7 +54,10 @@
 
 ## B-04 — Fee payment reference replay is not bound to the intended attempt
 
-- **Severity/status:** P0 / FAIL
+- **Severity/status:** P0 / **FIXED** — replay is now bound to the payment it claims to be
+- **Fixed (this branch):** `postCompletedFeePayment()` returned any row whose `reference` matched, without comparing the invoice, student, amount, method or status the caller supplied. A replayed reference could therefore be reported as success against the wrong financial context — the caller believes invoice A is settled while the money sits against invoice B, or against another child.
+  Now every immutable supplied field must match the stored payment; anything else raises `FeePaymentReferenceConflict` (409), naming what disagreed so finance can find both payments. A stored payment that is not `COMPLETED` is likewise not proof of payment. The parent verification route returns 409 instead of the misleading 503 "inconclusive", the admin route returns 409 instead of 400, and the Paystack webhook acknowledges without retrying while logging at error level — a 5xx there would make Paystack retry a conflict that cannot resolve itself. Covered by 6 new cases in `tests/lib/fee-payment-service.test.ts`, including one per differing field.
+- **Still open:** offline `PENDING_REVIEW` collisions, refund/chargeback reversal postings, and full segregation of duties (see B-16).
 - **Evidence:** `lib/fee-payment-service.ts:46–49`, `postCompletedFeePayment()`, finds an existing payment solely by `reference` and returns it as a replay before validating the supplied school, invoice, student, amount, method, status, or `attemptId`. Parent verification and the Paystack webhook both call this service (`app/api/parent/fees/payments/route.ts`, `app/api/payments/paystack/webhook/route.ts`). Source review also found offline `PENDING_REVIEW` collisions/dead ends, paid-attempt rebinding risk, and ignored refund/chargeback webhook events.
 - **Impact:** A duplicate/conflicting reference can be reported as success for the wrong financial context, strand a legitimate payment, or conceal a reversal. Ledger balance checks do not cure wrong-document binding.
 - **Required fix:** Resolve and lock the server-created attempt first; compare every immutable field; transition attempt and payment atomically; make replay return success only for an exact match and a conflict otherwise; implement first-class pending-review completion/rejection and refund/chargeback reversal postings.
@@ -85,7 +88,11 @@
 
 ## B-06 — Leadership and operations roles have inconsistent page/API authority
 
-- **Severity/status:** P0 / FAIL
+- **Severity/status:** P0 / **FIXED** — one shared role × portal matrix
+- **Fixed (this branch):** the three surfaces now read one source. `lib/portal-access.ts` defines `canAccessPath`, `portalHome` and `refusalRedirect`; `middleware.ts` and `app/login/page.tsx` both call them, and the API role groups in `lib/roles.ts` are the same lists.
+  The reported symptom was worse than "may be unable to work": a principal who signed in was sent to `/admin`, refused by middleware (whose hard-coded list omitted `PRINCIPAL`), and redirected to `destinationFor(role)` — which fell through to `/student/dashboard`, also refused, and bounced back. **That is an unbreakable loop on the account of the person who owns the school**; a nurse and a librarian hit the same loop. Separately, a nurse would have been handed the entire admin workspace the moment she was added to the portal role list.
+  Now: every role in the enum resolves to a home it is actually allowed to open (asserted for all 13); `LIBRARIAN`/`NURSE` are confined to clinic/library/inventory rather than the whole workspace; and a refusal redirects only when the destination differs from the request, otherwise rendering a real 403 at the new `/forbidden` page. `tests/lib/portal-access.test.ts` walks every role × every portal (21 cases), including the "never redirect to somewhere the role cannot open" invariant.
+- **Still open:** provisioning UI for the estate roles, and per-object (record-level) authority.
 - **Evidence:** `lib/roles.ts` defines `PROPRIETOR`, `PRINCIPAL`, `VICE_PRINCIPAL`, `LIBRARIAN`, and `NURSE`; `app/login/page.tsx` sends several to `/admin` destinations. `middleware.ts:26–31` defaults unhandled roles to `/student/dashboard`, while its admin/staff allowlists omit those roles. Role-group APIs can still authorize some of them.
 - **Impact:** The proprietor/principal/nurse/librarian may be unable to work, loop between pages, or possess API authority without a coherent UI/audit path.
 - **Required fix:** Define one server-enforced role × page × API × object matrix, use the same role groups in middleware/login/nav/APIs, add provisioning for every supported role, and remove or explicitly disable unsupported roles.
