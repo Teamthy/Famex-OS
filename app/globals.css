@@ -1617,7 +1617,10 @@ button:disabled {
   padding-bottom: 4mm;
   border-bottom: 2.5pt solid #0c1824;
 }
-.rc-sheet .rc-head__text { flex: 1 1 auto; min-width: 0; }
+.rc-sheet .rc-head__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 .rc-sheet .rc-school {
   margin: 0;
   font-size: 17pt;
@@ -1663,7 +1666,9 @@ button:disabled {
 }
 
 /* ── Sections ───────────────────────────────────────────────────────────── */
-.rc-sheet .rc-section { margin-bottom: 6mm; }
+.rc-sheet .rc-section {
+  margin-bottom: 6mm;
+}
 .rc-sheet .rc-section__title {
   margin: 0 0 2.5mm;
   font-size: 11pt;
@@ -1674,8 +1679,13 @@ button:disabled {
 }
 
 /* ── Ruled fields ───────────────────────────────────────────────────────── */
-.rc-sheet .rc-grid { display: grid; gap: 3mm 8mm; }
-.rc-sheet .rc-grid--2 { grid-template-columns: 1fr 1fr; }
+.rc-sheet .rc-grid {
+  display: grid;
+  gap: 3mm 8mm;
+}
+.rc-sheet .rc-grid--2 {
+  grid-template-columns: 1fr 1fr;
+}
 .rc-sheet .rc-grid--bottom {
   grid-template-columns: 1fr 1.35fr;
   align-items: start;
@@ -1704,7 +1714,9 @@ button:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.rc-sheet .rc-field__value--empty { font-weight: 400; }
+.rc-sheet .rc-field__value--empty {
+  font-weight: 400;
+}
 
 /* ── Marks table ────────────────────────────────────────────────────────── */
 .rc-sheet .rc-table {
@@ -1734,11 +1746,22 @@ button:disabled {
      the signatures and the verification strip. */
   height: 8mm;
 }
-.rc-sheet .rc-table__subject { width: 34%; text-align: left; font-weight: 600; }
-.rc-sheet .rc-table__remarks { width: 30%; text-align: left; }
-.rc-sheet .rc-center { text-align: center; }
+.rc-sheet .rc-table__subject {
+  width: 34%;
+  text-align: left;
+  font-weight: 600;
+}
+.rc-sheet .rc-table__remarks {
+  width: 30%;
+  text-align: left;
+}
+.rc-sheet .rc-center {
+  text-align: center;
+}
 /* Blank ruled rows keep the empty form usable when filled in by hand. */
-.rc-sheet .rc-table__blank td { height: 8mm; }
+.rc-sheet .rc-table__blank td {
+  height: 8mm;
+}
 
 .rc-sheet .rc-summary {
   display: flex;
@@ -1749,10 +1772,15 @@ button:disabled {
   font-size: 9.5pt;
   border-top: 0.75pt solid #9ca3af;
 }
-.rc-sheet .rc-summary strong { color: #0c1824; }
+.rc-sheet .rc-summary strong {
+  color: #0c1824;
+}
 
 /* ── Attendance + comments ──────────────────────────────────────────────── */
-.rc-sheet .rc-attendance { display: grid; gap: 1mm; }
+.rc-sheet .rc-attendance {
+  display: grid;
+  gap: 1mm;
+}
 .rc-sheet .rc-comment-box {
   min-height: 34mm;
   padding: 2.5mm;
@@ -1768,17 +1796,28 @@ button:disabled {
     #d1d5db 6.75mm
   );
 }
-.rc-sheet .rc-remark { margin: 2.5mm 0 0; font-size: 9.5pt; }
+.rc-sheet .rc-remark {
+  margin: 2.5mm 0 0;
+  font-size: 9.5pt;
+}
 
 /* ── Signatures ─────────────────────────────────────────────────────────── */
-.rc-sheet .rc-signature { padding-top: 11mm; }
+.rc-sheet .rc-signature {
+  padding-top: 11mm;
+}
 .rc-sheet .rc-signature__line {
   display: block;
   border-top: 0.75pt solid #111827;
   margin-bottom: 1.5mm;
 }
-.rc-sheet .rc-signature__label { font-size: 9pt; color: #374151; }
-.rc-sheet .rc-footnote { margin: 3mm 0 0; font-size: 9pt; }
+.rc-sheet .rc-signature__label {
+  font-size: 9pt;
+  color: #374151;
+}
+.rc-sheet .rc-footnote {
+  margin: 3mm 0 0;
+  font-size: 9pt;
+}
 
 /* ── Verification strip ─────────────────────────────────────────────────── */
 .rc-sheet .rc-verify {
@@ -1791,7 +1830,11 @@ button:disabled {
   font-size: 8pt;
   color: #374151;
 }
-.rc-sheet .rc-verify__qr { width: 22mm; height: 22mm; flex: 0 0 auto; }
+.rc-sheet .rc-verify__qr {
+  width: 22mm;
+  height: 22mm;
+  flex: 0 0 auto;
+}
 .rc-sheet .rc-verify__label {
   font-weight: 700;
   text-transform: uppercase;
@@ -1804,8 +1847,14 @@ button:disabled {
   font-size: 9pt;
   word-break: break-all;
 }
-.rc-sheet .rc-verify__url { word-break: break-all; }
-.rc-sheet .rc-verify__fee { margin-left: auto; text-align: right; font-weight: 600; }
+.rc-sheet .rc-verify__url {
+  word-break: break-all;
+}
+.rc-sheet .rc-verify__fee {
+  margin-left: auto;
+  text-align: right;
+  font-weight: 600;
+}
 
 /* ═══ PRINT ══════════════════════════════════════════════════════════════
    One card per sheet, no chrome, exact A4. The screen-only shadow, rounding
@@ -1845,11 +1894,15 @@ button:disabled {
 
   /* Force ink where the screen uses brand colour, and keep the header band
      from printing as a solid block of toner. */
-  .rc-sheet .rc-title { color: #111827 !important; }
+  .rc-sheet .rc-title {
+    color: #111827 !important;
+  }
   .rc-sheet .rc-table th {
     background: #f0d9a8 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .rc-sheet .rc-head { border-bottom-color: #111827 !important; }
+  .rc-sheet .rc-head {
+    border-bottom-color: #111827 !important;
+  }
 }

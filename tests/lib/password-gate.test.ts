@@ -113,7 +113,9 @@ describe("middleware applies the gate to the API", () => {
     // The bug was ordering AND scope: the check has to happen for every API
     // request, not only the ones under a protected page prefix.
     const gateAt = middleware.indexOf("mustCompletePasswordChange(pathname)");
-    const prefixAt = middleware.indexOf("protectedPrefixes.some((prefix) => pathname.startsWith(prefix))");
+    const prefixAt = middleware.indexOf(
+      "protectedPrefixes.some((prefix) => pathname.startsWith(prefix))",
+    );
     expect(gateAt).toBeGreaterThan(-1);
     expect(prefixAt).toBeGreaterThan(-1);
     expect(gateAt).toBeLessThan(prefixAt);

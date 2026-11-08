@@ -178,9 +178,7 @@ describe("recordPromotionDecisions", () => {
       fromSessionId: FROM,
       toSessionId: TO,
       actorUserId: "u_admin",
-      plan: [
-        { ...planRow("s1"), proposedOutcome: "REPEATED", overrideReason: "Long absence" },
-      ],
+      plan: [{ ...planRow("s1"), proposedOutcome: "REPEATED", overrideReason: "Long absence" }],
       fromSessionLabel: "2025/2026",
       toSessionLabel: "2026/2027",
     });
@@ -328,10 +326,7 @@ describe("POST /api/admin/promotion", () => {
     expect(body.auditRecorded).toBe(true);
     expect(mockPrisma.promotionRecord.upsert).toHaveBeenCalledTimes(2);
 
-    const s2 = mockPrisma.promotionRecord.upsert.mock.calls[1][0].create as Record<
-      string,
-      unknown
-    >;
+    const s2 = mockPrisma.promotionRecord.upsert.mock.calls[1][0].create as Record<string, unknown>;
     expect(s2.isOverride).toBe(true);
     expect(s2.overrideReason).toBe("Failed both terms after illness");
   });

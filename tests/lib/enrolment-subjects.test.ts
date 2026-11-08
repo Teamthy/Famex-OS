@@ -19,7 +19,13 @@ type Assignment = {
   subjectName: string | null;
   classroom: { level: string };
 };
-type Subject = { id: string; name: string; code: string | null; level: string; category: SubjectCategory };
+type Subject = {
+  id: string;
+  name: string;
+  code: string | null;
+  level: string;
+  category: SubjectCategory;
+};
 
 /** Minimal stand-in for a Prisma transaction delegate. */
 function fakeTx(assignments: Assignment[], subjects: Subject[]) {
@@ -39,10 +45,34 @@ const SS1 = "SS1";
 
 function catalogue(): Subject[] {
   return [
-    { id: "mth-j1", name: "Mathematics", code: "MTH", level: JSS1, category: SubjectCategory.COMPULSORY },
-    { id: "eng-j1", name: "English Language", code: "ENG", level: JSS1, category: SubjectCategory.COMPULSORY },
-    { id: "frm-j1", name: "Further Mathematics", code: "FMTH", level: JSS1, category: SubjectCategory.ELECTIVE },
-    { id: "mth-s1", name: "Mathematics", code: "MTH", level: SS1, category: SubjectCategory.COMPULSORY },
+    {
+      id: "mth-j1",
+      name: "Mathematics",
+      code: "MTH",
+      level: JSS1,
+      category: SubjectCategory.COMPULSORY,
+    },
+    {
+      id: "eng-j1",
+      name: "English Language",
+      code: "ENG",
+      level: JSS1,
+      category: SubjectCategory.COMPULSORY,
+    },
+    {
+      id: "frm-j1",
+      name: "Further Mathematics",
+      code: "FMTH",
+      level: JSS1,
+      category: SubjectCategory.ELECTIVE,
+    },
+    {
+      id: "mth-s1",
+      name: "Mathematics",
+      code: "MTH",
+      level: SS1,
+      category: SubjectCategory.COMPULSORY,
+    },
   ];
 }
 
@@ -103,8 +133,20 @@ describe("resolveTeacherSubjects", () => {
       [{ id: "a1", classId: "c1", subjectName: "Computer", classroom: { level: JSS1 } }],
       [
         ...catalogue(),
-        { id: "csc-j1", name: "Computer Science", code: "CSC", level: JSS1, category: SubjectCategory.ELECTIVE },
-        { id: "cst-j1", name: "Computer Studies", code: "CST", level: JSS1, category: SubjectCategory.ELECTIVE },
+        {
+          id: "csc-j1",
+          name: "Computer Science",
+          code: "CSC",
+          level: JSS1,
+          category: SubjectCategory.ELECTIVE,
+        },
+        {
+          id: "cst-j1",
+          name: "Computer Studies",
+          code: "CST",
+          level: JSS1,
+          category: SubjectCategory.ELECTIVE,
+        },
       ],
     );
     const [result] = await resolveTeacherSubjects(tx, { schoolId: "s1", teacherProfileId: "t1" });
@@ -131,7 +173,10 @@ describe("resolveTeacherSubjects", () => {
 });
 
 describe("assignStudentSubjects", () => {
-  function assignTx(subjects: Subject[], existing: Array<{ subjectId: string; isActive: boolean }> = []) {
+  function assignTx(
+    subjects: Subject[],
+    existing: Array<{ subjectId: string; isActive: boolean }> = [],
+  ) {
     const created: string[] = [];
     const tx = {
       subject: {

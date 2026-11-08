@@ -2,7 +2,11 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { looksLikeVerificationCode, newVerificationCode, verificationPath } from "@/lib/verification";
+import {
+  looksLikeVerificationCode,
+  newVerificationCode,
+  verificationPath,
+} from "@/lib/verification";
 
 /**
  * Public report verification (audit B-08).

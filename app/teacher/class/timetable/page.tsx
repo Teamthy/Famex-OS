@@ -113,8 +113,8 @@ export default function ClassTimetablePage() {
                     No timetable has been entered for {className} yet
                   </p>
                   <p className="text-sm text-[var(--text-muted)]">
-                    An administrator can add it under Admin → Timetable. It will appear here, and
-                    on the student and parent screens, as soon as it is saved.
+                    An administrator can add it under Admin → Timetable. It will appear here, and on
+                    the student and parent screens, as soon as it is saved.
                   </p>
                 </div>
               )}

@@ -3,7 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { finalizeAttempt, getStudentExamContext } from "@/lib/exams";
 import { getStudentFeeLock } from "@/lib/fee-lock";
-import { classifyOfflineTiming, offlineTimingProblem, reconcileAnswers, verifyPacket } from "@/lib/offline-packet";
+import {
+  classifyOfflineTiming,
+  offlineTimingProblem,
+  reconcileAnswers,
+  verifyPacket,
+} from "@/lib/offline-packet";
 import { prisma } from "@/lib/prisma";
 import { examMinutes } from "@/lib/exams";
 
@@ -84,7 +89,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   try {
     body = schema.parse(await request.json());
   } catch {
-    return NextResponse.json({ error: "Invalid offline replay payload.", code: "BAD_PAYLOAD" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid offline replay payload.", code: "BAD_PAYLOAD" },
+      { status: 400 },
+    );
   }
 
   const exam = await prisma.exam.findFirst({
@@ -103,7 +111,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   // the sitting cannot be mapped onto this paper at all.
   if (Math.abs(body.durationMinutes - examMinutes(exam)) > 2) {
     return NextResponse.json(
-      { error: "This paper changed since it was downloaded. Your answers were not saved.", code: "STALE_PACKAGE" },
+      {
+        error: "This paper changed since it was downloaded. Your answers were not saved.",
+        code: "STALE_PACKAGE",
+      },
       { status: 409 },
     );
   }
@@ -173,7 +184,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       take: 10,
     });
     const legacy = prior.find(
-      (attempt) => ((attempt.metadata as AttemptMetadata | null)?.clientAttemptId ?? null) === body.clientAttemptId,
+      (attempt) =>
+        ((attempt.metadata as AttemptMetadata | null)?.clientAttemptId ?? null) ===
+        body.clientAttemptId,
     );
     if (legacy) {
       if (!legacy.clientAttemptId) {
@@ -330,7 +343,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   // orphaned count is the student's whole paper, not a filtered subset.
   const reconciliation = reconcileAnswers({
     answers: body.answers,
-    currentQuestions: exam.questions.map((question) => ({ id: question.id, marks: question.marks })),
+    currentQuestions: exam.questions.map((question) => ({
+      id: question.id,
+      marks: question.marks,
+    })),
   });
 
   if (!alreadyFinalized) {
@@ -340,7 +356,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     });
     const stored = new Map(existing.map((answer) => [answer.questionId, answer.response]));
     const changed = reconciliation.accepted.filter(
-      (answer) => !stored.has(answer.questionId) || stored.get(answer.questionId) !== answer.response,
+      (answer) =>
+        !stored.has(answer.questionId) || stored.get(answer.questionId) !== answer.response,
     );
 
     // Merge, never replace: an answer the device no longer sends (because it
@@ -353,7 +370,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
           prisma.examAnswer.upsert({
             where: { attemptId_questionId: { attemptId: serverId, questionId: answer.questionId } },
             update: { response: answer.response },
-            create: { attemptId: serverId, questionId: answer.questionId, response: answer.response },
+            create: {
+              attemptId: serverId,
+              questionId: answer.questionId,
+              response: answer.response,
+            },
           }),
         ),
       );
@@ -385,7 +406,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         data: {
           status: ExamAttemptStatus.SUBMITTED,
           submittedAt: new Date(),
-          metadata: { ...metadata, lateOffline: true, orphanedAnswers: orphanCount, missingAnswers: missingCount },
+          metadata: {
+            ...metadata,
+            lateOffline: true,
+            orphanedAnswers: orphanCount,
+            missingAnswers: missingCount,
+          },
         },
       });
       return NextResponse.json({
@@ -406,7 +432,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     if (finalized) {
       await prisma.examAttempt.update({
         where: { id: serverId },
-        data: { metadata: { ...metadata, orphanedAnswers: orphanCount, missingAnswers: missingCount } },
+        data: {
+          metadata: { ...metadata, orphanedAnswers: orphanCount, missingAnswers: missingCount },
+        },
       });
     }
     return NextResponse.json({

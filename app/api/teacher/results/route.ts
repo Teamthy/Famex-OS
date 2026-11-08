@@ -97,11 +97,7 @@ const patchSchema = z.discriminatedUnion("action", [editSchema, retakeSchema, re
  * can answer both "which classes does this person see" and "may they edit Maths
  * in this class" without a second round of queries per write.
  */
-async function resolveTeacherScopes(user: {
-  id: string;
-  schoolId: string;
-  role: UserRole;
-}) {
+async function resolveTeacherScopes(user: { id: string; schoolId: string; role: UserRole }) {
   const oversight = ADMIN_ROLES.includes(user.role);
   const profile = await prisma.teacherProfile.findFirst({
     where: { schoolId: user.schoolId, userId: user.id, isActive: true },
@@ -292,7 +288,7 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     const message =
       error instanceof z.ZodError
-        ? error.issues[0]?.message ?? "Invalid request."
+        ? (error.issues[0]?.message ?? "Invalid request.")
         : "Invalid request.";
     return NextResponse.json({ error: message }, { status: 400 });
   }
@@ -342,8 +338,7 @@ export async function PATCH(request: NextRequest) {
     // A subject teacher may edit only their own subject, in a class they are
     // assigned to. Being the form teacher of a class is NOT enough to change a
     // colleague's subject mark.
-    const allowed =
-      oversight || (scope ? scope.subjectNames.has(payload.subjectName) : false);
+    const allowed = oversight || (scope ? scope.subjectNames.has(payload.subjectName) : false);
     if (!allowed) {
       return NextResponse.json(
         {
@@ -374,7 +369,10 @@ export async function PATCH(request: NextRequest) {
       }
       if (error instanceof Error && error.message === "SUBJECT_NOT_FOUND") {
         return NextResponse.json(
-          { error: `This student has no ${payload.subjectName} line in this term.`, code: "LINE_NOT_FOUND" },
+          {
+            error: `This student has no ${payload.subjectName} line in this term.`,
+            code: "LINE_NOT_FOUND",
+          },
           { status: 404 },
         );
       }
@@ -397,7 +395,8 @@ export async function PATCH(request: NextRequest) {
       ok: true,
       total: outcome.total,
       grade: outcome.grade,
-      message: "Mark corrected — the student's total, average, position and year average were recalculated.",
+      message:
+        "Mark corrected — the student's total, average, position and year average were recalculated.",
     });
   }
 
@@ -628,8 +627,7 @@ export async function POST(request: NextRequest) {
     if (message === "NOTHING_TO_COMPILE") {
       return NextResponse.json(
         {
-          error:
-            "No student in this class has a marked subject or a graded CBT paper this term.",
+          error: "No student in this class has a marked subject or a graded CBT paper this term.",
           code: "NOTHING_TO_COMPILE",
         },
         { status: 409 },
@@ -647,4 +645,3 @@ export async function POST(request: NextRequest) {
     throw error;
   }
 }
-

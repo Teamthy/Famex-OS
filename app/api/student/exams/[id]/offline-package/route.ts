@@ -1,14 +1,15 @@
 import { ExamAttemptStatus, ExamStatus } from "@prisma/client";
 import { NextResponse, type NextRequest } from "next/server";
 import { getStudentExamContext } from "@/lib/exams";
-import {
-  fingerprintQuestions,
-  signPacket,
-  type OfflinePacketManifest,
-} from "@/lib/offline-packet";
+import { fingerprintQuestions, signPacket, type OfflinePacketManifest } from "@/lib/offline-packet";
 import { prisma } from "@/lib/prisma";
 import { examMinutes } from "@/lib/exams";
-import { examAvailability, startWindowRefusal, studentSubjectIds, attemptDeadline } from "@/lib/subjects";
+import {
+  examAvailability,
+  startWindowRefusal,
+  studentSubjectIds,
+  attemptDeadline,
+} from "@/lib/subjects";
 
 export const dynamic = "force-dynamic";
 
@@ -208,7 +209,11 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
   let termIndex = exam.termIndex;
   if (sessionLabel === null || termIndex === null) {
     const term = await prisma.term.findFirst({
-      where: { schoolId: exam.schoolId, startsOn: { lte: exam.createdAt }, endsOn: { gte: exam.createdAt } },
+      where: {
+        schoolId: exam.schoolId,
+        startsOn: { lte: exam.createdAt },
+        endsOn: { gte: exam.createdAt },
+      },
       select: { index: true, session: { select: { label: true } } },
     });
     sessionLabel = sessionLabel ?? term?.session.label ?? null;
@@ -244,11 +249,12 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
   const optionsShape = (options: unknown) => {
     const parsed = Array.isArray(options) ? options : [];
     return parsed
-      .filter((option): option is { key: string; text: string } =>
-        Boolean(option) &&
-        typeof option === "object" &&
-        typeof (option as { key?: unknown }).key === "string" &&
-        typeof (option as { text?: unknown }).text === "string",
+      .filter(
+        (option): option is { key: string; text: string } =>
+          Boolean(option) &&
+          typeof option === "object" &&
+          typeof (option as { key?: unknown }).key === "string" &&
+          typeof (option as { text?: unknown }).text === "string",
       )
       .map((option) => ({ key: option.key, text: option.text }));
   };

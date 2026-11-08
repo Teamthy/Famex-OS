@@ -116,7 +116,9 @@ export default function StudentExamsPage() {
    */
   const syncDownloaded = useCallback(async () => {
     const papers = await listOwnPapers(user ? { id: user.id } : null);
-    setDownloaded(new Set(papers.filter((paper) => paper.questions.length > 0).map((p) => p.examId)));
+    setDownloaded(
+      new Set(papers.filter((paper) => paper.questions.length > 0).map((p) => p.examId)),
+    );
   }, [user]);
 
   useEffect(() => {

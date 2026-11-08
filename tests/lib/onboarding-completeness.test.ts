@@ -56,10 +56,7 @@ describe("each path that creates a student must onboard them", () => {
     });
   }
 
-  for (const file of [
-    "app/api/admin/students/route.ts",
-    "app/api/teacher/students/route.ts",
-  ]) {
+  for (const file of ["app/api/admin/students/route.ts", "app/api/teacher/students/route.ts"]) {
     it(`${file} passes the current session when there is one`, () => {
       const src = code(read(file));
       expect(src).toMatch(/academicSession\.findFirst/);

@@ -100,9 +100,10 @@ export default function AdminStudentDetailPage({ params }: { params: Promise<{ i
    * gone on the next load. Nothing here writes it to storage — a password a
    * school keeps is a password somebody will eventually use.
    */
-  const [issuedLogin, setIssuedLogin] = useState<{ email: string; temporaryPassword: string } | null>(
-    null,
-  );
+  const [issuedLogin, setIssuedLogin] = useState<{
+    email: string;
+    temporaryPassword: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -274,22 +275,30 @@ export default function AdminStudentDetailPage({ params }: { params: Promise<{ i
                           disabled={loginBusy}
                           className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:border-brand-orange hover:text-brand-orange disabled:opacity-40"
                         >
-                          {loginBusy ? <LoaderCircle size={12} className="animate-spin" /> : <KeyRound size={12} />}
+                          {loginBusy ? (
+                            <LoaderCircle size={12} className="animate-spin" />
+                          ) : (
+                            <KeyRound size={12} />
+                          )}
                           Reset password
                         </button>
                       </div>
                     ) : (
                       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                         <p className="text-sm text-[var(--text-secondary)]">
-                          No login yet. Without one this student cannot see their timetable,
-                          exams, results or fees.
+                          No login yet. Without one this student cannot see their timetable, exams,
+                          results or fees.
                         </p>
                         <button
                           onClick={() => void manageLogin("create")}
                           disabled={loginBusy}
                           className="inline-flex items-center gap-2 rounded-xl bg-brand-green px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-brand-navy hover:bg-brand-green-dark disabled:opacity-40"
                         >
-                          {loginBusy ? <LoaderCircle size={12} className="animate-spin" /> : <KeyRound size={12} />}
+                          {loginBusy ? (
+                            <LoaderCircle size={12} className="animate-spin" />
+                          ) : (
+                            <KeyRound size={12} />
+                          )}
                           Create login
                         </button>
                       </div>

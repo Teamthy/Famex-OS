@@ -97,10 +97,10 @@ describe("documentCompleteness", () => {
   });
 
   it("does not let an extra document type stand in for a required one", () => {
-    const result = documentCompleteness(["BIRTH_CERTIFICATE"], [
-      doc("BIRTH_CERTIFICATE", "PENDING"),
-      doc("PRIMARY_SCHOOL_REPORT", "CLEAN"),
-    ]);
+    const result = documentCompleteness(
+      ["BIRTH_CERTIFICATE"],
+      [doc("BIRTH_CERTIFICATE", "PENDING"), doc("PRIMARY_SCHOOL_REPORT", "CLEAN")],
+    );
     expect(result.complete).toBe(false);
   });
 
@@ -112,19 +112,18 @@ describe("documentCompleteness", () => {
     // The schema makes (applicationId, type) unique, so this cannot happen
     // today — but taking the best row rather than the first keeps a future
     // re-upload from being judged on read order.
-    const result = documentCompleteness(["BIRTH_CERTIFICATE"], [
-      doc("BIRTH_CERTIFICATE", "INFECTED"),
-      doc("BIRTH_CERTIFICATE", "CLEAN"),
-    ]);
+    const result = documentCompleteness(
+      ["BIRTH_CERTIFICATE"],
+      [doc("BIRTH_CERTIFICATE", "INFECTED"), doc("BIRTH_CERTIFICATE", "CLEAN")],
+    );
     expect(result.complete).toBe(true);
   });
 
   it("blocks when ANY required file is infected, even if others are clean", () => {
-    const result = documentCompleteness(["A", "B", "C"], [
-      doc("A", "CLEAN"),
-      doc("B", "INFECTED"),
-      doc("C", "CLEAN"),
-    ]);
+    const result = documentCompleteness(
+      ["A", "B", "C"],
+      [doc("A", "CLEAN"), doc("B", "INFECTED"), doc("C", "CLEAN")],
+    );
     expect(result.complete).toBe(false);
     expect(result.rejected).toEqual(["B"]);
   });
@@ -153,9 +152,7 @@ describe("documentRefusalMessage", () => {
   });
 
   it("names what is actually missing", () => {
-    const message = documentRefusalMessage(
-      documentCompleteness(["BIRTH_CERTIFICATE"], []),
-    );
+    const message = documentRefusalMessage(documentCompleteness(["BIRTH_CERTIFICATE"], []));
     expect(message).toMatch(/birth certificate/i);
   });
 });

@@ -10,13 +10,7 @@ import { ArrowLeft, Printer } from "lucide-react";
  * opened the print page can find Back and the print button without hunting
  * through the browser's menu.
  */
-export default function PrintToolbar({
-  title,
-  backHref,
-}: {
-  title: string;
-  backHref: string;
-}) {
+export default function PrintToolbar({ title, backHref }: { title: string; backHref: string }) {
   return (
     <div className="no-print mx-auto mb-6 flex max-w-[210mm] flex-wrap items-center justify-between gap-3 px-4">
       <div className="min-w-0">

@@ -67,7 +67,14 @@ export async function gradeBandsForClass(schoolId: string, classId: string): Pro
   const bands = await prisma.gradeBand.findMany({
     where: { schoolId, stage: schoolClass.stage },
     orderBy: { minScore: "desc" },
-    select: { grade: true, minScore: true, maxScore: true, remark: true, points: true, order: true },
+    select: {
+      grade: true,
+      minScore: true,
+      maxScore: true,
+      remark: true,
+      points: true,
+      order: true,
+    },
   });
   return bands.length ? bands : DEFAULT_PERCENTAGE_BANDS;
 }
@@ -362,7 +369,9 @@ export async function compileClassTermResults(
   for (const [studentId, lines] of perStudent) {
     totalsByStudent.set(
       studentId,
-      compileTerm(lines.map((line) => ({ subjectName: line.subjectName, total: line.total, included: true }))),
+      compileTerm(
+        lines.map((line) => ({ subjectName: line.subjectName, total: line.total, included: true })),
+      ),
     );
   }
   const ranked = rankByTotal(
@@ -982,7 +991,13 @@ export async function recomputeClassRanking(
 /** Subject positions across a class, after an edit to one subject line. */
 export async function recomputeSubjectRanking(
   tx: Prisma.TransactionClient,
-  params: { termResultId: string; classId: string; sessionLabel: string; termIndex: number; subjectName: string },
+  params: {
+    termResultId: string;
+    classId: string;
+    sessionLabel: string;
+    termIndex: number;
+    subjectName: string;
+  },
 ) {
   const siblings = await tx.termResult.findMany({
     where: {
@@ -1005,9 +1020,7 @@ export async function recomputeSubjectRanking(
   if (!lines.length) return;
 
   const ranked = rankByTotal(lines.map((line) => ({ id: line.id, total: line.total, data: line })));
-  const classAverage = Math.round(
-    lines.reduce((sum, line) => sum + line.total, 0) / lines.length,
-  );
+  const classAverage = Math.round(lines.reduce((sum, line) => sum + line.total, 0) / lines.length);
   for (const row of ranked) {
     await tx.termResultSubject.update({
       where: { id: row.id },

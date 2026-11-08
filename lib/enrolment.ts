@@ -237,9 +237,9 @@ export async function onboardStudent(params: {
     where: { schoolId, studentProfileId, isActive: true },
     select: { subject: { select: { name: true } } },
   });
-  const uniqueSubjectNames = [
-    ...new Set(assigned.map((row) => row.subject.name)),
-  ].sort((a, b) => a.localeCompare(b));
+  const uniqueSubjectNames = [...new Set(assigned.map((row) => row.subject.name))].sort((a, b) =>
+    a.localeCompare(b),
+  );
 
   const assignments = await tx.teacherClassAssignment.findMany({
     where: { schoolId, classId, isActive: true },

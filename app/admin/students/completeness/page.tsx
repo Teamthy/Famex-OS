@@ -108,9 +108,9 @@ export default function CompletenessPage() {
             </p>
             <h1 className="mt-1 font-display text-4xl tracking-widest">PROFILE COMPLETENESS</h1>
             <p className="mt-3 max-w-2xl text-sm text-white/70">
-              Which student records are missing what the portal needs. A record that scores well
-              can still be unusable if a <strong>critical</strong> field is missing — no guardian
-              phone means nobody is told when the child is absent.
+              Which student records are missing what the portal needs. A record that scores well can
+              still be unusable if a <strong>critical</strong> field is missing — no guardian phone
+              means nobody is told when the child is absent.
             </p>
             {data ? (
               <div className="mt-6 flex flex-wrap items-center gap-6">

@@ -94,7 +94,9 @@ export function signPacket(manifest: Omit<OfflinePacketManifest, "packetId">): {
   packetId: string;
   signature: string;
 } {
-  const signature = createHmac("sha256", secret()).update(signingPayload(manifest)).digest("base64url");
+  const signature = createHmac("sha256", secret())
+    .update(signingPayload(manifest))
+    .digest("base64url");
   return {
     packetId: `${manifest.examId.slice(-6)}-${manifest.fingerprint.slice(0, 10)}`,
     signature,
@@ -291,7 +293,11 @@ export function offlineTimingProblem(params: {
   /** How long a sitting may remain unsent. */
   maxStaleDays?: number;
   now?: Date;
-}): { code: "STARTED_BEFORE_DOWNLOAD" | "STARTED_IN_FUTURE" | "SUBMITTED_BEFORE_STARTED" | "STALE_SITTING"; message: string } | null {
+}): {
+  code:
+    "STARTED_BEFORE_DOWNLOAD" | "STARTED_IN_FUTURE" | "SUBMITTED_BEFORE_STARTED" | "STALE_SITTING";
+  message: string;
+} | null {
   const now = params.now ?? new Date();
   const maxStaleMs = (params.maxStaleDays ?? 30) * 24 * 60 * 60_000;
   const started = new Date(params.startedAt).getTime();

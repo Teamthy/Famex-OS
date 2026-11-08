@@ -317,31 +317,31 @@ describe("granted retakes and the sitting window", () => {
 
   it("reports a granted retake as ready rather than missed", async () => {
     const { examAvailability } = await import("@/lib/subjects");
-    expect(
-      examAvailability({ ...closed, hasSubmitted: false, hasRetake: true, now: after }),
-    ).toBe("READY");
+    expect(examAvailability({ ...closed, hasSubmitted: false, hasRetake: true, now: after })).toBe(
+      "READY",
+    );
   });
 
   it("still reports a completed paper as completed", async () => {
     const { examAvailability } = await import("@/lib/subjects");
-    expect(
-      examAvailability({ ...closed, hasSubmitted: true, hasRetake: false, now: after }),
-    ).toBe("COMPLETED");
+    expect(examAvailability({ ...closed, hasSubmitted: true, hasRetake: false, now: after })).toBe(
+      "COMPLETED",
+    );
   });
 
   it("reports a missed paper as closed when there is no grant", async () => {
     const { examAvailability } = await import("@/lib/subjects");
-    expect(
-      examAvailability({ ...closed, hasSubmitted: false, hasRetake: false, now: after }),
-    ).toBe("CLOSED");
+    expect(examAvailability({ ...closed, hasSubmitted: false, hasRetake: false, now: after })).toBe(
+      "CLOSED",
+    );
   });
 
   it("leaves a paper inside its window unaffected by the flag", async () => {
     const { examAvailability } = await import("@/lib/subjects");
     const during = new Date("2026-11-01T10:00:00.000Z");
-    expect(
-      examAvailability({ ...closed, hasSubmitted: false, hasRetake: true, now: during }),
-    ).toBe("READY");
+    expect(examAvailability({ ...closed, hasSubmitted: false, hasRetake: true, now: during })).toBe(
+      "READY",
+    );
     expect(
       examAvailability({ ...closed, hasSubmitted: false, hasRetake: false, now: during }),
     ).toBe("READY");

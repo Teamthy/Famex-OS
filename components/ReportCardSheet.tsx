@@ -1,9 +1,5 @@
 import QrImage from "@/components/QrImage";
-import {
-  printNumber,
-  printText,
-  type ReportCardSheetData,
-} from "@/lib/report-card-sheet";
+import { printNumber, printText, type ReportCardSheetData } from "@/lib/report-card-sheet";
 
 /**
  * The report card as it is printed.
@@ -61,8 +57,7 @@ export default function ReportCardSheet({ data }: { data: ReportCardSheetData })
           <h1 className="rc-school">{school.name || "School"}</h1>
           {school.motto ? <p className="rc-motto">{school.motto}</p> : null}
           <p className="rc-contact">
-            {[school.address, school.phone, school.email].filter(Boolean).join("  ·  ") ||
-              "\u00a0"}
+            {[school.address, school.phone, school.email].filter(Boolean).join("  ·  ") || "\u00a0"}
           </p>
         </div>
         {school.logoUrl ? (
@@ -155,9 +150,7 @@ export default function ReportCardSheet({ data }: { data: ReportCardSheetData })
 
         <div className="rc-section">
           <h3 className="rc-section__title">TEACHER COMMENTS</h3>
-          <div className="rc-comment-box">
-            {printText(classTeacherRemark) || ""}
-          </div>
+          <div className="rc-comment-box">{printText(classTeacherRemark) || ""}</div>
           {printText(directorRemark) ? (
             <p className="rc-remark">
               <strong>Director:</strong> {printText(directorRemark)}

@@ -3,7 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireModule } from "@/lib/module-guard";
-import { buildPlan, commitPromotion, recordPromotionDecisions, summarisePlan } from "@/lib/promotion";
+import {
+  buildPlan,
+  commitPromotion,
+  recordPromotionDecisions,
+  summarisePlan,
+} from "@/lib/promotion";
 
 export const dynamic = "force-dynamic";
 

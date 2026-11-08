@@ -168,7 +168,6 @@ export async function finalizeAttempt(attemptId: string) {
   return results[results.length - 1] as Awaited<ReturnType<typeof prisma.examAttempt.update>>;
 }
 
-
 /**
  * How long a sitting on this paper actually is.
  *

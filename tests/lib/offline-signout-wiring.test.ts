@@ -76,12 +76,16 @@ describe("the pages that read papers use the scoped accessors", () => {
     // getPaper is the unscoped read. Using it here hands a child whatever
     // paper is on the device, whoever downloaded it.
     expect(runner).toMatch(/getOwnPaper\s*\(/);
-    expect(runner).not.toMatch(/import \{[^}]*\bgetPaper\b[^}]*\} from "@\/lib\/offline\/exam-store"/);
+    expect(runner).not.toMatch(
+      /import \{[^}]*\bgetPaper\b[^}]*\} from "@\/lib\/offline\/exam-store"/,
+    );
   });
 
   it("the list does not enumerate every paper on the device", () => {
     const list = read("app/student/exams/page.tsx");
     expect(list).toMatch(/listOwnPapers\s*\(/);
-    expect(list).not.toMatch(/import \{[^}]*\blistPapers\b[^}]*\} from "@\/lib\/offline\/exam-store"/);
+    expect(list).not.toMatch(
+      /import \{[^}]*\blistPapers\b[^}]*\} from "@\/lib\/offline\/exam-store"/,
+    );
   });
 });

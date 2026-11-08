@@ -630,8 +630,7 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
     return (
       <main className="flex min-h-screen items-center justify-center bg-brand-navy">
         <div className="flex items-center gap-3 text-white/70">
-          <LoaderCircle className="animate-spin text-brand-green" size={22} /> Preparing your
-          exam…
+          <LoaderCircle className="animate-spin text-brand-green" size={22} /> Preparing your exam…
         </div>
       </main>
     );
@@ -898,7 +897,9 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
         message={`You have answered ${answered} of ${data.questions.length} questions${
           flagged.size ? ` and flagged ${flagged.size} for review` : ""
         }. Once submitted you cannot change your answers.${
-          offline ? " You are offline: your paper will be saved on this device and sent automatically." : ""
+          offline
+            ? " You are offline: your paper will be saved on this device and sent automatically."
+            : ""
         }`}
         confirmText="Submit Exam"
         cancelText="Keep Working"

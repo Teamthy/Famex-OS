@@ -97,7 +97,9 @@ export async function buildPlan(schoolId: string, fromSessionId: string): Promis
   // Promotion is a decision about a year's work, so it reads the year's results
   // — the same compiled rows the report card and the parent portal read. Doing
   // this per student would be one query each; it is two for the session.
-  const studentIds = enrolments.filter((e) => e.studentProfile.isActive).map((e) => e.studentProfileId);
+  const studentIds = enrolments
+    .filter((e) => e.studentProfile.isActive)
+    .map((e) => e.studentProfileId);
   const results = studentIds.length
     ? await prisma.termResult.findMany({
         where: {

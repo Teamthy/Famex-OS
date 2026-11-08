@@ -66,9 +66,7 @@ async function login(email: string, password: string): Promise<string> {
     body: JSON.stringify({ email, password }),
   });
   if (!response.ok) throw new Error(`Login failed for ${email}: ${response.status}`);
-  return (response.headers.getSetCookie?.() ?? [])
-    .map((cookie) => cookie.split(";")[0])
-    .join("; ");
+  return (response.headers.getSetCookie?.() ?? []).map((cookie) => cookie.split(";")[0]).join("; ");
 }
 
 async function asFetch(cookie: string, url: string, init: RequestInit = {}) {
@@ -104,12 +102,12 @@ type PackageBody = {
   questions: Array<{ id: string; type: string; marks: number }>;
 };
 
-async function pickPublishedExam(
-  cookie: string,
-): Promise<{ id: string; title: string } | null> {
+async function pickPublishedExam(cookie: string): Promise<{ id: string; title: string } | null> {
   const response = await asFetch(cookie, "/api/student/exams");
   if (!response.ok) throw new Error(`student exams endpoint failed: ${response.status}`);
-  const body = (await response.json()) as { exams?: Array<{ id: string; title: string; status: string }> };
+  const body = (await response.json()) as {
+    exams?: Array<{ id: string; title: string; status: string }>;
+  };
   const published = (body.exams || []).filter((exam) => exam.status === "PUBLISHED");
   if (!published.length) return null;
   return { id: published[0].id, title: published[0].title };
@@ -208,11 +206,7 @@ function replayBody(params: {
       // The whole point of the offline design: the device records, the server
       // marks. A key in this payload is every answer in the school on a phone.
       const leaked = /"(correctKey|correctText|answerKey|isCorrect)"\s*:/.test(text);
-      record(
-        "2. package carries no answer key",
-        !leaked,
-        leaked ? "LEAKED key fields" : "clean",
-      );
+      record("2. package carries no answer key", !leaked, leaked ? "LEAKED key fields" : "clean");
     }
   } catch (error) {
     record("2. no answer keys in the package", false, String(error));
@@ -247,10 +241,7 @@ function replayBody(params: {
       const firstBody = (await first.json()) as { attemptId?: string; error?: string };
       const secondBody = (await second.json()) as { attemptId?: string; error?: string };
 
-      const ok =
-        first.ok &&
-        firstBody.attemptId &&
-        secondBody.attemptId === firstBody.attemptId;
+      const ok = first.ok && firstBody.attemptId && secondBody.attemptId === firstBody.attemptId;
 
       record(
         "3. double-submit resolves to one attempt",
@@ -450,11 +441,7 @@ function replayBody(params: {
       const response = await asFetch(teacherCookie, `/api/teacher/exams/${exam.id}/marking`);
       // 403 is a correct answer for a teacher who does not own the paper; 404
       // would mean the route is missing.
-      record(
-        "10. teacher marking queue is mounted",
-        response.status !== 404,
-        `${response.status}`,
-      );
+      record("10. teacher marking queue is mounted", response.status !== 404, `${response.status}`);
     }
   } catch (error) {
     record("10. teacher marking queue mounted", false, String(error));

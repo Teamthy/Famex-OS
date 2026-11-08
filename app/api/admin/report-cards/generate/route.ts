@@ -336,9 +336,7 @@ export async function POST(request: NextRequest) {
     const attendancePresent = compiled ? compiled.attendancePresent : attendance.present;
     // Keep the divide-by-zero guard, but only for display — a class with no
     // register taken yet shows 0/1 rather than crashing.
-    const attendanceTotal = compiled
-      ? compiled.attendanceTotal || 1
-      : attendance.total || 1;
+    const attendanceTotal = compiled ? compiled.attendanceTotal || 1 : attendance.total || 1;
 
     const feeBalance = compiled ? compiled.feeBalance : feeByStudent.get(student.id) || 0;
     const overallTotal = compiled ? compiled.totalScore : aggregate.overallTotal;
@@ -356,7 +354,9 @@ export async function POST(request: NextRequest) {
       payload.classTeacherRemark ||
       defaultTeacherRemark(overallAverage);
     const directorRemark =
-      compiled?.directorRemark || payload.directorRemark || "Approved by the school administration.";
+      compiled?.directorRemark ||
+      payload.directorRemark ||
+      "Approved by the school administration.";
     const nextResumptionValue = compiled?.nextResumption || nextResumption;
 
     // Term INDEX, not a word parsed out of the label. `termLabel.split(" ")[0]`
@@ -485,7 +485,8 @@ export async function POST(request: NextRequest) {
     generated,
     source: useCompiled ? "COMPILED_RESULTS" : "GRADEBOOKS",
     classResultStatus: classResult?.status ?? null,
-    skippedReleased: ranked.filter((row) => row.compiled && row.compiled.status === "EXCLUDED").length,
+    skippedReleased: ranked.filter((row) => row.compiled && row.compiled.status === "EXCLUDED")
+      .length,
     message: `${generated} draft report card(s) generated for ${schoolClass.displayName}. Review and release them from the Report Cards page.`,
   });
 }

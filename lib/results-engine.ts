@@ -330,11 +330,7 @@ export function shouldUseCbt(
   if (!contribution || !contribution.attempts || contribution.maxMarks <= 0) return false;
   // An attempt already adopted by an earlier compile keeps its place until a
   // teacher deliberately overwrites the score.
-  if (
-    adoptedAttemptId &&
-    contribution.attemptId &&
-    adoptedAttemptId === contribution.attemptId
-  ) {
+  if (adoptedAttemptId && contribution.attemptId && adoptedAttemptId === contribution.attemptId) {
     return true;
   }
   return enteredExam <= 0;

@@ -76,7 +76,10 @@ async function cachePage(requestedPath, followRedirects) {
   // /student/exams/<id>, so a page warmed as /student/exams/<id>/ would be
   // stored and then never found — cached, and useless.
   const key = isExamRunner(requestedPath) || requestedPath;
-  const response = await fetch(key, { credentials: "same-origin", redirect: followRedirects ? "follow" : "manual" });
+  const response = await fetch(key, {
+    credentials: "same-origin",
+    redirect: followRedirects ? "follow" : "manual",
+  });
   if (!response || !response.ok) return false;
 
   const cache = await caches.open(EXAM_CACHE);
@@ -128,9 +131,7 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         // EXAM_CACHE is exempt: see its comment above.
         Promise.all(
-          keys
-            .filter((k) => k !== SHELL_CACHE && k !== EXAM_CACHE)
-            .map((k) => caches.delete(k)),
+          keys.filter((k) => k !== SHELL_CACHE && k !== EXAM_CACHE).map((k) => caches.delete(k)),
         ),
       )
       .then(() => self.clients.claim())
@@ -173,7 +174,11 @@ self.addEventListener("fetch", (event) => {
   // holding a downloaded paper that they are offline, which is precisely the
   // situation the download exists to survive. Matching with ignoreSearch
   // means a prefetched or query-string variant still resolves.
-  if (req.mode === "navigate" && url.origin === self.location.origin && isOfflinePage(url.pathname)) {
+  if (
+    req.mode === "navigate" &&
+    url.origin === self.location.origin &&
+    isOfflinePage(url.pathname)
+  ) {
     event.respondWith(
       fetch(req)
         .then((res) => {

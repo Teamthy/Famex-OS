@@ -27,12 +27,7 @@ export const dynamic = "force-dynamic";
  * Read-only and cheap: one query, no writes, no external calls.
  */
 
-const READ_ROLES: UserRole[] = [
-  UserRole.ADMIN,
-  UserRole.DIRECTOR,
-  UserRole.HOD,
-  UserRole.TEACHER,
-];
+const READ_ROLES: UserRole[] = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.HOD, UserRole.TEACHER];
 
 const GRADES: CompletenessGrade[] = ["COMPLETE", "GOOD", "PARTIAL", "INCOMPLETE"];
 
@@ -69,10 +64,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (classId && allowedClassIds && !allowedClassIds.includes(classId))
-    return NextResponse.json(
-      { error: "You are not assigned to that class." },
-      { status: 403 },
-    );
+    return NextResponse.json({ error: "You are not assigned to that class." }, { status: 403 });
 
   const students = await prisma.studentProfile.findMany({
     where: {
@@ -132,9 +124,7 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  const filtered = gradeFilter
-    ? graded.filter((s) => s.grade === gradeFilter)
-    : graded;
+  const filtered = gradeFilter ? graded.filter((s) => s.grade === gradeFilter) : graded;
 
   // ── Roll-up ───────────────────────────────────────────────────────────────
   // A single school-wide number is what a head can act on; the counts by grade

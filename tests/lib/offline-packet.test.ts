@@ -267,16 +267,12 @@ describe("offlineTimingProblem", () => {
   it("accepts a sitting synced days later", () => {
     // The normal case this must never refuse: sat on Monday, no signal until
     // the student reaches a town.
-    expect(
-      offlineTimingProblem({ ...base, submittedAt: "2026-11-08T09:50:00.000Z" }),
-    ).toBeNull();
+    expect(offlineTimingProblem({ ...base, submittedAt: "2026-11-08T09:50:00.000Z" })).toBeNull();
   });
 
   it("accepts a start a few seconds before the download finished", () => {
     // Two IndexedDB writes in a fast tap-through; ordering is not exact.
-    expect(
-      offlineTimingProblem({ ...base, startedAt: "2026-11-01T07:59:40.000Z" }),
-    ).toBeNull();
+    expect(offlineTimingProblem({ ...base, startedAt: "2026-11-01T07:59:40.000Z" })).toBeNull();
   });
 
   it("refuses a sitting that started before its paper was downloaded", () => {
