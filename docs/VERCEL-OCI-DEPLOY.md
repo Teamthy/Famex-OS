@@ -24,8 +24,10 @@ tokens or private keys into chat, GitHub issues, or committed files.
 2. Merging to `main` triggers `.github/workflows/docker-publish.yml`, gated on
    CI success for that exact commit. It publishes the multi-arch image to
    `ghcr.io/teamthy/famex-os`.
-3. OCI pulls a pinned image tag and runs `./deploy.sh`; the container applies
-   forward-only Prisma migrations at boot before serving.
+3. OCI pulls a digest-pinned image (`./pin-image.sh --write`) and runs
+   `./deploy.sh`; a one-shot `migrate` container applies the forward-only
+   Prisma migrations first, and the app boots only after it exits 0
+   (`MIGRATE_ON_BOOT=false`).
 4. Vercel's Git integration deploys the same commit to the **staging** project
    after its separate staging database has been migrated.
 
@@ -50,10 +52,14 @@ console steps are:
    - `SCHOOL_SLUG=famex-international-schools`
    - `SCHOOL_NAME=Famex International Schools`
    - `IMAGE_TAG` to a version tag published from a `v*` Git tag for a formal
-     release (`main` is acceptable only for the first bring-up)
+     release (`main` is acceptable only for the first bring-up), then run
+     `./pin-image.sh --all --write` to pin that tag (and every third-party
+     compose image) by digest — policy: `docs/RELEASE-GOVERNANCE.md` §3
    - production `NEXT_PUBLIC_SITE_URL` and `SITE_DOMAIN`
-5. Run `./deploy.sh`, create the first real administrator with the documented
-   one-time seed command, remove `INITIAL_ADMIN_PASSWORD`, and re-deploy.
+5. Run `./deploy.sh` (the one-shot `migrate` service applies migrations and
+   must exit 0 before the app starts), create the first real administrator
+   with the documented one-time seed command, remove
+   `INITIAL_ADMIN_PASSWORD`, and re-deploy.
 6. Point DNS at the VM/Caddy or Cloudflare Tunnel hostname. Verify:
    - `GET /api/health` returns database `up`
    - `GET /api/health/ready` reports migrations applied

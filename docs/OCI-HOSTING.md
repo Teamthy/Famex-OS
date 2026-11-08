@@ -117,7 +117,11 @@ Edit `/opt/famex/.env` (template: `deploy/oci/.env.example`). The load-bearing
 values: `SITE_DOMAIN`, `NEXT_PUBLIC_SITE_URL`, Paystack keys (test keys fail
 loudly-by-warning in production; live keys for go-live), `RESEND_API_KEY` +
 `EMAIL_FROM`, the R2 `S3_*` set, `SCHOOL_*`, and `IMAGE_TAG` (pin a release
-tag like `1.2.3` instead of tracking `main`).
+tag like `1.2.3` instead of tracking `main`). For production, go one step
+further and pin by **digest**: `./pin-image.sh --all --write` resolves every
+compose image to an immutable `@sha256:` reference in `.env`
+(`FAMEX_IMAGE` overrides `APP_IMAGE`/`IMAGE_TAG`; policy in
+`docs/RELEASE-GOVERNANCE.md`).
 
 Ingress, pick one in `COMPOSE_PROFILES`:
 
@@ -209,9 +213,16 @@ the image (`main`, or the release version for `v*` tags). To update:
 
 ```bash
 cd /opt/famex
-sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=1.3.0/' .env   # pin the new release
-./deploy.sh
+sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=1.3.0/' .env   # pick the new release
+./pin-image.sh --write                           # pin it by digest (B-18)
+./deploy.sh                                      # migrate one-shot runs first
 ```
+
+Migrations no longer run inside the app container: `docker compose up` runs
+the one-shot `migrate` service first, and app containers start with
+`MIGRATE_ON_BOOT=false` only after it exits 0 — a failed migration stops the
+deploy before the app is touched, and `docker compose logs migrate` is the
+migration record.
 
 Rollback is the same with the previous tag — with one caveat: Prisma
 migrations are forward-only. An older image may not understand a newer

@@ -51,6 +51,13 @@
     "typescript": "~5.9.2"
   },
   "private": true,
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "enabled": false
+      }
+    }
+  },
   "overrides": {
     "postcss": "^8.5.23",
     "metro": "0.83.8",

@@ -24,7 +24,7 @@ If a session ends mid-workstream, §9 must say exactly where it stopped and what
 ## 1. Repo & branch identity
 
 - Repo: `Teamthy/Famex-OS` (origin). W3 base commit: `ca1c10886f50b5c699dd0f0327f3d90606ed7c1f` (main, W1 + W2 merged); stage A merged at `e96217a` (PR #4).
-- **Session branches (fixed, one per session):** W3 stage A used `arena/ce3a9b67-famex-os` → PR #4 (merged); stage B used `arena/f5d78cef-famex-os` → PR #5 (merged `193ff93`); OCI hosting used `arena/ca91d7ae-famex-os` → PR #9 (merged `e9a1193`); the CI-rescue session (2026-10-20) used `arena/ea852f26-famex-os` (base `1f50c0f`, PR #11/#12 lineage); FIS production core used `arena/0e9f562e-famex-os` → PR #13 (merged `fa8d092`, 2026-10-21); the single-school/assignments/live-classes/deployment slice used `arena/cb6c3d85-famex-os` → PR #14 (merged `c586c4a`, 2026-10-21) and PR #15 (GHCR lowercase publish fix, merged `1163ebb`, 2026-10-21). The audit session used `arena/7e03c832-famex-os` → PR #16 (audit docs only, merged `5ba9a16`, 2026-10-23). The launch-blocker close-out session used `arena/a545871c-famex-os` → PR #17 (merged `b4415d0`, 2026-11-08). **The current remediation session works only on `arena/2aed24db-famex-os`, branched from merged `main` at `b4415d0`.** Always work/commit/push on your session branch; open PRs from it to `main`. Never create/switch/push other branches. (W1 used `arena/7f29531d-famex-os` → PR #1; W2 used `arena/9abf8aef-famex-os` → PR #2, merge `74f236c`.)
+- **Session branches (fixed, one per session):** W3 stage A used `arena/ce3a9b67-famex-os` → PR #4 (merged); stage B used `arena/f5d78cef-famex-os` → PR #5 (merged `193ff93`); OCI hosting used `arena/ca91d7ae-famex-os` → PR #9 (merged `e9a1193`); the CI-rescue session (2026-10-20) used `arena/ea852f26-famex-os` (base `1f50c0f`, PR #11/#12 lineage); FIS production core used `arena/0e9f562e-famex-os` → PR #13 (merged `fa8d092`, 2026-10-21); the single-school/assignments/live-classes/deployment slice used `arena/cb6c3d85-famex-os` → PR #14 (merged `c586c4a`, 2026-10-21) and PR #15 (GHCR lowercase publish fix, merged `1163ebb`, 2026-10-21). The audit session used `arena/7e03c832-famex-os` → PR #16 (audit docs only, merged `5ba9a16`, 2026-10-23). The launch-blocker close-out session used `arena/a545871c-famex-os` → PR #17 (merged `b4415d0`, 2026-11-08). The B-01 dependency-gate session used `arena/2aed24db-famex-os` → PR #18 (merged `75caee3`, 2026-11-08). **The current release-path session works only on `arena/e697eea8-famex-os`, branched from merged `main` at `75caee3`.** Always work/commit/push on your session branch; open PRs from it to `main`. Never create/switch/push other branches. (W1 used `arena/7f29531d-famex-os` → PR #1; W2 used `arena/9abf8aef-famex-os` → PR #2, merge `74f236c`.)
 - The old Ykay repo (`upstream`) is **read-only, out of bounds** (Rule 15). Never push/edit it.
 - Product: **Famex OS** — single-school Nigerian secondary-school OS (~3,000 users, 5-yr horizon). Rebuilt from a school EduPortal base with the SaaS platform layer removed.
 
@@ -45,7 +45,7 @@ Read in this order before any work:
 
 | WS | Scope (short) | Status |
 |---|---|---|
-| **REM** | Audit remediation (§4h roadmap: Phases 0–8) | 🟡 **IN PROGRESS — supersedes W-workstreams until Phase 3 is green.** PR #17 (`b4415d0`) closed the fixable-now launch blockers; PR #16 (`5ba9a16`) landed the audit package. **B-01 dependency gate GREEN** on `arena/2aed24db-famex-os` (§4j). Next: Phase 1 release-path items → Phase 2 identity/RBAC (B-06) → Phase 3 finance (B-04/B-16). |
+| **REM** | Audit remediation (§4h roadmap: Phases 0–8) | 🟡 **IN PROGRESS — supersedes W-workstreams until Phase 3 is green.** PR #16 (`5ba9a16`) landed the audit package; PR #17 (`b4415d0`) closed the fixable-now launch blockers; PR #18 (`75caee3`) closed **B-01** (dependency gate) + the E2E 429-cascade fix. Current branch: **Phase 1 remainder** — B-09 sidecar fix, B-18 code-ables (dual-scope audit gate, dependabot, digest pinning, migration single-flight), mobile CI unblock (§4k). Next: Phase 2 identity/RBAC (B-06) → Phase 3 finance (B-04/B-16). |
 | **W1** | Strip EDUos platform + Ykay arms; single-school boot; brand tokens; Licence & Usage; re-cut audit | ✅ **MERGED into main** — PR #1, 2026-10-14 (commits `a9451cd`, `ccaab0b` + this handoff commit). Gates green at merge; DB gates environment-blocked and stated in the PR. |
 | **W2** | Module registry drives nav/routes/entitlements; settings framework; first-run wizard; `check:modules` | ✅ **merged** — PR #2, merge commit `74f236c` (branch `arena/9abf8aef-famex-os`, 2026-10-14). All CI jobs green except the pre-existing red `Lighthouse budgets` workflow (also red on the W1 merge). |
 | **W3** | Double-entry ledger → Fees & Billing; bursar dashboard; gateway reconciliation | ✅ **stage A MERGED** (PR #4, `e96217a`) and **stage B MERGED** (PR #5, `193ff93`, 2026-10-15): discounts (F5-12), refunds (F5-13), credits (F5-11), transfers (F5-14), gateway settlement (F5-16), ageing + statements (F5-17/18), bursar queues (F5-19), receipts re-brand (F5-04/22) + `verify:ledger` extended to 12 steps. Instalment plans (F5-10) delivered 2026-10-21 (§4e). **Close-out still owed** (§9): real-DB ledger backfill/opening balances, manual adjustments screen (F5-20), cashbook polish (F5-15/F5-23/F5-25), per-reference settlement matching |
@@ -267,17 +267,30 @@ Closed **B-01** (the audit's critical dependency-gate failure) by upgrading to p
 
 **Register state after this session**: B-01 ✅ (pending merge), B-02 ✅, B-15-web ✅; B-03/B-05/B-07/B-08 partial; open P0s: B-04 (fee-payment replay binding), B-06 (role×page×API matrix), B-09 (OCI sidecar), B-12 (DB least-privilege/RLS fail-open), B-13 (JSON stores → Postgres), B-14 (privacy/retention); P1: B-16 (finance lifecycle), B-17 (promotion/transfer service), B-18 (release hygiene); B-10/B-11/B-19 blocked on infra. Next in roadmap order: remaining Phase 1 items, then Phase 2 (identity/RBAC), Phase 3 (finance integrity).
 
+## 4k. Phase 1 remainder — release path: B-09 fixed, B-18 code-ables done, mobile CI unblocked (2026-11-08, branch `arena/e697eea8-famex-os`)
+
+PR #18 merged (`75caee3`) with B-01 green. This slice finishes what Phase 1 can do from code, and diagnosed the two reds PR #18 left on `main`'s release path:
+
+- **Why Docker Publish was failing in ~9s**: not a bug — its gate (`workflow_run` on CI conclusion) was correctly refusing to publish while CI on `main` was red. The last remaining red was **Mobile (Expo) `expo-doctor`**, which also blocked the image the whole OCI deploy path waits for.
+- **Mobile diagnosis (runner logs are unfetchable from the sandbox — results-receiver host blocked; diagnosed from source instead)**: `mobile/package.json`+`app.json` are byte-identical to the last green run (PR #14, 2026-10-21, verified via the contents API), so nothing repo-side changed; `npx expo-doctor@latest` floated (1.21.5 → 1.21.6 mid-window). Unpacked `expo-doctor@1.21.6` from npm and read its bundled source: the ReactNativeDirectoryCheck fails on ANY non-2xx from `https://reactnative.directory/api/libraries/check` ("unexpected server response"), and the config-schema check fetches from `exp.host`. Verified the directory dataset directly from its GitHub source of truth (`react-native-community/react-native-directory` → `react-native-libraries.json`, 2830 entries): **zero** of our deps are flagged unmaintained/new-arch-untested/unsupported. `app.json` validated against the SDK-54 config types (the only tsc complaint was JSON-import literal widening; `runtimeVersion.policy: "appVersion"` is valid). So the check's *answer* was confirmed by hand; only its flaky third-party transport was removed.
+- **Mobile fix (CI + config, gate stays honest)**: `expo-doctor` pinned to `1.21.6` (no more `@latest`); directory check disabled via the tool's own official setting (`expo.doctor.reactNativeDirectoryCheck.enabled:false` in `mobile/package.json`, reason + re-enable step recorded in the workflow comment and `docs/RELEASE-GOVERNANCE.md` §3); `EXPO_DOCTOR_WARN_ON_NETWORK_ERRORS=1` downgrades transient failures of the remaining network check only; one retry; persistent failures re-emitted as `::error` annotations (the one diagnostic channel that works from the sandbox). Local proof: `17 checks`, exit 0.
+- **Mobile dependency gate (roadmap Phase 1 bullet)**: `scripts/audit-deps.mjs` now audits BOTH lockfiles (root + `--prefix mobile`) with per-scope exclusions. `npm audit fix --prefix mobile` cleared the **critical** (`shell-quote` command injection) + 7 highs; the remaining high chain (`decode-uri-component` ← `query-string` ← `expo-router`) has a dated exclusion (until 2027-01-08) with the reachability argument: on-device deep-link parsing only, fix is the expo-router SDK-major. Gate output: `[root] 0 high, 0 critical` + `[mobile] 3 high excluded (scoped)` → exit 0.
+- **B-09 (P0) fixed in code**: the OCI compose notification sidecar sent an invented `x-jobs-secret` header (route accepts only `Authorization: Bearer ${JOBS_SECRET|CRON_SECRET}`) and swallowed every 401 with `|| true` — notifications queued forever while the container looked healthy. Now: correct Bearer header (same form `famex-notify.service` already used), every tick logs its HTTP status with UTC timestamp, failures log the response excerpt. Metrics/alerting on queue age stay Phase 6 (noted in the register).
+- **B-18 code-ables**: `.github/dependabot.yml` (weekly; root npm, mobile npm, github-actions, docker ecosystems; grouped minor/patch, majors individual); **migrations separated from app boot** — new one-shot `migrate` compose service (`restart: "no"`, `prisma migrate deploy`), app waits on `service_completed_successfully` and boots with `MIGRATE_ON_BOOT=false` (`docker-entrypoint.sh` honours the flag; single-container hosts keep migrate-at-boot default); **digest pinning mechanism** — every compose image is now `${VAR:-default}`, new `deploy/oci/pin-image.sh` (`--all`, `--write`) resolves immutable `@sha256:` refs into `.env`, `deploy.sh` reports pinned-vs-mutable and prints migrate logs on failure. `docs/RELEASE-GOVERNANCE.md` records what is code vs the **owner steps** (protect `main` with the 7 named required checks, enable Dependabot alerts/code+secret scanning, `production` environment with reviewers, GHCR write restriction, B-12 DB role split, secrets rotation) — listed, not faked.
+- **Guards**: `tests/lib/release-path.test.ts` (13 tests) — Bearer header/no `x-jobs-secret`/no `|| true` (comment-stripped), migrate one-shot + boot ordering, env-overridable images, executable pin-image.sh, dependabot ecosystems, pinned expo-doctor, dual-scope audit, exclusion hygiene shape, directory-check disable ↔ governance doc coupling. Register updated in place: B-01 → FIXED (#18), B-09 → PARTIALLY FIXED (code done, VM drill + metrics owed), B-18 → PARTIALLY FIXED (code done, owner steps listed).
+- **Gates (local, this branch)**: tsc 0; vitest **110 files / 1394 tests**; lint 0 errors/126 warnings; prettier clean; `npm run build` exit 0; audit:deps exit 0 (root+mobile); modules/orphans(94)/dead-ui(102)/features(331)/boundary(171)/brand(72/38)/tenant(14)/audit(0 blockers) all exit 0; mobile typecheck exit 0; local expo-doctor exit 0 (17 checks). DB gates remain CI-authoritative.
+
 ## 5. Gates: commands + latest evidence + blockers
 
-Run from repo root. The table below is the **latest actual evidence** from the B-01 remediation session (2026-11-08, branch `arena/2aed24db-famex-os`, base `b4415d0`, §4j). Older delivery-gate evidence (2026-10-21, §§4f–4g) and the 2026-10-23 audit recheck (§4h) are superseded by it.
+Run from repo root. The table below is the **latest actual evidence** from the release-path session (2026-11-08, branch `arena/e697eea8-famex-os`, base `75caee3`, §4k). Older delivery-gate evidence (2026-10-21, §§4f–4g), the 2026-10-23 audit recheck (§4h) and the B-01 session (§4j) are superseded by it.
 
 | Gate | Command | Result (actual output) |
 |---|---|---|
 | typecheck | `npx tsc --noEmit` | exit 0 — no errors (on zod 4.6.7 / next 16.4.5 / sentry 10.78.0) |
-| unit/integration | `npx vitest run` | `Test Files 109 passed (109)` / `Tests 1381 passed (1381)` — includes the 2 mobile files (install `mobile/` deps first, §6) and the 3 E2E-login-budget guards (§4j) |
+| unit/integration | `npx vitest run` | `Test Files 110 passed (110)` / `Tests 1394 passed (1394)` — includes the 2 mobile files (install `mobile/` deps first, §6), the 3 E2E-login-budget guards (§4j) and the 13 release-path guards (§4k) |
 | lint | `npm run lint` | `✖ 126 problems (0 errors, 126 warnings)` — no errors |
 | formatting | `npx prettier --check .` | `All matched files use Prettier code style!` |
-| dep audit | `npm run audit:deps` | **PASS:** `0 high, 0 critical, 14 moderate, 4 low` (moderate/low below the high threshold; `EXCLUSIONS` empty). Closes B-01 |
+| dep audit | `npm run audit:deps` | **PASS, dual scope (§4k):** `[root] 0 high, 0 critical, 14 moderate, 4 low` (EXCLUSIONS empty) + `[mobile] 3 high` all excluded via the dated `decode-uri-component` chain entry → `Dependency audit passed (root + mobile)`, exit 0. Closes B-01; adds the mobile gate |
 | project audit | `npm run audit` | `No blockers. 16 warning(s).` |
 | brand ratchet | `npm run audit:brand` | `Brand audit OK — 72 finding(s) across 38 file(s); baseline allows 72.` (re-cut 2026-11-08 for the frozen `eduos_` identifiers cited by `tests/lib/rls-migration-coverage.test.ts`; remainders are confirmed live domains + frozen `eduos_` DB identifiers) |
 | feature IDs | `npm run check:features` | OK — `Catalogue: 331 features parsed` / `§25 declares TOTAL 331 — matches.` |
@@ -420,6 +433,8 @@ Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only
 - **Do not put `/*` inside a `//` line comment in `middleware.ts`** — `tests/lib/cors-response-headers.test.ts` strips comments naively and an unterminated `/*` swallows code, faking a CORS regression. (Bit us once; fixed by rewording.)
 - `signup` rate-limit kind has zero consumers but is pinned by `tests/lib/rate-limit-fail-closed.test.ts` — don't remove without editing that test.
 - **E2E login budget:** `/api/auth/login` stays at 10 attempts/15min/IP for tests on purpose — never weaken the limiter to make a spec convenient. Specs must use `useSession()`/`apiLogin()` (cached, and since 2026-11-08 persisted under `test-results/` so worker restarts cost zero logins); `loginViaForm` is for the login journey only; the limiter-burning spec must sort last (`zz-rate-limit.spec.ts`). `tests/lib/e2e-login-budget.test.ts` guards all three. Adding many new E2E specs? Check the real-login count first.
+- **Mobile CI / expo-doctor:** pinned to `1.21.6` in ci.yml — never float it back to `@latest` (a floating third-party validator silently redefined the gate on 2026-10-23). The ReactNativeDirectoryCheck is disabled in `mobile/package.json` because its transport (`reactnative.directory/api`) fails from GitHub runners; the dataset itself was verified clean by hand (see `docs/RELEASE-GOVERNANCE.md` §3 for the re-enable step at the next Expo SDK upgrade — the same upgrade that fixes the `decode-uri-component` audit exclusion, dated 2027-01-08). `tests/lib/release-path.test.ts` guards the pairing.
+- **OCI deploys:** migrations run in the one-shot `migrate` compose service, NOT at app boot (`MIGRATE_ON_BOOT=false`); pin digests with `deploy/oci/pin-image.sh --all --write` before `./deploy.sh` — a mutable-tag deploy is printed as `pinned: 0 (MUTABLE TAG)` on purpose. The notification sidecar must keep `Authorization: Bearer` (the route 401s anything else) and log every tick — `docker compose logs cron | grep FAILED` is the drill check.
 - New pages must be linked somewhere or `check:orphans` fails; non-functional nav rows must be disabled/labelled, never dead links (`check:dead-ui`).
 - Money = integer kobo, no floats/parseFloat (Rule 2). Server-authoritative for money/marks/results/attendance (Rule 3). Idempotency keys on money+enrolment writes (Rule 4). No random sampling for assessable things (Rule 5).
 - Every route: auth → role → module entitlement, in that order (Rule 13). Tests ship with money/CBT/attendance/results logic (Rule 14). No `any` in new code (Rule 12).
@@ -441,31 +456,49 @@ Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only
 
 ---
 
-## 9. Next session: finish audit-remediation Phase 1, then Phase 2 identity/RBAC (exact stop-point)
+## 9. Next session: verify the release path fired, then Phase 2 identity/RBAC (exact stop-point)
 
-**Where this session stopped (2026-11-08, branch `arena/2aed24db-famex-os`):** B-01 dependency
-gate is GREEN (§4j) — next 16.4.5, @sentry/nextjs 10.78.0, zod 4.6.7, dompurify 3.4.17,
-jsdom 31; `audit:deps` exit 0 with empty EXCLUSIONS; tsc/build/vitest (108 files, 1378 tests)/
-lint/static gates all pass locally. Changes committed on this branch and PR'd to `main`.
+**Where this session stopped (2026-11-08, branch `arena/e697eea8-famex-os`, base `75caee3`):**
+Phase 1's code-able remainder is DONE (§4k) — B-09 sidecar fixed, B-18 code-ables landed
+(dual-scope audit gate, dependabot, digest pinning mechanism, migration single-flight via the
+one-shot `migrate` service), Mobile (Expo) CI unblocked (pinned expo-doctor + official
+directory-check disable with the dataset verified by hand), `docs/RELEASE-GOVERNANCE.md` lists
+every owner step with exact values, and `tests/lib/release-path.test.ts` (13 guards) keeps it
+all from regressing. All local gates green: tsc 0, vitest 110 files / 1394 tests, lint 0
+errors, prettier clean, build exit 0, audit:deps exit 0 (root + mobile), all static checkers
+exit 0, mobile typecheck + local expo-doctor exit 0. Committed, pushed, PR'd to `main`.
 **Do not deploy anything to production yet** — the §4h certification is still NO-GO until the
 roadmap's remaining P0s close and a successor commit is recertified.
 
-**Next session's slice (in roadmap order, `docs/audits/2026-10-23-production-readiness-1163ebb/08-remediation-roadmap.md`):**
+**First thing next session (5 minutes, needs GitHub only):**
 
-1. **Finish Phase 1 (release path)** — the code-able B-18 items: dependabot config,
-   digest-pinned deploy images (`deploy/oci/`), migration single-flight (advisory-lock wrapper
-   for `prisma migrate deploy`). B-12 (DB role split/RLS fail-open) and protecting `main` are
-   owner/infra steps — list them in the PR as owner actions, don't fake them.
-2. **Then Phase 2 (identity/RBAC/provisioning)**: B-06 role×page×API entitlement matrix —
+1. Check the merge landed and CI on `main` is FULLY green for the first time since
+   2026-10-21: `gh run list --branch main --limit 3`. Mobile (Expo) must now pass —
+   if `expo-doctor` still fails, read the `::error title=expo-doctor::` ANNOTATIONS
+   (`gh api repos/Teamthy/Famex-OS/check-runs/<job-id>/annotations` — runner log zips are
+   NOT fetchable from the sandbox; annotations are).
+2. Check **Docker Publish** fired on that green `main` (`gh run list --workflow
+   docker-publish.yml`) and produced `ghcr.io/teamthy/famex-os:main`. If it did, the
+   release path is open end-to-end for the first time — record the digest
+   (`gh api /orgs/teamthy/packages/container/famex-os/versions` or the run summary) in the
+   next handoff: it is what `pin-image.sh` will pin on the VM.
+
+**Then the next slice (roadmap order):**
+
+1. **Phase 2 (identity/RBAC/provisioning)**: B-06 role×page×API entitlement matrix —
    start from `lib/roles.ts` + `lib/module-guard.ts`; every route: auth → role → module
-   entitlement, in that order (Rule 13).
-3. **Then Phase 3 (finance integrity)**: B-04 fee-payment replay binding + B-16 finance
+   entitlement, in that order (Rule 13). Parameterized tests per role (roadmap exit
+   criteria), align middleware/login destinations/nav/APIs.
+2. **Then Phase 3 (finance integrity)**: B-04 fee-payment replay binding + B-16 finance
    lifecycle (numbering races, maker-checker, settlement, receipts, due-date fee locks).
+3. **Owner reminders (not agent work, listed in `docs/RELEASE-GOVERNANCE.md` §2):** protect
+   `main` (7 named required checks), enable Dependabot alerts + code/secret scanning, create
+   the `production` environment (then a one-line PR wires it into docker-publish), B-12 DB
+   role split on the VM, secrets rotation. B-09's VM drill (queue a notification, watch one
+   tick, `logs cron | grep FAILED`) happens at first staging bring-up (B-10).
 
-B-09 (OCI notify sidecar header/`|| true` in `deploy/oci/docker-compose.yml:180`) is a small
-code fix scheduled in Phase 6; pull it forward only if a session has spare capacity after its
-own slice is green. W3 close-out below stays parked behind the audit roadmap (founder-approved
-order: remediation first).
+W3 close-out below stays parked behind the audit roadmap (founder-approved order: remediation
+first).
 
 **Where W3 stopped (2026-10-15, PR #5 from `arena/f5d78cef-famex-os`):** stage A (PR #4) built
 the ledger; stage B built the remaining money documents on it — discounts, refunds, credits,
