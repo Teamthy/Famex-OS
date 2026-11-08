@@ -39,7 +39,10 @@ export async function GET() {
         where: { studentProfileId: context.studentProfile.id },
         orderBy: { attemptNumber: "desc" },
       },
-      retakes: { where: { studentProfileId: context.studentProfile.id } },
+      retakes: {
+        where: { studentProfileId: context.studentProfile.id },
+        select: { status: true, used: true, decisionNote: true },
+      },
     },
   });
 
@@ -53,7 +56,18 @@ export async function GET() {
       const latestAttempt = exam.attempts[0] || null;
       const retake = exam.retakes[0] || null;
       const totalMarks = exam.questions.reduce((sum, question) => sum + question.marks, 0);
-      const hasUnusedRetake = Boolean(retake && !retake.used);
+      /**
+       * A retake row is not permission on its own any more.
+       *
+       * Now that a student can ASK for a resit, a row can be REQUESTED (nobody
+       * has answered) or DECLINED (the answer was no). Counting either as a
+       * usable retake would show the student a "Sit it" button for a paper
+       * nobody has let them sit — and clicking it would 409 at the runner,
+       * which reads as a broken app rather than a decision.
+       */
+      const hasUnusedRetake = retake?.status === "GRANTED" && !retake.used;
+      const retakeRequest = retake?.status === "REQUESTED" ? "PENDING" : null;
+      const retakeRefused = retake?.status === "DECLINED" ? retake.decisionNote : null;
       const hasSubmitted = Boolean(
         latestAttempt && latestAttempt.status !== ExamAttemptStatus.IN_PROGRESS,
       );
@@ -86,6 +100,11 @@ export async function GET() {
         examType: exam.examType,
         durationMinutes: exam.durationMinutes,
         theoryMinutes: exam.theoryMinutes ?? 0,
+        allowCalculator: exam.allowCalculator,
+        // So the list can offer "Ask to resit" instead of a dead button, and
+        // show the teacher's answer when there is one.
+        retakeRequest,
+        retakeRefused,
         subjectId: exam.subjectId,
         // Term provenance, so the student list can say which term a paper counts
         // towards and the runner can file an offline sitting under it.

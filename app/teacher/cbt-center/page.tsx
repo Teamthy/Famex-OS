@@ -17,6 +17,7 @@ import {
   RotateCcw,
   Send,
   Users,
+  X,
 } from "lucide-react";
 
 type ExamRow = {
@@ -92,6 +93,24 @@ Q: Explain photosynthesis in your own words.
 ESSAY
 Marks: 5`;
 
+type RetakeRequest = {
+  id: string;
+  status: "REQUESTED" | "GRANTED" | "DECLINED" | "USED";
+  reason: string | null;
+  requestedAt: string | null;
+  decidedAt: string | null;
+  decisionNote: string | null;
+  examId: string;
+  examTitle: string;
+  examType: string;
+  className: string | null;
+  scheduledFor: string | null;
+  studentProfileId: string;
+  studentName: string;
+  studentNumber: string;
+  studentClass: string | null;
+};
+
 export default function TeacherCbtCenterPage() {
   const { toast } = useToast();
   const [data, setData] = useState<ExamsResponse | null>(null);
@@ -101,6 +120,13 @@ export default function TeacherCbtCenterPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [results, setResults] = useState<ResultsResponse | null>(null);
   const [resultsLoading, setResultsLoading] = useState(false);
+  /**
+   * Students can now ask for a resit. Without somewhere for the ask to arrive,
+   * a request is a message nobody reads — so the queue is loaded with the page
+   * rather than hidden behind a click.
+   */
+  const [resitRequests, setResitRequests] = useState<RetakeRequest[]>([]);
+  const [resitBusy, setResitBusy] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     assignmentId: "",
@@ -131,9 +157,60 @@ export default function TeacherCbtCenterPage() {
     }
   }, []);
 
+  const loadResitRequests = useCallback(async () => {
+    try {
+      const response = await fetch("/api/teacher/exams/retake-requests", { cache: "no-store" });
+      if (!response.ok) return;
+      const body = (await response.json()) as { requests?: RetakeRequest[] };
+      setResitRequests(body.requests ?? []);
+    } catch {
+      // A queue that fails to load must not break the page. The results panel
+      // below still grants retakes by hand, so nothing is unreachable.
+    }
+  }, []);
+
+  /** Approve or decline a request. `note` is mandatory for a decline. */
+  async function decideRetake(request: RetakeRequest, outcome: "GRANT" | "DECLINE") {
+    let note: string | null = null;
+    if (outcome === "DECLINE") {
+      note = window.prompt(
+        `Why can ${request.studentName} not resit "${request.examTitle}"? They will see this, so say something they can act on.`,
+        "",
+      );
+      if (note === null) return;
+      if (!note.trim()) {
+        toast("Give a reason so the student knows what to do next.", "warning");
+        return;
+      }
+    }
+    setResitBusy(request.id);
+    try {
+      const response = await fetch(`/api/teacher/exams/${request.examId}/retake`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          decision: {
+            studentProfileId: request.studentProfileId,
+            outcome,
+            note: note ?? undefined,
+          },
+        }),
+      });
+      const body = (await response.json()) as { error?: string; message?: string };
+      if (!response.ok) throw new Error(body.error || "Could not save the decision.");
+      toast(body.message || "Saved.", "success");
+      await loadResitRequests();
+    } catch (decisionError) {
+      toast(decisionError instanceof Error ? decisionError.message : "Could not save.", "error");
+    } finally {
+      setResitBusy(null);
+    }
+  }
+
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadResitRequests();
+  }, [load, loadResitRequests]);
 
   async function createExam() {
     if (!form.assignmentId || form.title.trim().length < 3) {
@@ -251,6 +328,87 @@ export default function TeacherCbtCenterPage() {
               {error ? (
                 <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-500">
                   {error}
+                </div>
+              ) : null}
+
+              {/* ── Resit requests ────────────────────────────────────────
+                  Students can ask to re-sit a paper they missed. Without a
+                  queue the ask is a message nobody reads, so it sits above the
+                  exam list: a child waiting on this is blocked from a mark. */}
+              {resitRequests.length > 0 ? (
+                <div className="rounded-2xl border border-brand-orange/30 bg-brand-orange/5 p-6 shadow-[var(--card-shadow)]">
+                  <div className="mb-4 flex items-center gap-3">
+                    <span className="flex size-9 items-center justify-center rounded-xl bg-brand-orange/15 text-brand-orange">
+                      <RotateCcw size={16} />
+                    </span>
+                    <div className="flex-1">
+                      <h2 className="font-display text-sm tracking-widest text-[var(--text-primary)] uppercase">
+                        Resit requests
+                      </h2>
+                      <p className="text-[11px] text-[var(--text-muted)]">
+                        {resitRequests.length === 1
+                          ? "1 student is waiting for your decision."
+                          : `${resitRequests.length} students are waiting for your decision.`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {resitRequests.map((request) => (
+                      <div
+                        key={request.id}
+                        className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-4"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold text-[var(--text-primary)]">
+                              {request.studentName}
+                              <span className="ml-2 text-[10px] font-normal text-[var(--text-muted)]">
+                                {request.studentNumber}
+                                {request.studentClass ? ` · ${request.studentClass}` : ""}
+                              </span>
+                            </div>
+                            <div className="mt-0.5 text-[11px] text-[var(--text-muted)]">
+                              {request.examTitle}
+                              {request.className ? ` · ${request.className}` : ""}
+                            </div>
+                          </div>
+                          {request.requestedAt ? (
+                            <span className="shrink-0 text-[10px] text-[var(--text-muted)]">
+                              Asked{" "}
+                              {new Date(request.requestedAt).toLocaleDateString(undefined, {
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </span>
+                          ) : null}
+                        </div>
+
+                        {request.reason ? (
+                          <p className="mt-3 rounded-lg bg-[var(--surface-disabled)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+                            {request.reason}
+                          </p>
+                        ) : null}
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            onClick={() => void decideRetake(request, "GRANT")}
+                            disabled={resitBusy === request.id}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-[10px] font-bold tracking-widest text-brand-navy uppercase hover:bg-brand-green-dark disabled:opacity-50"
+                          >
+                            <CheckCircle2 size={11} /> Approve resit
+                          </button>
+                          <button
+                            onClick={() => void decideRetake(request, "DECLINE")}
+                            disabled={resitBusy === request.id}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] px-4 py-2 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase hover:border-red-400 hover:text-red-500 disabled:opacity-50"
+                          >
+                            <X size={11} /> Decline
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : null}
 

@@ -244,8 +244,14 @@ describe("POST /api/student/exams/[id]/attempt — start race (C-004)", () => {
       attemptNumber: 1,
       deadlineAt: new Date(Date.now() - HOUR),
     });
-    mockPrisma.examRetake.findUnique.mockResolvedValue({ id: "rt_1", used: false });
-    mockPrisma.examRetake.update.mockResolvedValue({ id: "rt_1", used: true });
+    // status is now part of what makes a grant usable: a REQUESTED or DECLINED
+    // row is not permission just because it exists.
+    mockPrisma.examRetake.findUnique.mockResolvedValue({
+      id: "rt_1",
+      used: false,
+      status: "GRANTED",
+    });
+    mockPrisma.examRetake.update.mockResolvedValue({ id: "rt_1", used: true, status: "USED" });
 
     const { POST } = await import("@/app/api/student/exams/[id]/attempt/route");
     const response = await POST({} as never, params);
@@ -253,7 +259,9 @@ describe("POST /api/student/exams/[id]/attempt — start race (C-004)", () => {
     expect(response.status).toBe(200);
     expect(mockPrisma.examRetake.update).toHaveBeenCalledWith({
       where: { id: "rt_1" },
-      data: { used: true },
+      // Marked USED as well as consumed: the history has to say a resit
+      // happened, not leave a GRANTED row that reads as unused.
+      data: { used: true, status: "USED" },
     });
     expect(mockPrisma.examAttempt.create).toHaveBeenCalledTimes(1);
   });
@@ -266,7 +274,7 @@ describe("POST /api/student/exams/[id]/attempt — start race (C-004)", () => {
       attemptNumber: 1,
       deadlineAt: new Date(Date.now() - HOUR),
     });
-    mockPrisma.examRetake.findUnique.mockResolvedValue({ id: "rt_1", used: true });
+    mockPrisma.examRetake.findUnique.mockResolvedValue({ id: "rt_1", used: true, status: "USED" });
 
     const { POST } = await import("@/app/api/student/exams/[id]/attempt/route");
     const response = await POST({} as never, params);

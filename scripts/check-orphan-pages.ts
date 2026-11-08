@@ -53,8 +53,11 @@ const ALLOWED_ORPHANS = new Set([
   "/teacher/evaluations/create",
   // Opened from an exam's "Add instructions" action, with the exam id.
   "/teacher/add-instructions",
-  // Superseded by /teacher/performance-records; kept while staff transition.
-  "/teacher/performance",
+  // Redirect shim: the old "add one score" form posted nowhere and is replaced
+  // by /teacher/performance-records. Kept so an existing bookmark resolves.
+  // (/teacher/performance itself was listed here too — wrongly. It is a live
+  // sidebar page, and allowlisting it hid that it rendered invented scores.)
+  "/teacher/performance/add",
   // Linked from the class roster's announcement action.
   "/teacher/class/announcements",
   // Reached from the teacher dashboard's evaluation card.

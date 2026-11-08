@@ -20,15 +20,8 @@ import {
 } from "lucide-react";
 import { generateReportCardPDF } from "@/lib/branded-pdf";
 import { useSchoolProfile } from "@/components/SchoolProfileContext";
+import { PARENT_NAV } from "@/lib/parent-nav";
 
-const SIDEBAR_ITEMS = [
-  { label: "Dashboard", href: "/parent/dashboard", icon: LayoutDashboard },
-  { label: "Attendance", href: "/parent/attendance", icon: CalendarDays },
-  { label: "Fees", href: "/parent/fees", icon: CreditCard },
-  { label: "Report Cards", href: "/parent/report-cards", icon: FileText },
-  { label: "Messages", href: "/parent/messages", icon: MessageCircle },
-  { label: "Events", href: "/parent/events", icon: Calendar },
-];
 
 type Report = {
   id: string;
@@ -189,7 +182,7 @@ export default function ParentReportCardsPage() {
 
         <section className="px-6 py-10">
           <div className="mx-auto flex max-w-7xl flex-col gap-8 lg:flex-row">
-            <PortalSidebar portalName="Parent" portalType="parent" items={SIDEBAR_ITEMS} />
+            <PortalSidebar portalName="Parent" portalType="parent" items={PARENT_NAV} />
 
             <div className="flex-1 min-w-0 space-y-6">
               {loading ? (

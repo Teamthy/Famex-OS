@@ -75,13 +75,24 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
           studentProfileId: studentContext.studentProfile.id,
         },
       },
-      select: { used: true },
+      select: { used: true, status: true },
     });
+
+    /**
+     * Only a live GRANT opens the window.
+     *
+     * A REQUESTED row means the student has asked and nobody has answered; a
+     * DECLINED row means they were told no. Treating "a row exists" as a
+     * retake would let a student open a closed paper simply by asking for one —
+     * the request would be its own permission.
+     */
+    const hasUsableRetake =
+      retakeGrant?.status === "GRANTED" && retakeGrant.used === false;
 
     const refusal = startWindowRefusal({
       scheduledFor: exam.scheduledFor,
       availableUntil: exam.availableUntil,
-      hasRetake: Boolean(retakeGrant && !retakeGrant.used),
+      hasRetake: hasUsableRetake,
     });
     if (refusal) {
       return NextResponse.json({ error: refusal.message, code: refusal.code }, { status: 409 });
@@ -112,19 +123,39 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
     try {
       attempt = await prisma
         .$transaction(async (tx) => {
-          if (existing) {
-            const retake = await tx.examRetake.findUnique({
-              where: {
-                examId_studentProfileId: {
-                  examId: exam.id,
-                  studentProfileId: studentContext.studentProfile.id,
-                },
+          /**
+           * Consume a retake whenever one is the reason this sitting is allowed.
+           *
+           * This used to be guarded by `if (existing)` — "only when there is a
+           * previous attempt". But the case a retake exists FOR is the student
+           * who never sat the paper at all: they missed the window, `existing`
+           * is null, the block was skipped, and the grant was left unused and
+           * uncheckable. The resit would start, then the next click would start
+           * another resit, indefinitely, because nothing ever consumed the
+           * grant.
+           *
+           * So: if a grant exists, consume it. If `existing` is set and there is
+           * no grant, this is a second sitting nobody authorised — refuse with
+           * RETAKE_REQUIRED, which is what that branch was really for.
+           */
+          const retake = await tx.examRetake.findUnique({
+            where: {
+              examId_studentProfileId: {
+                examId: exam.id,
+                studentProfileId: studentContext.studentProfile.id,
               },
+            },
+          });
+          if (retake) {
+            // A request nobody has approved is not permission, and a declined
+            // one is a decision. Neither may be consumed as if it were a grant.
+            if (retake.used || retake.status !== "GRANTED") throw new Error("RETAKE_REQUIRED");
+            await tx.examRetake.update({
+              where: { id: retake.id },
+              data: { used: true, status: "USED" },
             });
-            if (!retake || retake.used) {
-              throw new Error("RETAKE_REQUIRED");
-            }
-            await tx.examRetake.update({ where: { id: retake.id }, data: { used: true } });
+          } else if (existing) {
+            throw new Error("RETAKE_REQUIRED");
           }
           return tx.examAttempt.create({
             data: {
@@ -196,6 +227,13 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
       subjectName: exam.subjectName,
       instructions: exam.instructions,
       durationMinutes: examMinutes(exam),
+      /**
+       * The runner needs this to know whether to offer the calculator. Sent
+       * with the sitting rather than fetched separately: it is part of the
+       * paper's rules, and a student who starts offline must see the same
+       * rules as one who starts online.
+       */
+      allowCalculator: exam.allowCalculator,
     },
     questions: ordered.map((question) => ({
       id: question.id,

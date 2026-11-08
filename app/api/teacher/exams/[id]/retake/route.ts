@@ -84,7 +84,20 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
 }
 
 const grantSchema = z.object({
-  studentProfileIds: z.array(z.string().min(1)).min(1).max(500),
+  /** Grant directly — the old behaviour, kept working. */
+  studentProfileIds: z.array(z.string().min(1)).min(1).max(500).optional(),
+  /**
+   * Decide a request the student made. Exactly one of studentProfileIds /
+   * decision is expected; a request carrying both is ambiguous and refused.
+   */
+  decision: z
+    .object({
+      studentProfileId: z.string().min(1),
+      outcome: z.enum(["GRANT", "DECLINE"]),
+      /** Why, for DECLINE. Required there, ignored for GRANT. */
+      note: z.string().trim().max(300).optional(),
+    })
+    .optional(),
 });
 
 /** POST /api/teacher/exams/[id]/retake — grant a retake to one or many students (idempotent upsert). */
@@ -107,6 +120,86 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
+  /**
+   * Decide a student's request.
+   *
+   * Kept in this route rather than a new one: granting and answering are the
+   * same authority on the same row, and splitting them would let the two paths
+   * disagree about who may write `used`.
+   */
+  if (input.decision) {
+    if (input.decision.outcome === "DECLINE" && !input.decision.note)
+      return NextResponse.json(
+        { error: "Say why, so the student knows what to do next." },
+        { status: 400 },
+      );
+
+    const profile = await prisma.studentProfile.findFirst({
+      where: {
+        id: input.decision.studentProfileId,
+        schoolId: user.schoolId,
+        currentClassId: ctx.exam.classId,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    if (!profile)
+      return NextResponse.json({ error: "Student not in this exam's class." }, { status: 404 });
+
+    const existing = await prisma.examRetake.findUnique({
+      where: {
+        examId_studentProfileId: {
+          examId: ctx.exam.id,
+          studentProfileId: profile.id,
+        },
+      },
+    });
+    if (!existing || existing.status !== "REQUESTED")
+      return NextResponse.json(
+        { error: "There is no pending request from this student for this paper." },
+        { status: 409 },
+      );
+
+    const grant = input.decision.outcome === "GRANT";
+    await prisma.examRetake.update({
+      where: { id: existing.id },
+      data: {
+        status: grant ? "GRANTED" : "DECLINED",
+        used: false,
+        grantedByUserId: user.id,
+        decidedByUserId: user.id,
+        decidedAt: new Date(),
+        decisionNote: grant ? (input.decision.note ?? null) : input.decision.note,
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        schoolId: user.schoolId,
+        actorUserId: user.id,
+        action: grant ? "EXAM_RETAKE_APPROVED" : "EXAM_RETAKE_DECLINED",
+        entityType: "ExamRetake",
+        entityId: existing.id,
+        ipAddress: getClientIp(request),
+        metadata: { examTitle: ctx.exam.title, note: input.decision.note ?? null } as never,
+      },
+    });
+
+    return NextResponse.json({
+      ok: true,
+      status: grant ? "GRANTED" : "DECLINED",
+      message: grant
+        ? "Resit approved. The student can sit the paper now."
+        : "Request declined. The student will see your reason.",
+    });
+  }
+
+  if (!input.studentProfileIds?.length)
+    return NextResponse.json(
+      { error: "Send studentProfileIds to grant, or a decision to answer a request." },
+      { status: 400 },
+    );
+
   // Only grant retakes to active students in this exam's class and school.
   const eligible = await prisma.studentProfile.findMany({
     where: {
@@ -124,8 +217,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     if (!eligibleIds.has(sid)) continue;
     await prisma.examRetake.upsert({
       where: { examId_studentProfileId: { examId: ctx.exam.id, studentProfileId: sid } },
-      update: { used: false, grantedByUserId: user.id }, // re-arm a used/expired retake
-      create: { examId: ctx.exam.id, studentProfileId: sid, grantedByUserId: user.id },
+      update: { used: false, status: "GRANTED", grantedByUserId: user.id }, // re-arm
+      create: {
+        examId: ctx.exam.id,
+        studentProfileId: sid,
+        grantedByUserId: user.id,
+        status: "GRANTED",
+      },
     });
     granted++;
   }

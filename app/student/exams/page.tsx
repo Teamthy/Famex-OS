@@ -69,6 +69,10 @@ type ExamCard = {
   feeLocked: boolean;
   canStart: boolean;
   canResume: boolean;
+  /** "PENDING" while a resit request waits for a teacher's answer. */
+  retakeRequest: "PENDING" | null;
+  /** The teacher's reason, when a resit was declined. */
+  retakeRefused: string | null;
   /** The paper carries questions and is published — it can be sat offline. */
   offlineReady: boolean;
   sessionLabel: string | null;
@@ -105,6 +109,7 @@ export default function StudentExamsPage() {
   /** Exam ids whose paper is on this device, ready to sit with no network. */
   const [downloaded, setDownloaded] = useState<Set<string>>(new Set());
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [resitBusy, setResitBusy] = useState<string | null>(null);
   const [q, setQ] = useState("");
 
   /**
@@ -119,21 +124,27 @@ export default function StudentExamsPage() {
     setDownloaded(new Set(papers.filter((paper) => paper.questions.length > 0).map((p) => p.examId)));
   }, [user]);
 
+  /** Fetch the list. Extracted so a resit request can refresh in place. */
+  const load = useCallback(async () => {
+    try {
+      const response = await fetch("/api/student/exams", { cache: "no-store" });
+      const body = (await response.json()) as Response & { error?: string };
+      if (!response.ok) throw new Error(body.error || "Unable to load exams.");
+      setData(body);
+      setError("");
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Unable to load exams.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     (async () => {
-      try {
-        const response = await fetch("/api/student/exams", { cache: "no-store" });
-        const body = (await response.json()) as Response & { error?: string };
-        if (!response.ok) throw new Error(body.error || "Unable to load exams.");
-        setData(body);
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : "Unable to load exams.");
-      } finally {
-        setLoading(false);
-      }
+      await load();
       await syncDownloaded();
     })();
-  }, [syncDownloaded]);
+  }, [load, syncDownloaded]);
 
   /**
    * Download a paper for offline sitting.
@@ -146,6 +157,38 @@ export default function StudentExamsPage() {
    *
    * It does NOT start the clock: the sitting begins when the paper is opened.
    */
+  /**
+   * Ask to re-sit a paper.
+   *
+   * A student who misses a paper because they were ill used to have no way to
+   * say so: a retake existed only if a teacher independently noticed and
+   * created one. This is the ask. It moves nothing but a row in the teacher's
+   * queue — the paper stays shut until they decide.
+   */
+  async function requestResit(examId: string) {
+    const reason = window.prompt(
+      "Tell your teacher why you could not sit this paper. They will decide whether to grant a resit.",
+      "",
+    );
+    if (reason === null) return;
+    setResitBusy(examId);
+    try {
+      const response = await fetch(`/api/student/exams/${examId}/retake`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      const body = (await response.json()) as { error?: string; message?: string };
+      if (!response.ok) throw new Error(body.error || "Could not send your request.");
+      window.alert(body.message || "Request sent.");
+      await load();
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not send your request.");
+    } finally {
+      setResitBusy(null);
+    }
+  }
+
   const downloadPaper = useCallback(
     async (examId: string) => {
       setDownloading(examId);
@@ -390,6 +433,40 @@ export default function StudentExamsPage() {
                             >
                               {exam.feeLocked ? <Lock size={12} /> : null}
                               {exam.feeLocked ? "Fees outstanding" : exam.availabilityLabel}
+                            </span>
+                          ) : null}
+                          {/* Missed it? Ask for a resit. Offered only where a
+                              resit is a real possibility: the paper is closed
+                              or was sat, no grant is live, and no request is
+                              already waiting for an answer. */}
+                          {!exam.canStart &&
+                          !exam.canResume &&
+                          !exam.feeLocked &&
+                          exam.availability !== "UPCOMING" &&
+                          exam.retakeRequest === null ? (
+                            <button
+                              onClick={() => void requestResit(exam.id)}
+                              disabled={resitBusy === exam.id}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:border-brand-orange hover:text-brand-orange disabled:opacity-40"
+                            >
+                              <RotateCcw size={11} />
+                              {resitBusy === exam.id ? "Sending…" : "Ask to resit"}
+                            </button>
+                          ) : null}
+                          {exam.retakeRequest === "PENDING" ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-orange/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-orange">
+                              <Clock size={11} /> Resit requested
+                            </span>
+                          ) : null}
+                          {exam.retakeRefused ? (
+                            <span
+                              className="max-w-[22rem] text-[11px] leading-snug text-[var(--text-muted)]"
+                              title={exam.retakeRefused}
+                            >
+                              <span className="font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+                                Resit declined.{" "}
+                              </span>
+                              {exam.retakeRefused}
                             </span>
                           ) : null}
                           {downloadededMarker(downloaded, exam.id) ? (

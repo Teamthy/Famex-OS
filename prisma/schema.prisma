@@ -1457,6 +1457,14 @@ model Exam {
   passMark         Int        @default(40)
   instructions     String?
   shuffleQuestions Boolean    @default(true)
+  /// Whether the student may use the on-screen calculator for this paper.
+  ///
+  /// The demo question bank has carried an `allowCalculator` flag for a year
+  /// and the exam itself had nowhere to store it, so a teacher could write
+  /// "No calculators" into the instructions and the runner had no idea whether
+  /// that was a rule or a remark. Off by default: a calculator that appears
+  /// uninvited is a marking dispute, and the invigilator cannot un-show it.
+  allowCalculator  Boolean    @default(false)
   status           ExamStatus @default(DRAFT)
   resultsReleased  Boolean    @default(false)
   scheduledFor     DateTime?
@@ -1583,10 +1591,45 @@ model ExamRetake {
   used             Boolean  @default(false)
   createdAt        DateTime @default(now())
 
+  /// ── How this grant came to exist ──────────────────────────────────────
+  ///
+  /// A retake could only be GRANTED: a teacher had to notice an absence and
+  /// create one. The student — the person who was actually ill, or whose
+  /// transport failed — had no way to ask, and the teacher had no queue to
+  /// answer. These columns let a student REQUEST a resit and a teacher decide.
+  ///
+  /// status is the whole state machine in one column:
+  ///   REQUESTED — the student asked; a teacher must decide.
+  ///   GRANTED   — grantedByUserId is a teacher, and the retake is usable.
+  ///   DECLINED  — refused, with a reason the student can read.
+  ///   USED      — sat. Kept so the history says a resit happened.
+  ///
+  /// Rows created by the old grant endpoint default to GRANTED, so nothing
+  /// that exists changes meaning.
+  status           RetakeStatus @default(GRANTED)
+  /// Why the student says they could not sit it. Shown to the teacher.
+  reason           String?
+  /// When the student asked. Null on grants a teacher created unprompted.
+  requestedAt      DateTime?
+  /// Teacher who approved or declined, when it was a decision on a request.
+  decidedByUserId  String?
+  decidedAt        DateTime?
+  /// Why it was declined, in words the student can act on.
+  decisionNote     String?
+
   exam           Exam           @relation(fields: [examId], references: [id], onDelete: Cascade)
   studentProfile StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
 
   @@unique([examId, studentProfileId])
+  @@index([status, requestedAt])
+}
+
+/// Where a resit stands. See ExamRetake for the transitions.
+enum RetakeStatus {
+  REQUESTED
+  GRANTED
+  DECLINED
+  USED
 }
 
 // ── Term results: the compilation layer ───────────────────────────────────

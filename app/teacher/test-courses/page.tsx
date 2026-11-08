@@ -46,6 +46,7 @@ type Exam = {
   status: string;
   scheduledFor: string | null;
   availableUntil: string | null;
+  allowCalculator: boolean;
 };
 
 type Draft = {
@@ -56,6 +57,7 @@ type Draft = {
   passMark: number;
   scheduledFor: string;
   availableUntil: string;
+  allowCalculator: boolean;
 };
 
 /** An ISO instant as the value a `datetime-local` input expects. */
@@ -79,6 +81,7 @@ function draftFrom(exam: Exam): Draft {
     durationMinutes: exam.durationMinutes % 60,
     theoryHours: Math.floor((exam.theoryMinutes || 0) / 60),
     theoryMinutes: (exam.theoryMinutes || 0) % 60,
+    allowCalculator: exam.allowCalculator,
     passMark: exam.passMark,
     scheduledFor: toLocalInput(exam.scheduledFor),
     availableUntil: toLocalInput(exam.availableUntil),
@@ -122,7 +125,7 @@ export default function TestCoursesPage() {
     [exams, classFilter],
   );
 
-  function patch(examId: string, field: keyof Draft, value: string | number) {
+  function patch(examId: string, field: keyof Draft, value: string | number | boolean) {
     setDrafts((previous) => ({
       ...previous,
       [examId]: { ...previous[examId], [field]: value },
@@ -150,6 +153,7 @@ export default function TestCoursesPage() {
           durationMinutes,
           theoryMinutes: draft.theoryHours * 60 + draft.theoryMinutes,
           passMark: Number(draft.passMark),
+          allowCalculator: draft.allowCalculator,
           scheduledFor: toIsoOrNull(draft.scheduledFor),
           availableUntil: toIsoOrNull(draft.availableUntil),
         }),
@@ -356,6 +360,28 @@ export default function TestCoursesPage() {
                                 onChange={(e) => patch(exam.id, "passMark", Number(e.target.value))}
                                 className="w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-sm text-[var(--input-text)]"
                               />
+                            </label>
+                            {/* The runner shows a calculator only when this is
+                                on, so it has to be a per-paper decision the
+                                teacher can actually make. */}
+                            <label className="flex items-start gap-3 rounded-xl border border-[var(--border-subtle)] p-3 sm:col-span-2">
+                              <input
+                                type="checkbox"
+                                checked={draft.allowCalculator}
+                                onChange={(e) =>
+                                  patch(exam.id, "allowCalculator", e.target.checked)
+                                }
+                                className="mt-0.5 size-4"
+                              />
+                              <span>
+                                <span className="block text-xs font-bold uppercase tracking-wider">
+                                  Allow calculator
+                                </span>
+                                <span className="mt-0.5 block text-[11px] text-[var(--text-muted)]">
+                                  Shows an on-screen calculator while students sit this paper. Leave
+                                  it off for papers whose instructions forbid one.
+                                </span>
+                              </span>
                             </label>
                             <div>
                               <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">

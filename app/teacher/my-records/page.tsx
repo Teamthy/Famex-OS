@@ -15,85 +15,49 @@ import {
   Download,
 } from "lucide-react";
 
-const RECORDS = [
-  {
-    type: "Attendance",
-    action: "Marked attendance for JSS1A",
-    date: "Jul 21, 2025",
-    time: "8:12 AM",
-    status: "Submitted",
-    detail: "38/40 present",
-  },
-  {
-    type: "Grades",
-    action: "Entered CA1 scores for Mathematics SS2A",
-    date: "Jul 20, 2025",
-    time: "3:45 PM",
-    status: "Saved",
-    detail: "32 students",
-  },
-  {
-    type: "Exam",
-    action: "Created Physics Mid-Term for SS2B",
-    date: "Jul 18, 2025",
-    time: "2:30 PM",
-    status: "Scheduled",
-    detail: "25 questions · 30 min",
-  },
-  {
-    type: "Report Card",
-    action: "Added remarks for SS2A students",
-    date: "Jul 15, 2025",
-    time: "4:00 PM",
-    status: "Pending Review",
-    detail: "28/32 done",
-  },
-  {
-    type: "Attendance",
-    action: "Marked attendance for SS2A",
-    date: "Jul 15, 2025",
-    time: "8:05 AM",
-    status: "Submitted",
-    detail: "30/32 present",
-  },
-  {
-    type: "Questions",
-    action: "Uploaded 20 Mathematics questions",
-    date: "Jul 12, 2025",
-    time: "11:00 AM",
-    status: "Approved",
-    detail: "DOCX upload",
-  },
-  {
-    type: "Message",
-    action: "Sent results to parents of SS2A",
-    date: "Jul 10, 2025",
-    time: "5:15 PM",
-    status: "Delivered",
-    detail: "30 parents",
-  },
-  {
-    type: "Broadcast",
-    action: "Posted class announcement",
-    date: "Jul 8, 2025",
-    time: "10:30 AM",
-    status: "Delivered",
-    detail: "PTM reminder",
-  },
-];
+/**
+ * This page used to render a hard-coded RECORDS array — "Marked attendance for
+ * JSS1A", "Jul 21, 2025" — while /api/teacher/my-records sat unreferenced and
+ * returned the teacher's real history. Every teacher saw the same invented
+ * July. The API is the record; this only formats it.
+ */
+type MyRecords = {
+  teacher: { displayName: string; email: string };
+  attendanceHistory: {
+    date: string;
+    className: string;
+    present: number;
+    absent: number;
+    late: number;
+    total: number;
+    locked: boolean;
+  }[];
+  recentActions: { action: string; entityType: string; at: string }[];
+};
+
+/** Turn ACTION_CONSTANT into "Action constant" for a human to read. */
+function humanise(action: string) {
+  const words = action.toLowerCase().replaceAll("_", " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
 
 const TYPE_ICONS: Record<string, typeof FileText> = {
-  Attendance: ClipboardCheck,
-  Grades: BookOpen,
-  Exam: Award,
-  "Report Card": FileText,
-  Questions: FileText,
-  Message: Users,
-  Broadcast: Users,
+  attendance: ClipboardCheck,
+  grade: BookOpen,
+  exam: Award,
+  question: FileText,
+  message: Users,
+  broadcast: Users,
+  report: FileText,
 };
 
 export default function MyRecordsPage() {
-  const { loading: _apiLoading, error: _apiError } = useApi<any>("/api/teacher/profile");
+  const { data, loading, error } = useApi<MyRecords>("/api/teacher/my-records");
+  const records: MyRecords = data ?? {
+    teacher: { displayName: "", email: "" },
+    attendanceHistory: [],
+    recentActions: [],
+  };
 
   return (
     <>
@@ -115,38 +79,48 @@ export default function MyRecordsPage() {
             <TeacherSidebar />
 
             <div className="flex-1 min-w-0 space-y-6">
-              {/* Stats */}
+              {error ? (
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-500">
+                  {error}
+                </div>
+              ) : null}
+
+              {loading ? (
+                <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-10 text-sm text-[var(--text-secondary)]">
+                  Loading your records…
+                </div>
+              ) : null}
+
+              {/* Stats, from the teacher's own history. */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: "Total Actions", value: RECORDS.length, icon: TrendingUp },
                   {
-                    label: "Attendance Marks",
-                    value: RECORDS.filter((r: any) => r.type === "Attendance").length,
+                    label: "Attendance taken",
+                    value: records.attendanceHistory.length,
                     icon: ClipboardCheck,
                   },
                   {
-                    label: "Exams Created",
-                    value: RECORDS.filter((r: any) => r.type === "Exam").length,
-                    icon: Award,
-                  },
-                  {
-                    label: "Messages Sent",
-                    value: RECORDS.filter(
-                      (r: any) => r.type === "Message" || r.type === "Broadcast",
-                    ).length,
+                    label: "Students marked",
+                    value: records.attendanceHistory.reduce((sum, r) => sum + r.total, 0),
                     icon: Users,
                   },
-                ].map((s) => (
+                  { label: "Recent actions", value: records.recentActions.length, icon: TrendingUp },
+                  {
+                    label: "Registers locked",
+                    value: records.attendanceHistory.filter((r) => r.locked).length,
+                    icon: Award,
+                  },
+                ].map((stat) => (
                   <div
-                    key={s.label}
+                    key={stat.label}
                     className="p-4 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] shadow-[var(--card-shadow)]"
                   >
-                    <s.icon className="text-brand-green mb-2" size={18} />
+                    <stat.icon className="text-brand-green mb-2" size={18} />
                     <div className="font-display text-2xl text-[var(--text-primary)]">
-                      {s.value}
+                      {stat.value}
                     </div>
                     <div className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
-                      {s.label}
+                      {stat.label}
                     </div>
                   </div>
                 ))}
@@ -162,55 +136,105 @@ export default function MyRecordsPage() {
               {/* Records List */}
               <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] shadow-[var(--card-shadow)] overflow-hidden">
                 <div className="divide-y divide-[var(--border-subtle)]">
-                  {RECORDS.map((r: any, i: number) => {
-                    const Icon = TYPE_ICONS[r.type] || FileText;
+                  {/* Registers taken, newest first — the thing a teacher is
+                      most often asked to prove. */}
+                  {records.attendanceHistory.map((r) => (
+                    <div
+                      key={`attendance-${r.date}-${r.className}`}
+                      className="p-5 flex items-start gap-4 hover:bg-[var(--surface-disabled)] transition-colors"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-brand-green/10 text-brand-green flex items-center justify-center shrink-0">
+                        <ClipboardCheck size={18} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-3 mb-1">
+                          <div>
+                            <div className="font-bold text-[var(--text-primary)] text-sm">
+                              Marked attendance for {r.className}
+                            </div>
+                            <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                              {r.present} present · {r.absent} absent · {r.late} late of {r.total}
+                            </div>
+                          </div>
+                          <span
+                            className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest shrink-0 ${
+                              r.locked
+                                ? "bg-brand-green/10 text-brand-green"
+                                : "bg-brand-orange/10 text-brand-orange"
+                            }`}
+                          >
+                            {r.locked ? "Locked" : "Open"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-[10px] text-[var(--text-muted)]">
+                          <span className="flex items-center gap-1">
+                            <Calendar size={10} />
+                            {new Date(r.date).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded bg-[var(--surface-disabled)] text-[var(--text-muted)] font-bold">
+                            Attendance
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Then everything else the audit log recorded. */}
+                  {records.recentActions.map((action, index) => {
+                    const key = action.entityType?.toLowerCase() ?? "";
+                    const Icon = TYPE_ICONS[key] ?? FileText;
                     return (
                       <div
-                        key={i}
+                        key={`action-${action.at}-${index}`}
                         className="p-5 flex items-start gap-4 hover:bg-[var(--surface-disabled)] transition-colors"
                       >
                         <div className="w-10 h-10 rounded-xl bg-brand-green/10 text-brand-green flex items-center justify-center shrink-0">
                           <Icon size={18} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-3 mb-1">
-                            <div>
-                              <div className="font-bold text-[var(--text-primary)] text-sm">
-                                {r.action}
-                              </div>
-                              <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                                {r.detail}
-                              </div>
-                            </div>
-                            <span
-                              className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest shrink-0 ${
-                                r.status === "Submitted" ||
-                                r.status === "Delivered" ||
-                                r.status === "Approved"
-                                  ? "bg-brand-green/10 text-brand-green"
-                                  : r.status === "Saved" || r.status === "Scheduled"
-                                    ? "bg-blue-500/10 text-blue-500"
-                                    : "bg-brand-orange/10 text-brand-orange"
-                              }`}
-                            >
-                              {r.status}
-                            </span>
+                          <div className="font-bold text-[var(--text-primary)] text-sm">
+                            {humanise(action.action)}
                           </div>
-                          <div className="flex items-center gap-3 text-[10px] text-[var(--text-muted)]">
+                          <div className="flex items-center gap-3 text-[10px] text-[var(--text-muted)] mt-1">
                             <span className="flex items-center gap-1">
-                              <Calendar size={10} /> {r.date}
+                              <Calendar size={10} />
+                              {new Date(action.at).toLocaleDateString(undefined, {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })}
                             </span>
                             <span className="flex items-center gap-1">
-                              <Clock size={10} /> {r.time}
+                              <Clock size={10} />
+                              {new Date(action.at).toLocaleTimeString(undefined, {
+                                hour: "numeric",
+                                minute: "2-digit",
+                              })}
                             </span>
-                            <span className="px-1.5 py-0.5 rounded bg-[var(--surface-disabled)] text-[var(--text-muted)] font-bold">
-                              {r.type}
-                            </span>
+                            {action.entityType ? (
+                              <span className="px-1.5 py-0.5 rounded bg-[var(--surface-disabled)] text-[var(--text-muted)] font-bold">
+                                {action.entityType}
+                              </span>
+                            ) : null}
                           </div>
                         </div>
                       </div>
                     );
                   })}
+
+                  {/* An empty history is a real answer. Saying so stops the
+                      page looking broken on a teacher's first week. */}
+                  {!loading &&
+                  records.attendanceHistory.length === 0 &&
+                  records.recentActions.length === 0 ? (
+                    <div className="p-10 text-center text-sm text-[var(--text-muted)]">
+                      No records yet. Registers you take and actions you make will appear here.
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>

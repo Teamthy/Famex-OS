@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
 import { useAuth } from "@/components/AuthProvider";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import ExamCalculator from "@/components/exam/ExamCalculator";
 import {
   answeredCount as countAnswered,
   answersForReplay,
@@ -20,6 +21,7 @@ import { getOwnPaper, queueSubmission, savePaper } from "@/lib/offline/exam-stor
 import { flushExamSubmissions } from "@/lib/offline/sync";
 import {
   AlertTriangle,
+  Calculator,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -48,6 +50,8 @@ type RunnerData = {
     subjectName: string;
     instructions: string | null;
     durationMinutes: number;
+    /** Whether this paper permits the on-screen calculator. */
+    allowCalculator?: boolean;
   };
   questions: Question[];
   /** Absolute deadline. Never a countdown: a reload must not restart it. */
@@ -125,6 +129,8 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
   const [flagged, setFlagged] = useState<Set<string>>(new Set());
   const [index, setIndex] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(0);
+  /** Open only when the paper permits it AND the student asks for it. */
+  const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
@@ -708,6 +714,22 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
             <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/70">
               <Shield size={11} /> Monitored
             </span>
+            {/* Only offered when the paper permits it. A calculator that
+                appears uninvited is a marking dispute the invigilator cannot
+                undo. */}
+            {data.exam.allowCalculator ? (
+              <button
+                onClick={() => setCalculatorOpen((open) => !open)}
+                aria-pressed={calculatorOpen}
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-colors ${
+                  calculatorOpen
+                    ? "bg-brand-green text-brand-navy"
+                    : "bg-white/10 text-white/70 hover:bg-white/20"
+                }`}
+              >
+                <Calculator size={11} /> Calculator
+              </button>
+            ) : null}
             <span
               className={`inline-flex items-center gap-2 rounded-full px-4 py-2 font-display text-lg ${
                 secondsLeft < 120 ? "bg-red-500 text-white" : "bg-brand-green/20 text-brand-green"
@@ -891,6 +913,22 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
           </button>
         </aside>
       </div>
+
+      {/* The calculator is rendered only when the paper permits it AND the
+          student opened it, so a closed calculator cannot catch keystrokes. */}
+      {data.exam.allowCalculator && calculatorOpen ? (
+        <ExamCalculator
+          onClose={() => setCalculatorOpen(false)}
+          onUseValue={(value) => {
+            // Only free-text questions have somewhere to put the value; an MCQ
+            // answer is a letter, not a number.
+            if (question && question.type !== "MCQ" && question.type !== "TRUE_FALSE") {
+              setAnswer(question.id, value);
+              setCalculatorOpen(false);
+            }
+          }}
+        />
+      ) : null}
 
       <ConfirmDialog
         open={confirmSubmit}

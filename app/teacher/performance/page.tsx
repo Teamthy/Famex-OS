@@ -1,345 +1,228 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import PortalTopbar from "@/components/PortalTopbar";
 import TeacherSidebar from "@/components/TeacherSidebar";
 import { useApi } from "@/lib/useApi";
-import {
-  TrendingUp,
-  BookOpen,
-  ChevronDown,
-  ChevronUp,
-  Users,
-  Plus,
-  Download,
-  Edit3,
-} from "lucide-react";
+import { AlertCircle, BookOpen, TrendingUp, Users } from "lucide-react";
 
-interface StudentScore {
-  id: string;
-  name: string;
-  ca1: number | null;
-  ca2: number | null;
-  test: number | null;
-  exam: number | null;
-  total: number | null;
-  comment: string;
-}
-
-const SAMPLE_SCORES: Record<string, StudentScore[]> = {
-  "SS2A-Mathematics": [
-    {
-      id: "1",
-      name: "Emmanuel Adebayo",
-      ca1: 8,
-      ca2: 9,
-      test: 18,
-      exam: 52,
-      total: 87,
-      comment: "Excellent",
-    },
-    {
-      id: "2",
-      name: "Blessing Eze",
-      ca1: 6,
-      ca2: 7,
-      test: 14,
-      exam: 38,
-      total: 65,
-      comment: "Good",
-    },
-    {
-      id: "3",
-      name: "Chinedu Okoro",
-      ca1: 4,
-      ca2: 5,
-      test: 10,
-      exam: 22,
-      total: 41,
-      comment: "Needs improvement",
-    },
-    {
-      id: "4",
-      name: "Fatima Yusuf",
-      ca1: 9,
-      ca2: 9,
-      test: 19,
-      exam: 55,
-      total: 92,
-      comment: "Outstanding",
-    },
-    {
-      id: "5",
-      name: "David Okoye",
-      ca1: 7,
-      ca2: 8,
-      test: 15,
-      exam: 44,
-      total: 74,
-      comment: "Very good",
-    },
-  ],
-  "SS2A-Physics": [
-    {
-      id: "1",
-      name: "Emmanuel Adebayo",
-      ca1: 7,
-      ca2: 8,
-      test: 17,
-      exam: 48,
-      total: 80,
-      comment: "Excellent",
-    },
-    {
-      id: "2",
-      name: "Blessing Eze",
-      ca1: 5,
-      ca2: 6,
-      test: 12,
-      exam: 31,
-      total: 54,
-      comment: "Credit",
-    },
-    {
-      id: "3",
-      name: "Chinedu Okoro",
-      ca1: null,
-      ca2: null,
-      test: null,
-      exam: null,
-      total: null,
-      comment: "",
-    },
-    {
-      id: "4",
-      name: "Fatima Yusuf",
-      ca1: 8,
-      ca2: 9,
-      test: 18,
-      exam: 50,
-      total: 85,
-      comment: "Very good",
-    },
-  ],
+/**
+ * Subject performance, from the gradebook.
+ *
+ * ── What this page used to be ──────────────────────────────────────────────
+ * It rendered SAMPLE_SCORES — a hard-coded table of invented students with
+ * CA1/CA2/Test/Exam columns — under a term label hard-coded to "First Term
+ * 2026/2027". The real endpoint, /api/teacher/performance, existed and was
+ * never called. A teacher looking at a child's progress saw plausible numbers
+ * about nobody.
+ *
+ * What can honestly be shown per subject/class here is the aggregate the
+ * gradebook can actually compute: how many students, the class average, and
+ * the pass rate. Per-student marks belong to a term result, which is built
+ * from the gradebook and shown on the results pages — duplicating it here as a
+ * second, differently-calculated number is how two systems come to disagree
+ * about the same child.
+ */
+type ClassPerformance = {
+  subject: string;
+  className: string;
+  studentCount: number;
+  average: number | null;
+  passRate: number | null;
 };
 
+type PerformanceResponse = {
+  teacher: { displayName: string };
+  stats: {
+    totalClasses: number;
+    totalGradebooks: number;
+    totalExams: number;
+    attendanceSessionsSubmitted: number;
+  };
+  classPerformance: ClassPerformance[];
+};
+
+/** Colour a rate by whether it is a problem, not by whether it looks nice. */
+function rateTone(rate: number | null): string {
+  if (rate === null) return "text-[var(--text-muted)]";
+  if (rate >= 70) return "text-brand-green";
+  if (rate >= 50) return "text-brand-orange";
+  return "text-red-500";
+}
+
 export default function PerformancePage() {
-  const { data, loading: _apiLoading, error: _apiError } = useApi<any>("/api/teacher/profile");
-  const teacher = data?.teacher || ({} as any);
-  const [expandedClass, setExpandedClass] = useState<string | null>("SS2A");
-  const [term] = useState("First Term 2026/2027");
+  const { data, loading, error } = useApi<PerformanceResponse>("/api/teacher/performance");
+  const teacher = data?.teacher ?? { displayName: "" };
+  const stats = data?.stats;
+  const rows = data?.classPerformance ?? [];
+
+  /**
+   * Group by class, then by subject inside it. A teacher reads this to answer
+   * "how is JSS2B doing in my subject", so class is the outer key.
+   */
+  const byClass = new Map<string, ClassPerformance[]>();
+  for (const row of rows) {
+    const existing = byClass.get(row.className) ?? [];
+    existing.push(row);
+    byClass.set(row.className, existing);
+  }
 
   return (
     <>
       <PortalTopbar />
-      <main className="bg-[var(--bg-primary)] min-h-screen theme-transition">
-        <section className="pt-24 pb-10 bg-brand-navy px-6">
+      <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
+        <section className="bg-brand-navy px-6 pt-24 pb-10">
           <div className="mx-auto max-w-7xl">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-green/20 border border-brand-green/40 text-brand-green text-[10px] font-bold uppercase tracking-widest mb-3">
+            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold tracking-widest text-brand-green uppercase">
               <BookOpen size={11} /> Subject Teacher
             </span>
-            <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
+            <h1 className="mb-2 font-display text-4xl tracking-widest text-white md:text-5xl">
               PERFORMANCE <span className="text-brand-green">RECORDS</span>
             </h1>
-            <p className="text-white/60 text-sm">
-              {term} · All your subjects across assigned classes.
+            <p className="text-sm text-white/60">
+              {teacher.displayName
+                ? `${teacher.displayName} · every class and subject you teach.`
+                : "Every class and subject you teach."}
             </p>
           </div>
         </section>
 
-        <section className="py-10 px-6">
-          <div className="mx-auto max-w-7xl flex flex-col lg:flex-row gap-8">
+        <section className="px-6 py-10">
+          <div className="mx-auto flex max-w-7xl flex-col gap-8 lg:flex-row">
             <TeacherSidebar />
 
-            <div className="flex-1 min-w-0 space-y-6">
-              {/* Header banner */}
-              <div className="p-8 rounded-[2rem] bg-gradient-to-br from-brand-green to-brand-green-dark text-white text-center">
-                <div className="inline-block px-3 py-1 rounded-full bg-white/20 text-[10px] font-bold uppercase tracking-widest mb-4">
-                  <TrendingUp size={11} className="inline mr-1" /> {term}
+            <div className="min-w-0 flex-1 space-y-6">
+              {error ? (
+                <div className="flex items-start gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-500">
+                  <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                  <span>{error}</span>
                 </div>
-                <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4">
-                  <TrendingUp size={28} className="text-white" />
-                </div>
-                <h2 className="font-display text-3xl mb-2">Performance Records</h2>
-                <p className="text-white/80 text-sm">
-                  Track and manage student performance across all your subjects
-                </p>
-              </div>
+              ) : null}
 
-              {/* Actions Bar */}
-              <div className="flex flex-wrap items-center gap-3">
-                <Link
-                  href="/teacher/performance/add"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-brand-green text-brand-navy text-sm font-bold hover:bg-brand-green-dark transition-all shadow-lg"
-                >
-                  <Plus size={14} /> Add Performance
-                </Link>
-                <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--surface-disabled)] text-[var(--text-primary)] text-sm font-bold hover:bg-brand-green hover:text-brand-navy transition-all">
-                  <Download size={14} /> Export Excel
-                </button>
-                <select className="ml-auto px-4 py-2.5 rounded-full bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--input-text)] text-sm focus:outline-none focus:border-brand-green">
-                  <option>First Term 2026/2027</option>
-                  <option>Second Term 2026/2027</option>
-                  <option>Third Term 2026/2027</option>
-                </select>
-              </div>
-
-              {/* Class Groups */}
-              {(teacher.subjectAssignments || []).map((sa: any) =>
-                sa.classes.map((className: any) => {
-                  const key = `${className}-${sa.subject}`;
-                  const scores = SAMPLE_SCORES[key] || [];
-                  const isExpanded = expandedClass === className;
-                  const subjectsForClass = (teacher.subjectAssignments || []).filter((s: any) =>
-                    s.classes.includes(className),
-                  );
-
-                  return (
-                    <div
-                      key={key}
-                      className="rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] shadow-[var(--card-shadow)] overflow-hidden"
-                    >
-                      <button
-                        onClick={() => setExpandedClass(isExpanded ? null : className)}
-                        className="w-full p-6 flex items-center justify-between hover:bg-[var(--surface-disabled)] transition-colors"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-11 h-11 rounded-xl bg-brand-green/10 text-brand-green flex items-center justify-center">
-                            <Users size={20} />
-                          </div>
-                          <div className="text-left">
-                            <div className="font-display text-lg text-[var(--text-primary)]">
-                              Class: {className}
-                            </div>
-                            <div className="text-xs text-[var(--text-muted)]">
-                              {subjectsForClass.length} subject
-                              {subjectsForClass.length !== 1 ? "s" : ""} you teach here
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-[var(--text-muted)]">
-                          {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                        </div>
-                      </button>
-
-                      {isExpanded && (
-                        <div className="border-t border-[var(--border-subtle)]">
-                          <div className="p-6">
-                            {/* Subject Header */}
-                            <div className="flex items-center justify-between mb-4 p-4 rounded-xl bg-brand-green/5">
-                              <div className="flex items-center gap-3">
-                                <BookOpen className="text-brand-green" size={18} />
-                                <span className="font-bold text-[var(--text-primary)]">
-                                  {sa.subject}
-                                </span>
-                              </div>
-                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-brand-green text-brand-navy font-bold uppercase tracking-widest">
-                                <Users size={9} className="inline mr-1" /> {scores.length} students
-                              </span>
-                            </div>
-
-                            {/* Scores Table */}
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-sm">
-                                <thead>
-                                  <tr className="border-b border-[var(--border-subtle)]">
-                                    <th className="text-left px-3 py-2 text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-bold">
-                                      Student
-                                    </th>
-                                    <th className="text-center px-3 py-2 text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-bold">
-                                      CA1
-                                    </th>
-                                    <th className="text-center px-3 py-2 text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-bold">
-                                      CA2
-                                    </th>
-                                    <th className="text-center px-3 py-2 text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-bold">
-                                      Test
-                                    </th>
-                                    <th className="text-center px-3 py-2 text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-bold">
-                                      Exam
-                                    </th>
-                                    <th className="text-center px-3 py-2 text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-bold">
-                                      Total
-                                    </th>
-                                    <th className="text-left px-3 py-2 text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-bold">
-                                      Comment
-                                    </th>
-                                    <th></th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {scores.map((s) => (
-                                    <tr
-                                      key={s.id}
-                                      className="border-b border-[var(--border-subtle)] hover:bg-[var(--surface-disabled)]"
-                                    >
-                                      <td className="px-3 py-3 font-medium text-[var(--text-primary)]">
-                                        {s.name}
-                                      </td>
-                                      <td className="px-3 py-3 text-center">
-                                        <span
-                                          className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${s.ca1 !== null ? "bg-blue-500/10 text-blue-500" : "bg-purple-500/10 text-purple-400"}`}
-                                        >
-                                          {s.ca1 !== null ? s.ca1.toFixed(2) : "None"}
-                                        </span>
-                                      </td>
-                                      <td className="px-3 py-3 text-center">
-                                        <span
-                                          className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${s.ca2 !== null ? "bg-blue-500/10 text-blue-500" : "bg-purple-500/10 text-purple-400"}`}
-                                        >
-                                          {s.ca2 !== null ? s.ca2.toFixed(2) : "None"}
-                                        </span>
-                                      </td>
-                                      <td className="px-3 py-3 text-center">
-                                        <span
-                                          className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${s.test !== null ? "bg-blue-500/10 text-blue-500" : "bg-purple-500/10 text-purple-400"}`}
-                                        >
-                                          {s.test !== null ? s.test.toFixed(2) : "None"}
-                                        </span>
-                                      </td>
-                                      <td className="px-3 py-3 text-center">
-                                        <span
-                                          className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${s.exam !== null ? "bg-purple-500/10 text-purple-400" : "bg-gray-500/10 text-gray-400"}`}
-                                        >
-                                          {s.exam !== null ? s.exam.toFixed(2) : "None"}
-                                        </span>
-                                      </td>
-                                      <td className="px-3 py-3 text-center">
-                                        <span
-                                          className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
-                                            s.total === null
-                                              ? "bg-gray-500/10 text-gray-400"
-                                              : s.total >= 70
-                                                ? "bg-brand-green/20 text-brand-green"
-                                                : s.total >= 50
-                                                  ? "bg-brand-orange/20 text-brand-orange"
-                                                  : "bg-red-500/20 text-red-500"
-                                          }`}
-                                        >
-                                          {s.total !== null ? s.total.toFixed(2) : "-"}
-                                        </span>
-                                      </td>
-                                      <td className="px-3 py-3 text-xs text-[var(--text-muted)]">
-                                        {s.comment || "-"}
-                                      </td>
-                                      <td className="px-3 py-3">
-                                        <button className="p-1.5 rounded-lg bg-brand-green/10 text-brand-green hover:bg-brand-green hover:text-brand-navy transition-all">
-                                          <Edit3 size={12} />
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+              {/* Headline numbers, from the teacher's real workload. */}
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                {[
+                  { label: "Classes", value: stats?.totalClasses ?? "—", icon: Users },
+                  { label: "Gradebooks", value: stats?.totalGradebooks ?? "—", icon: BookOpen },
+                  { label: "Exams set", value: stats?.totalExams ?? "—", icon: TrendingUp },
+                  {
+                    label: "Registers sent",
+                    value: stats?.attendanceSessionsSubmitted ?? "—",
+                    icon: TrendingUp,
+                  },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-4 shadow-[var(--card-shadow)]"
+                  >
+                    <stat.icon className="mb-2 text-brand-green" size={18} />
+                    <div className="font-display text-2xl text-[var(--text-primary)]">
+                      {stat.value}
                     </div>
-                  );
-                }),
-              )}
+                    <div className="text-[10px] tracking-widest text-[var(--text-muted)] uppercase">
+                      {stat.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {loading ? (
+                <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-10 text-sm text-[var(--text-secondary)]">
+                  Loading performance…
+                </div>
+              ) : null}
+
+              {!loading && rows.length === 0 ? (
+                <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-10 text-center">
+                  <BookOpen className="mx-auto mb-3 text-[var(--text-muted)]" size={28} />
+                  <p className="text-sm font-bold text-[var(--text-primary)]">
+                    No gradebook scores yet
+                  </p>
+                  <p className="mx-auto mt-1 max-w-md text-xs text-[var(--text-secondary)]">
+                    Averages and pass rates appear here once you enter marks for a subject. Until
+                    then there is nothing to average — and inventing numbers would be worse than
+                    showing none.
+                  </p>
+                </div>
+              ) : null}
+
+              {[...byClass.entries()].map(([className, subjects]) => (
+                <div
+                  key={className}
+                  className="overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] shadow-[var(--card-shadow)]"
+                >
+                  <div className="flex items-center gap-4 p-6">
+                    <div className="flex size-11 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green">
+                      <Users size={20} />
+                    </div>
+                    <div>
+                      <div className="font-display text-lg text-[var(--text-primary)]">
+                        {className}
+                      </div>
+                      <div className="text-xs text-[var(--text-muted)]">
+                        {subjects.length} subject{subjects.length === 1 ? "" : "s"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto border-t border-[var(--border-subtle)]">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-[var(--border-subtle)]">
+                          {["Subject", "Students", "Average", "Pass rate"].map((heading) => (
+                            <th
+                              key={heading}
+                              className="px-3 py-2 text-left text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase"
+                            >
+                              {heading}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {subjects.map((subject) => (
+                          <tr
+                            key={subject.subject}
+                            className="border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--surface-disabled)]"
+                          >
+                            <td className="px-3 py-3 font-medium text-[var(--text-primary)]">
+                              {subject.subject}
+                            </td>
+                            <td className="px-3 py-3 text-[var(--text-secondary)]">
+                              {subject.studentCount}
+                            </td>
+                            <td className="px-3 py-3 font-bold text-[var(--text-primary)]">
+                              {subject.average === null ? "—" : `${subject.average}%`}
+                            </td>
+                            <td
+                              className={`px-3 py-3 font-bold ${rateTone(subject.passRate)}`}
+                            >
+                              {subject.passRate === null ? "—" : `${subject.passRate}%`}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+
+              {/* The route to entering marks. Without this link the only way
+                  to add a score was to already know the URL — and
+                  /teacher/performance/add, the old button's target, is a
+                  redirect nothing pointed at. */}
+              <Link
+                href="/teacher/performance-records"
+                className="inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-2.5 text-sm font-bold text-brand-navy hover:bg-brand-green-dark"
+              >
+                <BookOpen size={14} /> Enter marks
+              </Link>
+
+              <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">
+                Averages come from the gradebook, across the subjects you teach. An individual
+                child&apos;s marks live on the term result your school publishes, so the number you
+                see here and the report card are calculated from the same entries.
+              </p>
             </div>
           </div>
         </section>

@@ -52,6 +52,7 @@ export async function GET() {
       scheduledFor: exam.scheduledFor?.toISOString() || null,
       availableUntil: exam.availableUntil?.toISOString() || null,
       theoryMinutes: exam.theoryMinutes ?? 0,
+      allowCalculator: exam.allowCalculator,
       subjectId: exam.subjectId,
       subjectLabel: exam.subject?.name ?? exam.subjectName,
       // Essays need a human, so an exam containing them can never be fully
@@ -85,6 +86,8 @@ const createSchema = z.object({
   scheduledFor: z.string().datetime().nullable().optional(),
   availableUntil: z.string().datetime().nullable().optional(),
   theoryMinutes: z.number().int().min(0).max(240).optional(),
+  /** Permit the on-screen calculator for this paper. */
+  allowCalculator: z.boolean().optional(),
   /// Links the exam to a catalogued Subject, which is what limits it to the
   /// students who actually take that subject.
   subjectId: z.string().trim().min(1).nullable().optional(),
@@ -177,6 +180,7 @@ export async function POST(request: NextRequest) {
       scheduledFor: opensAt,
       availableUntil: closesAt,
       theoryMinutes: payload.theoryMinutes ?? 0,
+      allowCalculator: payload.allowCalculator ?? false,
       subjectId: payload.subjectId ?? null,
       totalMarks: parsed.questions.reduce((sum, question) => sum + question.marks, 0),
       questions: {
@@ -239,6 +243,7 @@ const updateSchema = z.object({
   // only what was sent, never blank an untouched field.
   durationMinutes: z.number().int().min(5).max(240).optional(),
   theoryMinutes: z.number().int().min(0).max(240).optional(),
+  allowCalculator: z.boolean().optional(),
   passMark: z.number().int().min(0).max(100).optional(),
   totalMarks: z.number().int().min(0).max(1000).optional(),
   scheduledFor: z.string().datetime().nullable().optional(),
@@ -353,6 +358,7 @@ export async function PATCH(request: NextRequest) {
     const data: Prisma.ExamUpdateInput = {};
     if (payload.durationMinutes !== undefined) data.durationMinutes = payload.durationMinutes;
     if (payload.theoryMinutes !== undefined) data.theoryMinutes = payload.theoryMinutes;
+    if (payload.allowCalculator !== undefined) data.allowCalculator = payload.allowCalculator;
     if (payload.passMark !== undefined) data.passMark = payload.passMark;
     if (payload.totalMarks !== undefined) data.totalMarks = payload.totalMarks;
     if (payload.scheduledFor !== undefined) data.scheduledFor = opensAt;
@@ -447,8 +453,16 @@ export async function PATCH(request: NextRequest) {
 
   await prisma.examRetake.upsert({
     where: { examId_studentProfileId: { examId: exam.id, studentProfileId: student.id } },
-    update: { used: false, grantedByUserId: context.user.id },
-    create: { examId: exam.id, studentProfileId: student.id, grantedByUserId: context.user.id },
+    // status matters now that a REQUESTED or DECLINED row can already exist:
+    // granting from this screen is an approval, and must leave the student able
+    // to sit the paper rather than stuck in whatever state they were in.
+    update: { used: false, status: "GRANTED", grantedByUserId: context.user.id },
+    create: {
+      examId: exam.id,
+      studentProfileId: student.id,
+      grantedByUserId: context.user.id,
+      status: "GRANTED",
+    },
   });
 
   return NextResponse.json({ ok: true, message: `Retake granted to ${student.displayName}.` });

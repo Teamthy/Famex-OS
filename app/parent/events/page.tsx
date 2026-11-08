@@ -15,15 +15,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useApi } from "@/lib/useApi";
+import { PARENT_NAV } from "@/lib/parent-nav";
 
-const SIDEBAR_ITEMS = [
-  { label: "Dashboard", href: "/parent/dashboard", icon: LayoutDashboard },
-  { label: "Attendance", href: "/parent/attendance", icon: CalendarDays },
-  { label: "Fees", href: "/parent/fees", icon: CreditCard },
-  { label: "Report Cards", href: "/parent/report-cards", icon: FileText },
-  { label: "Messages", href: "/parent/messages", icon: MessageCircle },
-  { label: "Events", href: "/parent/events", icon: Calendar },
-];
 
 const typeConfig = {
   meeting: { color: "text-brand-green", bg: "bg-brand-green/10" },
@@ -65,7 +58,7 @@ export default function ParentEventsPage() {
 
         <section className="py-10 px-6">
           <div className="mx-auto max-w-7xl flex flex-col lg:flex-row gap-8">
-            <PortalSidebar portalName="Parent" portalType="parent" items={SIDEBAR_ITEMS} />
+            <PortalSidebar portalName="Parent" portalType="parent" items={PARENT_NAV} />
 
             <div className="flex-1 min-w-0 space-y-4">
               {loading ? (

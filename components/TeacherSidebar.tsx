@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   BookOpen,
+  TrendingUp,
   ClipboardCheck,
   GraduationCap,
   FileText,
@@ -127,7 +128,11 @@ export default function TeacherSidebar() {
     { label: "Gradebook", href: "/teacher/gradebook", icon: BookOpen },
     { label: "Assignments", href: "/teacher/assignments", icon: BookOpenCheck },
     { label: "Live Classes", href: "/teacher/virtual-classes", icon: MonitorPlay },
-    { label: "Performance Records", href: "/teacher/performance-records", icon: BookOpen },
+    // Two different jobs, and the labels said the same thing:
+    //   performance        → how is each class doing in my subject (averages)
+    //   performance-records→ enter and edit a class's marks
+    { label: "Subject performance", href: "/teacher/performance", icon: TrendingUp },
+    { label: "Marks entry", href: "/teacher/performance-records", icon: BookOpen },
     { label: "Analytics", href: "/teacher/analytics", icon: BarChart3 },
   ];
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { PARENT_NAV } from "@/lib/parent-nav";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PortalTopbar from "@/components/PortalTopbar";
 import PortalSidebar from "@/components/PortalSidebar";
@@ -17,15 +18,6 @@ import {
   MessageCircle,
 } from "lucide-react";
 
-const SIDEBAR_ITEMS = [
-  { label: "Dashboard", href: "/parent/dashboard", icon: LayoutDashboard },
-  { label: "Attendance", href: "/parent/attendance", icon: CalendarDays },
-  { label: "GPS Clock-ins", href: "/parent/clock-ins", icon: MapPin },
-  { label: "Fees", href: "/parent/fees", icon: CreditCard },
-  { label: "Report Cards", href: "/parent/report-cards", icon: FileText },
-  { label: "Messages", href: "/parent/messages", icon: MessageCircle },
-  { label: "Events", href: "/parent/events", icon: Calendar },
-];
 
 type Event = {
   id: string;
@@ -105,7 +97,7 @@ export default function ParentClockInsPage() {
 
         <section className="px-6 py-10">
           <div className="mx-auto flex max-w-7xl flex-col gap-8 lg:flex-row">
-            <PortalSidebar portalName="Parent" portalType="parent" items={SIDEBAR_ITEMS} />
+            <PortalSidebar portalName="Parent" portalType="parent" items={PARENT_NAV} />
 
             <div className="min-w-0 flex-1 space-y-6">
               {loading && (
