@@ -24,7 +24,7 @@ If a session ends mid-workstream, §9 must say exactly where it stopped and what
 ## 1. Repo & branch identity
 
 - Repo: `Teamthy/Famex-OS` (origin). W3 base commit: `ca1c10886f50b5c699dd0f0327f3d90606ed7c1f` (main, W1 + W2 merged); stage A merged at `e96217a` (PR #4).
-- **Session branches (fixed, one per session):** W3 stage A used `arena/ce3a9b67-famex-os` → PR #4 (merged); stage B used `arena/f5d78cef-famex-os` → PR #5 (merged `193ff93`); OCI hosting used `arena/ca91d7ae-famex-os` → PR #9 (merged `e9a1193`); the CI-rescue session (2026-10-20) used `arena/ea852f26-famex-os` (base `1f50c0f`, PR #11/#12 lineage); FIS production core used `arena/0e9f562e-famex-os` → PR #13 (merged `fa8d092`, 2026-10-21); the single-school/assignments/live-classes/deployment slice used `arena/cb6c3d85-famex-os` → PR #14 (merged `c586c4a`, 2026-10-21) and PR #15 (GHCR lowercase publish fix, merged `1163ebb`, 2026-10-21). **The current production-readiness audit session works only on `arena/7e03c832-famex-os`, grafted from merged `main` at `1163ebb`.** Always work/commit/push on your session branch; open PRs from it to `main`. Never create/switch/push other branches. (W1 used `arena/7f29531d-famex-os` → PR #1; W2 used `arena/9abf8aef-famex-os` → PR #2, merge `74f236c`.)
+- **Session branches (fixed, one per session):** W3 stage A used `arena/ce3a9b67-famex-os` → PR #4 (merged); stage B used `arena/f5d78cef-famex-os` → PR #5 (merged `193ff93`); OCI hosting used `arena/ca91d7ae-famex-os` → PR #9 (merged `e9a1193`); the CI-rescue session (2026-10-20) used `arena/ea852f26-famex-os` (base `1f50c0f`, PR #11/#12 lineage); FIS production core used `arena/0e9f562e-famex-os` → PR #13 (merged `fa8d092`, 2026-10-21); the single-school/assignments/live-classes/deployment slice used `arena/cb6c3d85-famex-os` → PR #14 (merged `c586c4a`, 2026-10-21) and PR #15 (GHCR lowercase publish fix, merged `1163ebb`, 2026-10-21). The audit session used `arena/7e03c832-famex-os` → PR #16 (audit docs only, merged `5ba9a16`, 2026-10-23). The launch-blocker close-out session used `arena/a545871c-famex-os` → PR #17 (merged `b4415d0`, 2026-11-08). **The current remediation session works only on `arena/2aed24db-famex-os`, branched from merged `main` at `b4415d0`.** Always work/commit/push on your session branch; open PRs from it to `main`. Never create/switch/push other branches. (W1 used `arena/7f29531d-famex-os` → PR #1; W2 used `arena/9abf8aef-famex-os` → PR #2, merge `74f236c`.)
 - The old Ykay repo (`upstream`) is **read-only, out of bounds** (Rule 15). Never push/edit it.
 - Product: **Famex OS** — single-school Nigerian secondary-school OS (~3,000 users, 5-yr horizon). Rebuilt from a school EduPortal base with the SaaS platform layer removed.
 
@@ -45,6 +45,7 @@ Read in this order before any work:
 
 | WS | Scope (short) | Status |
 |---|---|---|
+| **REM** | Audit remediation (§4h roadmap: Phases 0–8) | 🟡 **IN PROGRESS — supersedes W-workstreams until Phase 3 is green.** PR #17 (`b4415d0`) closed the fixable-now launch blockers; PR #16 (`5ba9a16`) landed the audit package. **B-01 dependency gate GREEN** on `arena/2aed24db-famex-os` (§4j). Next: Phase 1 release-path items → Phase 2 identity/RBAC (B-06) → Phase 3 finance (B-04/B-16). |
 | **W1** | Strip EDUos platform + Ykay arms; single-school boot; brand tokens; Licence & Usage; re-cut audit | ✅ **MERGED into main** — PR #1, 2026-10-14 (commits `a9451cd`, `ccaab0b` + this handoff commit). Gates green at merge; DB gates environment-blocked and stated in the PR. |
 | **W2** | Module registry drives nav/routes/entitlements; settings framework; first-run wizard; `check:modules` | ✅ **merged** — PR #2, merge commit `74f236c` (branch `arena/9abf8aef-famex-os`, 2026-10-14). All CI jobs green except the pre-existing red `Lighthouse budgets` workflow (also red on the W1 merge). |
 | **W3** | Double-entry ledger → Fees & Billing; bursar dashboard; gateway reconciliation | ✅ **stage A MERGED** (PR #4, `e96217a`) and **stage B MERGED** (PR #5, `193ff93`, 2026-10-15): discounts (F5-12), refunds (F5-13), credits (F5-11), transfers (F5-14), gateway settlement (F5-16), ageing + statements (F5-17/18), bursar queues (F5-19), receipts re-brand (F5-04/22) + `verify:ledger` extended to 12 steps. Instalment plans (F5-10) delivered 2026-10-21 (§4e). **Close-out still owed** (§9): real-DB ledger backfill/opening balances, manual adjustments screen (F5-20), cashbook polish (F5-15/F5-23/F5-25), per-reference settlement matching |
@@ -239,25 +240,49 @@ Independent audit of merged `main` at exact commit `1163ebbc5a2a467cb4401e372949
 - Exact-commit GitHub evidence remains green (CI `39561208778`, Lighthouse `39561208768`, Docker Publish `39561859369`, all head `1163ebb`) and is explicitly treated as necessary but insufficient. GHCR digest/tags, OCI/Vercel live resources, restore/rollback, provider receipts, and production-like load remain **NOT VERIFIED/BLOCKED**.
 - No source fixes, production deployment, or production-data changes were made in this audit session. Next engineering work must follow the audit roadmap P0 order before any owner-side launch steps in §9 are treated as go-live work.
 
+## 4i. Launch-blocker close-out (PR #17, branch `arena/a545871c-famex-os`, merged `b4415d0`, 2026-11-08)
+
+PR #17 burned down the register items that were fixable in code without infrastructure, and made the hosting call. Highlights (full list in the PR body and in `docs/audits/2026-10-23-production-readiness-1163ebb/03-launch-blocker-register.md`, whose statuses it updated):
+
+- **Report-card print**: standalone A4 `/report-cards/[code]/print`; deliberate-absence rules (missing field → ruling line, missing score → em dash, no QR without a verification code). Reports now carry a 128-bit `verificationCode` (migration backfilled); the guessable `RC/{year}/T{term}/{studentId}` page and the `/api/alumni/transcript` oracle were **deleted** (B-02 public-CBT fix + report-integrity work).
+- **Onboarding holes closed**: enrolment-subject assignment on every enrol path (`lib/enrolment-subjects.ts`, transactional, ambiguity reported not guessed); weighted student-completeness (`lib/student-completeness.ts`, teacher-scoped); seeded admin now gets `mustChangePassword`; student login provisioning (`POST /api/admin/students/[id]/login`, token bump on reset); API-wide password gate (`lib/password-gate.ts` → 403 `PASSWORD_CHANGE_REQUIRED`, mutation-verified).
+- **Exam/offline integrity**: theory-half timing via `examMinutes()` on all three exam routes; offline replay timing refusals via `offlineTimingProblem()`; sign-out clears offline data but keeps `AWAITING_SYNC`/`IN_PROGRESS` papers (`StoredPaper.ownerUserId`); admissions documents require a CLEAN/SKIPPED scan verdict (`lib/admissions-documents.ts`).
+- **Hosting decision** (`docs/HOSTING-DECISION-2K-USERS.md`): **OCI is the sole production writer** (single-writer app: one disk store, one cron, sequential migrations); **Vercel is staging on a separate database** — Hobby's non-commercial terms also rule it out for a fee-collecting school. Vercel staging DATABASE_URL is still a placeholder; no staging Postgres exists yet.
+- Gate baseline at #17: tsc 0, **1362 tests**, lint 0 errors. The 2 failing mobile test *files* were missing Expo deps in the sandbox, not code failures (fixed by installing `mobile/` deps — see §4j).
+
+## 4j. Audit remediation Phase 1 / B-01 — dependency gate GREEN (2026-11-08, branch `arena/2aed24db-famex-os`)
+
+Closed **B-01** (the audit's critical dependency-gate failure) by upgrading to patched releases — no exclusions, no lockfile overrides:
+
+- `next` 16.4.0 → **16.4.5** (fixes image-opt SVG RCE), `@sentry/nextjs` 10.69.0 → **10.78.0** (fixes tunnel route; stayed on 10.x — 11.x is a major and not this slice), `zod` 3.25.76 → **4.6.7** (fixes memory-exhaustion advisory; major bump), `dompurify` 3.4.16 → **3.4.17** (via `npm update`, it is an optional dep of jspdf), `jsdom` 29.1.1 → **31** dev (pulls undici 8.12.4, clearing the dev-only EventSource DoS).
+- **zod v4 migration cost was tiny**: 3 `z.enum(..., { errorMap })` call sites in `lib/admissions.ts` → `{ error: "..." }`; no other v3-only API in the repo (checked `invalid_type_error`, `required_error`, `.nonempty`, `deepPartial`). All 96 zod-importing files typecheck unchanged.
+- Removed the now-stale braces exclusion from `scripts/audit-deps.mjs` (`EXCLUSIONS` is empty again); `npm run audit:deps` → **`0 high, 0 critical` (exit 0)** — first pass since the 2026-10-23 audit.
+- Installed `mobile/` deps in-sandbox (`npm ci`), so the 2 mobile test files that had been failing on missing Expo deps now run: **108 files / 1378 tests, all green** (1362 + 16 mobile).
+- Fixed two gate failures that were pre-existing at `b4415d0`: `audit:brand` (RLS coverage test cites the frozen `eduos_apply_tenant_rls` migration identifiers 10× — legitimate legacy, baseline re-cut 62 → **72/38 files**) and `check:dead-ui` (student results page matched the action-verb heuristic on the **"Assign" column header** — added to ALLOWED with that reason).
+- `npm run build` compiles locally on the upgraded stack (prebuild `prisma generate` needs the §6 stub-engine env vars).
+
+**Register state after this session**: B-01 ✅ (pending merge), B-02 ✅, B-15-web ✅; B-03/B-05/B-07/B-08 partial; open P0s: B-04 (fee-payment replay binding), B-06 (role×page×API matrix), B-09 (OCI sidecar), B-12 (DB least-privilege/RLS fail-open), B-13 (JSON stores → Postgres), B-14 (privacy/retention); P1: B-16 (finance lifecycle), B-17 (promotion/transfer service), B-18 (release hygiene); B-10/B-11/B-19 blocked on infra. Next in roadmap order: remaining Phase 1 items, then Phase 2 (identity/RBAC), Phase 3 (finance integrity).
+
 ## 5. Gates: commands + latest evidence + blockers
 
-Run from repo root. Historical delivery gates below are the **single-school + assignments/live classes + deployment prep/GHCR fix** evidence from 2026-10-21 (branch `arena/cb6c3d85-famex-os`, §§4f–4g; PR #14 merged `c586c4a`, PR #15 merged `1163ebb`). They are superseded for launch purposes by the 2026-10-23 audit in §4h: exact-commit GitHub CI/Lighthouse/Docker Publish passed, but the production-readiness certification is **NO-GO**.
+Run from repo root. The table below is the **latest actual evidence** from the B-01 remediation session (2026-11-08, branch `arena/2aed24db-famex-os`, base `b4415d0`, §4j). Older delivery-gate evidence (2026-10-21, §§4f–4g) and the 2026-10-23 audit recheck (§4h) are superseded by it.
 
 | Gate | Command | Result (actual output) |
 |---|---|---|
-| typecheck | `npx tsc --noEmit` | exit 0 — no errors |
-| unit/integration | `npx vitest run` | `Test Files 88 passed (88)` / `Tests 972 passed (972)` (§4f adds 2 files / 11 tests over PR #13's 86 / 961) |
-| lint | `npm run lint` | `✖ 122 problems (0 errors, 122 warnings)` — 118 standing warnings plus 4 fetch-on-mount warnings on the new portal pages; no errors |
-| formatting | `npx prettier --check .` | `All matched files use Prettier code style!` (main: 9 files failing) |
-| dep audit | `npm run audit:deps` | Passed in the 2026-10-21 delivery/CI context. **2026-10-23 audit recheck FAIL:** `node scripts/audit-deps.mjs` exits 1 for pinned `next@16.4.0`, `@sentry/nextjs@10.69.0`, and `dompurify@3.4.16`; do not launch `1163ebb` without a patched successor and a fresh green gate |
-| project audit | `npm run audit` | `No blockers. 16 warning(s).` (warnings are pre-existing hardcoded-URL/unbounded-query backlog; the broken `/api/public/calendar.ics` link is now a real route) |
-| brand ratchet | `npm run audit:brand` | `Brand audit OK — 62 finding(s) across 37 file(s); baseline allows 62.` (§4f removed the old school-resolution file/comment and banked 63 → 62 via `--update`; remainders are confirmed live domains + frozen `eduos_` DB identifiers) |
+| typecheck | `npx tsc --noEmit` | exit 0 — no errors (on zod 4.6.7 / next 16.4.5 / sentry 10.78.0) |
+| unit/integration | `npx vitest run` | `Test Files 108 passed (108)` / `Tests 1378 passed (1378)` — includes the 2 mobile files (install `mobile/` deps first, §6) |
+| lint | `npm run lint` | `✖ 126 problems (0 errors, 126 warnings)` — no errors |
+| formatting | `npx prettier --check .` | `All matched files use Prettier code style!` |
+| dep audit | `npm run audit:deps` | **PASS:** `0 high, 0 critical, 14 moderate, 4 low` (moderate/low below the high threshold; `EXCLUSIONS` empty). Closes B-01 |
+| project audit | `npm run audit` | `No blockers. 16 warning(s).` |
+| brand ratchet | `npm run audit:brand` | `Brand audit OK — 72 finding(s) across 38 file(s); baseline allows 72.` (re-cut 2026-11-08 for the frozen `eduos_` identifiers cited by `tests/lib/rls-migration-coverage.test.ts`; remainders are confirmed live domains + frozen `eduos_` DB identifiers) |
 | feature IDs | `npm run check:features` | OK — `Catalogue: 331 features parsed` / `§25 declares TOTAL 331 — matches.` |
-| orphans | `npm run check:orphans` | `All 90 portal pages are reachable.` |
-| dead UI | `npm run check:dead-ui` | `Checked 98 portal pages.` / `No dead UI found.` |
-| modules | `npm run check:modules` | `Nav registry: 21 groups, 41 live items, 77 planned.` / `Modules: 23 declared, 23 used by nav/API.` / `Admin pages: 42 found, 41 linked.` / `Admin API directories: 30 owned, 77 guard calls.` / `Modules, nav and routes agree.` |
-| client boundary | `npm run check:boundary` | `Checking 165 client component(s)…` / `No client component reaches a server-only module.` |
+| orphans | `npm run check:orphans` | `All 94 portal pages are reachable.` |
+| dead UI | `npm run check:dead-ui` | `Checked 102 portal pages.` / `No dead UI found.` (student results page ALLOWED: "Assign" is a column header, not a button) |
+| modules | `npm run check:modules` | `Admin API directories: 31 owned, 81 guard calls.` / `Modules, nav and routes agree.` |
+| client boundary | `npm run check:boundary` | `Checking 171 client component(s)…` / `No client component reaches a server-only module.` |
 | prisma schema | `npx prisma validate` | `The schema at prisma/schema.prisma is valid 🚀` (needs a dummy `DATABASE_URL`) |
+| production build | `npm run build` (with §6 stub-engine env) | exit 0 — compiles on next 16.4.5 / sentry 10.78.0 / zod 4.6.7 |
 | school-scope coverage (legacy script name) | `npm run check:tenant-coverage` | 14 UNCOVERED = CI baseline (`--max-uncovered 14`), all pre-existing; the WhatsApp webhook is a reviewed provider-global exemption printed on every run (Meta callbacks carry a provider message id, not a school context). This is a `schoolId` integrity ratchet, not evidence of a multi-tenant product surface |
 | ledger loop | `npm run verify:ledger` (`scripts/verify-ledger-loop.ts`) | **Blocked locally** (no Postgres). Runs in CI's `schema-drift` job on Postgres 17 — it is the only place the deferred balance trigger and the kobo reconciliation are proved for real |
 | DB gates + Browser E2E | `check:drift`, migration apply, `verify:rls` + `verify:rls:coverage`, `verify:admissions`, `verify:ledger`, `db:seed*`, `npx playwright test` | **Passed in GitHub CI on PR #14 (`8704113`) and again on merged `main` (`c586c4a`)**: Schema Drift applied `20261021120000_assignments_virtual_classes` to clean Postgres 17 with no drift and verified RLS/admissions/ledger; Browser E2E seeded FIS and passed the full CBT sit→submit→marked, JSS1A attendance lock, assignment create→submit→grade, and live-class join/launch journeys. Local sandbox still has no Postgres, but the Next production build compiled locally. `check:readiness` still needs a seeded school and has no CI step; run it on staging after migration/seed. |
@@ -411,19 +436,31 @@ Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only
 
 ---
 
-## 9. Next session: green CI first, then W3 close-out, then W4 (exact stop-point)
+## 9. Next session: finish audit-remediation Phase 1, then Phase 2 identity/RBAC (exact stop-point)
 
-**Immediate (2026-10-23):** PR #14 (`c586c4a`) and PR #15 (`1163ebb`) are merged, and exact-commit
-CI/Lighthouse/Docker Publish passed. The later master audit (§4h) nevertheless certifies
-`1163ebb` as **NO-GO** for real production. Do **not** deploy it with real users/data/keys,
-real admissions/documents, authoritative exams/results, clinic records, or real money.
-Next work is the audit roadmap in `docs/audits/2026-10-23-production-readiness-1163ebb/08-remediation-roadmap.md`:
-patch dependencies and the release path; close public-CBT/admissions/finance/identity/RBAC/exam/report/notification/privacy P0s;
-then deploy a **new** release candidate to isolated Vercel staging and OCI only for rehearsals.
-Owner-side OCI/Vercel creation may proceed for synthetic staging/rehearsal, but production
-enablement waits for a successor-commit certificate, verified GHCR digest, provider test
-receipts, timed restore, rollback drill, target-shape load evidence, and named school sign-off.
-Nothing is "go-live ready" until those drills pass against real infrastructure.
+**Where this session stopped (2026-11-08, branch `arena/2aed24db-famex-os`):** B-01 dependency
+gate is GREEN (§4j) — next 16.4.5, @sentry/nextjs 10.78.0, zod 4.6.7, dompurify 3.4.17,
+jsdom 31; `audit:deps` exit 0 with empty EXCLUSIONS; tsc/build/vitest (108 files, 1378 tests)/
+lint/static gates all pass locally. Changes committed on this branch and PR'd to `main`.
+**Do not deploy anything to production yet** — the §4h certification is still NO-GO until the
+roadmap's remaining P0s close and a successor commit is recertified.
+
+**Next session's slice (in roadmap order, `docs/audits/2026-10-23-production-readiness-1163ebb/08-remediation-roadmap.md`):**
+
+1. **Finish Phase 1 (release path)** — the code-able B-18 items: dependabot config,
+   digest-pinned deploy images (`deploy/oci/`), migration single-flight (advisory-lock wrapper
+   for `prisma migrate deploy`). B-12 (DB role split/RLS fail-open) and protecting `main` are
+   owner/infra steps — list them in the PR as owner actions, don't fake them.
+2. **Then Phase 2 (identity/RBAC/provisioning)**: B-06 role×page×API entitlement matrix —
+   start from `lib/roles.ts` + `lib/module-guard.ts`; every route: auth → role → module
+   entitlement, in that order (Rule 13).
+3. **Then Phase 3 (finance integrity)**: B-04 fee-payment replay binding + B-16 finance
+   lifecycle (numbering races, maker-checker, settlement, receipts, due-date fee locks).
+
+B-09 (OCI notify sidecar header/`|| true` in `deploy/oci/docker-compose.yml:180`) is a small
+code fix scheduled in Phase 6; pull it forward only if a session has spare capacity after its
+own slice is green. W3 close-out below stays parked behind the audit roadmap (founder-approved
+order: remediation first).
 
 **Where W3 stopped (2026-10-15, PR #5 from `arena/f5d78cef-famex-os`):** stage A (PR #4) built
 the ledger; stage B built the remaining money documents on it — discounts, refunds, credits,

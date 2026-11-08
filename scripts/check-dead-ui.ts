@@ -44,6 +44,8 @@ const ALLOWED: Record<string, string> = {
   "app/teacher/evaluations/create/page.tsx": "redirect shim",
   "app/student/e-exams/page.tsx": "redirect shim",
   "app/teacher/attendance/page.tsx": "redirect shim",
+  "app/student/results/page.tsx":
+    'read-only results screen; the "Assign" match is the assignment-score column header, not an action button',
 };
 
 type Finding = { file: string; reason: string; detail: string };
