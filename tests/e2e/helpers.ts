@@ -1,3 +1,5 @@
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { expect, type Page, type APIRequestContext, type BrowserContext } from "@playwright/test";
 
 /**
@@ -108,8 +110,58 @@ function diagnose(status: number, body: string): string {
 let realLogins = 0;
 const LOGIN_BUDGET = 8; // 10 allowed, 2 kept spare for the negative-path tests
 
+/**
+ * ── Why the session cache is persisted to disk ─────────────────────────────
+ * The server-side limiter lives in the SERVER process; this cache lived only
+ * in the Playwright WORKER process. When a browser crash restarted the worker
+ * (seen in CI on 2026-11-08: one chromium crash in 02-attendance-camera), the
+ * cache was lost while the server's count stood — every later spec signed in
+ * again and the suite face-planted into its own 429 wall (11 misleading
+ * failures from one flake). Persisting the issued cookies under test-results/
+ * (wiped by Playwright at the start of each run, so no stale sessions survive
+ * across runs) makes a worker restart cost zero extra login attempts.
+ */
+const SESSIONS_FILE = join(
+  process.cwd(),
+  "test-results",
+  `.e2e-sessions-${process.env.E2E_PORT || 3100}.json`,
+);
+
+function persistSessions() {
+  try {
+    mkdirSync(join(process.cwd(), "test-results"), { recursive: true });
+    writeFileSync(
+      SESSIONS_FILE,
+      JSON.stringify({ realLogins, sessions: Object.fromEntries(sessionCache) }),
+    );
+  } catch {
+    // Best-effort: losing persistence degrades to the old behaviour, and a
+    // write error must not fail the test that triggered it.
+  }
+}
+
+try {
+  const restored = JSON.parse(readFileSync(SESSIONS_FILE, "utf8")) as {
+    realLogins?: unknown;
+    sessions?: unknown;
+  };
+  if (typeof restored.realLogins === "number" && restored.realLogins >= 0) {
+    realLogins = restored.realLogins;
+  }
+  if (restored.sessions && typeof restored.sessions === "object") {
+    for (const [role, value] of Object.entries(restored.sessions as Record<string, unknown>)) {
+      if (typeof value === "string" && value.length > 0) {
+        sessionCache.set(role as Role, value);
+      }
+    }
+  }
+} catch {
+  // No file yet (fresh run) or unreadable — start empty, as before.
+}
+
 export async function loginViaForm(page: Page, role: Role) {
   realLogins += 1;
+  persistSessions();
   if (realLogins > LOGIN_BUDGET) {
     throw new Error(
       `E2E login budget exhausted (${realLogins} > ${LOGIN_BUDGET}). /api/auth/login ` +
@@ -147,6 +199,7 @@ export async function loginViaForm(page: Page, role: Role) {
   expect(session, "no fis_session cookie after sign-in").toBeTruthy();
 
   sessionCache.set(role, session!.value);
+  persistSessions();
   return session!;
 }
 
@@ -202,6 +255,7 @@ export async function apiLogin(request: APIRequestContext, role: Role) {
   expect(match, "no session cookie in login response").toBeTruthy();
 
   sessionCache.set(role, match![1]);
+  persistSessions();
   return `fis_session=${match![1]}`;
 }
 

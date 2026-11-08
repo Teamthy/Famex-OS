@@ -260,6 +260,10 @@ Closed **B-01** (the audit's critical dependency-gate failure) by upgrading to p
 - Installed `mobile/` deps in-sandbox (`npm ci`), so the 2 mobile test files that had been failing on missing Expo deps now run: **108 files / 1378 tests, all green** (1362 + 16 mobile).
 - Fixed two gate failures that were pre-existing at `b4415d0`: `audit:brand` (RLS coverage test cites the frozen `eduos_apply_tenant_rls` migration identifiers 10× — legitimate legacy, baseline re-cut 62 → **72/38 files**) and `check:dead-ui` (student results page matched the action-verb heuristic on the **"Assign" column header** — added to ALLOWED with that reason).
 - `npm run build` compiles locally on the upgraded stack (prebuild `prisma generate` needs the §6 stub-engine env vars).
+- **CI unblocked, then two CI truths surfaced** (on `main`, the failing `Audit dependencies` step skipped everything after it, so prettier/E2E hadn't actually run since 2026-10-23):
+  1. 52 files (mostly from #17) were never prettier-formatted — banked as a formatting-only commit (`prettier --write .`, prettier itself unchanged at 3.9.6).
+  2. **Browser E2E red**: one chromium crash in `02-attendance-camera` restarted the Playwright worker, wiping the in-memory E2E session cache while the server-side login limiter (10/15min/IP, deliberately not weakened for tests) kept its count — every later spec signed in afresh and hit a 429 wall (11 misleading failures from one flake). Fixed at the root: the cache now **persists to disk** under `test-results/` (wiped per run, restored at module load, written after every login) so a worker restart costs zero login attempts; the limiter-burning spec was renamed `99-` → `zz-rate-limit.spec.ts` because `axe-smoke` sorted after `99-` ("deliberately last" was luck); and `tests/lib/e2e-login-budget.test.ts` (3 static guards) keeps persistence, budget < limit, and last-position from regressing. The crash itself was an unreproducible runner flake — retries now cost nothing.
+- CI on this PR: Lint & Type Check, Build, Schema Drift, Load test, Lighthouse, Vercel all **pass**. Mobile (Expo) `expo-doctor` still fails — pre-existing on `main` since at least #16, untouched here (local: typecheck exit 0, expo-doctor 16/18 with the 2 failures being network-dependent checks that can't run in this sandbox). Docker Publish failing in ~9s on `main` is B-18/Phase-1 release-path work for the next slice.
 
 **Register state after this session**: B-01 ✅ (pending merge), B-02 ✅, B-15-web ✅; B-03/B-05/B-07/B-08 partial; open P0s: B-04 (fee-payment replay binding), B-06 (role×page×API matrix), B-09 (OCI sidecar), B-12 (DB least-privilege/RLS fail-open), B-13 (JSON stores → Postgres), B-14 (privacy/retention); P1: B-16 (finance lifecycle), B-17 (promotion/transfer service), B-18 (release hygiene); B-10/B-11/B-19 blocked on infra. Next in roadmap order: remaining Phase 1 items, then Phase 2 (identity/RBAC), Phase 3 (finance integrity).
 
@@ -270,7 +274,7 @@ Run from repo root. The table below is the **latest actual evidence** from the B
 | Gate | Command | Result (actual output) |
 |---|---|---|
 | typecheck | `npx tsc --noEmit` | exit 0 — no errors (on zod 4.6.7 / next 16.4.5 / sentry 10.78.0) |
-| unit/integration | `npx vitest run` | `Test Files 108 passed (108)` / `Tests 1378 passed (1378)` — includes the 2 mobile files (install `mobile/` deps first, §6) |
+| unit/integration | `npx vitest run` | `Test Files 109 passed (109)` / `Tests 1381 passed (1381)` — includes the 2 mobile files (install `mobile/` deps first, §6) and the 3 E2E-login-budget guards (§4j) |
 | lint | `npm run lint` | `✖ 126 problems (0 errors, 126 warnings)` — no errors |
 | formatting | `npx prettier --check .` | `All matched files use Prettier code style!` |
 | dep audit | `npm run audit:deps` | **PASS:** `0 high, 0 critical, 14 moderate, 4 low` (moderate/low below the high threshold; `EXCLUSIONS` empty). Closes B-01 |
@@ -415,6 +419,7 @@ Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only
 
 - **Do not put `/*` inside a `//` line comment in `middleware.ts`** — `tests/lib/cors-response-headers.test.ts` strips comments naively and an unterminated `/*` swallows code, faking a CORS regression. (Bit us once; fixed by rewording.)
 - `signup` rate-limit kind has zero consumers but is pinned by `tests/lib/rate-limit-fail-closed.test.ts` — don't remove without editing that test.
+- **E2E login budget:** `/api/auth/login` stays at 10 attempts/15min/IP for tests on purpose — never weaken the limiter to make a spec convenient. Specs must use `useSession()`/`apiLogin()` (cached, and since 2026-11-08 persisted under `test-results/` so worker restarts cost zero logins); `loginViaForm` is for the login journey only; the limiter-burning spec must sort last (`zz-rate-limit.spec.ts`). `tests/lib/e2e-login-budget.test.ts` guards all three. Adding many new E2E specs? Check the real-login count first.
 - New pages must be linked somewhere or `check:orphans` fails; non-functional nav rows must be disabled/labelled, never dead links (`check:dead-ui`).
 - Money = integer kobo, no floats/parseFloat (Rule 2). Server-authoritative for money/marks/results/attendance (Rule 3). Idempotency keys on money+enrolment writes (Rule 4). No random sampling for assessable things (Rule 5).
 - Every route: auth → role → module entitlement, in that order (Rule 13). Tests ship with money/CBT/attendance/results logic (Rule 14). No `any` in new code (Rule 12).
