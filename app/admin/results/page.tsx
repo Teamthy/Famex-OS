@@ -171,13 +171,17 @@ export default function AdminResultsPage() {
         };
         if (payload.failed?.length) setFailures(payload.failed);
         if (!response.ok) {
-          throw new Error(payload.error || payload.message || "That action could not be completed.");
+          throw new Error(
+            payload.error || payload.message || "That action could not be completed.",
+          );
         }
         setNotice(payload.message || "Done.");
         await load(termIndex === "" ? undefined : termIndex);
       } catch (actionError) {
         setError(
-          actionError instanceof Error ? actionError.message : "That action could not be completed.",
+          actionError instanceof Error
+            ? actionError.message
+            : "That action could not be completed.",
         );
       } finally {
         setBusy(null);
@@ -332,10 +336,10 @@ export default function AdminResultsPage() {
                   {!totals.compiled ? (
                     <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6">
                       <p className="text-sm text-[var(--text-secondary)]">
-                        Nothing is compiled for {data.termLabel} yet. Report cards will fall back
-                        to the locked gradebooks until you compile. Compiling freezes each
-                        student&apos;s totals, average, position and year average, and is what
-                        lets a card, a cumulative sheet and a promotion decision agree.
+                        Nothing is compiled for {data.termLabel} yet. Report cards will fall back to
+                        the locked gradebooks until you compile. Compiling freezes each
+                        student&apos;s totals, average, position and year average, and is what lets
+                        a card, a cumulative sheet and a promotion decision agree.
                       </p>
                     </div>
                   ) : null}
@@ -502,9 +506,7 @@ export default function AdminResultsPage() {
                                           <td className="px-2 py-2 text-center font-bold text-brand-green">
                                             {student.average}%
                                           </td>
-                                          <td className="px-2 py-2 text-center">
-                                            {student.grade}
-                                          </td>
+                                          <td className="px-2 py-2 text-center">{student.grade}</td>
                                           <td className="px-2 py-2 text-center">
                                             {student.cumulativeAverage}%
                                           </td>
@@ -513,9 +515,11 @@ export default function AdminResultsPage() {
                                           </td>
                                           <td className="px-2 py-2 text-[9px] text-[var(--text-muted)]">
                                             {student.classTeacherRemark ? (
-                                              student.classTeacherRemark.length > 40
-                                                ? `${student.classTeacherRemark.slice(0, 39)}…`
-                                                : student.classTeacherRemark
+                                              student.classTeacherRemark.length > 40 ? (
+                                                `${student.classTeacherRemark.slice(0, 39)}…`
+                                              ) : (
+                                                student.classTeacherRemark
+                                              )
                                             ) : (
                                               <span className="text-amber-600">Not written</span>
                                             )}
@@ -535,8 +539,8 @@ export default function AdminResultsPage() {
                                 <p className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-[11px] text-amber-700">
                                   <AlertTriangle size={13} className="mt-0.5 shrink-0" />
                                   {row.missing} student(s) in this class have no marked subject and
-                                  no graded CBT paper this term. They were skipped rather than
-                                  given a zero average. Enter their marks and recompile.
+                                  no graded CBT paper this term. They were skipped rather than given
+                                  a zero average. Enter their marks and recompile.
                                 </p>
                               ) : null}
                             </div>

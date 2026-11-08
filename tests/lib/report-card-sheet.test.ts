@@ -49,8 +49,28 @@ function card(overrides: Partial<StoredReportCard> = {}): StoredReportCard {
     nextResumption: "12 January 2026",
     feeBalance: 0,
     subjects: [
-      { subject: "Mathematics", ca1: 18, ca2: 17, midterm: 15, assignment: 9, exam: 62, total: 79, grade: "A", sortOrder: 0 },
-      { subject: "English", ca1: 15, ca2: 14, midterm: 13, assignment: 8, exam: 55, total: 71, grade: "B", sortOrder: 1 },
+      {
+        subject: "Mathematics",
+        ca1: 18,
+        ca2: 17,
+        midterm: 15,
+        assignment: 9,
+        exam: 62,
+        total: 79,
+        grade: "A",
+        sortOrder: 0,
+      },
+      {
+        subject: "English",
+        ca1: 15,
+        ca2: 14,
+        midterm: 13,
+        assignment: 8,
+        exam: 55,
+        total: 71,
+        grade: "B",
+        sortOrder: 1,
+      },
     ],
     ...overrides,
   };
@@ -115,7 +135,11 @@ describe("letterheadFromSchool", () => {
 
 describe("sheetFromStoredCard", () => {
   it("maps the stored card and keeps subject order", () => {
-    const sheet = sheetFromStoredCard(card(), { displayName: "Chidera", studentId: "FIS-0148", className: "JSS 2A" }, SCHOOL);
+    const sheet = sheetFromStoredCard(
+      card(),
+      { displayName: "Chidera", studentId: "FIS-0148", className: "JSS 2A" },
+      SCHOOL,
+    );
     expect(sheet.subjects.map((s) => s.subject)).toEqual(["Mathematics", "English"]);
     expect(sheet.student.name).toBe("Chidera");
     expect(sheet.overallAverage).toBe(75);
@@ -133,7 +157,11 @@ describe("sheetFromStoredCard", () => {
   });
 
   it("leaves per-subject remarks empty for the teacher to complete by hand", () => {
-    const sheet = sheetFromStoredCard(card(), { displayName: "C", studentId: "S", className: "JSS 2A" }, SCHOOL);
+    const sheet = sheetFromStoredCard(
+      card(),
+      { displayName: "C", studentId: "S", className: "JSS 2A" },
+      SCHOOL,
+    );
     expect(sheet.subjects.every((s) => s.remarks === null)).toBe(true);
   });
 
@@ -211,10 +239,7 @@ describe("the sheet fits A4 and prints one card per page", () => {
 });
 
 describe("the print page is not the dashboard", () => {
-  const page = readFileSync(
-    join(process.cwd(), "app/report-cards/[code]/print/page.tsx"),
-    "utf8",
-  );
+  const page = readFileSync(join(process.cwd(), "app/report-cards/[code]/print/page.tsx"), "utf8");
 
   it("keys the lookup on the public verification code", () => {
     expect(page).toMatch(/verificationCode:\s*decodeURIComponent\(code\)/);

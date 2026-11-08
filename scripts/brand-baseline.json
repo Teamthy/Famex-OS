@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-10-21T06:34:50.275Z",
-  "totalFindings": 62,
-  "files": 37,
+  "generatedAt": "2026-11-08T22:37:57.255Z",
+  "totalFindings": 72,
+  "files": 38,
   "allow": {
     "app/academics/junior-secondary/page.tsx": {
       "eduportal": 1
@@ -117,6 +117,9 @@
     },
     "tests/lib/prisma-runtime-deps.test.ts": {
       "eduos": 1
+    },
+    "tests/lib/rls-migration-coverage.test.ts": {
+      "eduos": 10
     }
   }
 }

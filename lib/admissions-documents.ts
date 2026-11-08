@@ -71,7 +71,10 @@ export function documentCompleteness(
   for (const document of documents) {
     const current = byType.get(document.type);
     // Prefer a usable verdict if any row of that type has one.
-    if (current === undefined || (!documentCounts(current) && documentCounts(document.scanStatus))) {
+    if (
+      current === undefined ||
+      (!documentCounts(current) && documentCounts(document.scanStatus))
+    ) {
       byType.set(document.type, document.scanStatus);
     }
   }

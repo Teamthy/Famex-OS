@@ -214,7 +214,11 @@ export async function assignStudentSubjects(
         },
       },
       update: { isActive: true },
-      create: { schoolId: params.schoolId, studentProfileId: params.studentProfileId, subjectId: id },
+      create: {
+        schoolId: params.schoolId,
+        studentProfileId: params.studentProfileId,
+        subjectId: id,
+      },
     });
     assigned += 1;
   }

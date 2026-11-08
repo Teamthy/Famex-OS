@@ -6,7 +6,6 @@ import { cacheClear, getQueuedWrites } from "@/lib/offline/db";
 import { listPapers, purgePapers } from "@/lib/offline/exam-store";
 import { planSignOut } from "@/lib/offline/session";
 
-
 type User = { id: string; name: string; email: string; role: string };
 
 type Value = {

@@ -149,10 +149,7 @@ async function routeRequest(request: NextRequest) {
   if (isApi) {
     const pending = await pendingPasswordChange(request);
     if (pending && mustCompletePasswordChange(pathname)) {
-      return applyCors(
-        NextResponse.json(PASSWORD_CHANGE_REQUIRED, { status: 403 }),
-        request,
-      );
+      return applyCors(NextResponse.json(PASSWORD_CHANGE_REQUIRED, { status: 403 }), request);
     }
   }
 

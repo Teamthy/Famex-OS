@@ -23,11 +23,13 @@ const COMPULSORY = [
 beforeEach(() => {
   vi.clearAllMocks();
   mockPrisma.schoolClass.findFirst.mockResolvedValue(CLASSROOM);
-  mockPrisma.subject.findMany.mockImplementation(async (args: { where?: { category?: string } }) => {
-    if (args?.where?.category === "ELECTIVE") return [{ id: "sub_further" }];
-    if (args?.where?.category === "COMPULSORY") return COMPULSORY;
-    return [{ id: "sub_maths", name: "Mathematics" }];
-  });
+  mockPrisma.subject.findMany.mockImplementation(
+    async (args: { where?: { category?: string } }) => {
+      if (args?.where?.category === "ELECTIVE") return [{ id: "sub_further" }];
+      if (args?.where?.category === "COMPULSORY") return COMPULSORY;
+      return [{ id: "sub_maths", name: "Mathematics" }];
+    },
+  );
   mockPrisma.studentSubject.findMany.mockResolvedValue([]);
   mockPrisma.studentSubject.createMany.mockResolvedValue({ count: 2 });
   mockPrisma.studentSubject.upsert.mockResolvedValue({});
@@ -183,10 +185,12 @@ describe("onboardStudent", () => {
     });
 
     it("assigns an elective that was actually chosen", async () => {
-      mockPrisma.studentSubject.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([
-        { subject: { name: "Mathematics" } },
-        { subject: { name: "Further Mathematics" } },
-      ]);
+      mockPrisma.studentSubject.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          { subject: { name: "Mathematics" } },
+          { subject: { name: "Further Mathematics" } },
+        ]);
       const { onboardStudent } = await import("@/lib/enrolment");
       const result = await onboardStudent({
         tx: mockPrisma as never,
@@ -201,11 +205,13 @@ describe("onboardStudent", () => {
     });
 
     it("ignores an elective from another level", async () => {
-      mockPrisma.subject.findMany.mockImplementation(async (args: { where?: { category?: string } }) => {
-        if (args?.where?.category === "ELECTIVE") return []; // nothing valid at this level
-        if (args?.where?.category === "COMPULSORY") return COMPULSORY;
-        return [];
-      });
+      mockPrisma.subject.findMany.mockImplementation(
+        async (args: { where?: { category?: string } }) => {
+          if (args?.where?.category === "ELECTIVE") return []; // nothing valid at this level
+          if (args?.where?.category === "COMPULSORY") return COMPULSORY;
+          return [];
+        },
+      );
       const { onboardStudent } = await import("@/lib/enrolment");
       const result = await onboardStudent({
         tx: mockPrisma as never,
@@ -331,9 +337,7 @@ describe("onboardStudent", () => {
     });
 
     it("warns when the class has no form teacher", async () => {
-      mockPrisma.studentSubject.findMany.mockResolvedValue([
-        { subject: { name: "Mathematics" } },
-      ]);
+      mockPrisma.studentSubject.findMany.mockResolvedValue([{ subject: { name: "Mathematics" } }]);
       mockPrisma.teacherClassAssignment.findMany.mockResolvedValue([
         {
           role: "SUBJECT_TEACHER",
@@ -353,9 +357,7 @@ describe("onboardStudent", () => {
     });
 
     it("matches a subject teacher case-insensitively, as teachers type their subject", async () => {
-      mockPrisma.studentSubject.findMany.mockResolvedValue([
-        { subject: { name: "Mathematics" } },
-      ]);
+      mockPrisma.studentSubject.findMany.mockResolvedValue([{ subject: { name: "Mathematics" } }]);
       mockPrisma.teacherClassAssignment.findMany.mockResolvedValue([
         {
           role: "SUBJECT_TEACHER",
@@ -376,9 +378,7 @@ describe("onboardStudent", () => {
     });
 
     it("does not treat a form teacher as the subject teacher of every subject", async () => {
-      mockPrisma.studentSubject.findMany.mockResolvedValue([
-        { subject: { name: "Mathematics" } },
-      ]);
+      mockPrisma.studentSubject.findMany.mockResolvedValue([{ subject: { name: "Mathematics" } }]);
       mockPrisma.teacherClassAssignment.findMany.mockResolvedValue([
         {
           role: "FORM_TEACHER",
@@ -423,8 +423,11 @@ describe("rolloverSubjectsForClassChange", () => {
 
   it("does nothing when the level has not changed", async () => {
     // A repeater, or a move between arms of the same level: same catalogue.
-    mockPrisma.schoolClass.findFirst.mockImplementation(async (args: { where?: { id?: string } }) =>
-      args?.where?.id === "cls_1" ? CLASSROOM : { ...CLASSROOM, id: "cls_2", displayName: "JSS 1B" },
+    mockPrisma.schoolClass.findFirst.mockImplementation(
+      async (args: { where?: { id?: string } }) =>
+        args?.where?.id === "cls_1"
+          ? CLASSROOM
+          : { ...CLASSROOM, id: "cls_2", displayName: "JSS 1B" },
     );
 
     const { rolloverSubjectsForClassChange } = await import("@/lib/enrolment");
@@ -443,8 +446,9 @@ describe("rolloverSubjectsForClassChange", () => {
   });
 
   it("assigns the new level's compulsory subjects", async () => {
-    mockPrisma.schoolClass.findFirst.mockImplementation(async (args: { where?: { id?: string } }) =>
-      args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
+    mockPrisma.schoolClass.findFirst.mockImplementation(
+      async (args: { where?: { id?: string } }) =>
+        args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
     );
     mockPrisma.subject.findMany.mockResolvedValue([
       { id: "sub_physics", name: "Physics" },
@@ -469,8 +473,9 @@ describe("rolloverSubjectsForClassChange", () => {
   });
 
   it("retires the old level's compulsory subjects", async () => {
-    mockPrisma.schoolClass.findFirst.mockImplementation(async (args: { where?: { id?: string } }) =>
-      args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
+    mockPrisma.schoolClass.findFirst.mockImplementation(
+      async (args: { where?: { id?: string } }) =>
+        args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
     );
     mockPrisma.subject.findMany.mockResolvedValue([{ id: "sub_physics", name: "Physics" }]);
     // The JSS3 student's junior compulsory subject, still active.
@@ -504,10 +509,13 @@ describe("rolloverSubjectsForClassChange", () => {
   it("does not touch a subject both levels call compulsory", async () => {
     // English and Mathematics are compulsory in JSS1 and in SS1. Retiring and
     // re-adding them would rewrite the student's history for no reason.
-    mockPrisma.schoolClass.findFirst.mockImplementation(async (args: { where?: { id?: string } }) =>
-      args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
+    mockPrisma.schoolClass.findFirst.mockImplementation(
+      async (args: { where?: { id?: string } }) =>
+        args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
     );
-    mockPrisma.subject.findMany.mockResolvedValue([{ id: "sub_english", name: "English Language" }]);
+    mockPrisma.subject.findMany.mockResolvedValue([
+      { id: "sub_english", name: "English Language" },
+    ]);
     mockPrisma.studentSubject.findMany.mockResolvedValue([
       {
         id: "ss_1",
@@ -534,8 +542,9 @@ describe("rolloverSubjectsForClassChange", () => {
     // The student chose Further Mathematics. Whether SS1 offers it is not
     // something to infer from a class change; dropping it would silently drop
     // a real choice.
-    mockPrisma.schoolClass.findFirst.mockImplementation(async (args: { where?: { id?: string } }) =>
-      args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
+    mockPrisma.schoolClass.findFirst.mockImplementation(
+      async (args: { where?: { id?: string } }) =>
+        args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
     );
     mockPrisma.subject.findMany.mockResolvedValue([]);
     mockPrisma.studentSubject.findMany.mockResolvedValue([
@@ -562,8 +571,9 @@ describe("rolloverSubjectsForClassChange", () => {
   });
 
   it("re-activates a compulsory subject the student had dropped", async () => {
-    mockPrisma.schoolClass.findFirst.mockImplementation(async (args: { where?: { id?: string } }) =>
-      args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
+    mockPrisma.schoolClass.findFirst.mockImplementation(
+      async (args: { where?: { id?: string } }) =>
+        args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
     );
     mockPrisma.subject.findMany.mockResolvedValue([{ id: "sub_physics", name: "Physics" }]);
     mockPrisma.studentSubject.findMany.mockResolvedValue([
@@ -594,8 +604,9 @@ describe("rolloverSubjectsForClassChange", () => {
   it("warns, rather than failing, when the new level has no catalogue", async () => {
     // A school that has not set up SS1 yet. Refusing the promotion would strand
     // the whole year; the admin needs to be told instead.
-    mockPrisma.schoolClass.findFirst.mockImplementation(async (args: { where?: { id?: string } }) =>
-      args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
+    mockPrisma.schoolClass.findFirst.mockImplementation(
+      async (args: { where?: { id?: string } }) =>
+        args?.where?.id === "cls_ss1" ? SENIOR : CLASSROOM,
     );
     mockPrisma.subject.findMany.mockResolvedValue([]);
     mockPrisma.studentSubject.findMany.mockResolvedValue([]);

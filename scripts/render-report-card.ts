@@ -27,7 +27,10 @@ const MUTED = "#4b5563";
 const AMBER = "#f6b73c";
 const GREEN = "#4ec54d";
 
-const esc = (s: unknown) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const esc = (s: unknown) =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;");
 const out: string[] = [];
 
 function text(
@@ -67,7 +70,8 @@ function rect(x: number, y: number, w: number, h: number, fill = "none", stroke 
 const SAMPLE = {
   school: "FAMEX INTERNATIONAL SCHOOLS",
   motto: "Raising Role Models",
-  contact: "12 Adeola Odeku Street, Victoria Island, Lagos  ·  +234 701 537 4411  ·  info@famex.school",
+  contact:
+    "12 Adeola Odeku Street, Victoria Island, Lagos  ·  +234 701 537 4411  ·  info@famex.school",
   student: "CHIDERA OKONKWO",
   studentId: "FIS/2026/0148",
   className: "JSS 2A",
@@ -155,8 +159,18 @@ const tableTop = y;
 rect(M, y, CW, headH, AMBER, AMBER, 0);
 for (let i = 1; i < 4; i++) line(xs[i], y, xs[i], y + headH, INK, 1);
 text(xs[0] + 8, y + 22, "Subject", { size: 11, weight: 700, fill: NAVY });
-text(xs[1] + (widths[1] * CW) / 2, y + 22, "Score", { size: 11, weight: 700, fill: NAVY, anchor: "middle" });
-text(xs[2] + (widths[2] * CW) / 2, y + 22, "Grade", { size: 11, weight: 700, fill: NAVY, anchor: "middle" });
+text(xs[1] + (widths[1] * CW) / 2, y + 22, "Score", {
+  size: 11,
+  weight: 700,
+  fill: NAVY,
+  anchor: "middle",
+});
+text(xs[2] + (widths[2] * CW) / 2, y + 22, "Grade", {
+  size: 11,
+  weight: 700,
+  fill: NAVY,
+  anchor: "middle",
+});
 text(xs[3] + 8, y + 22, "Remarks", { size: 11, weight: 700, fill: NAVY });
 y += headH;
 for (const [name, total, grade] of SAMPLE.subjects) {
@@ -207,7 +221,8 @@ field(M, y + 46, "Absent", String(SAMPLE.absent), leftW);
 field(M, y + 72, "Late", String(SAMPLE.late), leftW);
 
 rect(rightX, y + 8, rightW, 100, "none", INK, 1);
-for (let i = 1; i < 5; i++) line(rightX, y + 8 + i * 20, rightX + rightW, y + 8 + i * 20, "#d1d5db", 0.6);
+for (let i = 1; i < 5; i++)
+  line(rightX, y + 8 + i * 20, rightX + rightW, y + 8 + i * 20, "#d1d5db", 0.6);
 // Wrap the comment to the box: the real sheet lets the browser do this.
 const maxChars = Math.floor(rightW / 5.4);
 const words = SAMPLE.comment.split(" ");
@@ -255,7 +270,12 @@ for (let i = 0; i < 26; i++) {
   const py = y + 28 + ((i * 7) % (qs - 34));
   rect(px, py, 3, 3, INK, INK, 0);
 }
-text(M + qs + 16, y + 16, "VERIFY THIS DOCUMENT", { size: 9.5, weight: 700, fill: NAVY, spacing: 0.8 });
+text(M + qs + 16, y + 16, "VERIFY THIS DOCUMENT", {
+  size: 9.5,
+  weight: 700,
+  fill: NAVY,
+  spacing: 0.8,
+});
 text(M + qs + 16, y + 32, SAMPLE.verificationCode, { size: 11, weight: 700 });
 text(M + qs + 16, y + 46, SAMPLE.verifyUrl, { size: 8, fill: "#374151" });
 text(W - M, y + 32, SAMPLE.feeBalance > 0 ? "Balance outstanding" : "Fees fully paid", {

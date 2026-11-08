@@ -193,7 +193,9 @@ describe("startRefusal", () => {
   });
 
   it("refuses a paper already submitted", () => {
-    expect(startRefusal(paper({ status: "AWAITING_SYNC" }), now)).toMatch(/already been submitted/i);
+    expect(startRefusal(paper({ status: "AWAITING_SYNC" }), now)).toMatch(
+      /already been submitted/i,
+    );
     expect(startRefusal(paper({ status: "SYNCED" }), now)).toMatch(/already been submitted/i);
   });
 
@@ -224,9 +226,9 @@ describe("submission idempotency", () => {
   });
 
   it("differs across a retake of the same paper", () => {
-    expect(
-      clientAttemptIdFor({ examId: "e1", startedAt: "2026-11-01T09:00:00.000Z" }),
-    ).not.toBe(clientAttemptIdFor({ examId: "e1", startedAt: "2026-11-08T09:00:00.000Z" }));
+    expect(clientAttemptIdFor({ examId: "e1", startedAt: "2026-11-01T09:00:00.000Z" })).not.toBe(
+      clientAttemptIdFor({ examId: "e1", startedAt: "2026-11-08T09:00:00.000Z" }),
+    );
   });
 
   it("embeds the exam id and the start millisecond", () => {

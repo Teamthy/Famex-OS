@@ -108,6 +108,6 @@ describe("public/sw.js stays in step with lib/offline-routes.ts", () => {
   });
 
   it("never serves a cached copy of an API response", () => {
-    expect(worker).toContain('url.pathname.startsWith(API_PREFIX)) return;');
+    expect(worker).toContain("url.pathname.startsWith(API_PREFIX)) return;");
   });
 });

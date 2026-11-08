@@ -513,9 +513,7 @@ export default function TeacherStudentsPage() {
                 as soon as a class is chosen and the teacher's own subjects
                 arrive pre-ticked. */}
             {enrolClassId ? (
-              <SubjectChecklist
-                entry={teachable.find((t) => t.classId === enrolClassId)}
-              />
+              <SubjectChecklist entry={teachable.find((t) => t.classId === enrolClassId)} />
             ) : null}
             <p className="mt-5 text-xs text-[var(--text-muted)]">
               Requests are idempotent. A new parent account receives a one-time temporary password
@@ -593,8 +591,8 @@ function SubjectChecklist({ entry }: { entry?: TeachableClass }) {
       </div>
       {entry.unresolved.length ? (
         <p className="mt-3 rounded-xl border border-amber-400/60 bg-amber-400/10 p-3 text-xs">
-          {entry.unresolved.length} of your subject assignments could not be matched to the
-          subject catalogue ({entry.unresolved.map((u) => u.typed).join(", ")}
+          {entry.unresolved.length} of your subject assignments could not be matched to the subject
+          catalogue ({entry.unresolved.map((u) => u.typed).join(", ")}
           {entry.unresolved.some((u) => u.ambiguous) ? " — more than one subject matches" : ""}).
           Ask an administrator to correct them under Staff assignments; until then those subjects
           cannot be ticked here.

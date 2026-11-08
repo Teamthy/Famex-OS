@@ -265,18 +265,16 @@ describe("commitPromotion", () => {
     // The subject rollover reads the destination class and the student's
     // current subject rows. Default: a destination one level up, and a student
     // with no subjects on file, so behaviour without a catalogue is unchanged.
-    mockPrisma.schoolClass.findFirst.mockImplementation(
-      async (args: unknown) => {
-        const where = (args as { where?: { id?: string } })?.where;
-        if (where?.id === "c_jss2a") {
-          return { id: "c_jss2a", level: "JSS2", displayName: "JSS 2A" };
-        }
-        if (where?.id === "c_jss1a") {
-          return { id: "c_jss1a", level: "JSS1", displayName: "JSS 1A" };
-        }
-        return null;
-      },
-    );
+    mockPrisma.schoolClass.findFirst.mockImplementation(async (args: unknown) => {
+      const where = (args as { where?: { id?: string } })?.where;
+      if (where?.id === "c_jss2a") {
+        return { id: "c_jss2a", level: "JSS2", displayName: "JSS 2A" };
+      }
+      if (where?.id === "c_jss1a") {
+        return { id: "c_jss1a", level: "JSS1", displayName: "JSS 1A" };
+      }
+      return null;
+    });
     mockPrisma.subject.findMany.mockResolvedValue([]);
     mockPrisma.studentSubject.findMany.mockResolvedValue([]);
     mockPrisma.studentSubject.create.mockResolvedValue({});

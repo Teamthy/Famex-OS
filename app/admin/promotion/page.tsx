@@ -153,7 +153,11 @@ export default function PromotionPage() {
   );
 
   const canCommit =
-    !!toSessionId && rows.length > 0 && unresolved.length === 0 && unexplained.length === 0 && !busy;
+    !!toSessionId &&
+    rows.length > 0 &&
+    unresolved.length === 0 &&
+    unexplained.length === 0 &&
+    !busy;
 
   async function commit() {
     setBusy(true);
@@ -489,7 +493,10 @@ export default function PromotionPage() {
                               <input
                                 value={reasons[r.studentProfileId] ?? ""}
                                 onChange={(e) =>
-                                  setReasons((m) => ({ ...m, [r.studentProfileId]: e.target.value }))
+                                  setReasons((m) => ({
+                                    ...m,
+                                    [r.studentProfileId]: e.target.value,
+                                  }))
                                 }
                                 placeholder="e.g. Long absence in the second and third terms"
                                 maxLength={500}

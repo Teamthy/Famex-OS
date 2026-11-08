@@ -3,9 +3,12 @@ import { test, expect } from "@playwright/test";
 /**
  * Login rate limiting.
  *
- * Deliberately last (the 99- prefix orders it): this test burns login attempts
- * on purpose, and the limiter's window is per-IP and process-wide, so running
- * it earlier locks every later sign-in out of the suite.
+ * Deliberately last: this test burns login attempts on purpose, and the
+ * limiter's window is per-IP and process-wide, so running it earlier locks
+ * every later sign-in out of the suite. The zz- prefix sorts it after every
+ * journey AND after axe-smoke — the old 99- prefix did NOT ("a" beats "9"),
+ * which only stayed harmless because axe-smoke reuses cached sessions.
+ * tests/lib/e2e-login-budget.test.ts keeps it last.
  *
  * Worth stating plainly: this passing locally does NOT mean production rate
  * limiting is unbounded-safe. lib/rate-limit.ts falls back to an in-process

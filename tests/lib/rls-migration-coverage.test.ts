@@ -70,7 +70,9 @@ function models(): Model[] {
 /** Tables a migration creates. */
 function createdTables(sql: string): Set<string> {
   const created = new Set<string>();
-  for (const match of sql.matchAll(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?"?([A-Za-z0-9_]+)"?/gi)) {
+  for (const match of sql.matchAll(
+    /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?"?([A-Za-z0-9_]+)"?/gi,
+  )) {
     created.add(match[1]);
   }
   return created;
@@ -109,10 +111,7 @@ function inlineSecuredTables(sql: string): Set<string> {
  * how a table that was never named explicitly still gets a policy.
  */
 function sweepsAllTenantTables(sql: string): boolean {
-  return (
-    /information_schema\.columns/i.test(sql) &&
-    /column_name\s*=\s*'schoolId'/i.test(sql)
-  );
+  return /information_schema\.columns/i.test(sql) && /column_name\s*=\s*'schoolId'/i.test(sql);
 }
 
 describe("RLS coverage in the migration history", () => {
@@ -208,7 +207,9 @@ describe("RLS coverage in the migration history", () => {
         `${migration.name} disables row level security. Tenant isolation must not be switched off.`,
       ).toBe(false);
 
-      const drops = [...migration.sql.matchAll(/DROP\s+POLICY\s+(?:IF\s+EXISTS\s+)?eduos_tenant_isolation/gi)];
+      const drops = [
+        ...migration.sql.matchAll(/DROP\s+POLICY\s+(?:IF\s+EXISTS\s+)?eduos_tenant_isolation/gi),
+      ];
       if (!drops.length) continue;
       const recreates = /CREATE\s+POLICY[\s\S]{0,200}eduos_tenant_isolation/i.test(migration.sql);
       expect(

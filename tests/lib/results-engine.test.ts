@@ -43,12 +43,10 @@ describe("component clamping", () => {
   });
 
   it("totals a full house to 100 and never above", () => {
+    expect(totalOf({ ca1: 10, ca2: 10, midterm: 10, assignment: 10, exam: 60 })).toBe(100);
     expect(
       totalOf({ ca1: 10, ca2: 10, midterm: 10, assignment: 10, exam: 60 }),
-    ).toBe(100);
-    expect(totalOf({ ca1: 10, ca2: 10, midterm: 10, assignment: 10, exam: 60 })).toBeLessThanOrEqual(
-      100,
-    );
+    ).toBeLessThanOrEqual(100);
   });
 
   it("totals a blank score bag to zero", () => {
@@ -327,11 +325,7 @@ describe("CBT contribution", () => {
 
   it("keeps an already-adopted attempt even if a mark now exists", () => {
     expect(
-      shouldUseCbt(
-        30,
-        { score: 20, maxMarks: 20, attempts: 1, attemptId: "att-1" },
-        "att-1",
-      ),
+      shouldUseCbt(30, { score: 20, maxMarks: 20, attempts: 1, attemptId: "att-1" }, "att-1"),
     ).toBe(true);
   });
 
@@ -346,7 +340,10 @@ describe("buildSubjectLine", () => {
   it("prefers a non-zero gradebook row", () => {
     const line = buildSubjectLine({
       subjectName: "Maths",
-      gradebook: { scores: { ca1: 8, ca2: 9, midterm: 7, assignment: 6, exam: 40 }, comment: "Steady" },
+      gradebook: {
+        scores: { ca1: 8, ca2: 9, midterm: 7, assignment: 6, exam: 40 },
+        comment: "Steady",
+      },
       cbt: { score: 20, maxMarks: 20, attempts: 1 },
     });
     expect(line).toMatchObject({
@@ -539,10 +536,18 @@ describe("end-to-end arithmetic", () => {
   it("produces a full card from marks through to a year average", () => {
     // A student taking three subjects across a year.
     const term1 = [
-      buildSubjectLine({ subjectName: "Maths", gradebook: { scores: { ca1: 9, ca2: 8, midterm: 7, assignment: 6, exam: 40 } } })!,
-      buildSubjectLine({ subjectName: "English", gradebook: { scores: { ca1: 7, ca2: 7, midterm: 8, assignment: 8, exam: 30 } } })!,
+      buildSubjectLine({
+        subjectName: "Maths",
+        gradebook: { scores: { ca1: 9, ca2: 8, midterm: 7, assignment: 6, exam: 40 } },
+      })!,
+      buildSubjectLine({
+        subjectName: "English",
+        gradebook: { scores: { ca1: 7, ca2: 7, midterm: 8, assignment: 8, exam: 30 } },
+      })!,
     ];
-    const t1 = compileTerm(term1.map((l) => ({ subjectName: l.subjectName, total: l.total, included: true })));
+    const t1 = compileTerm(
+      term1.map((l) => ({ subjectName: l.subjectName, total: l.total, included: true })),
+    );
     expect(t1.totalScore).toBe(70 + 60);
 
     const t2 = compileTerm([

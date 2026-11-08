@@ -40,10 +40,7 @@ export type LoginEmailPolicy = {
  * Characters that are not safe in a local part are folded to `-`, so
  * `YKC/2026/AB12CD34` becomes `ykc-2026-ab12cd34@…`.
  */
-export function studentLoginEmail(params: {
-  studentId: string;
-  domain: string;
-}): string {
+export function studentLoginEmail(params: { studentId: string; domain: string }): string {
   const local = params.studentId
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -70,10 +67,7 @@ export function loginDomain(configured: string | undefined | null): string {
 
 /** Why a provisioning request was refused. */
 export type ProvisionRefusal =
-  | "ALREADY_HAS_ACCOUNT"
-  | "EMAIL_TAKEN"
-  | "NO_STUDENT_NUMBER"
-  | "STUDENT_INACTIVE";
+  "ALREADY_HAS_ACCOUNT" | "EMAIL_TAKEN" | "NO_STUDENT_NUMBER" | "STUDENT_INACTIVE";
 
 /**
  * Should this student get an account?

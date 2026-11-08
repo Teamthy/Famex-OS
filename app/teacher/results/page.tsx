@@ -391,7 +391,9 @@ export default function TeacherResultsPage() {
                               <td className="px-3 py-3 text-[10px] text-[var(--text-muted)]">
                                 {student.subjects.map((subject) => subject.subjectName).join(", ")}
                               </td>
-                              <td className="px-3 py-3 text-center font-bold">{student.totalScore}</td>
+                              <td className="px-3 py-3 text-center font-bold">
+                                {student.totalScore}
+                              </td>
                               <td className="px-3 py-3 text-center font-bold text-brand-green">
                                 {student.average}%
                               </td>
@@ -436,7 +438,9 @@ export default function TeacherResultsPage() {
                                   <div className="space-y-1">
                                     <p className="text-[10px] text-[var(--text-secondary)]">
                                       {student.classTeacherRemark ?? (
-                                        <span className="text-[var(--text-muted)]">Not written</span>
+                                        <span className="text-[var(--text-muted)]">
+                                          Not written
+                                        </span>
                                       )}
                                     </p>
                                     {grid.canEditRemark && !grid.locked ? (

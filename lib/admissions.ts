@@ -85,7 +85,7 @@ export const admissionDraftSchema = z
         "Enter a valid date of birth.",
       ),
     gender: z.enum(["Female", "Male", "Prefer not to say"], {
-      errorMap: () => ({ message: "Select the applicant's gender." }),
+      error: "Select the applicant's gender.",
     }),
     stateOfOrigin: requiredText("State of origin", 80),
     lga: requiredText("Local Government Area", 100),
@@ -95,7 +95,7 @@ export const admissionDraftSchema = z
       .transform((value) => value || undefined),
     genotype: z.enum(["", "AA", "AS", "AC", "SS", "SC"]).transform((value) => value || undefined),
     classApplying: z.enum(["JSS1", "JSS2", "JSS3", "SS1", "SS2", "SS3"], {
-      errorMap: () => ({ message: "Select the class the applicant is applying for." }),
+      error: "Select the class the applicant is applying for.",
     }),
     preferredArm: optionalText(20),
     fatherName: optionalText(120),
@@ -103,7 +103,7 @@ export const admissionDraftSchema = z
     guardianName: optionalText(120),
     guardianRelationship: optionalText(60),
     primaryContact: z.enum(["MOTHER", "FATHER", "GUARDIAN"], {
-      errorMap: () => ({ message: "Choose the primary contact person." }),
+      error: "Choose the primary contact person.",
     }),
     parentPhone: nigerianPhone,
     whatsappPhone: z.preprocess(

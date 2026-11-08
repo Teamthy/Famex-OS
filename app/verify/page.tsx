@@ -61,12 +61,10 @@ export default function VerifyEntryPage() {
             >
               <FileText size={26} className="text-brand-green" />
               <h2 className="mt-4 font-display text-xl text-[var(--text-primary)]">Report card</h2>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                Termly student report cards
-              </p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">Termly student report cards</p>
               <p className="mt-2 text-[11px] leading-relaxed text-[var(--text-muted)]">
-                Enter the code printed beneath the QR square, or scan the code. The report number
-                in the corner cannot be used here: it is derived from the student&apos;s ID, so
+                Enter the code printed beneath the QR square, or scan the code. The report number in
+                the corner cannot be used here: it is derived from the student&apos;s ID, so
                 accepting it would let anyone read a child&apos;s results.
               </p>
               <input

@@ -129,9 +129,12 @@ export default async function PrintableReportCardPage({
       />
       <ReportCardSheet data={sheet} />
       <p className="no-print mx-auto mt-6 max-w-[210mm] px-4 text-center text-xs text-neutral-500">
-        Printed from <Link href="/" className="underline">Famex</Link>. The QR code and
-        verification code above let anyone confirm this document is genuine without
-        exposing the student&apos;s records.
+        Printed from{" "}
+        <Link href="/" className="underline">
+          Famex
+        </Link>
+        . The QR code and verification code above let anyone confirm this document is genuine
+        without exposing the student&apos;s records.
       </p>
     </main>
   );

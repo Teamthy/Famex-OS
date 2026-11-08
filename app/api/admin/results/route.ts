@@ -6,11 +6,7 @@ import { GRADEBOOK_ADMIN_ROLES } from "@/lib/gradebook";
 import { requireModule } from "@/lib/module-guard";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
-import {
-  classResultLockState,
-  compileClassTermResults,
-  listClassResults,
-} from "@/lib/results";
+import { classResultLockState, compileClassTermResults, listClassResults } from "@/lib/results";
 import { termLabelForIndex } from "@/lib/results-engine";
 
 export const dynamic = "force-dynamic";
@@ -86,7 +82,9 @@ async function resolveTarget(params: {
   schoolId: string;
   sessionLabel?: string;
   termIndex?: number;
-}): Promise<{ sessionLabel: string; termIndex: number; termLabel: string } | { error: NextResponse }> {
+}): Promise<
+  { sessionLabel: string; termIndex: number; termLabel: string } | { error: NextResponse }
+> {
   let current: Awaited<ReturnType<typeof resolveCurrentLabels>>;
   try {
     current = await resolveCurrentLabels(params.schoolId);
@@ -157,7 +155,11 @@ export async function GET(request: NextRequest) {
         }),
       ]);
       return {
-        class: { id: schoolClass.id, displayName: schoolClass.displayName, level: schoolClass.level },
+        class: {
+          id: schoolClass.id,
+          displayName: schoolClass.displayName,
+          level: schoolClass.level,
+        },
         studentCount: schoolClass.students.length,
         status: lock.status,
         locked: lock.locked,
@@ -222,7 +224,9 @@ export async function POST(request: NextRequest) {
     payload = bodySchema.parse(await request.json());
   } catch (error) {
     const message =
-      error instanceof z.ZodError ? (error.issues[0]?.message ?? "Invalid request.") : "Invalid request.";
+      error instanceof z.ZodError
+        ? (error.issues[0]?.message ?? "Invalid request.")
+        : "Invalid request.";
     return NextResponse.json({ error: message }, { status: 400 });
   }
 

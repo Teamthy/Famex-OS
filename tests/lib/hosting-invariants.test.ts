@@ -39,9 +39,7 @@ describe("single writer", () => {
     const timer = read("deploy/oci/famex-notify.timer");
     expect(timer.length).toBeGreaterThan(0);
     const service = read("deploy/oci/famex-notify.service");
-    expect(vercel.crons[0].path.replace("/api/jobs/", "")).toBe(
-      "dispatch-notifications",
-    );
+    expect(vercel.crons[0].path.replace("/api/jobs/", "")).toBe("dispatch-notifications");
     expect(service).toMatch(/dispatch-notifications/);
   });
 
