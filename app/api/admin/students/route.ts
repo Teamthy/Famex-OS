@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
 import { PEOPLE_ADMIN_ROLES, oneTimeSecret, passwordHash, uniqueStudentNumber } from "@/lib/people";
 import { requireModule } from "@/lib/module-guard";
+import { onboardStudent } from "@/lib/enrolment";
+import { assignStudentSubjects } from "@/lib/enrolment-subjects";
 import { logger } from "@/lib/logger";
 import {
   completeReservedIdempotency,
@@ -28,6 +30,13 @@ const schema = z.object({
     (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
     z.string().trim().toLowerCase().email().optional(),
   ),
+  /**
+   * Subjects to enrol the student in, in addition to the compulsory ones their
+   * level implies. Omitted means "compulsory only", which is what a school
+   * with a fully compulsory catalogue wants. Ids outside the student's level
+   * are rejected by assignStudentSubjects rather than trusted.
+   */
+  subjectIds: z.array(z.string().trim().min(1)).max(30).optional(),
 });
 export async function GET() {
   const guard = await requireModule("users", PEOPLE_ADMIN_ROLES);
@@ -212,6 +221,48 @@ export async function POST(request: NextRequest) {
             isPrimary: true,
           },
         });
+      /**
+       * Give the student their subjects before the transaction commits.
+       *
+       * This route is the "Enrol student" button on Admin → Students, which is
+       * the path a school actually uses for a walk-in. It created the profile,
+       * the class link and the guardian account, and then stopped — so the
+       * student had no StudentSubject rows at all. Consequences, all silent:
+       * they saw no exams, appeared in no subject teacher's roster, were
+       * skipped by the promotion rollover, and got no report-card subjects.
+       * The admissions route has always done this correctly; this path simply
+       * never called it.
+       *
+       * Inside the transaction, because a student who exists without subjects
+       * is exactly the broken state — a second request would not fix it.
+       */
+      const currentSession = await tx.academicSession.findFirst({
+        where: { schoolId: user.schoolId, isCurrent: true },
+        select: { id: true },
+      });
+      const onboarding = await onboardStudent({
+        tx,
+        schoolId: user.schoolId,
+        studentProfileId: student.id,
+        classId: lockedClass.id,
+        sessionId: currentSession?.id ?? null,
+      });
+
+      // Anything the school ticked beyond the compulsory set. Electives are
+      // per-student by definition, so onboardStudent cannot infer them.
+      if (input.subjectIds?.length) {
+        const extra = await assignStudentSubjects(tx, {
+          schoolId: user.schoolId,
+          studentProfileId: student.id,
+          level: lockedClass.level,
+          subjectIds: input.subjectIds,
+        });
+        if (extra.rejected.length)
+          onboarding.warnings.push(
+            `${extra.rejected.length} chosen subject(s) are not offered at ${lockedClass.level} and were ignored.`,
+          );
+      }
+
       await tx.auditLog.create({
         data: {
           schoolId: user.schoolId,
@@ -245,10 +296,13 @@ export async function POST(request: NextRequest) {
                 mustChangePassword: parentCreated,
               }
             : null,
+          // The temporary password is deliberately absent from a replay; the
+          // subject count is not a secret and keeps the response shape stable.
+          subjects: { assigned: onboarding.subjectsAssigned, warnings: onboarding.warnings },
         },
         statusCode: 201,
       });
-      return { student, parentCreated, className: lockedClass.displayName };
+      return { student, parentCreated, className: lockedClass.displayName, onboarding };
     });
     const response = {
       student: {
@@ -264,6 +318,16 @@ export async function POST(request: NextRequest) {
             mustChangePassword: result.parentCreated,
           }
         : null,
+      /**
+       * What the student was actually given. Surfaced to the caller so an
+       * empty subject catalogue is visible at the moment it happens: the
+       * student would otherwise look enrolled and see no exams, with nothing
+       * anywhere saying why.
+       */
+      subjects: {
+        assigned: result.onboarding.subjectsAssigned,
+        warnings: result.onboarding.warnings,
+      },
     };
     return NextResponse.json(response, { status: 201 });
   } catch (error) {

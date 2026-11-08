@@ -11,10 +11,18 @@ import { FileText, ArrowRight } from "lucide-react";
 /**
  * /verify — the entry point for document verification (F7-11).
  *
- * The QR code on a report card carries the full URL (/verify/report/<n>), so a
- * scanner lands directly on the result. This page serves the human who has a
- * number but no QR. The IT-certificate verifier was retired with FIS's IT
+ * The QR code on a report card carries the full URL (/verify/report/<code>), so
+ * a scanner lands directly on the result. This page serves the human who has
+ * the code but no QR. The IT-certificate verifier was retired with FIS's IT
  * academy (W1); only report-card verification remains.
+ *
+ * The code, not the report number. The number is READABLE BY DESIGN — it is
+ * `RC/{year}/T{term}/{studentId}`, and a student id is on the child's ID card.
+ * The verification page shows a child's name, class and grades, so letting the
+ * number in meant anyone who knew a pupil could read their results, and could
+ * walk a class list by changing one digit (audit B-08). People who type it in
+ * are told where to find the code, rather than being left to conclude the
+ * document is fake.
  */
 export default function VerifyEntryPage() {
   const router = useRouter();
@@ -53,12 +61,19 @@ export default function VerifyEntryPage() {
             >
               <FileText size={26} className="text-brand-green" />
               <h2 className="mt-4 font-display text-xl text-[var(--text-primary)]">Report card</h2>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">Termly student report cards</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
+                Termly student report cards
+              </p>
+              <p className="mt-2 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                Enter the code printed beneath the QR square, or scan the code. The report number
+                in the corner cannot be used here: it is derived from the student&apos;s ID, so
+                accepting it would let anyone read a child&apos;s results.
+              </p>
               <input
                 value={reportNumber}
                 onChange={(e) => setReportNumber(e.target.value)}
-                placeholder="e.g. RC-2026-0001"
-                aria-label="Report card number"
+                placeholder="e.g. rc_8Kq2mN4pR7vT1wX5"
+                aria-label="Report verification code"
                 className="mt-5 w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-page)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-brand-green"
               />
               <button

@@ -12,11 +12,21 @@ export default async function VerifyReportPage({
 }: {
   params: Promise<{ reportNumber: string }>;
 }) {
-  const { reportNumber } = await params;
-  const decoded = decodeURIComponent(reportNumber);
+  const { reportNumber: identifier } = await params;
+  const decoded = decodeURIComponent(identifier);
 
+  // Keyed on the verification code, never the report number.
+  //
+  // The number is RC/{year}/T{term}/{studentId}: readable, printable, and
+  // guessable by anyone who knows a child's student id. This page shows the
+  // child's name, id, class and grades, so keying on it let a stranger walk a
+  // class list and read every result (audit B-08).
+  //
+  // Cards issued before verificationCode existed were backfilled by the
+  // migration, so there is no fallback to the number — a fallback would be the
+  // disclosure, wearing a compatibility argument.
   const report = await prisma.reportCard.findFirst({
-    where: { reportNumber: decoded, status: ReportCardStatus.RELEASED },
+    where: { verificationCode: decoded, status: ReportCardStatus.RELEASED },
     select: {
       reportNumber: true,
       sessionLabel: true,

@@ -24,6 +24,7 @@ import {
   ClipboardCheck,
   Calendar,
   X,
+  TrendingUp,
 } from "lucide-react";
 
 type ClockStatus = {
@@ -55,6 +56,7 @@ const SIDEBAR_ITEMS = [
   { label: "Attendance", href: "/student/attendance", icon: CalendarDays },
   { label: "Timetable", href: "/student/timetable", icon: Calendar },
   { label: "CBT Tests", href: "/student/exams", icon: ClipboardCheck },
+  { label: "Term Results", href: "/student/results", icon: TrendingUp },
   { label: "Report Cards", href: "/student/report-cards", icon: FileText },
   { label: "Messages", href: "/student/messages", icon: MessageCircle },
   { label: "Announcements", href: "/student/announcements", icon: Bell },

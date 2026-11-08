@@ -25,6 +25,7 @@ import {
   CircleHelp,
   BookOpenCheck,
   MonitorPlay,
+  TrendingUp,
 } from "lucide-react";
 
 const SIDEBAR_ITEMS = [
@@ -34,6 +35,7 @@ const SIDEBAR_ITEMS = [
   { label: "Attendance", href: "/student/attendance", icon: CalendarDays },
   { label: "Timetable", href: "/student/timetable", icon: CalendarDays },
   { label: "CBT Tests", href: "/student/exams", icon: ClipboardCheck },
+  { label: "Term Results", href: "/student/results", icon: TrendingUp },
   { label: "Report Cards", href: "/student/report-cards", icon: FileText },
   { label: "Messages", href: "/student/messages", icon: MessageCircle },
   { label: "Announcements", href: "/student/announcements", icon: Bell },

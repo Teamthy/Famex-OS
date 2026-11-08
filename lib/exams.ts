@@ -167,3 +167,30 @@ export async function finalizeAttempt(attemptId: string) {
   // The attempt update is always the last entry in the batch.
   return results[results.length - 1] as Awaited<ReturnType<typeof prisma.examAttempt.update>>;
 }
+
+
+/**
+ * How long a sitting on this paper actually is.
+ *
+ * An exam can have two halves: objective questions, marked automatically, and
+ * a theory section the teacher marks by hand. `durationMinutes` is the
+ * objective window; `theoryMinutes` is the extra time for the written part.
+ *
+ * The student list has always advertised "40 min objective + 20 min theory".
+ * The attempt, the offline package and the replay all derived the deadline from
+ * `durationMinutes` alone, so a child was told they had an hour and given
+ * forty minutes — a lost theory script every time, and an indefensible one,
+ * because the screen said otherwise.
+ *
+ * Forty minutes is the fallback for a paper with no duration set at all: an
+ * exam that cannot be timed is not an exam that should last forever.
+ */
+export function examMinutes(exam: {
+  durationMinutes?: number | null;
+  theoryMinutes?: number | null;
+}): number {
+  const objective = Math.max(0, exam.durationMinutes ?? 0);
+  const theory = Math.max(0, exam.theoryMinutes ?? 0);
+  const total = objective + theory;
+  return total > 0 ? total : 40;
+}

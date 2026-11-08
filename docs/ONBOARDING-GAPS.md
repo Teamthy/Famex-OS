@@ -20,6 +20,13 @@ first.
 The account is created with `mustChangePassword = true`, so whatever is seeded
 is a first-login credential only.
 
+> **Corrected 2026-11-07.** This paragraph described behaviour the seed did not
+> have: `prisma/seed.ts` set no `mustChangePassword` at all, so the seeded admin
+> password — typed into `INITIAL_ADMIN_PASSWORD`, and therefore into a shell or a
+> CI secret first — stayed valid indefinitely. The flag is now set on both the
+> create and the update branch, and `tests/lib/onboarding-completeness.test.ts`
+> fails if it is removed again.
+
 ---
 
 ## 2. Blocks a correct, trustworthy public site

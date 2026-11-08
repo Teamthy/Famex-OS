@@ -1564,3 +1564,292 @@ button:disabled {
   content-visibility: auto;
   contain-intrinsic-size: auto 900px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REPORT CARD SHEET (components/ReportCardSheet.tsx)
+
+   The school's paper form: letterhead, STUDENT DETAILS, ACADEMIC PERFORMANCE,
+   ATTENDANCE SUMMARY / TEACHER COMMENTS, SIGNATURES.
+
+   Colours are the brand palette on screen and are forced to ink on paper: a
+   solid navy header drains a cartridge and its white text vanishes. Everything
+   is sized in mm so the sheet is A4 by construction rather than by hope, and
+   so a zoomed browser does not reflow it.
+
+   This is a deliberately separate namespace from `.report-card-sheet`, the
+   older dashboard-styled preview, which has its own print overrides.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.rc-sheet {
+  /* Screen only: show it as a sheet of paper. Print styling is below. */
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 14mm 15mm;
+  background: #fff;
+  color: #111827;
+  font-family: var(--font-body, ui-sans-serif, system-ui, sans-serif);
+  font-size: 10.5pt;
+  line-height: 1.45;
+  box-sizing: border-box;
+  /* A flex column so the verification strip is pinned to the foot of the
+     sheet (`margin-top: auto` below) instead of leaving a hand's width of
+     blank paper under it. On a 297mm page the difference is what makes the
+     document look finished rather than truncated. */
+  display: flex;
+  flex-direction: column;
+}
+
+/* On screen the sheet needs a boundary or it floats on the page. */
+@media screen {
+  .rc-sheet {
+    box-shadow: 0 10px 40px rgb(0 0 0 / 0.12);
+    border-radius: 2px;
+  }
+}
+
+/* ── Letterhead ─────────────────────────────────────────────────────────── */
+.rc-sheet .rc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6mm;
+  padding-bottom: 4mm;
+  border-bottom: 2.5pt solid #0c1824;
+}
+.rc-sheet .rc-head__text { flex: 1 1 auto; min-width: 0; }
+.rc-sheet .rc-school {
+  margin: 0;
+  font-size: 17pt;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #0c1824;
+}
+.rc-sheet .rc-motto {
+  margin: 1mm 0 0;
+  font-size: 9pt;
+  font-style: italic;
+  color: #4b5563;
+}
+.rc-sheet .rc-contact {
+  margin: 1.5mm 0 0;
+  font-size: 8pt;
+  color: #4b5563;
+}
+.rc-sheet .rc-logo {
+  flex: 0 0 auto;
+  width: 30mm;
+  height: 30mm;
+  object-fit: contain;
+  /* A crest on a coloured field must not lose its edges on a cheap printer. */
+  image-rendering: auto;
+}
+.rc-sheet .rc-logo--empty {
+  /* No crest configured: reserve the space, print nothing. A broken-image
+     glyph on an official document is worse than a blank corner. */
+  border: 0;
+}
+
+.rc-sheet .rc-title {
+  margin: 6mm 0 5mm;
+  font-size: 19pt;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+  color: #4ec54d;
+}
+
+/* ── Sections ───────────────────────────────────────────────────────────── */
+.rc-sheet .rc-section { margin-bottom: 6mm; }
+.rc-sheet .rc-section__title {
+  margin: 0 0 2.5mm;
+  font-size: 11pt;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #0c1824;
+}
+
+/* ── Ruled fields ───────────────────────────────────────────────────────── */
+.rc-sheet .rc-grid { display: grid; gap: 3mm 8mm; }
+.rc-sheet .rc-grid--2 { grid-template-columns: 1fr 1fr; }
+.rc-sheet .rc-grid--bottom {
+  grid-template-columns: 1fr 1.35fr;
+  align-items: start;
+}
+
+.rc-sheet .rc-field {
+  display: flex;
+  align-items: baseline;
+  gap: 1.5mm;
+  min-height: 7mm;
+}
+.rc-sheet .rc-field__label {
+  flex: 0 0 auto;
+  font-size: 10pt;
+  color: #111827;
+}
+.rc-sheet .rc-field__value {
+  flex: 1 1 auto;
+  min-width: 0;
+  /* The ruling line under every value — this is the printed form. */
+  border-bottom: 1px dotted #6b7280;
+  padding: 0 1mm 0.5mm;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rc-sheet .rc-field__value--empty { font-weight: 400; }
+
+/* ── Marks table ────────────────────────────────────────────────────────── */
+.rc-sheet .rc-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 10pt;
+}
+.rc-sheet .rc-table th {
+  padding: 2.5mm 2mm;
+  font-size: 9pt;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #0c1824;
+  background: #f6b73c;
+  border: 0.75pt solid #0c1824;
+}
+.rc-sheet .rc-table td {
+  padding: 2.2mm 2mm;
+  border: 0.75pt solid #0c1824;
+  vertical-align: top;
+  /* A report card is a form: its lines are meant to be written on, and a row
+     squeezed to the height of its text leaves no room for the teacher's
+     remark. 8mm still fits twelve subjects on one A4 with the letterhead,
+     the signatures and the verification strip. */
+  height: 8mm;
+}
+.rc-sheet .rc-table__subject { width: 34%; text-align: left; font-weight: 600; }
+.rc-sheet .rc-table__remarks { width: 30%; text-align: left; }
+.rc-sheet .rc-center { text-align: center; }
+/* Blank ruled rows keep the empty form usable when filled in by hand. */
+.rc-sheet .rc-table__blank td { height: 8mm; }
+
+.rc-sheet .rc-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2mm 10mm;
+  margin-top: 2.5mm;
+  padding-top: 2mm;
+  font-size: 9.5pt;
+  border-top: 0.75pt solid #9ca3af;
+}
+.rc-sheet .rc-summary strong { color: #0c1824; }
+
+/* ── Attendance + comments ──────────────────────────────────────────────── */
+.rc-sheet .rc-attendance { display: grid; gap: 1mm; }
+.rc-sheet .rc-comment-box {
+  min-height: 34mm;
+  padding: 2.5mm;
+  font-size: 9.5pt;
+  line-height: 1.5;
+  border: 0.75pt solid #0c1824;
+  /* Ruled lines inside the comment box, like the printed form. */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 6.5mm,
+    #d1d5db 6.5mm,
+    #d1d5db 6.75mm
+  );
+}
+.rc-sheet .rc-remark { margin: 2.5mm 0 0; font-size: 9.5pt; }
+
+/* ── Signatures ─────────────────────────────────────────────────────────── */
+.rc-sheet .rc-signature { padding-top: 11mm; }
+.rc-sheet .rc-signature__line {
+  display: block;
+  border-top: 0.75pt solid #111827;
+  margin-bottom: 1.5mm;
+}
+.rc-sheet .rc-signature__label { font-size: 9pt; color: #374151; }
+.rc-sheet .rc-footnote { margin: 3mm 0 0; font-size: 9pt; }
+
+/* ── Verification strip ─────────────────────────────────────────────────── */
+.rc-sheet .rc-verify {
+  display: flex;
+  align-items: center;
+  gap: 4mm;
+  margin-top: auto;
+  padding-top: 3mm;
+  border-top: 0.75pt solid #9ca3af;
+  font-size: 8pt;
+  color: #374151;
+}
+.rc-sheet .rc-verify__qr { width: 22mm; height: 22mm; flex: 0 0 auto; }
+.rc-sheet .rc-verify__label {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #0c1824;
+}
+.rc-sheet .rc-verify__code {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-weight: 700;
+  font-size: 9pt;
+  word-break: break-all;
+}
+.rc-sheet .rc-verify__url { word-break: break-all; }
+.rc-sheet .rc-verify__fee { margin-left: auto; text-align: right; font-weight: 600; }
+
+/* ═══ PRINT ══════════════════════════════════════════════════════════════
+   One card per sheet, no chrome, exact A4. The screen-only shadow, rounding
+   and margins are dropped; the ink colours above are already print-safe. */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  .rc-sheet {
+    width: 210mm !important;
+    /* Full A4 height on paper too: the verify strip is pinned with
+       margin-top:auto, which needs a definite height to push against. */
+    min-height: 297mm !important;
+    margin: 0 !important;
+    padding: 14mm 15mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    break-after: page;
+    page-break-after: always;
+  }
+  /* The last sheet must not leave a trailing blank page. */
+  .rc-sheet:last-of-type {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  /* Force ink where the screen uses brand colour, and keep the header band
+     from printing as a solid block of toner. */
+  .rc-sheet .rc-title { color: #111827 !important; }
+  .rc-sheet .rc-table th {
+    background: #f0d9a8 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .rc-sheet .rc-head { border-bottom-color: #111827 !important; }
+}

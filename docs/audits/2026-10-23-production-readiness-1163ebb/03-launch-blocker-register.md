@@ -17,7 +17,18 @@
 
 ## B-02 — Public CBT APIs expose an answer oracle and unauthenticated attempt surface
 
-- **Severity/status:** P0 / FAIL
+- **Severity/status:** P0 / **FIXED** — routes deleted
+- **Fix:** `app/api/cbt/{check,quiz,attempts,subjects,topics}` and the orphaned
+  `components/cbt/CbtRunner.tsx` are deleted. Nothing in the product imported
+  the component and the `/cbt` pages redirect to login, so the surface had no
+  legitimate caller — the removal costs no functionality. `lib/cbt.ts`
+  (`gradeAttempt`, `shuffled`) is pure and stays, still covered by
+  `tests/lib/cbt-scoring.test.ts`; the server-side grading survives, the
+  disclosure does not. The `PUBLIC_ROUTES` allowlist entry in
+  `scripts/audit-project.ts` is removed with a note explaining why, and
+  `tests/lib/cbt-public-oracle.test.ts` fails if either comes back or if any
+  unauthenticated route begins returning a `correctIndex`. `npm run audit` now
+  reports **0 blockers**.
 - **Evidence:** `app/cbt/page.tsx` and `app/cbt/[slug]/page.tsx` redirect to login, but `app/api/cbt/check/route.ts` remains public. At lines 34–42 it loads `correctIndex`/`explanation` by arbitrary `questionId` and returns correctness, `correctIndex`, and `explanation`. Related public quiz/attempt routes were inventoried under `app/api/cbt/`.
 - **Impact:** Anyone who obtains a question ID can interrogate the answer key one question at a time; unauthenticated attempts can pollute analytics/results. Rate limiting slows abuse but does not make disclosure safe.
 - **Required fix:** Remove public CBT APIs from production, or bind every check/attempt to an authenticated, server-issued practice attempt with per-question commit state and no reusable question-ID oracle. Keep assessment question banks separate from public practice content.
@@ -25,7 +36,17 @@
 
 ## B-03 — Admissions documents can pass by type without a clean, verified stored file
 
-- **Severity/status:** P0 / FAIL
+- **Severity/status:** P0 / **PARTIALLY FIXED** — completeness now requires a usable scan verdict
+- **Fixed (this branch):** both `payments/start` and `submit` built completeness
+  from document TYPES, so a row that existed at all counted — including one
+  still `PENDING` and one already marked `INFECTED`. `lib/admissions-documents.ts`
+  now allows only `CLEAN`/`SKIPPED`, and the refusal names the actual problem
+  (missing vs still scanning vs failed the scan) instead of telling every parent
+  to re-upload. 18 tests, two of them static guards on the routes.
+- **Still open:** magic-byte/MIME verification at upload, checksum and length
+  binding, quarantine download handling, and deletion of infected or replaced
+  objects in storage. Those need the storage layer and cannot be verified here
+  without an object store.
 - **Evidence:** `app/api/admissions/payments/start/route.ts:48` and `app/api/admissions/submit/route.ts:59` build completeness from `application.documents.map((document) => document.type)`. `app/api/admin/admissions/route.ts:30` selects document `id`, `type`, `fileName`, and `sizeBytes`, not a scan verdict. Source review also found presigned upload/confirmation gaps around stored MIME/magic bytes, checksum/length binding, quarantine, and deletion of infected/replaced objects in `lib/storage.ts`, `lib/security.ts`, `lib/malware.ts`, and the admissions document routes.
 - **Impact:** Pending/infected or substituted content can be treated as satisfying an admissions requirement; staff may download malicious files; child identity/medical documents may remain in unsafe locations.
 - **Required fix:** Require `CLEAN` scan state plus verified size, checksum, MIME, and magic bytes before payment/submission/review; quarantine infected objects; delete or isolate replaced objects; show scan state to reviewers; use short-lived authorized downloads with audit logs.
@@ -41,7 +62,22 @@
 
 ## B-05 — Student and parent account provisioning can strand or expose users
 
-- **Severity/status:** P0 / FAIL
+- **Severity/status:** P0 / **PARTIALLY FIXED** — provisioning and enforcement closed
+- **Fixed (this branch):**
+  - *No student login path.* `POST /api/admin/students/[id]/login` provisions an
+    account from the student number; `PATCH` resets one with a required reason
+    and bumps `tokenVersion`. Previously the only way was a server-side script.
+  - *`mustChangePassword` was not enforced on the API.* The portal redirect
+    existed for pages only; `/api/*` is not under `/admin`, so it never met the
+    check. `lib/password-gate.ts` now gates every API route in middleware,
+    before the protected-prefix branch, with a 403 and
+    `PASSWORD_CHANGE_REQUIRED`. Verified by mutation.
+  - The temporary password is returned once for delivery, never stored, and
+    never reusable: the account is created with `mustChangePassword: true`.
+- **Still open:** one-time activation links (the credential is currently handed
+  over by a clerk), guardian-link verification, forced charge on the MOBILE
+  client (mobile has no gate at all), and a bulk import with dry-run. Recorded
+  rather than claimed.
 - **Evidence:** Actual login in `app/api/auth/login/route.ts` is lowercased email + bcrypt password with school resolution. `scripts/seed-students.ts:122–125` says shared-password login does not use the stored hash and sets a random hash; lines 198–200 nevertheless advertise a hard-coded shared password (redacted). No supported in-product student-login provisioning/reset workflow was found. `scripts/make-student-login.ts` sets `mustChangePassword:false`. Student-creation flows were also found to create/reuse parent accounts from unverified email and return temporary passwords to staff.
 - **Impact:** Students may be enrolled without usable credentials; staff workarounds invite shared passwords, account takeover, and support chaos at term start.
 - **Required fix:** Build audited admin provisioning and reset flows: unique school email/identifier policy, one-time activation links, forced first-password change, guardian-link verification, bulk import with dry-run/errors, and no password disclosure to staff after creation.
@@ -57,7 +93,25 @@
 
 ## B-07 — Authenticated exam entitlement, timing, and offline replay are not examination-safe
 
-- **Severity/status:** P0 / FAIL
+- **Severity/status:** P0 / **PARTIALLY FIXED** — timing defects closed; device binding still open
+- **Fixed (this branch):**
+  - *Theory time.* The list advertised "durationMinutes objective + theoryMinutes
+    theory" but every deadline used `durationMinutes` alone. `examMinutes()`
+    (lib/exams.ts) is now the single source for the total, and the attempt,
+    offline-package and replay routes all use it.
+  - *Subject authorization.* Confirmed present: all three routes resolve the
+    student's subject enrolment via `studentSubjectIds()` and refuse with
+    `NOT_ENROLLED`. Cross-subject IDOR no longer reproduces.
+  - *Unbounded replay timing.* `offlineTimingProblem()` (lib/offline-packet.ts)
+    refuses a sitting that predates its own download, starts in the future,
+    submits before it starts, or falls far outside the paper's window. Late
+    syncs remain accepted.
+  - Regression tests: `tests/lib/exam-minutes.test.ts` (incl. a static guard on
+    all three routes), `tests/lib/offline-packet.test.ts` (`offlineTimingProblem`).
+- **Still open:** binding a replay to a specific device/attempt nonce, and
+  authoritative server-issued deadlines for offline sittings. Both need a
+  design decision (a device identity store) rather than a patch; recorded here
+  rather than claimed done.
 - **Evidence:** Student exam lists are subject-filtered, but source review of `app/api/student/exams/[id]/attempt/route.ts`, `.../offline-package/route.ts`, and `.../attempt/offline-replay/route.ts` found authorization centered on current class. Advertised `theoryMinutes` is not consistently included in attempt/offline deadlines derived from `durationMinutes`. Offline replay accepts broad client-supplied timing assertions.
 - **Impact:** A student may access an exam for a subject they do not take, lose theory time, or replay manipulated offline timing. Results become contestable.
 - **Required fix:** Authorize by current enrolment + subject + exam publication window on every attempt/package/replay endpoint; make server-issued attempt deadlines authoritative; sign offline packages and replay envelopes; bind device/attempt/nonce; reject stale or altered timing.
@@ -65,7 +119,20 @@
 
 ## B-08 — Gradebook/report outputs can be incomplete, stale, or publicly guessable
 
-- **Severity/status:** P0 / FAIL
+- **Severity/status:** P0 / **PARTIALLY FIXED** — public disclosure closed
+- **Fixed (this branch):** the public verification identifier. `/verify/report/`
+  was keyed on `RC/{year}/T{term}/{studentId}` — guessable from a student id
+  printed on ID cards — and rendered the child's name, id, class and grades.
+  `GET /api/alumni/transcript?reportNumber=…` was a second, worse oracle (full
+  subject breakdown, anonymous, zero callers) and is deleted. Cards now carry a
+  `verificationCode` (128 bits, unique, backfilled by migration); the public
+  page looks up by code alone, with no report-number fallback. 15 tests in
+  `tests/lib/report-verification.test.ts`, including one that fails if the
+  lookup ever matches on a report number again.
+- **Still open:** explicit missing/absent/exempt/not-enrolled modelling in
+  `lib/gradebook.ts`, completeness gates on generation/release, and snapshot
+  invalidation after corrections. These are grading-correctness changes (they
+  alter what a released grade MEANS) and are not attempted here.
 - **Evidence:** Source review of `lib/gradebook.ts`, `lib/report-cards.ts`, result-correction code, broadsheet routes, and public verification found missing/absent/exempt work collapsing to zero, whole-class treatment despite electives, rankings over incomparable subject sets, correction workflows reporting affected report cards without regenerating them, and deterministic public verification identifiers of the form `RC/{session}/T{term}/{studentId}`.
 - **Impact:** Incorrect grades/ranks, stale official reports, and unauthorized disclosure of a child's results.
 - **Required fix:** Model missing/absent/exempt/not-enrolled explicitly; block generation/release on completeness rules; version snapshots and regenerate/invalidate after corrections; use high-entropy verification tokens with rate limits and minimal public fields.
@@ -121,7 +188,18 @@
 
 ## B-15 — Mobile/web offline data survives logout on shared devices
 
-- **Severity/status:** P1, P0 for shared-device deployment / FAIL
+- **Severity/status:** P1, P0 for shared-device deployment / **FIXED (web)**
+- **Fixed (this branch):** `cacheClear()` had no callers and `AuthProvider` cleared
+  nothing on sign-out; `getPaper()`/`listPapers()` had no owner check, so the
+  runner would sit whatever paper was on the device. Sign-out now runs
+  `clearDeviceData()`, which uses `planSignOut()` (lib/offline/session.ts) to
+  delete cached data, queued writes (after saying so) and papers the server
+  already has — and to KEEP a paper that is AWAITING_SYNC or IN_PROGRESS, whose
+  answers are the only copy in existence. `StoredPaper.ownerUserId` plus
+  `getOwnPaper()`/`listOwnPapers()` refuse another account's paper. 24 tests,
+  nine of them on the call graph, since the shipped bug was a correct decision
+  nobody called. **Still open: the mobile app (`mobile/lib/offline/db.ts`) and
+  encryption at rest for the exam store.**
 - **Evidence:** `mobile/app/logout.tsx` calls `logout()`; `mobile/lib/http.ts:108–125` clears the token, while `mobile/lib/offline/db.ts:134` exposes a separate `clearOfflineData()`. Offline exams use a different database (`famex_offline.db`) from the general cache (`fis_offline.db`). Web logout in `components/AuthProvider.tsx` posts to `/api/auth/logout` without clearing the `fis-offline` IndexedDB in the inspected flow.
 - **Impact:** The next user of a shared phone/browser may see cached student, fee, message, or exam data.
 - **Required fix:** Namespace offline data by user/school, encrypt sensitive stores where appropriate, and clear or lock all per-user stores on logout/session revocation; preserve only explicitly anonymous public cache.

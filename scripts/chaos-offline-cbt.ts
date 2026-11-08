@@ -1,25 +1,43 @@
 /**
  * Offline CBT chaos-test runner.
  *
- * Exercises the 10 scenarios in docs/OFFLINE_CBT_CHAOS_TEST.md against a live
- * Famex-OS instance using API calls that simulate what the mobile app would do
- * if connectivity were interrupted mid-submission. It does NOT require a
- * real device: it drives the student-facing APIs directly and toggles an
- * injected "offline flag" via the offline-package download + offline-replay
- * endpoints.
+ * Exercises the scenarios in docs/OFFLINE_CBT_CHAOS_TEST.md against a live
+ * instance, by driving the student-facing APIs the way the device would when
+ * connectivity is interrupted mid-submission. No real device is needed.
  *
  * Usage:
  *   BASE_URL=https://staging.famex.os SEED_PASSWORD=... \
- *     npx tsx scripts/chaos-offline-cbt.ts
+ *     npm run test:chaos:cbt
  *
  * Env:
- *   BASE_URL       Base URL of the running Famex-OS instance.
- *                  Default: http://127.0.0.1:3000
- *   SEED_PASSWORD  Password for the seeded admin/student/teacher accounts.
- *   STUDENT_EMAIL  Override student account (default: student1@fis.example.edu.ng).
- *   ADMIN_EMAIL    Override admin account (default: admin@fis.example.edu.ng).
+ *   BASE_URL       Base URL of the running instance. Default: http://127.0.0.1:3000
+ *   SEED_PASSWORD  Password for the seeded accounts.
+ *   STUDENT_EMAIL  Default: student1@fis.example.edu.ng
+ *   ADMIN_EMAIL    Default: admin@fis.example.edu.ng
+ *   TEACHER_EMAIL  Default: teacher1@fis.example.edu.ng
  *
  * Exit code is non-zero if any scenario fails.
+ *
+ * ── Why this was rewritten
+ *
+ * The previous version could not pass against the real endpoints, which is worse
+ * than having no test: it reported on an API that does not exist. It sent
+ * `durationMs` (the route requires `durationMinutes`), sent `answers` as an
+ * OBJECT where the route requires an array of `{questionId, response}`, and used
+ * invented question ids that the route correctly discards — so its
+ * "double-submit is idempotent" and "blank script recorded" assertions were
+ * exercising a 400 rather than the behaviour they claimed to test.
+ *
+ * Every payload below is the one the real route parses, and every assertion is
+ * about a property the product actually depends on:
+ *
+ *   • a download hands out questions, a manifest and a signature, and NO answers;
+ *   • replay is idempotent on the client attempt id;
+ *   • answers for questions that no longer exist are REPORTED, not silently kept
+ *     or silently dropped;
+ *   • a tampered manifest is rejected, and a changed paper is surfaced;
+ *   • a sitting longer than the paper's duration is held for review;
+ *   • one student cannot replay another's paper, and staff cannot replay at all.
  */
 import { createHash } from "node:crypto";
 
@@ -31,27 +49,26 @@ if (!PASSWORD) {
 }
 const STUDENT_EMAIL = process.env.STUDENT_EMAIL || "student1@fis.example.edu.ng";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@fis.example.edu.ng";
+const TEACHER_EMAIL = process.env.TEACHER_EMAIL || "teacher1@fis.example.edu.ng";
 
 type ScenarioResult = { name: string; pass: boolean; detail?: string };
-
 const results: ScenarioResult[] = [];
+
 function record(name: string, pass: boolean, detail?: string) {
   results.push({ name, pass, detail });
-  const icon = pass ? "✓" : "✗";
-  console.log(`  ${icon} ${name}${detail ? ` — ${detail}` : ""}`);
+  console.log(`  ${pass ? "✓" : "✗"} ${name}${detail ? ` — ${detail}` : ""}`);
 }
 
 async function login(email: string, password: string): Promise<string> {
-  const r = await fetch(`${BASE}/api/auth/login`, {
+  const response = await fetch(`${BASE}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
-    credentials: "include",
   });
-  if (!r.ok) throw new Error(`Login failed for ${email}: ${r.status}`);
-  // Return the cookie header we should forward — same jar via cookieJar global.
-  const setCookie = r.headers.getSetCookie();
-  return setCookie.map((c) => c.split(";")[0]).join("; ");
+  if (!response.ok) throw new Error(`Login failed for ${email}: ${response.status}`);
+  return (response.headers.getSetCookie?.() ?? [])
+    .map((cookie) => cookie.split(";")[0])
+    .join("; ");
 }
 
 async function asFetch(cookie: string, url: string, init: RequestInit = {}) {
@@ -62,320 +79,397 @@ async function asFetch(cookie: string, url: string, init: RequestInit = {}) {
   });
 }
 
+/** Unique per sitting, the way the device derives it from the start time. */
 function clientAttemptId(seed: string) {
-  return `chaos-${createHash("sha256")
-    .update(seed + Date.now())
-    .digest("hex")
-    .slice(0, 16)}`;
+  return `chaos-${createHash("sha256").update(`${seed}${Date.now()}`).digest("hex").slice(0, 16)}`;
 }
+
+type PackageBody = {
+  canStart: boolean;
+  refusal: string | null;
+  attemptId: string | null;
+  manifest: {
+    examId: string;
+    packetId: string;
+    fingerprint: string;
+    questionCount: number;
+    totalMarks: number;
+    durationMinutes: number;
+    sessionLabel: string | null;
+    termIndex: number | null;
+    downloadedAt: string;
+  } | null;
+  signature: string | null;
+  exam: { id: string; durationMinutes: number; title: string };
+  questions: Array<{ id: string; type: string; marks: number }>;
+};
 
 async function pickPublishedExam(
   cookie: string,
-): Promise<{ id: string; title: string; hasEssay: boolean } | null> {
-  const r = await asFetch(cookie, "/api/student/exams");
-  if (!r.ok) throw new Error("student exams endpoint failed");
-  const j = await r.json();
-  const list =
-    (j.exams || j.upcoming || j.examList || j || []).filter?.(
-      (e: any) => e.status === "PUBLISHED",
-    ) || [];
-  if (!list.length) return null;
-  return { id: list[0].id, title: list[0].title, hasEssay: !!list[0].essayCount };
+): Promise<{ id: string; title: string } | null> {
+  const response = await asFetch(cookie, "/api/student/exams");
+  if (!response.ok) throw new Error(`student exams endpoint failed: ${response.status}`);
+  const body = (await response.json()) as { exams?: Array<{ id: string; title: string; status: string }> };
+  const published = (body.exams || []).filter((exam) => exam.status === "PUBLISHED");
+  if (!published.length) return null;
+  return { id: published[0].id, title: published[0].title };
 }
 
-function buildAnswers(n: number, seed: string) {
-  const out: Record<string, any> = {};
-  for (let i = 0; i < n; i++) {
-    out[`q-${seed}-${i}`] = { response: `chaos-${seed}-answer-${i}`, timeSpentMs: 3000 + i * 120 };
-  }
-  return out;
+/** Answers in the shape the route parses: every question, positional. */
+function answersFor(
+  questions: Array<{ id: string; type: string }>,
+  limit = Number.POSITIVE_INFINITY,
+) {
+  return questions.slice(0, limit).map((question, index) => ({
+    questionId: question.id,
+    response: question.type === "ESSAY" ? `chaos essay answer ${index}` : "A",
+  }));
 }
 
-// ──────────────────────────────────────────────────────────
-// Runner
-// ──────────────────────────────────────────────────────────
+function replayBody(params: {
+  clientAttemptId: string;
+  startedAtMs: number;
+  durationMinutes: number;
+  answers: Array<{ questionId: string; response: string | null }>;
+  manifest: PackageBody["manifest"];
+  signature: string | null;
+  finalize?: boolean;
+}) {
+  return JSON.stringify({
+    clientAttemptId: params.clientAttemptId,
+    startedAt: new Date(params.startedAtMs).toISOString(),
+    submittedAt: new Date().toISOString(),
+    durationMinutes: params.durationMinutes,
+    answers: params.answers,
+    finalize: params.finalize ?? true,
+    manifest: params.manifest,
+    signature: params.signature,
+  });
+}
+
 (async () => {
   console.log(`\n=== Offline CBT chaos test against ${BASE} ===\n`);
-  const studentCookie = await login(STUDENT_EMAIL, PASSWORD);
-  const adminCookie = await login(ADMIN_EMAIL, PASSWORD);
 
-  // Preflight: find a published exam (or create via admin API if absent).
+  const studentCookie = await login(STUDENT_EMAIL, PASSWORD);
+  const adminCookie = await login(ADMIN_EMAIL, PASSWORD).catch(() => "");
   const exam = await pickPublishedExam(studentCookie);
   if (!exam) {
-    console.warn("  ! No PUBLISHED exam for student; scenarios that need a real exam will SKIP.");
-    console.warn("    (Admin can publish one via /admin/cbt-center.)");
+    console.warn("  ! No PUBLISHED exam for this student; exam scenarios will SKIP.");
   }
 
-  // ── Scenario 1: Download offline package (server-side clock must NOT start) ──
+  // ── 1. Download ────────────────────────────────────────────────────────────
+  let pack: PackageBody | null = null;
   try {
     if (!exam) {
       record("1. offline package download", true, "skipped (no exam)");
     } else {
-      const r = await asFetch(studentCookie, `/api/student/exams/${exam.id}/offline-package`);
-      const j = await r.json();
-      const ok =
-        r.ok &&
-        j.questions &&
-        Array.isArray(j.questions) &&
-        j.questions.length > 0 &&
-        !j.answerKeys;
-      record(
-        "1. offline package download (no answer keys, no clock start)",
-        ok,
-        ok ? `${j.questions.length} questions` : `${r.status} ${JSON.stringify(j).slice(0, 120)}`,
+      const response = await asFetch(
+        studentCookie,
+        `/api/student/exams/${exam.id}/offline-package`,
       );
-    }
-  } catch (e: any) {
-    record("1. offline package download", false, e.message);
-  }
+      const body = (await response.json()) as PackageBody & { error?: string };
+      pack = body;
 
-  // ── Scenario 2: Idempotent double-submit ──
-  try {
-    if (!exam) {
-      record("2. idempotent double-submit", true, "skipped (no exam)");
-    } else {
-      const cid = clientAttemptId("double");
-      const body = JSON.stringify({
-        clientAttemptId: cid,
-        startedAt: new Date(Date.now() - 25 * 60_000).toISOString(),
-        submittedAt: new Date().toISOString(),
-        answers: buildAnswers(5, "double"),
-        durationMs: 25 * 60_000,
-        late: false,
-      });
-      const r1 = await asFetch(
-        studentCookie,
-        `/api/student/exams/${exam.id}/attempt/offline-replay`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body,
-        },
-      );
-      const r2 = await asFetch(
-        studentCookie,
-        `/api/student/exams/${exam.id}/attempt/offline-replay`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body,
-        },
-      );
-      const j1 = await r1.json();
-      const j2 = await r2.json();
-      const ok = r1.ok && r2.ok && j1.attemptId && j1.attemptId === j2.attemptId;
+      const ok =
+        response.ok &&
+        Array.isArray(body.questions) &&
+        body.questions.length > 0 &&
+        Boolean(body.manifest?.fingerprint) &&
+        Boolean(body.signature);
+
       record(
-        "2. idempotent double-submit reuses same attemptId",
+        "1. package has questions, a manifest and a signature",
         ok,
         ok
-          ? `attemptId=${j1.attemptId}`
-          : `${r1.status}→${j1.idempotent ?? j1.error}, ${r2.status}→${j2.idempotent ?? j2.error}`,
+          ? `${body.questions.length} questions, ${body.manifest?.totalMarks} marks`
+          : `${response.status} ${JSON.stringify(body).slice(0, 160)}`,
+      );
+
+      record(
+        "1b. package does not start the clock",
+        ok && body.canStart === true && !("startedAt" in body),
+        body.canStart ? "startable, no start time issued" : (body.refusal ?? "not startable"),
       );
     }
-  } catch (e: any) {
-    record("2. idempotent double-submit", false, e.message);
+  } catch (error) {
+    record("1. offline package download", false, String(error));
   }
 
-  // ── Scenario 3: Late submission is flagged ──
+  // ── 2. No answer keys, ever ────────────────────────────────────────────────
   try {
     if (!exam) {
-      record("3. late submission flagged", true, "skipped");
+      record("2. no answer keys in the package", true, "skipped");
     } else {
-      const cid = clientAttemptId("late");
-      const r = await asFetch(
+      const response = await asFetch(
         studentCookie,
-        `/api/student/exams/${exam.id}/attempt/offline-replay`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            clientAttemptId: cid,
-            startedAt: new Date(Date.now() - 90 * 60_000).toISOString(),
-            submittedAt: new Date().toISOString(),
-            answers: buildAnswers(3, "late"),
-            durationMs: 90 * 60_000,
-            late: true,
-          }),
-        },
+        `/api/student/exams/${exam.id}/offline-package`,
       );
-      const j = await r.json();
-      const flagged = j.late === true || j.flags?.late;
+      const text = await response.text();
+      // The whole point of the offline design: the device records, the server
+      // marks. A key in this payload is every answer in the school on a phone.
+      const leaked = /"(correctKey|correctText|answerKey|isCorrect)"\s*:/.test(text);
       record(
-        "3. late submission carries a late flag",
-        r.ok && flagged,
-        flagged ? "flagged late" : JSON.stringify(j).slice(0, 160),
-      );
-    }
-  } catch (e: any) {
-    record("3. late submission flagged", false, e.message);
-  }
-
-  // ── Scenario 4: Wrong role rejected (admin cannot submit student attempt) ──
-  try {
-    if (!exam) {
-      record("4. cross-role replay rejected", true, "skipped");
-    } else {
-      const r = await asFetch(adminCookie, `/api/student/exams/${exam.id}/attempt/offline-replay`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clientAttemptId: clientAttemptId("cross"),
-          startedAt: new Date().toISOString(),
-          submittedAt: new Date().toISOString(),
-          answers: {},
-          durationMs: 1000,
-        }),
-      });
-      record(
-        "4. admin cannot submit student attempt",
-        r.status === 401 || r.status === 403,
-        `${r.status}`,
-      );
-    }
-  } catch (e: any) {
-    record("4. cross-role replay rejected", false, e.message);
-  }
-
-  // ── Scenario 5: Corrupt payload rejected (no 500) ──
-  try {
-    if (!exam) {
-      record("5. corrupt payload returns 4xx", true, "skipped");
-    } else {
-      const r = await asFetch(
-        studentCookie,
-        `/api/student/exams/${exam.id}/attempt/offline-replay`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            clientAttemptId: clientAttemptId("corrupt"),
-            answers: "not-an-object",
-          }),
-        },
-      );
-      record(
-        "5. corrupt payload rejected with 4xx, not 500",
-        r.status >= 400 && r.status < 500,
-        `${r.status}`,
-      );
-    }
-  } catch (e: any) {
-    record("5. corrupt payload returns 4xx", false, e.message);
-  }
-
-  // ── Scenario 6: Health endpoint reports OK ──
-  try {
-    const r = await fetch(`${BASE}/api/health`, { cache: "no-store" });
-    const j = await r.json();
-    record(
-      "6. /api/health reports ok",
-      r.ok && (j.ok === true || j.status === "ok"),
-      JSON.stringify(j).slice(0, 120),
-    );
-  } catch (e: any) {
-    record("6. /api/health reports ok", false, e.message);
-  }
-
-  // ── Scenario 7: Empty answers list still records an attempt ──
-  try {
-    if (!exam) {
-      record("7. blank script recorded", true, "skipped");
-    } else {
-      const cid = clientAttemptId("blank");
-      const r = await asFetch(
-        studentCookie,
-        `/api/student/exams/${exam.id}/attempt/offline-replay`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            clientAttemptId: cid,
-            startedAt: new Date(Date.now() - 60_000).toISOString(),
-            submittedAt: new Date().toISOString(),
-            answers: {},
-            durationMs: 60_000,
-          }),
-        },
-      );
-      const j = await r.json();
-      record(
-        "7. blank script accepted (graded later)",
-        r.ok && !!j.attemptId,
-        j.attemptId ? `attemptId=${j.attemptId}` : `${r.status} ${JSON.stringify(j).slice(0, 80)}`,
-      );
-    }
-  } catch (e: any) {
-    record("7. blank script recorded", false, e.message);
-  }
-
-  // ── Scenario 8: Answer keys never leak over offline-package ──
-  try {
-    if (!exam) {
-      record("8. offline package has no answer keys", true, "skipped");
-    } else {
-      const r = await asFetch(studentCookie, `/api/student/exams/${exam.id}/offline-package`);
-      const t = await r.text();
-      const leaked = /correct(Answer)?|isCorrect|answerKey/.test(t);
-      record(
-        "8. offline-package response does not leak answer keys",
+        "2. package carries no answer key",
         !leaked,
-        leaked ? "LEAKED key fields in payload" : "clean",
+        leaked ? "LEAKED key fields" : "clean",
       );
     }
-  } catch (e: any) {
-    record("8. offline package has no answer keys", false, e.message);
+  } catch (error) {
+    record("2. no answer keys in the package", false, String(error));
   }
 
-  // ── Scenario 9: Offline-replay endpoint exists at canonical path ──
+  // ── 3. Idempotent double-submit ────────────────────────────────────────────
   try {
-    if (!exam) {
-      record("9. replay endpoint mounted", true, "skipped");
+    if (!exam || !pack?.manifest || !pack.signature) {
+      record("3. idempotent double-submit", true, "skipped");
     } else {
-      const r = await asFetch(
+      const id = clientAttemptId("double");
+      const startedAt = Date.now() - 10 * 60_000;
+      const body = replayBody({
+        clientAttemptId: id,
+        startedAtMs: startedAt,
+        durationMinutes: pack.exam.durationMinutes,
+        answers: answersFor(pack.questions),
+        manifest: pack.manifest,
+        signature: pack.signature,
+      });
+
+      const first = await asFetch(
         studentCookie,
         `/api/student/exams/${exam.id}/attempt/offline-replay`,
-        { method: "OPTIONS" },
+        { method: "POST", headers: { "Content-Type": "application/json" }, body },
       );
-      // OPTIONS returns either 200/204/405 depending on handler. The failure mode
-      // is 404 (not mounted), which we catch separately.
-      record("9. offline-replay endpoint is mounted", r.status !== 404, `${r.status}`);
+      const second = await asFetch(
+        studentCookie,
+        `/api/student/exams/${exam.id}/attempt/offline-replay`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body },
+      );
+      const firstBody = (await first.json()) as { attemptId?: string; error?: string };
+      const secondBody = (await second.json()) as { attemptId?: string; error?: string };
+
+      const ok =
+        first.ok &&
+        firstBody.attemptId &&
+        secondBody.attemptId === firstBody.attemptId;
+
+      record(
+        "3. double-submit resolves to one attempt",
+        Boolean(ok),
+        ok
+          ? `attemptId=${firstBody.attemptId}`
+          : `${first.status}/${firstBody.error ?? "ok"} then ${second.status}/${secondBody.error ?? "ok"}`,
+      );
     }
-  } catch (e: any) {
-    record("9. replay endpoint mounted", false, e.message);
+  } catch (error) {
+    record("3. idempotent double-submit", false, String(error));
   }
 
-  // ── Scenario 10: Teacher marking endpoint live for exam teacher ──
+  // ── 4. Answers for a deleted question are reported, not silently dropped ───
+  try {
+    if (!exam || !pack?.manifest || !pack.signature) {
+      record("4. orphaned answers reported", true, "skipped");
+    } else {
+      const answers = [
+        ...answersFor(pack.questions, 1),
+        { questionId: "question-that-no-longer-exists", response: "A" },
+      ];
+      const response = await asFetch(
+        studentCookie,
+        `/api/student/exams/${exam.id}/attempt/offline-replay`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: replayBody({
+            clientAttemptId: clientAttemptId("orphan"),
+            startedAtMs: Date.now() - 5 * 60_000,
+            durationMinutes: pack.exam.durationMinutes,
+            answers,
+            manifest: pack.manifest,
+            signature: pack.signature,
+          }),
+        },
+      );
+      const body = (await response.json()) as {
+        orphanedAnswers?: number;
+        acceptedAnswers?: number;
+        error?: string;
+      };
+      const ok = response.ok && body.orphanedAnswers === 1;
+      record(
+        "4. an answer to a vanished question is counted, not discarded",
+        ok,
+        ok
+          ? `orphaned=${body.orphanedAnswers}`
+          : `${response.status} ${JSON.stringify(body).slice(0, 140)}`,
+      );
+    }
+  } catch (error) {
+    record("4. orphaned answers reported", false, String(error));
+  }
+
+  // ── 5. Tampered manifest is rejected ───────────────────────────────────────
+  try {
+    if (!exam || !pack?.manifest || !pack.signature) {
+      record("5. tampered manifest rejected", true, "skipped");
+    } else {
+      const response = await asFetch(
+        studentCookie,
+        `/api/student/exams/${exam.id}/attempt/offline-replay`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: replayBody({
+            clientAttemptId: clientAttemptId("tamper"),
+            startedAtMs: Date.now() - 5 * 60_000,
+            durationMinutes: pack.exam.durationMinutes,
+            answers: answersFor(pack.questions, 1),
+            // A manifest claiming a much smaller paper: the score would be a
+            // guaranteed pass if it were trusted.
+            manifest: { ...pack.manifest, totalMarks: 1 },
+            signature: pack.signature,
+          }),
+        },
+      );
+      const body = (await response.json()) as { packetMismatch?: string; error?: string };
+      record(
+        "5. a modified manifest is reported, not trusted",
+        response.ok && body.packetMismatch === "BAD_SIGNATURE",
+        body.packetMismatch ?? body.error ?? "no mismatch reported",
+      );
+    }
+  } catch (error) {
+    record("5. tampered manifest rejected", false, String(error));
+  }
+
+  // ── 6. A sitting past its window is held for review ────────────────────────
+  try {
+    if (!exam || !pack?.manifest || !pack.signature) {
+      record("6. late sitting held for review", true, "skipped");
+    } else {
+      const response = await asFetch(
+        studentCookie,
+        `/api/student/exams/${exam.id}/attempt/offline-replay`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: replayBody({
+            clientAttemptId: clientAttemptId("late"),
+            // Three hours on a paper that runs for the exam's own duration.
+            startedAtMs: Date.now() - 180 * 60_000,
+            durationMinutes: pack.exam.durationMinutes,
+            answers: answersFor(pack.questions, 2),
+            manifest: pack.manifest,
+            signature: pack.signature,
+          }),
+        },
+      );
+      const body = (await response.json()) as { lateForReview?: boolean; error?: string };
+      record(
+        "6. an overlong sitting is held for a teacher, not auto-scored",
+        response.ok && body.lateForReview === true,
+        body.lateForReview ? "held for review" : (body.error ?? "not held"),
+      );
+    }
+  } catch (error) {
+    record("6. late sitting held for review", false, String(error));
+  }
+
+  // ── 7. Staff cannot replay a student's paper ───────────────────────────────
+  try {
+    if (!exam || !adminCookie) {
+      record("7. staff cannot replay", true, "skipped");
+    } else {
+      const response = await asFetch(
+        adminCookie,
+        `/api/student/exams/${exam.id}/attempt/offline-replay`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clientAttemptId: clientAttemptId("cross"),
+            startedAt: new Date().toISOString(),
+            durationMinutes: 60,
+            answers: [],
+            finalize: true,
+          }),
+        },
+      );
+      record(
+        "7. a non-student cannot submit an attempt",
+        response.status === 401 || response.status === 403,
+        `${response.status}`,
+      );
+    }
+  } catch (error) {
+    record("7. staff cannot replay", false, String(error));
+  }
+
+  // ── 8. Corrupt payload is a 400, never a 500 ───────────────────────────────
   try {
     if (!exam) {
-      record("10. teacher marking GET returns theory queue", true, "skipped");
+      record("8. corrupt payload is a 4xx", true, "skipped");
     } else {
-      // The logged-in teacher may not own this exam; just assert that the route
-      // returns a well-formed response (403 if the teacher doesn't own it, JSON
-      // with `items` if they do — anything except 404 means mounted).
-      const teacherCookie = await login("teacher1@fis.example.edu.ng", PASSWORD).catch(
-        () => adminCookie,
+      const response = await asFetch(
+        studentCookie,
+        `/api/student/exams/${exam.id}/attempt/offline-replay`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ clientAttemptId: "x", answers: "not-an-array" }),
+        },
       );
-      const r = await asFetch(teacherCookie, `/api/teacher/exams/${exam.id}/marking`);
-      const mounted = r.status !== 404;
-      const j = await r.json().catch(() => ({}));
       record(
-        "10. teacher marking endpoint mounted",
-        mounted,
-        `${r.status} ${j.error ? "(" + j.error + ")" : "ok"}`,
+        "8. a malformed replay is rejected with a 4xx",
+        response.status >= 400 && response.status < 500,
+        `${response.status}`,
       );
     }
-  } catch (e: any) {
-    record("10. teacher marking GET returns theory queue", false, e.message);
+  } catch (error) {
+    record("8. corrupt payload is a 4xx", false, String(error));
   }
 
-  // ── Summary ──
+  // ── 9. Health ──────────────────────────────────────────────────────────────
+  try {
+    const response = await fetch(`${BASE}/api/health`, { cache: "no-store" });
+    const body = (await response.json()) as { ok?: boolean; status?: string };
+    record(
+      "9. /api/health reports ok",
+      response.ok && (body.ok === true || body.status === "ok"),
+      JSON.stringify(body).slice(0, 120),
+    );
+  } catch (error) {
+    record("9. /api/health reports ok", false, String(error));
+  }
+
+  // ── 10. Teacher marking queue is mounted ───────────────────────────────────
+  try {
+    if (!exam) {
+      record("10. teacher marking queue mounted", true, "skipped");
+    } else {
+      const teacherCookie = await login(TEACHER_EMAIL, PASSWORD).catch(() => adminCookie);
+      const response = await asFetch(teacherCookie, `/api/teacher/exams/${exam.id}/marking`);
+      // 403 is a correct answer for a teacher who does not own the paper; 404
+      // would mean the route is missing.
+      record(
+        "10. teacher marking queue is mounted",
+        response.status !== 404,
+        `${response.status}`,
+      );
+    }
+  } catch (error) {
+    record("10. teacher marking queue mounted", false, String(error));
+  }
+
+  // ── Summary ────────────────────────────────────────────────────────────────
   console.log("\n=== Summary ===");
-  const pass = results.filter((r) => r.pass).length;
-  const fail = results.length - pass;
-  console.log(`  ${pass}/${results.length} passed, ${fail} failed\n`);
-  for (const r of results) if (!r.pass) console.log(`  ✗ ${r.name}: ${r.detail}`);
-  process.exit(fail === 0 ? 0 : 2);
-})().catch((e) => {
-  console.error("Chaos runner crashed:", e);
+  const passed = results.filter((result) => result.pass).length;
+  const failed = results.length - passed;
+  console.log(`  ${passed}/${results.length} passed, ${failed} failed\n`);
+  for (const result of results) {
+    if (!result.pass) console.log(`  ✗ ${result.name}: ${result.detail}`);
+  }
+  process.exit(failed === 0 ? 0 : 2);
+})().catch((error) => {
+  console.error("Chaos runner crashed:", error);
   process.exit(3);
 });

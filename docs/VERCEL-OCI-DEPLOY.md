@@ -66,6 +66,12 @@ accounts for CI/staging only.
 
 ## B. Vercel staging / preview
 
+> **Status 2026-11-07:** the `famex-os` Vercel project exists and builds this
+> branch successfully on Node 22 (pinned in `package.json` `engines`). It has a
+> **placeholder** `DATABASE_URL` and has **not** been verified at runtime.
+> See [`HOSTING-DECISION-2K-USERS.md`](./HOSTING-DECISION-2K-USERS.md) §9 for the
+> exact state and the remaining owner steps. Do not point it at production.
+
 1. Create a separate staging Postgres database (for example a Neon staging
    project/branch) in a region close to the Vercel function region. Create an
    Upstash Redis database for distributed rate limiting.

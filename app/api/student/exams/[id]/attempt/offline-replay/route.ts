@@ -1,40 +1,47 @@
-import { ExamAttemptStatus, ExamStatus } from "@prisma/client";
+import { ExamAttemptStatus, ExamStatus, type Prisma } from "@prisma/client";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { finalizeAttempt, getStudentExamContext } from "@/lib/exams";
 import { getStudentFeeLock } from "@/lib/fee-lock";
+import { classifyOfflineTiming, offlineTimingProblem, reconcileAnswers, verifyPacket } from "@/lib/offline-packet";
 import { prisma } from "@/lib/prisma";
+import { examMinutes } from "@/lib/exams";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Offline replay endpoint.
  *
- * Accepts an attempt that was created AND sat entirely on the device (zero
- * server connectivity). Creates or resumes a matching ExamAttempt on the
- * server, replays saved answers in one batch, and optionally finalizes
- * (SUBMIT). Idempotent via the client-supplied clientAttemptId (stored on
- * ExamAttempt.clientAttemptId, with the full provenance in metadata, so
- * retries don't create duplicate attempts).
+ * A paper was downloaded, sat with no connectivity, and is now being handed in.
+ * The device supplies its answers, the times it saw, and the manifest+signature
+ * it was given at download. This route's job is to take that sitting and lose
+ * none of it:
  *
- * Request body:
- *   clientAttemptId  string (required, used as idempotency key)
- *   startedAt        ISO datetime (when student tapped Start locally)
- *   submittedAt      ISO datetime (when student tapped Submit, null if still in progress)
- *   durationMinutes  number (sanity-checked against exam.durationMinutes)
- *   answers          Array<{questionId, response}>
- *   finalize         boolean (true = mark submitted)
+ *   • IDEMPOTENT — the client attempt id is derived from the exam and the moment
+ *     the paper was opened, so a double-tap, a retry after a dropped connection
+ *     and a replay after a force-quit all resolve to the same ExamAttempt. It is
+ *     never used to create a second attempt for the same sitting.
  *
- * Rules:
- *  - Timing is validated: if submittedAt - startedAt > duration + 5 min grace,
- *    we mark it LATE_SUBMISSION for review rather than silently accepting.
- *  - Answer keys are filtered to valid questionIds for this exam.
- *  - Idempotent: if the client retries (e.g. after a network blip half-way
- *    through sync), we detect the existing server attempt and update answers
- *    idempotently rather than creating duplicates.
+ *   • NOTHING IS DISCARDED SILENTLY — answers whose questions no longer exist are
+ *     counted and recorded, not filtered away. Previously the route filtered and
+ *     returned `savedAnswers: 6` for a student who had answered twelve.
+ *
+ *   • NOTHING IS GRADED ON THE CLIENT'S WORD — the server re-grades from the
+ *     stored responses using `finalizeAttempt`, the same code that grades a live
+ *     sitting. The device never had the answer key.
+ *
+ *   • A CHANGED PAPER IS REPORTED — if the paper was edited after download, the
+ *     signature still verifies (the manifest is intact) but the fingerprint no
+ *     longer matches the questions. That is recorded on the attempt and the
+ *     sitting is accepted: a teacher fixing a typo overnight must not destroy a
+ *     paper a child actually sat.
+ *
+ *   • A LATE SITTING IS KEPT — timing is compared against the paper's own
+ *     duration, and a sitting past its window is recorded for review rather than
+ *     silently accepted or silently binned.
  */
 const schema = z.object({
-  clientAttemptId: z.string().min(4).max(100),
+  clientAttemptId: z.string().min(4).max(120),
   startedAt: z.string().min(8),
   submittedAt: z.string().min(8).nullable().optional(),
   durationMinutes: z.number().int().positive().max(600),
@@ -48,7 +55,25 @@ const schema = z.object({
     .max(1000)
     .default([]),
   finalize: z.boolean().default(false),
+  /** Manifest + signature handed out with the paper. Optional for old clients. */
+  manifest: z
+    .object({
+      examId: z.string().min(1),
+      packetId: z.string(),
+      fingerprint: z.string(),
+      questionCount: z.number().int().min(0),
+      totalMarks: z.number().int().min(0),
+      durationMinutes: z.number().int().positive(),
+      sessionLabel: z.string().nullable(),
+      termIndex: z.number().int().nullable(),
+      downloadedAt: z.string(),
+    })
+    .nullable()
+    .optional(),
+  signature: z.string().nullable().optional(),
 });
+
+type AttemptMetadata = Record<string, Prisma.InputJsonValue | null>;
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const studentContext = await getStudentExamContext();
@@ -59,30 +84,79 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   try {
     body = schema.parse(await request.json());
   } catch {
-    return NextResponse.json({ error: "Invalid offline replay payload." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid offline replay payload.", code: "BAD_PAYLOAD" }, { status: 400 });
   }
 
   const exam = await prisma.exam.findFirst({
-    where: { id: examId, classId: studentContext.studentProfile.currentClassId },
-    include: { questions: { select: { id: true } } },
+    where: {
+      id: examId,
+      classId: studentContext.studentProfile.currentClassId,
+      schoolId: studentContext.user.schoolId,
+    },
+    include: {
+      questions: { orderBy: { sortOrder: "asc" } },
+    },
   });
   if (!exam) return NextResponse.json({ error: "Exam not found for your class." }, { status: 404 });
 
-  if (Math.abs(body.durationMinutes - exam.durationMinutes) > 2) {
-    return NextResponse.json({ error: "Duration mismatch — package is stale." }, { status: 400 });
+  // A paper whose duration no longer matches the device's is genuinely stale —
+  // the sitting cannot be mapped onto this paper at all.
+  if (Math.abs(body.durationMinutes - examMinutes(exam)) > 2) {
+    return NextResponse.json(
+      { error: "This paper changed since it was downloaded. Your answers were not saved.", code: "STALE_PACKAGE" },
+      { status: 409 },
+    );
   }
 
   const startedMs = new Date(body.startedAt).getTime();
   const submittedMs = body.submittedAt ? new Date(body.submittedAt).getTime() : null;
-  const maxAllowedMs = exam.durationMinutes * 60 * 1000 + 5 * 60 * 1000;
-  let late = false;
-  if (submittedMs && submittedMs - startedMs > maxAllowedMs) late = true;
+  if (!Number.isFinite(startedMs)) {
+    return NextResponse.json({ error: "Invalid start time." }, { status: 400 });
+  }
 
-  // Idempotency: look for the server attempt already created for this
-  // clientAttemptId. The key is a real indexed column (promoted out of
-  // metadata by 20261020140000_align_index_drift_client_attempt_id); the
-  // metadata scan remains only as a fallback for attempts created before
-  // that migration in environments whose backfill has not run.
+  // Before grading anything: could this sitting have happened? The only
+  // timing evidence here is the device's own account, and without a
+  // plausibility bound a device can write an attempt into a term that has
+  // already been compiled and released.
+  const timingProblem = offlineTimingProblem({
+    startedAt: body.startedAt,
+    submittedAt: body.submittedAt ?? null,
+    downloadedAt: body.manifest?.downloadedAt ?? null,
+    availableUntil: exam.availableUntil ? exam.availableUntil.toISOString() : null,
+    scheduledFor: exam.scheduledFor ? exam.scheduledFor.toISOString() : null,
+  });
+  if (timingProblem) {
+    return NextResponse.json(
+      { error: timingProblem.message, code: timingProblem.code },
+      { status: 409 },
+    );
+  }
+
+  const timing = classifyOfflineTiming({
+    startedAt: body.startedAt,
+    submittedAt: body.submittedAt ?? null,
+    durationMinutes: examMinutes(exam),
+  });
+
+  // Verify the packet the device sat, against the paper as it stands now.
+  const verification = body.manifest
+    ? verifyPacket({
+        manifest: body.manifest,
+        signature: body.signature,
+        currentQuestions: exam.questions.map((question) => ({
+          id: question.id,
+          type: question.type,
+          marks: question.marks,
+          sortOrder: question.sortOrder,
+        })),
+      })
+    : null;
+  const packetMismatch = verification && !verification.ok ? verification.reason : null;
+  const packetMismatchDetail = verification && !verification.ok ? verification.detail : null;
+
+  // ── Idempotency ────────────────────────────────────────────────────────────
+  // The indexed clientAttemptId is the fast path. The metadata scan remains for
+  // attempts created before that column existed, and self-heals them.
   let serverAttempt = await prisma.examAttempt.findFirst({
     where: {
       examId,
@@ -91,33 +165,47 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     },
     orderBy: { createdAt: "desc" },
   });
+
   if (!serverAttempt) {
-    const priorAttempts = await prisma.examAttempt.findMany({
+    const prior = await prisma.examAttempt.findMany({
       where: { examId, studentProfileId: studentContext.studentProfile.id },
       orderBy: { createdAt: "desc" },
       take: 10,
     });
-    serverAttempt =
-      priorAttempts.find(
-        (a) => ((a.metadata as any)?.clientAttemptId ?? null) === body.clientAttemptId,
-      ) ?? null;
-    if (serverAttempt && !serverAttempt.clientAttemptId) {
-      // Self-heal the legacy row so the next retry takes the indexed path.
-      await prisma.examAttempt.update({
-        where: { id: serverAttempt.id },
-        data: { clientAttemptId: body.clientAttemptId },
-      });
-      serverAttempt = { ...serverAttempt, clientAttemptId: body.clientAttemptId };
+    const legacy = prior.find(
+      (attempt) => ((attempt.metadata as AttemptMetadata | null)?.clientAttemptId ?? null) === body.clientAttemptId,
+    );
+    if (legacy) {
+      if (!legacy.clientAttemptId) {
+        await prisma.examAttempt.update({
+          where: { id: legacy.id },
+          data: { clientAttemptId: body.clientAttemptId },
+        });
+      }
+      serverAttempt = legacy;
     }
   }
-  const serverAttemptId = serverAttempt?.id ?? null;
 
-  if (!serverAttemptId) {
-    // First replay: create the attempt, respecting fee lock and retake rules.
-    if (exam.status !== ExamStatus.PUBLISHED && !body.finalize) {
-      // Allow replaying a submitted paper even if the exam has since closed.
-      // But do not let offline start a NEW exam that's not published.
-    }
+  const metadata = {
+    ...((serverAttempt?.metadata as AttemptMetadata | null) ?? {}),
+    clientAttemptId: body.clientAttemptId,
+    offlineReplay: true,
+    offlineStartedAt: body.startedAt,
+    offlineSubmittedAt: body.submittedAt ?? null,
+    lateOffline: timing.late,
+    offlineOverrunMinutes: timing.overrunMinutes,
+    packetMismatch,
+    packetMismatchDetail,
+    packetFingerprint: body.manifest?.fingerprint ?? null,
+  };
+
+  if (!serverAttempt) {
+    // First contact for this sitting: create the attempt.
+    //
+    // A replayed paper is accepted even if the exam has since closed — it was
+    // sat while open, and refusing it would destroy work. A NEW paper (not
+    // published, no window) is still refused unless the student is finalising
+    // something they legitimately started.
     const feeLock = await getStudentFeeLock(
       studentContext.user.schoolId,
       studentContext.studentProfile.id,
@@ -126,89 +214,225 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       return NextResponse.json({ error: feeLock.message, code: "FEE_LOCK" }, { status: 402 });
     }
 
-    const existing = await prisma.examAttempt.findFirst({
+    if (exam.status !== ExamStatus.PUBLISHED && !body.finalize) {
+      return NextResponse.json(
+        { error: "This exam is not open for new attempts.", code: "NOT_OPEN" },
+        { status: 409 },
+      );
+    }
+
+    const latest = await prisma.examAttempt.findFirst({
       where: { examId, studentProfileId: studentContext.studentProfile.id },
       orderBy: { attemptNumber: "desc" },
     });
 
-    // Deadline from client-reported start+duration, clamped so we never accept
-    // a sitting longer than the allowed window after the exam closes.
-    const deadlineAt = new Date(startedMs + exam.durationMinutes * 60 * 1000);
-
-    serverAttempt = await prisma.examAttempt.create({
-      data: {
-        examId,
-        studentProfileId: studentContext.studentProfile.id,
-        attemptNumber: (existing?.attemptNumber || 0) + 1,
-        deadlineAt: submittedMs
-          ? new Date(Math.max(deadlineAt.getTime(), submittedMs))
-          : deadlineAt,
-        status: ExamAttemptStatus.IN_PROGRESS,
-        clientAttemptId: body.clientAttemptId,
-        metadata: {
-          clientAttemptId: body.clientAttemptId,
-          offlineReplay: true,
-          startedAt: body.startedAt,
-          submittedAt: body.submittedAt ?? null,
-          lateOffline: late,
+    if (latest && latest.status !== ExamAttemptStatus.IN_PROGRESS) {
+      // A finished attempt exists and this is a DIFFERENT sitting. It is only
+      // allowed if the teacher granted a retake — otherwise a device replaying
+      // twice would create a free second sitting.
+      const grant = await prisma.examRetake.findUnique({
+        where: {
+          examId_studentProfileId: {
+            examId,
+            studentProfileId: studentContext.studentProfile.id,
+          },
         },
-      },
-    });
+      });
+      if (!grant || grant.used) {
+        return NextResponse.json(
+          {
+            error: "You have already taken this exam. Ask your teacher to enable a retake.",
+            code: "RETAKE_REQUIRED",
+          },
+          { status: 409 },
+        );
+      }
+    }
+
+    const deadlineAt = new Date(startedMs + examMinutes(exam) * 60_000);
+    try {
+      serverAttempt = await prisma.$transaction(async (tx) => {
+        if (latest && latest.status !== ExamAttemptStatus.IN_PROGRESS) {
+          const grant = await tx.examRetake.findUnique({
+            where: {
+              examId_studentProfileId: {
+                examId,
+                studentProfileId: studentContext.studentProfile.id,
+              },
+            },
+          });
+          if (!grant || grant.used) throw new Error("RETAKE_REQUIRED");
+          await tx.examRetake.update({ where: { id: grant.id }, data: { used: true } });
+        }
+        return tx.examAttempt.create({
+          data: {
+            examId,
+            studentProfileId: studentContext.studentProfile.id,
+            attemptNumber: (latest?.attemptNumber || 0) + 1,
+            // Never earlier than the moment the student handed in: clock skew
+            // on a device must not produce a deadline in the past for a sitting
+            // that has already been completed.
+            deadlineAt: submittedMs
+              ? new Date(Math.max(deadlineAt.getTime(), submittedMs))
+              : deadlineAt,
+            status: ExamAttemptStatus.IN_PROGRESS,
+            clientAttemptId: body.clientAttemptId,
+            deliveryMode: "SYNCED",
+            offlineStartedAt: new Date(startedMs),
+            offlineEndedAt: submittedMs ? new Date(submittedMs) : null,
+            metadata,
+          },
+        });
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message === "RETAKE_REQUIRED") {
+        return NextResponse.json(
+          {
+            error: "You have already taken this exam. Ask your teacher to enable a retake.",
+            code: "RETAKE_REQUIRED",
+          },
+          { status: 409 },
+        );
+      }
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        (error as { code?: unknown }).code === "P2002"
+      ) {
+        // A concurrent retry won; serve its attempt.
+        const raced = await prisma.examAttempt.findFirst({
+          where: {
+            examId,
+            studentProfileId: studentContext.studentProfile.id,
+            clientAttemptId: body.clientAttemptId,
+          },
+        });
+        if (raced) serverAttempt = raced;
+        else throw error;
+      } else {
+        throw error;
+      }
+    }
   }
 
-  // At this point serverAttempt is non-null (either existing match or new).
-  if (!serverAttempt)
-    return NextResponse.json({ error: "Server error creating attempt." }, { status: 500 });
+  if (!serverAttempt) {
+    return NextResponse.json(
+      { error: "Could not record this sitting. Your answers are still on the device." },
+      { status: 500 },
+    );
+  }
+
   const serverId = serverAttempt.id;
+  const alreadyFinalized = serverAttempt.status !== ExamAttemptStatus.IN_PROGRESS;
 
-  // Filter answers to valid question IDs.
-  const validQids = new Set(exam.questions.map((q) => q.id));
-  const answers = body.answers.filter((a) => validQids.has(a.questionId));
+  // ── Answers ────────────────────────────────────────────────────────────────
+  // The reconciliation is computed over EVERY answer the device sent, so the
+  // orphaned count is the student's whole paper, not a filtered subset.
+  const reconciliation = reconcileAnswers({
+    answers: body.answers,
+    currentQuestions: exam.questions.map((question) => ({ id: question.id, marks: question.marks })),
+  });
 
-  // Upsert answers in one transaction (skips if paper is already finalized).
-  if (serverAttempt.status === ExamAttemptStatus.IN_PROGRESS) {
-    if (answers.length) {
+  if (!alreadyFinalized) {
+    const existing = await prisma.examAnswer.findMany({
+      where: { attemptId: serverId },
+      select: { questionId: true, response: true },
+    });
+    const stored = new Map(existing.map((answer) => [answer.questionId, answer.response]));
+    const changed = reconciliation.accepted.filter(
+      (answer) => !stored.has(answer.questionId) || stored.get(answer.questionId) !== answer.response,
+    );
+
+    // Merge, never replace: an answer the device no longer sends (because it
+    // was cleared by a crash, or the student reopened a fresh copy) must not
+    // erase a response the server already holds. Losing a saved answer is the
+    // one failure this pipeline exists to prevent.
+    if (changed.length) {
       await prisma.$transaction(
-        answers.map((a) =>
+        changed.map((answer) =>
           prisma.examAnswer.upsert({
-            where: { attemptId_questionId: { attemptId: serverId, questionId: a.questionId } },
-            update: { response: a.response },
-            create: { attemptId: serverId, questionId: a.questionId, response: a.response },
+            where: { attemptId_questionId: { attemptId: serverId, questionId: answer.questionId } },
+            update: { response: answer.response },
+            create: { attemptId: serverId, questionId: answer.questionId, response: answer.response },
           }),
         ),
       );
     }
 
-    if (body.finalize) {
-      if (late) {
-        await prisma.examAttempt.update({
-          where: { id: serverId },
-          data: { metadata: { ...((serverAttempt.metadata as any) ?? {}), lateOffline: true } },
-        });
-        return NextResponse.json({
-          ok: true,
-          submitted: false,
-          lateForReview: true,
-          attemptId: serverId,
-          message:
-            "Answers received but your submission appears to exceed the allowed duration. Your teacher will review it.",
-        });
-      }
-      await finalizeAttempt(serverId);
+    await prisma.examAttempt.update({
+      where: { id: serverId },
+      data: {
+        deliveryMode: "SYNCED",
+        offlineStartedAt: serverAttempt.offlineStartedAt ?? new Date(startedMs),
+        offlineEndedAt: submittedMs ? new Date(submittedMs) : serverAttempt.offlineEndedAt,
+        metadata,
+      },
+    });
+  }
+
+  // Questions that vanished between download and sync are recorded next to the
+  // answers that referred to them, so a teacher sees what was asked and could
+  // not be marked.
+  const orphanCount = reconciliation.orphaned.length;
+  const missingCount = reconciliation.missing.length;
+
+  if (body.finalize && !alreadyFinalized) {
+    if (timing.late) {
+      // Late sittings are held for a human. Marking them would put a score in a
+      // permanent result that may have been earned with the paper open overnight.
+      await prisma.examAttempt.update({
+        where: { id: serverId },
+        data: {
+          status: ExamAttemptStatus.SUBMITTED,
+          submittedAt: new Date(),
+          metadata: { ...metadata, lateOffline: true, orphanedAnswers: orphanCount, missingAnswers: missingCount },
+        },
+      });
       return NextResponse.json({
         ok: true,
         submitted: true,
+        lateForReview: true,
         attemptId: serverId,
-        message: "Offline exam submitted successfully.",
+        acceptedAnswers: reconciliation.accepted.length,
+        orphanedAnswers: orphanCount,
+        missingAnswers: missingCount,
+        packetMismatch,
+        message:
+          "Your answers are saved. This sitting ran past the paper's time, so your teacher will review it before it is scored.",
       });
     }
+
+    const finalized = await finalizeAttempt(serverId);
+    if (finalized) {
+      await prisma.examAttempt.update({
+        where: { id: serverId },
+        data: { metadata: { ...metadata, orphanedAnswers: orphanCount, missingAnswers: missingCount } },
+      });
+    }
+    return NextResponse.json({
+      ok: true,
+      submitted: true,
+      attemptId: serverId,
+      status: finalized?.status ?? null,
+      acceptedAnswers: reconciliation.accepted.length,
+      orphanedAnswers: orphanCount,
+      missingAnswers: missingCount,
+      packetMismatch,
+      message: packetMismatch
+        ? "Submitted. Your paper changed after you downloaded it, so your teacher may review this sitting."
+        : "Offline exam submitted successfully.",
+    });
   }
 
   return NextResponse.json({
     ok: true,
     synced: true,
+    submitted: alreadyFinalized,
     attemptId: serverId,
-    savedAnswers: answers.length,
-    submitted: serverAttempt.status !== ExamAttemptStatus.IN_PROGRESS,
+    acceptedAnswers: reconciliation.accepted.length,
+    orphanedAnswers: orphanCount,
+    missingAnswers: missingCount,
+    packetMismatch,
+    message: packetMismatch ? "Answers saved. Your teacher may need to review this sitting." : null,
   });
 }

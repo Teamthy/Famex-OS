@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   BookOpen,
   ClipboardCheck,
+  GraduationCap,
   FileText,
   Users,
   LogOut,
@@ -174,6 +175,10 @@ export default function TeacherSidebar() {
     },
     { label: "Attendance register", href: "/teacher/class/attendance", icon: UserCheck },
     { label: "Attendance history", href: "/teacher/class/attendance-history", icon: History },
+    // The subject teacher's view of the same table: edit the marks they own in
+    // a compiled term, and see their students' whole result rather than one
+    // subject at a time. A form teacher gets the remark panel on the same page.
+    { label: "Term results", href: "/teacher/results", icon: GraduationCap },
     { label: "Class report cards", href: "/teacher/class/report-cards", icon: FileText },
     { label: "Class parents", href: "/teacher/class/parents", icon: Users },
     { label: "Class timetable", href: "/teacher/class/timetable", icon: History },

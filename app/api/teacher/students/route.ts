@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { oneTimeSecret, passwordHash, uniqueStudentNumber } from "@/lib/people";
 import { getClientIp } from "@/lib/requests";
 import { requireRole } from "@/lib/session";
+import { onboardStudent } from "@/lib/enrolment";
+import { assignStudentSubjects, resolveTeacherSubjects } from "@/lib/enrolment-subjects";
 import { logger } from "@/lib/logger";
 import {
   completeReservedIdempotency,
@@ -27,6 +29,13 @@ const enrollSchema = z.object({
   guardianName: z.string().trim().min(2).max(160),
   guardianPhone: z.string().trim().min(7).max(30),
   guardianEmail: z.string().trim().toLowerCase().email().optional(),
+  /**
+   * The subjects the teacher ticked. The form pre-ticks the subjects this
+   * teacher is assigned to teach in this class (see GET), so the common case
+   * is "the teacher fills in the child's details and submits". Compulsory
+   * subjects for the level are always added regardless of what is ticked.
+   */
+  subjectIds: z.array(z.string().trim().min(1)).max(30).optional(),
 });
 
 async function teacherContext() {
@@ -126,12 +135,77 @@ export async function GET(request: NextRequest) {
         })
       : [];
 
+  /**
+   * The subject checklist for the enrol form.
+   *
+   * A teacher's subject is free text on the assignment; StudentSubject needs a
+   * catalogue id. resolveTeacherSubjects bridges the two, so the form can show
+   * real checkboxes with the teacher's OWN subjects pre-ticked instead of
+   * asking them to retype a subject name that will not match a row.
+   */
+  const formClassLevels = new Map<string, string>();
+  for (const assignment of ctx.profile.classAssignments)
+    if (assignment.role === TeacherAssignmentRole.FORM_TEACHER)
+      formClassLevels.set(assignment.classroom.id, assignment.classroom.level);
+
+  const catalogue = formClassLevels.size
+    ? await prisma.subject.findMany({
+        where: {
+          schoolId: ctx.user.schoolId,
+          isActive: true,
+          level: { in: [...new Set(formClassLevels.values())] },
+        },
+        select: { id: true, name: true, code: true, level: true, category: true },
+        orderBy: [{ category: "asc" }, { name: "asc" }],
+      })
+    : [];
+
+  const resolved = await resolveTeacherSubjects(prisma, {
+    schoolId: ctx.user.schoolId,
+    teacherProfileId: ctx.profile.id,
+  });
+
+  const teachableSubjects = [...formClassLevels.entries()].map(([classId, level]) => {
+    // This teacher's subjects in THIS class, resolved to catalogue ids.
+    const mine = new Set(
+      resolved
+        .filter((r) => r.classId === classId && r.subjectId)
+        .map((r) => r.subjectId as string),
+    );
+    return {
+      classId,
+      className:
+        ctx.profile.classAssignments.find((a) => a.classroom.id === classId)?.classroom
+          .displayName ?? "",
+      level,
+      subjects: catalogue
+        .filter((subject) => subject.level === level)
+        .map((subject) => ({
+          id: subject.id,
+          name: subject.name,
+          code: subject.code,
+          category: subject.category,
+          /** The form pre-ticks these. */
+          assignedToMe: mine.has(subject.id),
+        })),
+      /**
+       * Assignments whose free-text subject matched nothing in the catalogue.
+       * Surfaced so the teacher can tell an administrator, rather than silently
+       * ticking nothing and wondering why.
+       */
+      unresolved: resolved
+        .filter((r) => r.classId === classId && !r.subjectId)
+        .map((r) => ({ typed: r.typed, ambiguous: r.ambiguous })),
+    };
+  });
+
   return NextResponse.json({
     teacher: {
       displayName: ctx.profile.displayName,
       isFormTeacher: formClassIds.length > 0,
       isSubjectTeacher: subjectClassIds.length > 0,
     },
+    teachableSubjects,
     assignments: ctx.profile.classAssignments.map((a) => ({
       id: a.id,
       role: a.role,
@@ -309,6 +383,43 @@ export async function POST(request: NextRequest) {
             isPrimary: true,
           },
         });
+      }
+
+      /**
+       * Give the student their subjects.
+       *
+       * The form teacher is the person who physically admits a walk-in, and
+       * this route created the profile and the class link but left the student
+       * with no StudentSubject rows — no exams, no subject-teacher roster, no
+       * report-card marks, and no explanation anywhere. Done inside the
+       * transaction: a student who exists without subjects is the broken state
+       * a retry cannot repair.
+       */
+      const currentSession = await tx.academicSession.findFirst({
+        where: { schoolId: ctx.user.schoolId, isCurrent: true },
+        select: { id: true },
+      });
+      const onboarding = await onboardStudent({
+        tx,
+        schoolId: ctx.user.schoolId,
+        studentProfileId: student.id,
+        classId: lockedClass.id,
+        sessionId: currentSession?.id ?? null,
+      });
+
+      // The teacher's own ticks. These are usually their assigned subjects,
+      // but the form is the authority on what this child actually takes.
+      if (input.subjectIds?.length) {
+        const extra = await assignStudentSubjects(tx, {
+          schoolId: ctx.user.schoolId,
+          studentProfileId: student.id,
+          level: lockedClass.level,
+          subjectIds: input.subjectIds,
+        });
+        if (extra.rejected.length)
+          onboarding.warnings.push(
+            `${extra.rejected.length} chosen subject(s) are not offered at ${lockedClass.level} and were ignored.`,
+          );
       }
 
       await tx.auditLog.create({

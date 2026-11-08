@@ -33,6 +33,8 @@ const SIDEBAR_ITEMS = [
 type Report = {
   id: string;
   reportNumber: string;
+  /** The PUBLIC identifier: what the QR code and /verify/report carry. */
+  verificationCode: string | null;
   sessionLabel: string;
   termLabel: string;
   status: string;
@@ -166,6 +168,7 @@ export default function ParentReportCardsPage() {
       classTeacherRemark: report.classTeacherRemark,
       directorRemark: report.directorRemark,
       reportNo: report.reportNumber,
+      verificationCode: report.verificationCode,
     });
   };
 
@@ -301,6 +304,16 @@ export default function ParentReportCardsPage() {
                                 >
                                   <Eye size={10} /> View
                                 </button>
+                                {report.verificationCode ? (
+                                  <a
+                                    href={`/report-cards/${encodeURIComponent(report.verificationCode)}/print`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="ml-2 inline-flex items-center gap-1 rounded-full bg-brand-navy/10 px-3 py-1.5 text-[10px] font-bold text-brand-navy transition-all hover:bg-brand-navy hover:text-white"
+                                  >
+                                    <Printer size={10} /> Print
+                                  </a>
+                                ) : null}
                               </td>
                             </tr>
                           ))}

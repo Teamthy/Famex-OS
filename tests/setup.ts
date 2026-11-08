@@ -130,6 +130,7 @@ const mockPrisma = {
     update: vi.fn(),
     updateMany: vi.fn(),
     deleteMany: vi.fn(),
+    count: vi.fn().mockResolvedValue(0),
   },
   term: {
     findFirst: vi.fn(),
@@ -309,8 +310,11 @@ const mockPrisma = {
     create: vi.fn(),
   },
   studentSubject: {
+    findFirst: vi.fn(),
     findMany: vi.fn(),
+    create: vi.fn(),
     createMany: vi.fn(),
+    update: vi.fn(),
     updateMany: vi.fn(),
     upsert: vi.fn(),
   },
@@ -383,7 +387,10 @@ const mockPrisma = {
   },
   stageConfig: {
     findUnique: vi.fn(),
-    findMany: vi.fn(),
+    // Defaults to "no configuration", which every reader must tolerate: a
+    // school that has not opened its stage settings yet still gets cards and a
+    // promotion list, on the ladder defaults.
+    findMany: vi.fn().mockResolvedValue([]),
     create: vi.fn(),
     update: vi.fn(),
     updateMany: vi.fn(),
@@ -455,6 +462,52 @@ const mockPrisma = {
   },
   teacherClassAssignment: {
     findMany: vi.fn(),
+  },
+  // ── Term results (result compilation + promotion evidence) ──────────────────
+  //
+  // The list reads default to EMPTY rather than undefined: compilation and the
+  // promotion plan both iterate over these on every call, and a test that cares
+  // about only one of them should not have to stub the rest to avoid a crash.
+  termResult: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
+    create: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    upsert: vi.fn(),
+    count: vi.fn().mockResolvedValue(0),
+    groupBy: vi.fn().mockResolvedValue([]),
+    deleteMany: vi.fn(),
+  },
+  termResultSubject: {
+    findFirst: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
+    create: vi.fn(),
+    createMany: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    deleteMany: vi.fn(),
+  },
+  classTermResult: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
+    create: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    upsert: vi.fn(),
+    count: vi.fn().mockResolvedValue(0),
+  },
+  promotionRecord: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
+    create: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    upsert: vi.fn(),
+    count: vi.fn().mockResolvedValue(0),
   },
   // Interactive form: hand the callback the same mock so `tx.x` and
   // `prisma.x` are one object. Batch form: real Prisma awaits every promise

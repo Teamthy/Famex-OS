@@ -278,3 +278,72 @@ describe("POST /api/student/exams/[id]/attempt — start race (C-004)", () => {
     expect(mockPrisma.examRetake.update).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * A retake is the one exception to the window.
+ *
+ * The grant exists for exactly the case the window closes on: a student who was
+ * absent, or whose device failed mid-paper. Before this, a teacher could enable
+ * a retake and the student would still be refused with "the window for this exam
+ * has closed" — a dead end that made the feature look broken and left the
+ * student with no route to sit the paper.
+ */
+describe("granted retakes and the sitting window", () => {
+  const closed = {
+    scheduledFor: new Date("2026-11-01T09:00:00.000Z"),
+    availableUntil: new Date("2026-11-01T11:00:00.000Z"),
+  };
+  const after = new Date("2026-11-05T09:00:00.000Z");
+
+  it("still closes the window for a student with no grant", async () => {
+    const { startWindowRefusal } = await import("@/lib/subjects");
+    expect(startWindowRefusal({ ...closed, now: after })).toMatchObject({
+      code: "WINDOW_CLOSED",
+    });
+  });
+
+  it("lets a granted retake through after the window closed", async () => {
+    const { startWindowRefusal } = await import("@/lib/subjects");
+    expect(startWindowRefusal({ ...closed, hasRetake: true, now: after })).toBeNull();
+  });
+
+  it("never opens a paper early, even with a grant", async () => {
+    const { startWindowRefusal } = await import("@/lib/subjects");
+    const before = new Date("2026-10-30T09:00:00.000Z");
+    expect(startWindowRefusal({ ...closed, hasRetake: true, now: before })).toMatchObject({
+      code: "NOT_OPEN_YET",
+    });
+  });
+
+  it("reports a granted retake as ready rather than missed", async () => {
+    const { examAvailability } = await import("@/lib/subjects");
+    expect(
+      examAvailability({ ...closed, hasSubmitted: false, hasRetake: true, now: after }),
+    ).toBe("READY");
+  });
+
+  it("still reports a completed paper as completed", async () => {
+    const { examAvailability } = await import("@/lib/subjects");
+    expect(
+      examAvailability({ ...closed, hasSubmitted: true, hasRetake: false, now: after }),
+    ).toBe("COMPLETED");
+  });
+
+  it("reports a missed paper as closed when there is no grant", async () => {
+    const { examAvailability } = await import("@/lib/subjects");
+    expect(
+      examAvailability({ ...closed, hasSubmitted: false, hasRetake: false, now: after }),
+    ).toBe("CLOSED");
+  });
+
+  it("leaves a paper inside its window unaffected by the flag", async () => {
+    const { examAvailability } = await import("@/lib/subjects");
+    const during = new Date("2026-11-01T10:00:00.000Z");
+    expect(
+      examAvailability({ ...closed, hasSubmitted: false, hasRetake: true, now: during }),
+    ).toBe("READY");
+    expect(
+      examAvailability({ ...closed, hasSubmitted: false, hasRetake: false, now: during }),
+    ).toBe("READY");
+  });
+});

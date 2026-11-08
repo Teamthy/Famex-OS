@@ -63,6 +63,10 @@ export async function GET() {
         scheduledFor: exam.scheduledFor,
         availableUntil: exam.availableUntil,
         hasSubmitted: hasSubmitted && !hasUnusedRetake,
+        // A granted retake re-opens a paper whose window has closed. Without
+        // this the student would see "Missed — window closed" on a paper a
+        // teacher had just enabled for them.
+        hasRetake: hasUnusedRetake,
       });
 
       const canStart =
@@ -83,6 +87,15 @@ export async function GET() {
         durationMinutes: exam.durationMinutes,
         theoryMinutes: exam.theoryMinutes ?? 0,
         subjectId: exam.subjectId,
+        // Term provenance, so the student list can say which term a paper counts
+        // towards and the runner can file an offline sitting under it.
+        sessionLabel: exam.sessionLabel,
+        termIndex: exam.termIndex,
+        termLabel: exam.termIndex ? `Term ${exam.termIndex}` : null,
+        // Everything needed to sit with no network: the questions carry no
+        // answer key, the duration bounds the clock, and a paper with no
+        // questions cannot be started offline at all.
+        offlineReady: exam.questions.length > 0 && exam.status === ExamStatus.PUBLISHED,
         // When to sit it — the whole point of the student exam list.
         scheduledFor: exam.scheduledFor?.toISOString() || null,
         availableUntil: exam.availableUntil?.toISOString() || null,
@@ -104,6 +117,8 @@ export async function GET() {
               status: latestAttempt.status,
               totalScore: latestAttempt.totalScore,
               submittedAt: latestAttempt.submittedAt?.toISOString() || null,
+              deliveryMode: latestAttempt.deliveryMode,
+              offlineStartedAt: latestAttempt.offlineStartedAt?.toISOString() ?? null,
               scoreVisible:
                 exam.resultsReleased && latestAttempt.status === ExamAttemptStatus.GRADED,
               percent:

@@ -9,6 +9,7 @@ import {
 import { GRADEBOOK_ADMIN_ROLES, waecGrade } from "@/lib/gradebook";
 import { indexFeeBalances, tallyAttendance } from "@/lib/report-cards";
 import { prisma } from "@/lib/prisma";
+import { newVerificationCode } from "@/lib/verification";
 import { getClientIp } from "@/lib/requests";
 import { requireModule } from "@/lib/module-guard";
 
@@ -130,29 +131,78 @@ export async function POST(request: NextRequest) {
   });
   if (!schoolClass) return NextResponse.json({ error: "Class not found." }, { status: 404 });
 
-  const gradebooks = await prisma.subjectGradebook.findMany({
-    where: { classId: schoolClass.id, sessionLabel, termLabel },
-    include: { entries: true },
-    orderBy: { subjectName: "asc" },
+  /**
+   * Two sources of truth, in order.
+   *
+   * 1. COMPILED TERM RESULTS (preferred). A card printed from compiled rows
+   *    carries the same numbers, position and year average as the results
+   *    screen, the cumulative view and the promotion decision, because they all
+   *    read the same rows. Anything else is a second implementation of the
+   *    arithmetic, and second implementations drift.
+   *
+   * 2. GRADEBOOKS (fallback). A school that has not adopted compilation yet
+   *    still needs cards. Used only when no term result exists for this class —
+   *    never as a silent mix of the two, which would print one student's subject
+   *    from gradebook entry 3 and another's from a compiled line.
+   */
+  const termResults = await prisma.termResult.findMany({
+    where: {
+      schoolId: user.schoolId,
+      classId: schoolClass.id,
+      sessionLabel,
+      termIndex,
+    },
+    include: { subjects: { orderBy: { sortOrder: "asc" } } },
+    orderBy: { positionNumber: "asc" },
+  });
+  const useCompiled = termResults.length > 0;
+
+  const classResult = await prisma.classTermResult.findUnique({
+    where: {
+      classId_sessionLabel_termIndex: {
+        classId: schoolClass.id,
+        sessionLabel,
+        termIndex,
+      },
+    },
+    select: { status: true, compiledAt: true, releasedAt: true },
   });
 
-  if (!gradebooks.length) {
+  const gradebooks = useCompiled
+    ? []
+    : await prisma.subjectGradebook.findMany({
+        where: { classId: schoolClass.id, sessionLabel, termLabel },
+        include: { entries: true },
+        orderBy: { subjectName: "asc" },
+      });
+
+  if (!useCompiled && !gradebooks.length) {
     return NextResponse.json(
-      { error: "No gradebooks exist for this class and term yet." },
+      {
+        error:
+          "No compiled results or gradebooks exist for this class and term yet. Compile the term's results first.",
+        code: "NOT_COMPILED",
+      },
       { status: 409 },
     );
   }
 
-  const unlocked = gradebooks.filter((gradebook) => gradebook.status !== GradebookStatus.LOCKED);
-  if (unlocked.length) {
-    return NextResponse.json(
-      {
-        error: `Cannot generate report cards. ${unlocked.length} gradebook(s) are not locked yet: ${unlocked
-          .map((gradebook) => gradebook.subjectName)
-          .join(", ")}.`,
-      },
-      { status: 409 },
-    );
+  // An unlocked gradebook blocks a gradebook-sourced card. It does not block a
+  // compiled one: compilation already refused (or was explicitly allowed) to
+  // run over unlocked gradebooks, and a teacher tweaking a draft afterwards must
+  // not invalidate a card that was already agreed.
+  if (!useCompiled) {
+    const unlocked = gradebooks.filter((gradebook) => gradebook.status !== GradebookStatus.LOCKED);
+    if (unlocked.length) {
+      return NextResponse.json(
+        {
+          error: `Cannot generate report cards. ${unlocked.length} gradebook(s) are not locked yet: ${unlocked
+            .map((gradebook) => gradebook.subjectName)
+            .join(", ")}.`,
+        },
+        { status: 409 },
+      );
+    }
   }
 
   const students = await prisma.studentProfile.findMany({
@@ -173,6 +223,8 @@ export async function POST(request: NextRequest) {
   if (!students.length) {
     return NextResponse.json({ error: "No active students found in this class." }, { status: 409 });
   }
+
+  const compiledByStudent = new Map(termResults.map((row) => [row.studentProfileId, row]));
 
   type StudentAggregate = {
     subjects: Array<{
@@ -219,6 +271,7 @@ export async function POST(request: NextRequest) {
         student,
         aggregate,
         average: Math.round(aggregate.overallTotal / subjectCount),
+        compiled: compiledByStudent.get(student.id) ?? null,
       };
     })
     .sort((a, b) => b.average - a.average);
@@ -272,22 +325,64 @@ export async function POST(request: NextRequest) {
   const feeByStudent = indexFeeBalances(feeRows);
 
   for (let index = 0; index < ranked.length; index += 1) {
-    const { student, aggregate, average } = ranked[index];
-    if (!aggregate.subjects.length) continue;
+    const { student, aggregate, average, compiled } = ranked[index];
+    if (!compiled && !aggregate.subjects.length) continue;
 
     const attendance = attendanceByStudent.get(student.id) || { present: 0, total: 0 };
-    const attendancePresent = attendance.present;
+    // A compiled result carries the attendance and fee figures captured when it
+    // was closed. Reading them live would let a card reprinted a month later
+    // disagree with the one the parent already has — registers keep being taken
+    // and invoices keep being paid after the term is over.
+    const attendancePresent = compiled ? compiled.attendancePresent : attendance.present;
     // Keep the divide-by-zero guard, but only for display — a class with no
     // register taken yet shows 0/1 rather than crashing.
-    const attendanceTotal = attendance.total || 1;
+    const attendanceTotal = compiled
+      ? compiled.attendanceTotal || 1
+      : attendance.total || 1;
 
-    const feeBalance = feeByStudent.get(student.id) || 0;
+    const feeBalance = compiled ? compiled.feeBalance : feeByStudent.get(student.id) || 0;
+    const overallTotal = compiled ? compiled.totalScore : aggregate.overallTotal;
+    const overallAverage = compiled ? compiled.average : average;
+    const overallGrade = compiled ? compiled.grade : waecGrade(average);
+    // Position from the compiled row: it was ranked across the whole class,
+    // ties included, and it is the same string the results screen shows.
+    const classPosition = compiled?.position
+      ? compiled.position
+      : `${ordinal(index + 1)} of ${ranked.length}`;
+    // A form teacher's remark written on the results screen must win over a
+    // generic default, or the card contradicts the portal.
+    const classTeacherRemark =
+      compiled?.classTeacherRemark ||
+      payload.classTeacherRemark ||
+      defaultTeacherRemark(overallAverage);
+    const directorRemark =
+      compiled?.directorRemark || payload.directorRemark || "Approved by the school administration.";
+    const nextResumptionValue = compiled?.nextResumption || nextResumption;
 
     // Term INDEX, not a word parsed out of the label. `termLabel.split(" ")[0]`
     // produced "1ST" for both "1st Term" and "1st Semester", and reportNumber
     // is globally unique — so two different terms would have collided and the
     // second generation would have overwritten the first term's card.
     const reportNumber = `RC/${termYearSuffix}/T${termIndex}/${student.studentId.replace(/\//g, "-")}`;
+
+    // Subject rows: compiled lines win, gradebook entries are the fallback.
+    // The shape written to ReportCardSubject is identical either way, so a card
+    // looks the same whichever source produced it.
+    const subjectRows = compiled
+      ? compiled.subjects
+          .filter((subject) => subject.status !== "EXCLUDED")
+          .map((subject, position) => ({
+            subject: subject.subjectName,
+            ca1: subject.ca1,
+            ca2: subject.ca2,
+            midterm: subject.midterm,
+            assignment: subject.assignment,
+            exam: subject.exam,
+            total: subject.total,
+            grade: subject.grade,
+            sortOrder: position + 1,
+          }))
+      : aggregate.subjects;
 
     await prisma.$transaction(async (tx) => {
       // Match on the card's real identity — this student, this session, this
@@ -318,18 +413,18 @@ export async function POST(request: NextRequest) {
             // renaming it would break that link. Drafts keep their number too,
             // so the value an admin already saw stays stable.
             classNameSnapshot: schoolClass.displayName,
-            overallTotal: aggregate.overallTotal,
-            overallAverage: average,
-            overallGrade: waecGrade(average),
-            classPosition: `${ordinal(index + 1)} of ${ranked.length}`,
+            overallTotal,
+            overallAverage,
+            overallGrade,
+            classPosition,
             attendancePresent,
             attendanceTotal,
-            classTeacherRemark: payload.classTeacherRemark || defaultTeacherRemark(average),
-            directorRemark: payload.directorRemark || "Approved by the school administration.",
-            nextResumption,
+            classTeacherRemark,
+            directorRemark,
+            nextResumption: nextResumptionValue,
             feeBalance,
             generatedAt: new Date(),
-            subjects: { createMany: { data: aggregate.subjects } },
+            subjects: { createMany: { data: subjectRows } },
           },
         });
       } else {
@@ -339,21 +434,25 @@ export async function POST(request: NextRequest) {
             studentProfileId: student.id,
             parentProfileId: student.parentLinks[0]?.parentProfileId || null,
             reportNumber,
+            // The public QR code carries this, not the number: a report number
+            // is guessable from a student id, and the verify page shows the
+            // child's name and grades.
+            verificationCode: newVerificationCode(),
             sessionLabel,
             termLabel,
             classNameSnapshot: schoolClass.displayName,
             status: ReportCardStatus.DRAFT,
-            overallTotal: aggregate.overallTotal,
-            overallAverage: average,
-            overallGrade: waecGrade(average),
-            classPosition: `${ordinal(index + 1)} of ${ranked.length}`,
+            overallTotal,
+            overallAverage,
+            overallGrade,
+            classPosition,
             attendancePresent,
             attendanceTotal,
-            classTeacherRemark: payload.classTeacherRemark || defaultTeacherRemark(average),
-            directorRemark: payload.directorRemark || "Approved by the school administration.",
-            nextResumption,
+            classTeacherRemark,
+            directorRemark,
+            nextResumption: nextResumptionValue,
             feeBalance,
-            subjects: { createMany: { data: aggregate.subjects } },
+            subjects: { createMany: { data: subjectRows } },
           },
         });
       }
@@ -369,7 +468,14 @@ export async function POST(request: NextRequest) {
       action: "REPORT_CARDS_GENERATED",
       entityType: "SchoolClass",
       entityId: schoolClass.id,
-      metadata: { className: schoolClass.displayName, sessionLabel, termLabel, generated },
+      metadata: {
+        className: schoolClass.displayName,
+        sessionLabel,
+        termLabel,
+        generated,
+        source: useCompiled ? "COMPILED_RESULTS" : "GRADEBOOKS",
+        classResultStatus: classResult?.status ?? null,
+      },
       ipAddress: getClientIp(request),
     },
   });
@@ -377,6 +483,9 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     ok: true,
     generated,
+    source: useCompiled ? "COMPILED_RESULTS" : "GRADEBOOKS",
+    classResultStatus: classResult?.status ?? null,
+    skippedReleased: ranked.filter((row) => row.compiled && row.compiled.status === "EXCLUDED").length,
     message: `${generated} draft report card(s) generated for ${schoolClass.displayName}. Review and release them from the Report Cards page.`,
   });
 }

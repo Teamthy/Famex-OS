@@ -205,6 +205,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     icon: "results",
     moduleKey: "report_cards",
     items: [
+      live("Term Results", "/admin/results", "W6"),
       live("Report Cards", "/admin/report-cards", "W6"),
       live("Broadsheet", "/admin/broadsheet", "W6"),
       planned("Term Report", "W6"),
@@ -301,6 +302,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     moduleKey: "users",
     items: [
       live("Students", "/admin/students", "W5"),
+      live("Profile completeness", "/admin/students/completeness", "W5"),
       live("Staff", "/admin/staff", "W5"),
       planned("Parents", "W11"),
       planned("Alumni", "W11", {

@@ -53,6 +53,17 @@ export async function cacheSet<T>(url: string, data: T, schoolId?: string): Prom
   await db.put("cache", { url, data, cachedAt: Date.now(), schoolId });
 }
 
+/**
+ * Clear cached school data, all of it or one school's.
+ *
+ * Called on sign-out via `clearDeviceData()` in components/AuthProvider.tsx.
+ * It went a long time with no caller while its own documentation claimed it
+ * ran on sign-out; `tests/lib/offline-signout-wiring.test.ts` now fails if that
+ * wiring is removed again (audit B-15).
+ *
+ * Exam papers are NOT here — they live in `lib/offline/exam-store.ts` and are
+ * cleared by `planSignOut()` only when the server already has the answers.
+ */
 export async function cacheClear(schoolId?: string): Promise<void> {
   const db = await getDB();
   if (schoolId) {

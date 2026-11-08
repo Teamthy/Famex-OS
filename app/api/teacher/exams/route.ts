@@ -1,6 +1,7 @@
 import { ExamAttemptStatus, ExamStatus, Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { resolveCurrentLabels } from "@/lib/academic-session";
 import { getExamTeacherContext, parseBulkQuestions, examStatusLabel } from "@/lib/exams";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
@@ -149,11 +150,23 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Term provenance, stamped at creation.
+  //
+  // A result is compiled per term, so a paper MUST know which term it belongs
+  // to. Deriving it later from `createdAt` against the term calendar is a guess
+  // that goes wrong at every term boundary (a paper set on the last Friday of
+  // First Term and written the following Monday). Resolved here, when the
+  // teacher actually creates it; null when the school has no current term, and
+  // the migration backfills those from the term calendar.
+  const termLabels = await resolveCurrentLabels(context.user.schoolId);
+
   const exam = await prisma.exam.create({
     data: {
       schoolId: context.user.schoolId,
       classId: assignment.classroom.id,
       teacherProfileId: context.teacherProfile.id,
+      sessionLabel: termLabels.sessionLabel,
+      termIndex: termLabels.termIndex,
       subjectName: assignment.subjectName,
       title: payload.title,
       examType: payload.examType,
@@ -372,7 +385,25 @@ export async function PATCH(request: NextRequest) {
         { status: 409 },
       );
     }
-    await prisma.exam.update({ where: { id: exam.id }, data: { status: ExamStatus.PUBLISHED } });
+
+    // Republish-time stamp: a paper created before its school had a current
+    // term (or created in a prior term and shelved) must still land in a term.
+    // It is stamped with the term it is being published in, because that is the
+    // sitting the students will actually take.
+    const publishTerm =
+      exam.sessionLabel === null || exam.termIndex === null
+        ? await resolveCurrentLabels(context.user.schoolId)
+        : null;
+
+    await prisma.exam.update({
+      where: { id: exam.id },
+      data: {
+        status: ExamStatus.PUBLISHED,
+        ...(publishTerm
+          ? { sessionLabel: publishTerm.sessionLabel, termIndex: publishTerm.termIndex }
+          : {}),
+      },
+    });
     return NextResponse.json({
       ok: true,
       message: "Exam published. Students in the class can now take it.",

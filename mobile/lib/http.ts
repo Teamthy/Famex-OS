@@ -93,6 +93,15 @@ export interface SessionUser {
   role: string;
   name: string;
   email: string;
+  /**
+   * True for an account still on a temporary password.
+   *
+   * Every account a clerk creates — a parent at admission, a teacher, a
+   * student — starts this way, and the password has been seen by someone else.
+   * The web portal refuses to render anything but the change-password form
+   * until it is cleared; the app used to send the user straight to a dashboard.
+   */
+  mustChangePassword?: boolean;
 }
 
 export async function getToken(): Promise<string | null> {
