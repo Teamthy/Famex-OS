@@ -16,6 +16,7 @@
  */
 
 import { z } from "zod";
+import { resolveSiteUrl } from "@/lib/site-url";
 
 /** Always required — the app cannot function without these anywhere. */
 const baseSchema = z.object({
@@ -25,29 +26,32 @@ const baseSchema = z.object({
 });
 
 /**
- * Fatal in production: the app cannot serve a correct response without these.
+ * ── Why there is no "production schema" of required strings any more ───────
+ * An earlier version demanded NEXT_PUBLIC_SITE_URL, PAYSTACK_PUBLIC_KEY and
+ * PAYSTACK_SECRET_KEY here, and instrumentation.ts turns any failure into a
+ * thrown error at boot. Two outages came from that shape:
  *
- *   NEXT_PUBLIC_SITE_URL  — password-reset and staff-activation links are
- *                           built from it; a wrong value sends users nowhere
- *   PAYSTACK_SECRET_KEY   — webhook signature verification. Missing means
- *                           unverified payment callbacks, which is a money bug
+ *   - a deploy without an email key (when RESEND_API_KEY lived in this list)
+ *     did not degrade email — it refused to start the server at all;
+ *   - on 2026-11-09 the Vercel staging deployment (NODE_ENV=production, no
+ *     NEXT_PUBLIC_SITE_URL, no Paystack keys) would not boot at all: every
+ *     route answered with a bare server-error page while the platform was
+ *     perfectly capable of supplying its own URL (see lib/site-url.ts).
  *
- * ── Why this list is short ─────────────────────────────────────────────────
- * An earlier version of this file also demanded RESEND_API_KEY and EMAIL_FROM
- * here, and instrumentation.ts turns any failure into a thrown error at boot.
- * The result: a deploy without an email key did not degrade email — it
- * refused to start the server at all, and every page returned 500.
+ * A school whose welcome emails are silently not sending still has a working
+ * portal; a school whose portal will not boot has nothing. Anything that only
+ * breaks one feature belongs in the warning list below, however loudly.
  *
- * That is strictly worse than the problem it was meant to prevent. A school
- * whose welcome emails are silently not sending still has a working portal;
- * a school whose portal will not boot has nothing. Anything that only breaks
- * one feature belongs in the warning list below, however loudly.
+ * What stays fatal in production is decided in checkEnv():
+ *   - the base schema (DATABASE_URL, AUTH_SECRET) everywhere;
+ *   - an unresolvable site URL — i.e. NOT running on Vercel AND no
+ *     NEXT_PUBLIC_SITE_URL — because then password-reset/staff-activation
+ *     links and CORS origins genuinely have no correct value;
+ *   - nothing else. Missing Paystack keys disable payments LOUDLY instead:
+ *     lib/paystack.ts throws "not configured" on every initiation and every
+ *     webhook verification, so an unkeyed deployment can never silently take
+ *     or accept money — the feature is off, not broken-unsafe.
  */
-const productionSchema = z.object({
-  NEXT_PUBLIC_SITE_URL: z.string().url("NEXT_PUBLIC_SITE_URL must be a full URL in production."),
-  PAYSTACK_PUBLIC_KEY: z.string().min(8, "PAYSTACK_PUBLIC_KEY is required in production."),
-  PAYSTACK_SECRET_KEY: z.string().min(8, "PAYSTACK_SECRET_KEY is required in production."),
-});
 
 export type ValidatedEnv = z.infer<typeof baseSchema>;
 
@@ -75,11 +79,27 @@ export function checkEnv(source: NodeJS.ProcessEnv = process.env): EnvValidation
   const isProduction = source.NODE_ENV === "production";
 
   if (isProduction) {
-    const prod = productionSchema.safeParse(source);
-    if (!prod.success) {
-      for (const [key, messages] of Object.entries(prod.error.flatten().fieldErrors)) {
-        for (const message of messages ?? []) errors.push(`${key}: ${message}`);
-      }
+    // The canonical URL must resolve from configuration or from the platform.
+    // On Vercel the platform supplies it (lib/site-url.ts); anywhere else
+    // NEXT_PUBLIC_SITE_URL is the only source, and without it password-reset
+    // links and CORS origins would point nowhere.
+    if (!resolveSiteUrl(source)) {
+      errors.push(
+        "NEXT_PUBLIC_SITE_URL: required in production when the deployment platform does not " +
+          "provide a canonical URL (this host is not Vercel).",
+      );
+    }
+
+    // Missing Paystack keys disable payments loudly instead of fatally:
+    // lib/paystack.ts throws "not configured" on every initiation and every
+    // webhook verification, so an unkeyed deployment can never silently take
+    // or accept money. A dead portal is worse than a closed payment window.
+    if (!source.PAYSTACK_PUBLIC_KEY || !source.PAYSTACK_SECRET_KEY) {
+      warnings.push(
+        "Paystack keys are not set — fee payments are DISABLED on this deployment: payment " +
+          "initiation and webhook verification refuse every request. Configure " +
+          "PAYSTACK_PUBLIC_KEY and PAYSTACK_SECRET_KEY before collecting money.",
+      );
     }
 
     // Degraded, not fatal. Each of these disables a real feature and deserves

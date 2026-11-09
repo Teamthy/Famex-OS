@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { resolveSiteUrl } from "@/lib/site-url";
 import { PRODUCT_NAME } from "@/lib/brand";
 
 export type SystemFlags = {
@@ -70,7 +71,7 @@ export async function writeSystemFlags(
 export function readPublicSystemConfig() {
   const present = (key: string) => Boolean(process.env[key] && String(process.env[key]).trim());
   return {
-    siteUrl: process.env.NEXT_PUBLIC_SITE_URL || null,
+    siteUrl: resolveSiteUrl() || null,
     nodeEnv: process.env.NODE_ENV || null,
     schoolTimezone: process.env.SCHOOL_TIMEZONE || "Africa/Lagos",
     staffLateCutoff: process.env.STAFF_LATE_CUTOFF || "08:00",

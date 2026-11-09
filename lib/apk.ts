@@ -1,4 +1,5 @@
 import { qrDataUrl } from "@/lib/qr";
+import { resolveSiteUrl } from "@/lib/site-url";
 import { headers } from "next/headers";
 /**
  * Where the Android APK lives.
@@ -23,7 +24,7 @@ import { headers } from "next/headers";
  * Async because headers() is a Promise in Next 15+.
  */
 export async function requestOrigin(): Promise<string> {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL;
+  const configured = resolveSiteUrl();
   if (configured) return configured.replace(/\/$/, "");
   try {
     const h = await headers();

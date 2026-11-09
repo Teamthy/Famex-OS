@@ -1,4 +1,5 @@
 import { DEFAULT_BRANDING } from "@/lib/branding-defaults";
+import { resolveSiteUrl } from "@/lib/site-url";
 
 /**
  * Brand tokens — the ONE place the product and school identity is read from
@@ -54,7 +55,7 @@ export interface SchoolBrandTokens {
  */
 export function getSchoolBrandTokens(): SchoolBrandTokens {
   const schoolName = process.env.SCHOOL_NAME?.trim() || NEUTRAL_SCHOOL_NAME;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || NEUTRAL_SITE_URL;
+  const siteUrl = resolveSiteUrl() || NEUTRAL_SITE_URL;
   return {
     schoolName,
     siteUrl,

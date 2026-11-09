@@ -1,4 +1,5 @@
 import { jwtVerify } from "jose";
+import { resolveSiteUrl } from "@/lib/site-url";
 import { NextRequest, NextResponse } from "next/server";
 import { resolveAllowedOrigin } from "@/lib/cors";
 import { buildContentSecurityPolicy, storageUploadOrigin } from "@/lib/csp";
@@ -45,7 +46,7 @@ function logDenial(
 ) {
   // Fire-and-forget POST to our forensics API.
   // We don't await because middleware must return quickly.
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const baseUrl = resolveSiteUrl() || "http://localhost:3000";
   fetch(`${baseUrl}/api/internal/security-event`, {
     method: "POST",
     headers: {

@@ -335,6 +335,51 @@ would transit the secret through the conversation), migrate + seed from a truste
 Deployment Protection policy for testers. Until then the Vercel deployment shows the banner —
 by design.
 
+## 4m. Vercel's second wall: boot-time env validation was fatal on staging (2026-11-09, branch `arena/a6b381c5-famex-os`)
+
+After §4l/#37 the founder's screenshot STILL showed a bare page — but the copy ("This page
+couldn't load / A server error occurred") was **not** our `global-error.tsx` (light theme,
+"Something went wrong"): it was Next's built-in crash page, which only appears for failures
+OUTSIDE React. Cause found: `instrumentation.ts` `register()` → `lib/env.ts` `assertEnv()` — the
+old `productionSchema` made `NEXT_PUBLIC_SITE_URL`, `PAYSTACK_PUBLIC_KEY` and
+`PAYSTACK_SECRET_KEY` fatal whenever `NODE_ENV=production`. Vercel staging has none of the three,
+so **the server refused to start**: every route (and `/api/health`) answered with a bare error
+before any application code ran. The placeholder `DATABASE_URL` (§4l) was the SECOND wall behind
+this one — and together they were the original "UI not showing": a boot wall plus a render wall.
+
+**Fix (this branch):**
+
+- `lib/site-url.ts` (new) — `resolveSiteUrl()`: explicit `NEXT_PUBLIC_SITE_URL` → preview
+  `VERCEL_URL` (the deployment's own hostname) → `NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL`
+  (build-inlined) → runtime `VERCEL_URL` → `""`. Zero imports on purpose so middleware (edge)
+  shares it without pulling zod into the edge bundle.
+- `lib/env.ts` — a site URL is fatal only when NOTHING resolves (i.e. not on Vercel AND unset);
+  missing Paystack keys demoted to a LOUD warning because `lib/paystack.ts` already throws
+  "not configured" on every initiation and every webhook verification — an unkeyed deployment
+  fails closed (payments off, never silently accepting money). A dead portal is worse than a
+  closed payment window; the file's own history paragraph documents both outages.
+- 11 consumers switched to the resolver (email ×3, notifications, apk lib + download route,
+  cors, brand tokens, system-flags, middleware, mobile config route, calendar + staff-directory
+  pages). Side-fix: password-reset/staff-activation emails sent from Vercel previously linked
+  `http://localhost:3000` (the old per-call fallback).
+- `tests/lib/env-validation.test.ts` — 13 guards: resolver chain, Vercel-staging prod boots,
+  off-Vercel prod without a resolvable URL still refuses, Paystack warning matrix, base schema
+  fatal everywhere, `assertEnv` throw/no-throw.
+
+**Runtime proof (first in this project, sandbox):** `next start` with `NODE_ENV=production`,
+`VERCEL_ENV=preview`, `VERCEL_URL` set and NO site URL / Paystack keys → `✓ Ready`; `/api/health`
+→ `503 {"database":"down",…}`; `/` → **HTTP 200** branded shell + `role="status"` "Setup
+incomplete — database not connected" banner. (The stub query-engine's load failure surfaces as
+`PrismaClientInitializationError` — the same class Vercel's `ECONNREFUSED` produces — so the
+degraded path exercised locally is the one Vercel runs.) Boot log shows the loud non-fatal
+warnings (Paystack disabled, RESEND missing, Redis memory fallback, …) exactly as designed.
+
+**Gates:** vitest **112 files / 1417 tests**; tsc 0; lint 0 errors/126 warnings; prettier clean;
+build exit 0; modules/orphans/dead-ui/features/boundary/brand/audit exit 0. Gate-name correction
+for future sessions: the tenant checker is **`check:tenant-coverage`** (`14 UNCOVERED` reviewed
+baseline, exit 0) — a bare `check:tenant` script does not exist and earlier table rows citing it
+were silently running nothing.
+
 ## 5. Gates: commands + latest evidence + blockers
 
 Run from repo root. The table below is the **latest actual evidence** from the Vercel-degradation session (2026-11-09, branch `arena/a6b381c5-famex-os`, base `c0a2fd9`, §4l); dependency-gate/build/checker rows re-verified unchanged from the release-path session (§4k). Older delivery-gate evidence (2026-10-21, §§4f–4g), the 2026-10-23 audit recheck (§4h) and the B-01 session (§4j) are superseded by it.
@@ -342,7 +387,7 @@ Run from repo root. The table below is the **latest actual evidence** from the V
 | Gate | Command | Result (actual output) |
 |---|---|---|
 | typecheck | `npx tsc --noEmit` | exit 0 — no errors (on zod 4.6.7 / next 16.4.5 / sentry 10.78.0) |
-| unit/integration | `npx vitest run` | `Test Files 111 passed (111)` / `Tests 1404 passed (1404)` — includes the 2 mobile files (install `mobile/` deps first, §6), the 3 E2E-login-budget guards (§4j), the 13 release-path guards (§4k) and the 10 degraded-DB resolver guards (§4l) |
+| unit/integration | `npx vitest run` | `Test Files 112 passed (112)` / `Tests 1417 passed (1417)` — includes the 2 mobile files (install `mobile/` deps first, §6), the 3 E2E-login-budget guards (§4j), the 13 release-path guards (§4k), the 10 degraded-DB resolver guards (§4l) and the 13 env-validation guards (§4m) |
 | lint | `npm run lint` | `✖ 126 problems (0 errors, 126 warnings)` — no errors |
 | formatting | `npx prettier --check .` | `All matched files use Prettier code style!` |
 | dep audit | `npm run audit:deps` | **PASS, dual scope (§4k):** `[root] 0 high, 0 critical, 14 moderate, 4 low` (EXCLUSIONS empty) + `[mobile] 3 high` all excluded via the dated `decode-uri-component` chain entry → `Dependency audit passed (root + mobile)`, exit 0. Closes B-01; adds the mobile gate |
@@ -515,13 +560,16 @@ Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only
 ## 9. Next session: Vercel staging is owner-blocked on its database; then Phase 2 identity/RBAC (exact stop-point)
 
 **Where this session stopped (2026-11-09, branch `arena/a6b381c5-famex-os`, base `c0a2fd9`):**
-The founder's "UI not showing on Vercel" report is diagnosed and the code-side fix is done
-(§4l): with the documented placeholder `DATABASE_URL`, the root layout no longer crashes every
-route into a blank 500 — it renders the page shell from environment brand tokens plus an honest
-"Setup incomplete — database not connected" banner. Gates all green (vitest **111 files / 1404
-tests**, build exit 0 with the placeholder DB env mirroring Vercel). Committed, pushed, PR'd to
-`main`. The previous session's release-path verification also closed out: main CI run
-`42538162353` all-success; **Docker Publish run `42538539358` SUCCESS → `ghcr.io/teamthy/famex-os:main`
+The founder's "UI not showing on Vercel" report had TWO stacked walls, both now fixed in code:
+(§4l) the root layout crashed every route on the placeholder `DATABASE_URL` — fixed with honest
+degraded rendering + banner; and (§4m) the server never even started, because boot-time env
+validation treated `NEXT_PUBLIC_SITE_URL` + Paystack keys as fatal in `NODE_ENV=production`,
+which Vercel staging is — fixed via `lib/site-url.ts` + the demoted Paystack requirement. After
+this branch merges, Vercel production serves HTTP 200: branded shell + "Setup incomplete —
+database not connected" banner until the real staging DB lands. Gates all green (vitest **112
+files / 1417 tests**; first-ever local runtime proof via `next start` + curl, §4m). Committed,
+pushed, PR'd to `main`. The previous session's release-path verification also closed out: main CI
+run `42538162353` all-success; **Docker Publish run `42538539358` SUCCESS → `ghcr.io/teamthy/famex-os:main`
 + `:latest` published** (first ever; digest is resolved VM-side by `pin-image.sh` — the sandbox
 token lacks `read:packages`). Evidence posted as PR #19 comments. **Do not deploy anything to
 production yet** — the §4h certification is still NO-GO until the roadmap's remaining P0s close
@@ -532,7 +580,9 @@ and a successor commit is recertified.
 1. Provision a staging Postgres near `iad1` and replace `DATABASE_URL` in the Vercel dashboard
    (Settings → Environment Variables → `famex-os`). **Never paste the URL into chat or let an
    agent set it** — §8 secrets rule; the Vercel connector's `update_env_var` would transit the
-   secret through the conversation. Redeploy after changing it.
+   secret through the conversation. Redeploy after changing it. (`NEXT_PUBLIC_SITE_URL` is NO
+   longer required for boot — the platform supplies its own URL, §4m — but setting it remains
+   recommended for a stable canonical URL; Paystack keys only when payments go live.)
 2. From a trusted shell: `DATABASE_URL="$STAGING_DIRECT_URL" npx prisma migrate deploy` then
    `SEED_PASSWORD="…" npx tsx prisma/seed-all.ts` (full runbook: `docs/HOSTING-DECISION-2K-USERS.md` §9
    steps 3–5). Verify `/api/health/ready` reports `database: up`, `migrations.pending: 0`
