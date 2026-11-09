@@ -168,4 +168,21 @@ for (const [url, reports] of [...reportsByUrl.entries()].sort(([a], [b]) => a.lo
   if (audit) {
     emit("notice", `${url} LCP audit raw: ${JSON.stringify(audit.details ?? {}).slice(0, 450)}`);
   }
+
+  // Ground truth from the trace: LCP candidate events carry type, size, url
+  // and timestamp for every candidate the browser considered. The final
+  // candidate is the reported LCP element — no audit-id or details-shape
+  // assumptions involved.
+  const events = report.traces?.[0]?.traceEvents ?? [];
+  const candidates = events.filter((event) => event.name === "largest-contentful-paint::Candidate");
+  const final = candidates[candidates.length - 1];
+  if (final?.args?.data) {
+    const data = final.args.data;
+    const startTs = events.find((event) => event.name === "navigationStart")?.ts;
+    const offsetMs = typeof startTs === "number" ? Math.round((final.ts - startTs) / 1000) : "?";
+    emit(
+      "notice",
+      `${url} LCP candidate: type=${data.type} size=${data.size} url=${String(data.url ?? "-").slice(0, 60)} t=${offsetMs}ms candidates=${candidates.length}`,
+    );
+  }
 }
