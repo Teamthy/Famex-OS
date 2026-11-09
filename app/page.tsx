@@ -1,16 +1,8 @@
-// Preload the home hero backdrop — the LCP element — as its exact static
-// WebP so the browser can start it with the document response, before it
-// parses the hero markup.
-export const metadata = {
-  other: [
-    {
-      rel: "preload",
-      as: "image",
-      href: "/home/hero-campus-750.webp",
-      fetchpriority: "high",
-    },
-  ],
-};
+// The home hero backdrop is the LCP element. metadata.other emits <meta>
+// tags — a rel=preload *meta* is inert, which is exactly how the 7.9s LCP
+// regression slipped through: the image never got its preload. React 19
+// hoists <link rel="preload"> rendered from JSX into the real <head>, so
+// the tag lives in the component below.
 import localFont from "next/font/local";
 import SchoolHome from "@/components/SchoolHome";
 
@@ -39,6 +31,7 @@ const fraunces = localFont({
 export default function HomePage() {
   return (
     <div className={fraunces.variable}>
+      <link rel="preload" as="image" href="/home/hero-campus-750.webp" fetchPriority="high" />
       <SchoolHome />
     </div>
   );
