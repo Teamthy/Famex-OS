@@ -1,0 +1,73 @@
+# Dependabot update config (B-18 / roadmap Phase 1: "Enable Dependabot").
+#
+# This file drives dependency UPDATE pull requests. Dependabot security
+# ALERTS, code scanning and secret scanning are repository SETTINGS the
+# owner must enable (Settings → Advanced Security) — see the checklist in
+# docs/RELEASE-GOVERNANCE.md; this file cannot turn them on.
+#
+# Every PR Dependabot opens runs the full CI, including the blocking
+# dual-scope dependency audit (`npm run audit:deps` — root AND mobile).
+# Grouped minor/patch updates keep the noise down; majors open individual
+# PRs so breaking changes (e.g. a zod or Expo SDK major) get a real review
+# and their own gate run — never auto-merge anything here.
+version: 2
+updates:
+  # ── Root web app (Next.js + Prisma + the whole gate toolchain) ────────────
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Lagos
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "deps"
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  # ── Expo mobile app (own lockfile; the mobile dependency gate audits it) ──
+  - package-ecosystem: npm
+    directory: "/mobile"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Lagos
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(mobile)"
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  # ── CI workflows + actions (pinned majors still drift; review digests) ────
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Lagos
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # ── Production Dockerfile base images ─────────────────────────────────────
+  # Compose-side third-party images (caddy, postgres, cloudflared, curl,
+  # uptime-kuma) are NOT visible to Dependabot; they are pinned by digest at
+  # deploy time via deploy/oci/pin-image.sh (policy: docs/RELEASE-GOVERNANCE.md).
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Lagos
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(docker)"

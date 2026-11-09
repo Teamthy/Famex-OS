@@ -8,7 +8,16 @@
 
 ## B-01 — Pinned web dependencies now fail the project's critical-advisory gate
 
-- **Severity/status:** P0 / FAIL
+- **Severity/status:** P0 / **FIXED** — PR #18 (merged `75caee3`, 2026-11-08)
+- **Fix:** upgraded to patched releases with no exclusions or overrides:
+  `next` 16.4.0→16.4.5, `@sentry/nextjs` 10.69.0→10.78.0, `zod` 3.25.76→4.6.7
+  (3 `errorMap`→`error` call sites in `lib/admissions.ts`; no other v3-only
+  API), `dompurify` →3.4.17, `jsdom` →31 (dev; undici 8.12.4). The stale
+  braces exclusion was removed. `npm run audit:deps` exits 0
+  (`0 high, 0 critical`); exact-commit CI (Lint & Type Check, Build, Browser
+  E2E, Load test, Schema Drift, Lighthouse) passed on the PR. Phase 1
+  follow-up (branch `arena/e697eea8-famex-os`) extended the same gate to the
+  mobile lockfile — see B-18.
 - **Evidence:** `package-lock.json` resolves `next@16.4.0`, `@sentry/nextjs@10.69.0`, and `dompurify@3.4.16`. On 2026-10-23, `node scripts/audit-deps.mjs` reported 5 high, 3 critical, and 2 moderate findings and exited 1. The five high findings are the script's scoped ESLint-chain exclusion; the failing critical modules are `@sentry/nextjs`, `dompurify`, and `next` (GHSA-mchm-gjx6-7h55, GHSA-cg2g-xh64-v4q7 plus related DOMPurify advisories, GHSA-2464-fhr4-w9xw, GHSA-p3m5-59mp-jv5r, and GHSA-673q-mjm6-r5xr).
 - **Reachability note:** No exploit was reproduced. Next image optimization is enabled in `next.config.ts`, `next/image` is used, and middleware excludes `_next/image`; no `dangerouslyAllowSVG` or `use cache` usage was found. No Sentry `tunnelRoute` was found. DOMPurify arrives through `jspdf`, which is used by `lib/branded-pdf.ts`, `lib/receipt.ts`, and ID-card export. Reachability is therefore mixed and partly **NOT VERIFIED**, but the release gate itself is red.
 - **Impact:** Potential remote code execution, middleware bypass, XSS, or denial of service depending on advisory/path; at minimum, the release no longer satisfies its own supply-chain policy.
@@ -140,7 +149,20 @@
 
 ## B-09 — Notification dispatch is broken in the OCI Compose topology
 
-- **Severity/status:** P0 / FAIL
+- **Severity/status:** P0 / **PARTIALLY FIXED** — dispatch trigger corrected in code (branch `arena/e697eea8-famex-os`); metrics/alerting remain Phase 6
+- **Fix (2026-11-08):** `deploy/oci/docker-compose.yml` cron sidecar now sends
+  `Authorization: Bearer ${JOBS_SECRET}` — the exact form the route accepts
+  (and `famex-notify.service` already used) — instead of the invented
+  `x-jobs-secret` header, and `|| true` is gone: every tick logs its HTTP
+  status with a UTC timestamp, failures include the response excerpt
+  (`docker compose logs cron | grep FAILED` is the drill check). The two
+  trigger mechanisms are per-topology, not redundant: compose sidecar for the
+  OCI VM, systemd timer for an external tick at Vercel staging. **Still open
+  (Phase 6):** queue-age/failure metrics and alerting on repeated dispatch
+  failure; a compose-level integration drill (queue a notification, run one
+  tick, prove provider acceptance) — this sandbox has no Docker, so the fix
+  is static-guard-tested (`tests/lib/release-path.test.ts`), not yet
+  drill-proven on a VM.
 - **Evidence:** `deploy/oci/docker-compose.yml:180` calls `/api/jobs/dispatch-notifications` with `x-jobs-secret` and appends `|| true`. `app/api/jobs/dispatch-notifications/route.ts:9–19` accepts only `Authorization: Bearer ${JOBS_SECRET|CRON_SECRET}` or an ADMIN/DIRECTOR session. The separate `deploy/oci/famex-notify.service:15` uses the correct Bearer form, proving the Compose sidecar is inconsistent.
 - **Impact:** Fee, admissions, result, attendance, and announcement jobs can remain queued while the sidecar appears successful.
 - **Required fix:** Use one supported trigger mechanism, send the correct header, fail visibly, expose queue age/failure metrics, and alert on repeated dispatch failure or oldest-job age.
@@ -223,7 +245,24 @@
 
 ## B-18 — Release governance permits an unreviewed path to production
 
-- **Severity/status:** P1 / FAIL
+- **Severity/status:** P1 / **PARTIALLY FIXED** — every code-able item done (branch `arena/e697eea8-famex-os`); the settings items are listed as owner steps
+- **Fix (2026-11-08, code):** dual-scope dependency gate (root + mobile, with
+  the mobile critical/high chain cleared via `npm audit fix --prefix mobile`
+  and one dated, reachability-argued exclusion); Dependabot update config
+  (`.github/dependabot.yml`: root npm, mobile npm, github-actions, docker —
+  weekly, grouped minor/patch, majors individually reviewed); digest-pinning
+  mechanism (all compose images env-overridable, `deploy/oci/pin-image.sh`
+  writes immutable `@sha256:` refs, `deploy.sh` reports pinned-vs-mutable);
+  migrations separated from app boot (one-shot `migrate` compose service,
+  `MIGRATE_ON_BOOT=false`, observable logs, failed migration stops the deploy);
+  pinned `expo-doctor@1.21.6` in CI with retry + annotation surfacing.
+  **Owner steps (cannot be files in a repo), exact values in
+  `docs/RELEASE-GOVERNANCE.md` §2:** protect `main` (PR + 1 approval + the 7
+  named required checks), enable Dependabot alerts / code scanning / secret
+  scanning, create the `production` environment with required reviewers
+  (then a one-line PR wires it into docker-publish), restrict GHCR write
+  access, DB role split (B-12), secrets separation/rotation. Evidence for
+  each is defined in that file for the Phase-8 recertification bundle.
 - **Evidence:** GitHub API reported the public repository's `main` as `protected:false`, with zero rulesets and zero environments at audit refresh. Dependabot alerts returned “disabled for this repository.” Code-scanning and secret-scanning alert APIs returned 403, so their enablement is **NOT VERIFIED**. Docker/Compose use mutable tags, and `docker-entrypoint.sh:15` runs migrations on every boot.
 - **Impact:** A direct or insufficiently reviewed change can become the production image; rollback and approval evidence are weak.
 - **Required fix:** Protect `main`, require PR review and exact-commit checks, add environment approvals, enable dependency/code/secret scanning, pin digests, sign/attest images where feasible, and separate migration execution from app boot or make it single-flight and observable.

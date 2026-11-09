@@ -23,6 +23,12 @@
 #     of a third-party backup image; offsite copies go to OCI Object Storage
 #     or R2 via backup-offsite.sh on a systemd timer
 #   - memory limits + log rotation sized for a 6–12 GB free-tier VM
+#
+# Image pinning (B-18, roadmap Phase 1): every image reference is an env
+# override with a mutable-tag default. Production VMs MUST pin by digest —
+# run ./pin-image.sh (resolves current digests and writes *_IMAGE lines into
+# .env, e.g. FAMEX_IMAGE=ghcr.io/teamthy/famex-os@sha256:…). Policy and the
+# third-party update cadence: docs/RELEASE-GOVERNANCE.md.
 # ─────────────────────────────────────────────────────────────────────────────
 
 x-logging: &default-logging
@@ -34,7 +40,7 @@ x-logging: &default-logging
 services:
   # ── Ingress option A: Caddy (public 80/443, automatic HTTPS) ──────────────
   caddy:
-    image: caddy:2-alpine
+    image: ${CADDY_IMAGE:-caddy:2-alpine}
     profiles: ["public"]
     restart: unless-stopped
     depends_on:
@@ -56,7 +62,9 @@ services:
 
   # ── Ingress option B: Cloudflare Tunnel (no inbound ports at all) ─────────
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    # :latest is a mutable tag — pin-image.sh MUST pin this by digest at deploy time
+    # (a cloudflared auto-update has previously restarted tunnels mid-school-day elsewhere).
+    image: ${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:latest}
     profiles: ["tunnel"]
     restart: unless-stopped
     depends_on:
@@ -68,13 +76,34 @@ services:
     mem_limit: 256m
     logging: *default-logging
 
+  # ── One-shot migration runner (B-18: migrations separated from app boot) ──
+  # Runs `prisma migrate deploy` against the same image, then exits. The app
+  # waits for it (service_completed_successfully) and boots with
+  # MIGRATE_ON_BOOT=false, so a migration never races an app boot, a failed
+  # migration stops the deploy BEFORE the app restarts, and
+  # `docker compose logs migrate` is the observable migration record.
+  migrate:
+    image: ${FAMEX_IMAGE:-${APP_IMAGE:-ghcr.io/teamthy/famex-os}:${IMAGE_TAG:-main}}
+    restart: "no"
+    entrypoint: ["node", "node_modules/prisma/build/index.js"]
+    command: ["migrate", "deploy", "--schema", "prisma/schema.prisma"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-famex}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-famex_os}}
+    mem_limit: 512m
+    logging: *default-logging
+
   # ── App ────────────────────────────────────────────────────────────────────
   app:
-    image: ${APP_IMAGE:-ghcr.io/teamthy/famex-os}:${IMAGE_TAG:-main}
+    image: ${FAMEX_IMAGE:-${APP_IMAGE:-ghcr.io/teamthy/famex-os}:${IMAGE_TAG:-main}}
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     expose:
       - "3000" # internal only — reached via caddy/cloudflared as app:3000
     environment:
@@ -82,7 +111,9 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-famex}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-famex_os}}
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET (32+ chars)}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?set NEXT_PUBLIC_SITE_URL (https://…)}
-      # Boot behaviour (docker-entrypoint.sh): migrations always; CBT bank if true.
+      # Boot behaviour (docker-entrypoint.sh): migrations run in the one-shot
+      # `migrate` service above, NOT at app boot; CBT bank seed if true.
+      MIGRATE_ON_BOOT: "false"
       SEED_CBT_ON_BOOT: ${SEED_CBT_ON_BOOT:-false}
       JOBS_SECRET: ${JOBS_SECRET:?set JOBS_SECRET}
       # Payments / email / SMS
@@ -136,7 +167,7 @@ services:
 
   # ── Database ───────────────────────────────────────────────────────────────
   db:
-    image: postgres:16-alpine
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-famex_os}
@@ -167,8 +198,17 @@ services:
     logging: *default-logging
 
   # ── Notification dispatcher (60s tick → /api/jobs/dispatch-notifications) ──
+  # B-09 fix (was P0): the route accepts ONLY `Authorization: Bearer
+  # ${JOBS_SECRET|CRON_SECRET}` (or an ADMIN/DIRECTOR session) — this sidecar
+  # used to send a made-up `x-jobs-secret` header, so every tick 401'd, and
+  # `|| true` swallowed the failure: notifications queued forever while the
+  # container looked healthy. Now the header matches the route (same form as
+  # famex-notify.service), every tick is logged with its HTTP status, and
+  # failures are LOUD (timestamp + code + response excerpt) — `docker compose
+  # logs cron | grep FAILED` is the drill check. Queue-age alerting lives in
+  # the monitoring backlog (roadmap Phase 6).
   cron:
-    image: curlimages/curl:8.10.1
+    image: ${CURL_IMAGE:-curlimages/curl:8.10.1}
     restart: unless-stopped
     depends_on:
       app:
@@ -177,7 +217,14 @@ services:
       JOBS_SECRET: ${JOBS_SECRET:?set JOBS_SECRET}
     command: >
       sh -c 'while true; do
-        curl -fsS -X POST http://app:3000/api/jobs/dispatch-notifications -H "x-jobs-secret: $$JOBS_SECRET" || true;
+        code=$$(curl -sS -o /tmp/dispatch.out -w "%{http_code}" --max-time 55 -X POST
+          http://app:3000/api/jobs/dispatch-notifications
+          -H "Authorization: Bearer $$JOBS_SECRET");
+        if [ "$$code" = "200" ]; then
+          echo "[cron] $$(date -u +%FT%TZ) dispatch ok";
+        else
+          echo "[cron] $$(date -u +%FT%TZ) dispatch FAILED (HTTP $$code): $$(head -c 200 /tmp/dispatch.out 2>/dev/null)";
+        fi;
         sleep 60;
       done'
     mem_limit: 64m
@@ -185,7 +232,7 @@ services:
 
   # ── Local daily backups (offsite copy: backup-offsite.sh timer) ───────────
   backup:
-    image: postgres:16-alpine
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
     restart: unless-stopped
     depends_on:
       db:
@@ -213,7 +260,7 @@ services:
 
   # ── Optional: uptime dashboard (localhost only — reach via SSH tunnel) ────
   uptime-kuma:
-    image: louislam/uptime-kuma:1
+    image: ${UPTIME_KUMA_IMAGE:-louislam/uptime-kuma:1}
     profiles: ["monitoring"]
     restart: unless-stopped
     ports:

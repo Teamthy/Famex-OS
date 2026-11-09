@@ -1,7 +1,12 @@
 #!/bin/sh
 # Famex OS — Render/production container entrypoint.
 #
-# 1. applies Prisma migrations (idempotent — safe on every boot)
+# 1. applies Prisma migrations (idempotent — safe on every boot) UNLESS
+#    MIGRATE_ON_BOOT=false. B-18/roadmap Phase 1: the OCI compose topology
+#    separates migration execution from app boot — a one-shot `migrate`
+#    service runs first and app containers start with MIGRATE_ON_BOOT=false,
+#    so a migration never races an app boot and its logs are its own step.
+#    Single-container hosts (Render) keep the default boot behaviour.
 # 2. optionally seeds the shared CBT bank (SEED_CBT_ON_BOOT=true — skips
 #    questions whose stem already exists, so re-boots are no-ops)
 # 3. starts the Next.js standalone server
@@ -11,8 +16,12 @@
 # school seed (npm run db:seed) and, from W2, the first-run wizard (F0-22).
 set -e
 
-echo "[entrypoint] applying prisma migrations…"
-node node_modules/prisma/build/index.js migrate deploy --schema prisma/schema.prisma
+if [ "${MIGRATE_ON_BOOT:-true}" = "true" ]; then
+  echo "[entrypoint] applying prisma migrations…"
+  node node_modules/prisma/build/index.js migrate deploy --schema prisma/schema.prisma
+else
+  echo "[entrypoint] MIGRATE_ON_BOOT=false — skipping migrations (they run as a separate one-shot step; see the 'migrate' service in deploy/oci/docker-compose.yml)"
+fi
 
 if [ "$SEED_CBT_ON_BOOT" = "true" ] && [ -f prisma/cbt-seed.mjs ]; then
   echo "[entrypoint] seeding CBT bank (idempotent)…"
