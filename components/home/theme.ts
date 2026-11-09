@@ -5,7 +5,8 @@
  * hand-written @font-face rules in app/globals.css (its --font-fraunces
  * variable is defined on :root there), so every home section can opt into
  * the editorial serif (with true italics) without touching the portal's
- * type system. app/page.tsx preloads both woff2 files explicitly.
+ * type system. app/page.tsx preloads the upright woff2 explicitly (the
+ * italic face stays a CSS-discovered second wave — see the comment there).
  */
 export const SERIF = "font-[family-name:var(--font-fraunces)]";
 

@@ -35,13 +35,12 @@ export default function HomePage() {
         href="/fonts/Fraunces-Variable.woff2"
         crossOrigin="anonymous"
       />
-      <link
-        rel="preload"
-        as="font"
-        type="font/woff2"
-        href="/fonts/Fraunces-Variable-Italic.woff2"
-        crossOrigin="anonymous"
-      />
+      {/* The italic face is deliberately NOT preloaded: its 45.7KB would join
+          the first wave beside the LCP image, and the only above-the-fold
+          italic (the H1 <em>) is a smaller paint than the hero image, so its
+          slightly later swap cannot become the LCP. Measured: preloading both
+          faces kept home ~650ms over the same shell's image-LCP on
+          /admissions (Lighthouse CI, 2026-11). */}
       <SchoolHome />
     </>
   );

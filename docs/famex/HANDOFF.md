@@ -469,8 +469,11 @@ submit measured **7950ms**; four CI cycles and these fixes brought it back insid
    in this setup (verified in the SSR head), so Fraunces was discovered only after the render-blocking CSS
    parsed and the H1 font-swapped at ~4.3s — over budget even with a preloaded 27KB image, while
    `/admissions` (preloaded image LCP, 3.6s) passed. Fraunces now lives at stable `public/fonts/` URLs with
-   hand-written `@font-face` in `app/globals.css` (`--font-fraunces` on `:root`) and two explicit
-   `<link rel="preload" as="font" crossorigin="anonymous">` tags in `app/page.tsx`.
+   hand-written `@font-face` in `app/globals.css` (`--font-fraunces` on `:root`) and an explicit
+   `<link rel="preload" as="font" crossorigin="anonymous">` for the upright face in `app/page.tsx`.
+   The italic face stays CSS-discovered on purpose: preloading its 45.7KB too kept the first wave
+   ~650ms heavier than the identical shell on `/admissions`, whose preloaded-image LCP passes at
+   ~3.6s — the only above-the-fold italic is the H1 `<em>`, a smaller paint than the hero image.
 
 Tooling: `scripts/lighthouse-report-summary.mjs` now annotates the LCP element (selector + snippet) and its
 phase split, plus a truncated raw dump of the audit details when the shaped parse finds nothing — the next
