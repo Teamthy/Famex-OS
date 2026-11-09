@@ -17,7 +17,13 @@ import { HOME_BG, HOME_INK } from "@/components/home/theme";
 
 /** The four banner photographs of the hero carousel (real campus images). */
 const HERO_SLIDES = [
-  { src: "/home/hero-campus-750.webp", alt: "The school campus at golden hour" },
+  {
+    src: "/home/hero-campus-750.webp",
+    alt: "The school campus at golden hour",
+    // AVIF twin of the LCP slide: ~42% of the WebP bytes at the same pixels,
+    // served via <picture> with the WebP as fallback (2026-11 LCP budget work).
+    avif: "/home/hero-campus-750.avif",
+  },
   { src: "/home/college-classroom.jpg", alt: "A lesson in progress in a bright classroom" },
   { src: "/home/college-sports.jpg", alt: "Students competing on the sports field" },
   { src: "/home/college-arts.jpg", alt: "Students at work in the arts studio" },

@@ -100,6 +100,7 @@ for (const file of files) {
     fcp: numeric("first-contentful-paint"),
     tbt: numeric("total-blocking-time"),
     cls: numeric("cumulative-layout-shift"),
+    lcpElementAudit: report.audits?.["largest-contentful-paint-element"],
   });
 }
 
@@ -136,4 +137,29 @@ for (const [url, reports] of [...reportsByUrl.entries()].sort(([a], [b]) => a.lo
       formatMs,
     )} TBT=${formatMetric(values("tbt"), formatMs)} CLS=${formatMetric(values("cls"), formatCls)}`,
   );
+
+  // LCP diagnostics: which element Lighthouse picked and how its time splits
+  // between TTFB, load delay, load duration and render delay. Raw logs die
+  // with the runner; the annotations are what future debugging sessions see.
+  const report = reports[reports.length - 1];
+  const audit = report?.lcpElementAudit;
+  const groups = audit?.details?.items ?? [];
+  const node = groups[0]?.items?.[0]?.node;
+  const phaseText = (groups[1]?.items ?? [])
+    .map((row) => {
+      const inner = row.items?.[0] ?? row;
+      const label = inner.label ?? inner.subItem?.result ?? "?";
+      const ms = typeof inner.duration === "number" ? `${Math.round(inner.duration)}ms` : "";
+      return ms ? `${label} ${ms}` : String(label);
+    })
+    .join(", ");
+
+  if (node || phaseText) {
+    emit(
+      "notice",
+      `${url} LCP element: ${node?.selector ?? "?"} :: ${String(node?.snippet ?? "")
+        .replace(/\s+/g, " ")
+        .slice(0, 120)} | phases: ${phaseText || "n/a"}`,
+    );
+  }
 }

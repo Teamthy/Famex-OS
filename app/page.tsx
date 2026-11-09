@@ -31,7 +31,13 @@ const fraunces = localFont({
 export default function HomePage() {
   return (
     <div className={fraunces.variable}>
-      <link rel="preload" as="image" href="/home/hero-campus-750.webp" fetchPriority="high" />
+      <link
+        rel="preload"
+        as="image"
+        type="image/avif"
+        href="/home/hero-campus-750.avif"
+        fetchPriority="high"
+      />
       <SchoolHome />
     </div>
   );

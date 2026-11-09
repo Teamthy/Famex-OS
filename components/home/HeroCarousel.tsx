@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { SERIF } from "./theme";
 
-export type HeroSlide = { src: string; alt: string };
+export type HeroSlide = { src: string; alt: string; avif?: string };
 
 const ROTATE_MS = 6500;
 
@@ -53,18 +53,23 @@ export default function HeroCarousel({ slides, motto }: { slides: HeroSlide[]; m
         <div className="relative aspect-[4/5] w-full sm:aspect-[16/10] lg:aspect-[16/8.4]">
           {slides.map((slide, i) =>
             i === 0 || restMounted ? (
-              <img
+              <picture
                 key={slide.src}
-                src={slide.src}
-                alt={slide.alt}
-                loading={i === 0 ? "eager" : "lazy"}
-                fetchPriority={i === 0 ? "high" : "low"}
-                decoding="async"
-                aria-hidden={i !== index}
-                className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ${
+                className={`absolute inset-0 h-full w-full transition-opacity duration-[1200ms] ${
                   i === index ? "opacity-100" : "opacity-0"
                 }`}
-              />
+              >
+                {slide.avif ? <source srcSet={slide.avif} type="image/avif" /> : null}
+                <img
+                  src={slide.src}
+                  alt={slide.alt}
+                  loading={i === 0 ? "eager" : "lazy"}
+                  fetchPriority={i === 0 ? "high" : "low"}
+                  decoding="async"
+                  aria-hidden={i !== index}
+                  className="h-full w-full object-cover"
+                />
+              </picture>
             ) : null,
           )}
           {/* Warm unifying grade + readability gradient. No mix-blend-multiply:
