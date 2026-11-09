@@ -341,6 +341,31 @@ this branch. This is the honest state of it:
 Until step 4 passes, treat the Vercel deployment as a **build artefact**, not an
 environment.
 
+### Update (2026-11-09): "the UI doesn't show" — diagnosed and degraded honestly
+
+Founder report: the Vercel deployment shows no UI. Diagnosis (Vercel API +
+code): the production deployment of `main` builds and promotes fine
+(`READY`/`PROMOTED`), but every page 500s at runtime — the root layout's first
+Prisma read (`resolveSchoolForRequest` → `prisma.school.findFirst`) hits the
+placeholder `localhost` `DATABASE_URL` inside a Vercel function, throws, and a
+root-layout crash takes down **every** route as a blank error page. This is
+exactly the "not an environment until step 4 passes" state above, made visible.
+
+Code fix (this repo, no owner action needed): the root layout now distinguishes
+database-infrastructure failures (unreachable server, missing/invalid
+`DATABASE_URL`, unmigrated schema — `PrismaClientInitializationError`, `P2021`,
+`P2022`) from application bugs. On an infrastructure failure it renders the
+page shell from environment brand tokens plus an honest amber
+**"Setup incomplete — database not connected"** banner
+(`components/SetupIncompleteBanner.tsx`) pointing at `/api/health`; application
+errors still propagate, and signed-in sessions still fail closed
+(`IdentityCheckUnavailableError` → treated as signed out). `app/error.tsx` also
+gained the same honest hint and no longer emits a nested `<html>` document.
+
+Steps 1–5 above remain **required and unchanged**: the banner is truthful
+degradation, not a working school OS. Public pages render; every signed-in
+feature, live datum, and cron job still needs the real staging database.
+
 ### Why the first attempt hung
 
 The first deploy sat at `npm ci` with no output for over two minutes on Node
