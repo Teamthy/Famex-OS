@@ -12,7 +12,7 @@ export default function VisitCta() {
   const email = process.env.SCHOOL_EMAIL?.trim() || null;
 
   return (
-    <section id="visit" className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 sm:pb-28">
+    <section id="visit" className="home-below-fold mx-auto max-w-6xl px-4 pb-20 sm:px-6 sm:pb-28">
       <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
         <div className="flex flex-col justify-between rounded-[28px] bg-[#20261f] p-8 sm:p-10">
           <div>

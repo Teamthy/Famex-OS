@@ -29,7 +29,7 @@ const ROLES = [
 
 export default function PeopleSection() {
   return (
-    <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24">
+    <section className="home-below-fold mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24">
       <h2 className={`${SERIF} text-4xl font-semibold tracking-tight sm:text-5xl`}>
         The people <em className="font-light italic text-[#5d8f4e]">around your child</em>
       </h2>

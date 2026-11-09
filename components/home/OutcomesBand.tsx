@@ -14,7 +14,7 @@ const STATS = [
 
 export default function OutcomesBand() {
   return (
-    <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24">
+    <section className="home-below-fold mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24">
       <div className="rounded-[28px] bg-[#20261f] px-8 py-12 sm:px-12">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {STATS.map((stat) => (

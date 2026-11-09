@@ -77,7 +77,7 @@ export default function StageExplorer() {
   const visible = filter === "all" ? STAGES : STAGES.filter((stage) => stage.id === filter);
 
   return (
-    <section id="stages" className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
+    <section id="stages" className="home-below-fold mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
       <div className="text-center">
         <h2 className={`${SERIF} text-4xl font-semibold tracking-tight sm:text-5xl`}>
           Explore by <em className="font-light italic text-[#5d8f4e]">stage</em>

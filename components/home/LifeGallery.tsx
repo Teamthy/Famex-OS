@@ -34,7 +34,7 @@ const TILES = [
 /** Section 9 — the campus-life mosaic ("#campus" anchor target). */
 export default function LifeGallery() {
   return (
-    <section id="campus" className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24">
+    <section id="campus" className="home-below-fold mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
           <h2 className={`${SERIF} text-4xl font-semibold tracking-tight sm:text-5xl`}>

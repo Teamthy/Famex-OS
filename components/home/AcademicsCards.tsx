@@ -27,7 +27,10 @@ const PILLARS = [
 /** Section 6 — the academic pillars as four quiet white cards. */
 export default function AcademicsCards() {
   return (
-    <section id="academics" className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
+    <section
+      id="academics"
+      className="home-below-fold mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24"
+    >
       <div className="flex flex-wrap items-end justify-between gap-6">
         <h2 className={`${SERIF} text-4xl font-semibold tracking-tight sm:text-5xl`}>
           A curriculum that <em className="font-light italic text-[#5d8f4e]">works</em>

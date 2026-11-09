@@ -22,7 +22,10 @@ const STEPS = [
 /** Section 10 — admissions as three honest steps, no mystery and no urgency theatre. */
 export default function AdmissionsSteps() {
   return (
-    <section id="admissions" className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24">
+    <section
+      id="admissions"
+      className="home-below-fold mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24"
+    >
       <div className="rounded-[28px] bg-[#efe7d8] px-8 py-12 sm:px-12">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <h2 className={`${SERIF} text-4xl font-semibold tracking-tight sm:text-5xl`}>

@@ -28,7 +28,7 @@ export default async function NewsEvents() {
   const events = (calendar.events ?? []).slice(0, 4);
 
   return (
-    <section id="news" className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24">
+    <section id="news" className="home-below-fold mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <h2 className={`${SERIF} text-4xl font-semibold tracking-tight sm:text-5xl`}>
           The school <em className="font-light italic text-[#5d8f4e]">journal</em>

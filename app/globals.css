@@ -41,6 +41,21 @@
 }
 
 /* ------------------------------------------------------------
+   Below-the-fold home sections (class applied in components/home/*):
+   the twelve-section home ships a ~124KB / ~600-tag document, and on
+   throttled CPUs the full-document style+layout pass pushed the hero
+   paint past the LCP budget while the lighter /admissions page passed.
+   content-visibility:auto confines the initial layout work to what the
+   visitor actually sees; contain-intrinsic-size keeps the scrollbar
+   stable and the `auto` keyword remembers real heights after first
+   render. No SEO or no-JS impact — the markup still ships in the HTML.
+   ------------------------------------------------------------ */
+.home-below-fold {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 720px;
+}
+
+/* ------------------------------------------------------------
    @theme — ONLY for values that generate Tailwind utilities
    (colors, fonts, radii, breakpoints)
    ------------------------------------------------------------ */

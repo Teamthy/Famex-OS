@@ -17,7 +17,7 @@ export default function HomeFooter() {
   ];
 
   return (
-    <footer className="border-t border-[#211d19]/10 bg-[#efe7d8]">
+    <footer className="home-below-fold border-t border-[#211d19]/10 bg-[#efe7d8]">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 sm:px-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-sm">
           <p className="font-[family-name:var(--font-fraunces)] text-2xl font-semibold text-[#211d19]">
