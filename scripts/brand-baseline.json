@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-11-08T22:37:57.255Z",
-  "totalFindings": 72,
-  "files": 38,
+  "generatedAt": "2026-11-09T10:07:23.646Z",
+  "totalFindings": 71,
+  "files": 37,
   "allow": {
     "app/academics/junior-secondary/page.tsx": {
       "eduportal": 1
@@ -46,9 +46,6 @@
     },
     "components/LiveReportCardPreview.tsx": {
       "ykay": 1
-    },
-    "components/Services.tsx": {
-      "eduportal": 1
     },
     "components/og.tsx": {
       "ykay": 1

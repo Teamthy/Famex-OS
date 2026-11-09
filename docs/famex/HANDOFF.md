@@ -380,6 +380,49 @@ for future sessions: the tenant checker is **`check:tenant-coverage`** (`14 UNCO
 baseline, exit 0) — a bare `check:tenant` script does not exist and earlier table rows citing it
 were silently running nothing.
 
+## 4n. Public home redesign — editorial paper palette, 12 sections, 4-image hero carousel (2026-11-10, branch `arena/2a7e132a-famex-os`)
+
+Founder brief: *"the project still has the ykay project ui — redesign the ui to look exactly like
+the image attached; home page should be 12 sections; home page banner image should be in carousel
+of 4 images."* Reference: a warm cream editorial landing (display serif with italic accents,
+rounded hero card, floating glass pill nav, floating stat card, filter-pill card grid, dark
+stat band).
+
+**What landed (`components/home/*`, 14 files):** `HomeHeader` (floating glass pill nav with real
+destinations — `/login` "Student Portal", `/admissions` "Apply Now", anchor links);
+`HeroCarousel` (FOUR real campus photographs, 6.5s crossfade, arrows + dots, first slide eager
+and preloaded as the LCP element); `IntroStatement`; `TrioCards` + `CampusMiniCarousel` (dark
+card's two-up photo cycle); `StageExplorer` (the six real advertised stages with filter pills and
+a local-only shortlist heart — nothing tracked); `MarqueeStrip`; `AcademicsCards`;
+`OutcomesBand` (structural facts only: 6 stages / 3 terms / 2 public exams / 5 years of alumni
+records — no invented satisfaction metrics); `PeopleSection` (real staff ROLES, not invented
+names or stranger photographs); `LifeGallery`; `AdmissionsSteps`; `NewsEvents` (server-fetched
+REAL `/api/public/calendar`, honest empty state when the session is unconfigured); `VisitCta`
+(env-token contacts + the shared `FindUs` island); `HomeFooter`; `theme.ts` palette tokens.
+
+**Type:** Fraunces variable (normal + italic) SELF-HOSTED — `app/fonts/Fraunces-Variable*.woff2`
+copied from `@fontsource-variable/fraunces` and loaded via `next/font/local` in `app/page.tsx`,
+per the layout's documented convention; `next/font/google` fetches at build time and neither the
+sandbox nor reproducible builds may depend on it.
+
+**Deleted (Ykay-era home):** `Hero`, `HomeSections`, `ServiceInfo`, `AdmissionsBanner`,
+`Services`, `Groups`, `MobileAppCTA`, `SchoolAddressLink` (git rm). `components/SchoolHome.tsx`
+now composes exactly twelve sections between header and footer on the paper palette; the portal
+and the other public pages keep their existing shell — **the portal reskin is a separate
+workstream, not this slice.**
+
+**E2E contract honoured** (`tests/e2e/00-home.spec.ts` unchanged): heading matches
+/Excellence in Education/i (the new H1), "Apply Now" and "Student Portal" links visible, and
+`section img[src*='hero-campus']` attached (slide 1 = `hero-campus-1200.webp`, kept light for
+the Lighthouse budget).
+
+**Gates:** tsc 0; vitest 112 files / 1417 tests; lint 0 errors / 119 warnings; prettier clean;
+build exit 0; modules/orphans/dead-ui/features/boundary/tenant-coverage/audit exit 0;
+`audit:brand` burned down one finding with the deleted legacy components → baseline legitimately
+re-cut to **71 findings / 37 files**. Runtime smoke (`next start`, Vercel-shaped env, stub DB):
+`/` → HTTP 200 with twelve sections, four carousel images, the honest setup banner still
+rendering, and the journal's honest empty state.
+
 ## 5. Gates: commands + latest evidence + blockers
 
 Run from repo root. The table below is the **latest actual evidence** from the Vercel-degradation session (2026-11-09, branch `arena/a6b381c5-famex-os`, base `c0a2fd9`, §4l); dependency-gate/build/checker rows re-verified unchanged from the release-path session (§4k). Older delivery-gate evidence (2026-10-21, §§4f–4g), the 2026-10-23 audit recheck (§4h) and the B-01 session (§4j) are superseded by it.
@@ -392,7 +435,7 @@ Run from repo root. The table below is the **latest actual evidence** from the V
 | formatting | `npx prettier --check .` | `All matched files use Prettier code style!` |
 | dep audit | `npm run audit:deps` | **PASS, dual scope (§4k):** `[root] 0 high, 0 critical, 14 moderate, 4 low` (EXCLUSIONS empty) + `[mobile] 3 high` all excluded via the dated `decode-uri-component` chain entry → `Dependency audit passed (root + mobile)`, exit 0. Closes B-01; adds the mobile gate |
 | project audit | `npm run audit` | `No blockers. 16 warning(s).` |
-| brand ratchet | `npm run audit:brand` | `Brand audit OK — 72 finding(s) across 38 file(s); baseline allows 72.` (re-cut 2026-11-08 for the frozen `eduos_` identifiers cited by `tests/lib/rls-migration-coverage.test.ts`; remainders are confirmed live domains + frozen `eduos_` DB identifiers) |
+| brand ratchet | `npm run audit:brand` | `Brand audit OK — 71 finding(s) across 37 file(s); baseline allows 71.` (re-cut 2026-11-10: the Ykay-era home components deleted in §4n carried one finding; remainder are confirmed live domains + frozen `eduos_` DB identifiers) |
 | feature IDs | `npm run check:features` | OK — `Catalogue: 331 features parsed` / `§25 declares TOTAL 331 — matches.` |
 | orphans | `npm run check:orphans` | `All 94 portal pages are reachable.` |
 | dead UI | `npm run check:dead-ui` | `Checked 102 portal pages.` / `No dead UI found.` (student results page ALLOWED: "Assign" is a column header, not a button) |
@@ -574,6 +617,12 @@ run `42538162353` all-success; **Docker Publish run `42538539358` SUCCESS → `g
 token lacks `read:packages`). Evidence posted as PR #19 comments. **Do not deploy anything to
 production yet** — the §4h certification is still NO-GO until the roadmap's remaining P0s close
 and a successor commit is recertified.
+
+**2026-11-10 addendum:** the public home redesign (§4n) landed on this branch lineage — twelve
+sections, four-image hero carousel, editorial paper palette, Ykay-era home components deleted.
+The **portal/admin reskin is a separate workstream** (founder to schedule); the other public
+pages (about, academics, admissions…) keep the existing shell until then. After this merges, the
+next engineering slice remains **Phase 2 / B-06** (role×page×API entitlement matrix).
 
 **Owner actions — the ACTUAL Vercel fix (agent cannot and must not do these):**
 
