@@ -67,10 +67,11 @@ export default function HeroCarousel({ slides, motto }: { slides: HeroSlide[]; m
               />
             ) : null,
           )}
-          {/* Warm unifying grade + readability gradient */}
-          <div className="absolute inset-0 bg-[#c96f4a]/15 mix-blend-multiply" aria-hidden="true" />
+          {/* Warm unifying grade + readability gradient. No mix-blend-multiply:
+              a full-bleed blend layer costs an extra composite pass over the
+              LCP image on throttled CPUs (Lighthouse budget §4n). */}
           <div
-            className="absolute inset-0 bg-gradient-to-tr from-[#1d1a16]/85 via-[#1d1a16]/35 to-transparent"
+            className="absolute inset-0 bg-gradient-to-tr from-[#1d1a16]/85 via-[#3a2a1d]/40 to-[#c96f4a]/10"
             aria-hidden="true"
           />
         </div>

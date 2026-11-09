@@ -1,7 +1,3 @@
-"use client";
-
-import { useSchoolProfile } from "@/components/SchoolProfileContext";
-
 const LINKS = [
   { href: "#story", label: "Story" },
   { href: "#academics", label: "Academics" },
@@ -18,8 +14,8 @@ const LINKS = [
  * rest of the public site. "Student Portal" and "Apply Now" are real
  * destinations (/login, /admissions), never dead links.
  */
-export default function HomeHeader() {
-  const { name } = useSchoolProfile();
+export default function HomeHeader({ schoolName }: { schoolName: string }) {
+  const name = schoolName;
   const initials = (name || "Our School")
     .split(/\s+/)
     .slice(0, 2)

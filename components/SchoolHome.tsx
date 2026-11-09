@@ -1,4 +1,5 @@
 import HomeHeader from "@/components/home/HomeHeader";
+import { getSchoolBrandTokens } from "@/lib/brand";
 import HeroCarousel from "@/components/home/HeroCarousel";
 import IntroStatement from "@/components/home/IntroStatement";
 import TrioCards from "@/components/home/TrioCards";
@@ -37,10 +38,11 @@ const HERO_SLIDES = [
  */
 export default function SchoolHome() {
   const motto = process.env.SCHOOL_MOTTO?.trim() || "Raising Role Models";
+  const { schoolName } = getSchoolBrandTokens();
 
   return (
     <div className="min-h-screen antialiased" style={{ background: HOME_BG, color: HOME_INK }}>
-      <HomeHeader />
+      <HomeHeader schoolName={schoolName} />
       <main>
         <HeroCarousel slides={HERO_SLIDES} motto={motto} />
         <IntroStatement />
