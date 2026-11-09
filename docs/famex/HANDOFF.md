@@ -380,6 +380,49 @@ for future sessions: the tenant checker is **`check:tenant-coverage`** (`14 UNCO
 baseline, exit 0) — a bare `check:tenant` script does not exist and earlier table rows citing it
 were silently running nothing.
 
+## 4n. Public home redesign — editorial paper palette, 12 sections, 4-image hero carousel (2026-11-10, branch `arena/2a7e132a-famex-os`)
+
+Founder brief: *"the project still has the ykay project ui — redesign the ui to look exactly like
+the image attached; home page should be 12 sections; home page banner image should be in carousel
+of 4 images."* Reference: a warm cream editorial landing (display serif with italic accents,
+rounded hero card, floating glass pill nav, floating stat card, filter-pill card grid, dark
+stat band).
+
+**What landed (`components/home/*`, 14 files):** `HomeHeader` (floating glass pill nav with real
+destinations — `/login` "Student Portal", `/admissions` "Apply Now", anchor links);
+`HeroCarousel` (FOUR real campus photographs, 6.5s crossfade, arrows + dots, first slide eager
+and preloaded as the LCP element); `IntroStatement`; `TrioCards` + `CampusMiniCarousel` (dark
+card's two-up photo cycle); `StageExplorer` (the six real advertised stages with filter pills and
+a local-only shortlist heart — nothing tracked); `MarqueeStrip`; `AcademicsCards`;
+`OutcomesBand` (structural facts only: 6 stages / 3 terms / 2 public exams / 5 years of alumni
+records — no invented satisfaction metrics); `PeopleSection` (real staff ROLES, not invented
+names or stranger photographs); `LifeGallery`; `AdmissionsSteps`; `NewsEvents` (server-fetched
+REAL `/api/public/calendar`, honest empty state when the session is unconfigured); `VisitCta`
+(env-token contacts + the shared `FindUs` island); `HomeFooter`; `theme.ts` palette tokens.
+
+**Type:** Fraunces variable (normal + italic) SELF-HOSTED — `app/fonts/Fraunces-Variable*.woff2`
+copied from `@fontsource-variable/fraunces` and loaded via `next/font/local` in `app/page.tsx`,
+per the layout's documented convention; `next/font/google` fetches at build time and neither the
+sandbox nor reproducible builds may depend on it.
+
+**Deleted (Ykay-era home):** `Hero`, `HomeSections`, `ServiceInfo`, `AdmissionsBanner`,
+`Services`, `Groups`, `MobileAppCTA`, `SchoolAddressLink` (git rm). `components/SchoolHome.tsx`
+now composes exactly twelve sections between header and footer on the paper palette; the portal
+and the other public pages keep their existing shell — **the portal reskin is a separate
+workstream, not this slice.**
+
+**E2E contract honoured** (`tests/e2e/00-home.spec.ts` unchanged): heading matches
+/Excellence in Education/i (the new H1), "Apply Now" and "Student Portal" links visible, and
+`section img[src*='hero-campus']` attached (slide 1 = `hero-campus-1200.webp`, kept light for
+the Lighthouse budget).
+
+**Gates:** tsc 0; vitest 112 files / 1417 tests; lint 0 errors / 119 warnings; prettier clean;
+build exit 0; modules/orphans/dead-ui/features/boundary/tenant-coverage/audit exit 0;
+`audit:brand` burned down one finding with the deleted legacy components → baseline legitimately
+re-cut to **71 findings / 37 files**. Runtime smoke (`next start`, Vercel-shaped env, stub DB):
+`/` → HTTP 200 with twelve sections, four carousel images, the honest setup banner still
+rendering, and the journal's honest empty state.
+
 ## 5. Gates: commands + latest evidence + blockers
 
 Run from repo root. The table below is the **latest actual evidence** from the Vercel-degradation session (2026-11-09, branch `arena/a6b381c5-famex-os`, base `c0a2fd9`, §4l); dependency-gate/build/checker rows re-verified unchanged from the release-path session (§4k). Older delivery-gate evidence (2026-10-21, §§4f–4g), the 2026-10-23 audit recheck (§4h) and the B-01 session (§4j) are superseded by it.
@@ -392,7 +435,7 @@ Run from repo root. The table below is the **latest actual evidence** from the V
 | formatting | `npx prettier --check .` | `All matched files use Prettier code style!` |
 | dep audit | `npm run audit:deps` | **PASS, dual scope (§4k):** `[root] 0 high, 0 critical, 14 moderate, 4 low` (EXCLUSIONS empty) + `[mobile] 3 high` all excluded via the dated `decode-uri-component` chain entry → `Dependency audit passed (root + mobile)`, exit 0. Closes B-01; adds the mobile gate |
 | project audit | `npm run audit` | `No blockers. 16 warning(s).` |
-| brand ratchet | `npm run audit:brand` | `Brand audit OK — 72 finding(s) across 38 file(s); baseline allows 72.` (re-cut 2026-11-08 for the frozen `eduos_` identifiers cited by `tests/lib/rls-migration-coverage.test.ts`; remainders are confirmed live domains + frozen `eduos_` DB identifiers) |
+| brand ratchet | `npm run audit:brand` | `Brand audit OK — 71 finding(s) across 37 file(s); baseline allows 71.` (re-cut 2026-11-10: the Ykay-era home components deleted in §4n carried one finding; remainder are confirmed live domains + frozen `eduos_` DB identifiers) |
 | feature IDs | `npm run check:features` | OK — `Catalogue: 331 features parsed` / `§25 declares TOTAL 331 — matches.` |
 | orphans | `npm run check:orphans` | `All 94 portal pages are reachable.` |
 | dead UI | `npm run check:dead-ui` | `Checked 102 portal pages.` / `No dead UI found.` (student results page ALLOWED: "Assign" is a column header, not a button) |
@@ -403,9 +446,53 @@ Run from repo root. The table below is the **latest actual evidence** from the V
 | school-scope coverage (legacy script name) | `npm run check:tenant-coverage` | 14 UNCOVERED = CI baseline (`--max-uncovered 14`), all pre-existing; the WhatsApp webhook is a reviewed provider-global exemption printed on every run (Meta callbacks carry a provider message id, not a school context). This is a `schoolId` integrity ratchet, not evidence of a multi-tenant product surface |
 | ledger loop | `npm run verify:ledger` (`scripts/verify-ledger-loop.ts`) | **Blocked locally** (no Postgres). Runs in CI's `schema-drift` job on Postgres 17 — it is the only place the deferred balance trigger and the kobo reconciliation are proved for real |
 | DB gates + Browser E2E | `check:drift`, migration apply, `verify:rls` + `verify:rls:coverage`, `verify:admissions`, `verify:ledger`, `db:seed*`, `npx playwright test` | **Passed in GitHub CI on PR #14 (`8704113`) and again on merged `main` (`c586c4a`)**: Schema Drift applied `20261021120000_assignments_virtual_classes` to clean Postgres 17 with no drift and verified RLS/admissions/ledger; Browser E2E seeded FIS and passed the full CBT sit→submit→marked, JSS1A attendance lock, assignment create→submit→grade, and live-class join/launch journeys. Local sandbox still has no Postgres, but the Next production build compiled locally. `check:readiness` still needs a seeded school and has no CI step; run it on staging after migration/seed. |
-| Lighthouse budgets | GitHub `Lighthouse budgets` workflow | Green since PR #12 (`4422fe9`, 2026-10-20): home performance 0.88, LCP 3845ms, TBT 53ms, accessibility 0.96 (medians). Variance-prone — judge the exact PR head, never a single run. |
+| Lighthouse budgets | GitHub `Lighthouse budgets` workflow | Green since PR #12 (`4422fe9`, 2026-10-20): home performance 0.88, LCP 3845ms, TBT 53ms, accessibility 0.96 (medians). The §4n home redesign regressed home LCP to 7950ms on first submit; §4n.1 records the forensics and the fixes at this branch's head. Variance-prone — judge the exact PR head, never a single run. |
 
 Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only lowers; gate fails if it grows).
+
+### 4n.1 LCP budget forensics — how the home regression was found and fixed (2026-11-10)
+
+The `Lighthouse CI (budgets)` gate holds home `largest-contentful-paint` to ≤4000ms. The redesign's first
+submit measured **7950ms**; four CI cycles and these fixes brought it back inside budget:
+
+1. **In-viewport lazy slides.** The three non-first carousel JPEGs sit inside the initial viewport, so
+   `loading="lazy"` still fetched them immediately (~865KB competing with the LCP image on simulated 4G).
+   `HeroCarousel` now mounts slides 2-4 at 6s — past the observation window, just before the 6.5s
+   auto-rotation. 7950ms → ~4280ms.
+2. **The image preload was inert.** `metadata.other` renders `<meta>` tags; a `rel=preload` *meta* does
+   nothing. React 19 hoists `<link rel="preload">` from JSX into the real `<head>`, so `app/page.tsx` now
+   renders the tags directly. Run-to-run variance collapsed (the 5.8s tail disappeared).
+3. **AVIF LCP slide.** `public/home/hero-campus-750.avif` (27.9KB) ships beside the WebP (48.3KB) through
+   `<picture><source type="image/avif">`; the preload targets the AVIF with `type="image/avif"` so
+   non-AVIF clients skip it. The E2E contract still matches the WebP `<img src*="hero-campus">`.
+4. **The real LCP element was the serif H1, not the image.** `next/font/local` emitted *no* preload links
+   in this setup (verified in the SSR head), so Fraunces was discovered only after the render-blocking CSS
+   parsed and the H1 font-swapped at ~4.3s — over budget even with a preloaded 27KB image, while
+   `/admissions` (preloaded image LCP, 3.6s) passed. Fraunces now lives at stable `public/fonts/` URLs with
+   hand-written `@font-face` in `app/globals.css` (`--font-fraunces` on `:root`) and an explicit
+   `<link rel="preload" as="font" crossorigin="anonymous">` for the upright face in `app/page.tsx`.
+   The italic face stays CSS-discovered on purpose: preloading its 45.7KB too kept the first wave
+   ~650ms heavier than the identical shell on `/admissions`, whose preloaded-image LCP passes at
+   ~3.6s — the only above-the-fold italic is the H1 `<em>`, a smaller paint than the hero image.
+5. **The decisive fix — initial layout scope.** With transfers all optimised the home still sat at
+   ~4.25s while `/admissions` passed at ~3.6s; the remaining structural difference was document
+   size (124KB / ~600 tags vs 72KB), whose full style+layout pass runs on the throttled CPU before
+   the hero's paint frame. The nine below-fold sections and the footer now carry
+   `.home-below-fold { content-visibility: auto; contain-intrinsic-size: auto 720px }`
+   (app/globals.css), confining first layout to the visible viewport with zero SEO/no-JS impact.
+   Home LCP landed at **3925ms median (3905-4008) against the 4000ms budget**, perf 0.88,
+   `all assertions passed` (run 42615802263) — green board on PR #39.
+
+Diagnostics worth keeping: `scripts/lighthouse-report-summary.mjs` annotates the LCP element audit
+and (when a paired trace exists) the final LCP candidate; in LHCI 0.14 the `.lighthouseci/` dir holds
+only `lhr-*.json` + `assertion-results.json` — no traces — so the `largest-contentful-paint-element`
+audit's empty `details` in this setup remains unexplained and the annotations fall back to metrics.
+
+Tooling: `scripts/lighthouse-report-summary.mjs` now annotates the LCP element (selector + snippet) and its
+phase split, plus a truncated raw dump of the audit details when the shaped parse finds nothing — the next
+regression is diagnosable from the check annotations alone. Sandbox traps logged while chasing this:
+`fuser` does not exist here (kill servers by pid from `ss -ltnp`), and a stale `next start` left on a port
+answers smoke-test curls with the previous build — verify the pid before trusting any local check.
 
 ---
 
@@ -574,6 +661,12 @@ run `42538162353` all-success; **Docker Publish run `42538539358` SUCCESS → `g
 token lacks `read:packages`). Evidence posted as PR #19 comments. **Do not deploy anything to
 production yet** — the §4h certification is still NO-GO until the roadmap's remaining P0s close
 and a successor commit is recertified.
+
+**2026-11-10 addendum:** the public home redesign (§4n) landed on this branch lineage — twelve
+sections, four-image hero carousel, editorial paper palette, Ykay-era home components deleted.
+The **portal/admin reskin is a separate workstream** (founder to schedule); the other public
+pages (about, academics, admissions…) keep the existing shell until then. After this merges, the
+next engineering slice remains **Phase 2 / B-06** (role×page×API entitlement matrix).
 
 **Owner actions — the ACTUAL Vercel fix (agent cannot and must not do these):**
 

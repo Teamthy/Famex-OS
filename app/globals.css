@@ -11,6 +11,51 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* ------------------------------------------------------------
+   Fraunces — the editorial display serif of the public home.
+   Self-hosted from public/fonts with hand-written @font-face and
+   explicit <link rel="preload"> tags in app/page.tsx: next/font emitted
+   no preload links for it in this setup, so the browser only discovered
+   the files after parsing the render-blocking CSS — the serif H1 then
+   swapped in late and the text LCP landed at ~4.3s against the 4.0s
+   budget (Lighthouse CI, 2026-11). Stable public/ URLs keep the preload
+   hrefs hardcode-able across builds.
+   ------------------------------------------------------------ */
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/Fraunces-Variable.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Fraunces";
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/Fraunces-Variable-Italic.woff2") format("woff2");
+}
+
+:root {
+  --font-fraunces: "Fraunces", Georgia, "Times New Roman", serif;
+}
+
+/* ------------------------------------------------------------
+   Below-the-fold home sections (class applied in components/home/*):
+   the twelve-section home ships a ~124KB / ~600-tag document, and on
+   throttled CPUs the full-document style+layout pass pushed the hero
+   paint past the LCP budget while the lighter /admissions page passed.
+   content-visibility:auto confines the initial layout work to what the
+   visitor actually sees; contain-intrinsic-size keeps the scrollbar
+   stable and the `auto` keyword remembers real heights after first
+   render. No SEO or no-JS impact — the markup still ships in the HTML.
+   ------------------------------------------------------------ */
+.home-below-fold {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 720px;
+}
+
+/* ------------------------------------------------------------
    @theme — ONLY for values that generate Tailwind utilities
    (colors, fonts, radii, breakpoints)
    ------------------------------------------------------------ */

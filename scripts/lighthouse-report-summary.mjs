@@ -92,6 +92,19 @@ for (const file of files) {
   const numeric = (id) => report.audits?.[id]?.numericValue;
   const url = report.finalDisplayedUrl ?? report.finalUrl ?? report.requestedUrl ?? "unknown URL";
 
+  // The LHR itself no longer carries the trace; lhci autorun writes it
+  // beside the report under the same timestamp prefix. LCP candidate events
+  // in there are the only ground truth about WHICH element became the LCP.
+  let lcpCandidates = [];
+  let navStartTs;
+  const tracePath = join(DIR, file.replace(/^lhr-/, "trace-"));
+  if (existsSync(tracePath)) {
+    const trace = JSON.parse(readFileSync(tracePath, "utf8"));
+    const events = Array.isArray(trace) ? trace : (trace.traceEvents ?? []);
+    lcpCandidates = events.filter((event) => event.name === "largest-contentful-paint::Candidate");
+    navStartTs = events.find((event) => event.name === "navigationStart")?.ts;
+  }
+
   if (!reportsByUrl.has(url)) reportsByUrl.set(url, []);
   reportsByUrl.get(url).push({
     perf: category("performance"),
@@ -100,6 +113,9 @@ for (const file of files) {
     fcp: numeric("first-contentful-paint"),
     tbt: numeric("total-blocking-time"),
     cls: numeric("cumulative-layout-shift"),
+    lcpElementAudit: report.audits?.["largest-contentful-paint-element"],
+    lcpCandidates,
+    navStartTs,
   });
 }
 
@@ -136,4 +152,51 @@ for (const [url, reports] of [...reportsByUrl.entries()].sort(([a], [b]) => a.lo
       formatMs,
     )} TBT=${formatMetric(values("tbt"), formatMs)} CLS=${formatMetric(values("cls"), formatCls)}`,
   );
+
+  // LCP diagnostics: which element Lighthouse picked and how its time splits
+  // between TTFB, load delay, load duration and render delay. Raw logs die
+  // with the runner; the annotations are what future debugging sessions see.
+  const report = reports[reports.length - 1];
+  const audit = report?.lcpElementAudit;
+  const groups = audit?.details?.items ?? [];
+  const node = groups[0]?.items?.[0]?.node;
+  const phaseText = (groups[1]?.items ?? [])
+    .map((row) => {
+      const inner = row.items?.[0] ?? row;
+      const label = inner.label ?? inner.subItem?.result ?? "?";
+      const ms = typeof inner.duration === "number" ? `${Math.round(inner.duration)}ms` : "";
+      return ms ? `${label} ${ms}` : String(label);
+    })
+    .join(", ");
+
+  if (node || phaseText) {
+    emit(
+      "notice",
+      `${url} LCP element: ${node?.selector ?? "?"} :: ${String(node?.snippet ?? "")
+        .replace(/\s+/g, " ")
+        .slice(0, 120)} | phases: ${phaseText || "n/a"}`,
+    );
+  }
+  // Unconditional raw dump: the shaped parse above has missed Lighthouse's
+  // real details layout before, and an empty annotation costs a whole CI
+  // cycle to notice. Truncated so it stays inside the annotation budget.
+  if (audit) {
+    emit("notice", `${url} LCP audit raw: ${JSON.stringify(audit.details ?? {}).slice(0, 450)}`);
+  }
+
+  // Ground truth from the trace: LCP candidate events carry type, size, url
+  // and timestamp for every candidate the browser considered. The final
+  // candidate is the reported LCP element — no audit-id or details-shape
+  // assumptions involved.
+  const candidates = report.lcpCandidates ?? [];
+  const final = candidates[candidates.length - 1];
+  if (final?.args?.data) {
+    const data = final.args.data;
+    const startTs = report.navStartTs;
+    const offsetMs = typeof startTs === "number" ? Math.round((final.ts - startTs) / 1000) : "?";
+    emit(
+      "notice",
+      `${url} LCP candidate: type=${data.type} size=${data.size} url=${String(data.url ?? "-").slice(0, 60)} t=${offsetMs}ms candidates=${candidates.length}`,
+    );
+  }
 }
