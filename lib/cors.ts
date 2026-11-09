@@ -26,6 +26,8 @@
  * precisely those shapes.
  */
 
+import { resolveSiteUrl } from "@/lib/site-url";
+
 /** Strip a trailing slash and lowercase, so list entries compare reliably. */
 function normalise(origin: string): string {
   return origin.trim().replace(/\/+$/, "").toLowerCase();
@@ -35,12 +37,12 @@ export function resolveAllowedOrigin(
   requestOrigin: string | null | undefined,
   env: { siteUrl?: string; extra?: string } = {},
 ): string {
-  const siteUrl = (env.siteUrl ?? process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
+  const siteUrl = (env.siteUrl ?? resolveSiteUrl()).trim();
   const extraRaw = env.extra ?? process.env.CORS_EXTRA_ORIGINS ?? "";
 
-  // Nothing configured at all: local development with a bare .env. Production
-  // validation requires NEXT_PUBLIC_SITE_URL and instrumentation rethrows fatal
-  // errors, so never return a credentialed wildcard in production.
+  // Nothing configured at all: local development with a bare .env (production boot
+  // refuses to start without a resolvable site URL — lib/env.ts), so never return a
+  // credentialed wildcard in production.
   if (!siteUrl) return process.env.NODE_ENV === "production" ? "null" : "*";
 
   if (!requestOrigin) return siteUrl;

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolveSiteUrl } from "@/lib/site-url";
 import { apkUrl } from "@/lib/apk";
 
 export const dynamic = "force-dynamic";
@@ -26,10 +27,7 @@ export async function GET() {
     // Send them to the page that explains things rather than erroring at a
     // link someone has already shared.
     return NextResponse.redirect(
-      new URL(
-        "/download?error=unavailable",
-        process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
-      ),
+      new URL("/download?error=unavailable", resolveSiteUrl() || "http://localhost:3000"),
       302,
     );
   }

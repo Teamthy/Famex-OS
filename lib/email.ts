@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { resolveSiteUrl } from "@/lib/site-url";
 
 function client() {
   const key = process.env.RESEND_API_KEY;
@@ -8,7 +9,7 @@ function client() {
 const from = () => process.env.EMAIL_FROM || "Famex International Schools <onboarding@resend.dev>";
 
 export async function sendPasswordResetEmail(input: { to: string; name: string; token: string }) {
-  const url = `${(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "")}/reset-password?token=${encodeURIComponent(input.token)}`;
+  const url = `${(resolveSiteUrl() || "http://localhost:3000").replace(/\/$/, "")}/reset-password?token=${encodeURIComponent(input.token)}`;
   await client().emails.send({
     from: from(),
     to: input.to,
@@ -51,7 +52,7 @@ export async function sendParentWelcomeEmail(input: {
   className: string;
   temporaryPassword: string;
 }) {
-  const base = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+  const base = (resolveSiteUrl() || "http://localhost:3000").replace(/\/$/, "");
   const schoolName = process.env.SCHOOL_NAME || "Famex International Schools";
   await client().emails.send({
     from: from(),
@@ -83,7 +84,7 @@ export async function sendStaffInviteEmail(input: {
   email: string;
   role: string;
 }) {
-  const base = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+  const base = (resolveSiteUrl() || "http://localhost:3000").replace(/\/$/, "");
   const url = `${base}/staff/activate?token=${encodeURIComponent(input.token)}&email=${encodeURIComponent(input.email)}`;
   const roleLabel = input.role.replaceAll("_", " ");
   await client().emails.send({

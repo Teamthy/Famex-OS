@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolveSiteUrl } from "@/lib/site-url";
 import { apkUrl } from "@/lib/apk";
 import { isOlderThan } from "@/lib/app-version";
 
@@ -40,7 +41,7 @@ const MINIMUM_APP_VERSION = "1.0.0";
  * "unknown source" warning, which a raw file link cannot.
  */
 function downloadUrl(): string {
-  const site = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
+  const site = resolveSiteUrl();
   if (site) return `${site}/download`;
   return apkUrl() ?? "";
 }

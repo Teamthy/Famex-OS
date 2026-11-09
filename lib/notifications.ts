@@ -1,4 +1,5 @@
 import { AlertChannel, AlertDeliveryStatus, NotificationKind, Prisma } from "@prisma/client";
+import { resolveSiteUrl } from "@/lib/site-url";
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsapp } from "@/lib/whatsapp";
@@ -26,7 +27,7 @@ export interface ChannelAdapter {
 }
 
 function siteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+  return (resolveSiteUrl() || "http://localhost:3000").replace(/\/$/, "");
 }
 
 const emailAdapter: ChannelAdapter = {

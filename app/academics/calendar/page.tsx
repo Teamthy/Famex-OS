@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import { resolveSiteUrl } from "@/lib/site-url";
 import Footer from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { AnimatedText } from "@/components/AnimatedText";
@@ -13,9 +14,8 @@ export const metadata = {
 
 async function fetchCalendar() {
   try {
-    const proto = process.env.NODE_ENV === "production" ? "https" : "http";
-    const host = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_SITE_URL || "localhost:3000";
-    const r = await fetch(`${proto}://${host}/api/public/calendar`, { next: { revalidate: 600 } });
+    const base = resolveSiteUrl() || "http://localhost:3000";
+    const r = await fetch(`${base}/api/public/calendar`, { next: { revalidate: 600 } });
     if (!r.ok) return { session: null, terms: [], events: [] };
     return (await r.json()) as { session: string | null; terms: any[]; events: any[] };
   } catch {

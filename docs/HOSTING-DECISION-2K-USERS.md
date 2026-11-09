@@ -366,6 +366,22 @@ Steps 1–5 above remain **required and unchanged**: the banner is truthful
 degradation, not a working school OS. Public pages render; every signed-in
 feature, live datum, and cron job still needs the real staging database.
 
+### Update 2 (2026-11-09): the boot wall in front of the render wall
+
+The founder's screenshot after update 1 still showed a bare error page — and
+it was Next's *built-in* crash page, not any of ours, which meant the failure
+happened before React: `instrumentation.ts` → `lib/env.ts` `assertEnv()`
+treated `NEXT_PUBLIC_SITE_URL`, `PAYSTACK_PUBLIC_KEY` and `PAYSTACK_SECRET_KEY`
+as fatal in `NODE_ENV=production` (which Vercel is), so **the server refused
+to start at all**. Fixed in the same branch: `lib/site-url.ts` lets the
+platform supply its own URL (preview `VERCEL_URL` / production project
+domain), and missing Paystack keys now disable payments loudly instead of
+fatally (`lib/paystack.ts` refuses every initiation and webhook verification,
+so an unkeyed deployment can never silently take money). After this merges,
+expect: boot succeeds, `/api/health` returns `503 database: down` (that JSON
+is the "booted, DB missing" signal), and pages render the banner. Verified
+locally with `next start` under the exact Vercel-shaped environment.
+
 ### Why the first attempt hung
 
 The first deploy sat at `npm ci` with no output for over two minutes on Node
