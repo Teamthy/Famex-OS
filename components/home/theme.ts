@@ -1,10 +1,11 @@
 /**
  * Shared display-serif class for the public home redesign (2026-11-10).
  *
- * The Fraunces variable font is instantiated once in components/SchoolHome.tsx
- * and scoped to the home wrapper via its CSS variable, so every section below
- * the wrapper can opt into the editorial serif (with true italics) without
- * touching the portal's type system.
+ * The Fraunces variable font is self-hosted from public/fonts via
+ * hand-written @font-face rules in app/globals.css (its --font-fraunces
+ * variable is defined on :root there), so every home section can opt into
+ * the editorial serif (with true italics) without touching the portal's
+ * type system. app/page.tsx preloads both woff2 files explicitly.
  */
 export const SERIF = "font-[family-name:var(--font-fraunces)]";
 

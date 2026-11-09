@@ -1,25 +1,15 @@
-// The home hero backdrop is the LCP element. metadata.other emits <meta>
-// tags — a rel=preload *meta* is inert, which is exactly how the 7.9s LCP
-// regression slipped through: the image never got its preload. React 19
-// hoists <link rel="preload"> rendered from JSX into the real <head>, so
-// the tag lives in the component below.
-import localFont from "next/font/local";
+// Home critical-resource preloads. Two lessons from the 2026-11 Lighthouse
+// fight, both verified against CI numbers:
+//  1. metadata.other emits <meta> tags — a rel=preload *meta* is inert, which
+//     is how the 7.9s LCP regression slipped through: the hero never actually
+//     got its preload. React 19 hoists <link rel="preload"> rendered from JSX
+//     into the real <head>, so the tags live in the component below.
+//  2. next/font emitted no font preload links in this setup, so the browser
+//     discovered Fraunces only after parsing the render-blocking CSS; the
+//     serif H1 swapped in at ~4.3s and took the text LCP with it. The fonts
+//     now live at stable public/fonts URLs (hand-written @font-face in
+//     globals.css) so their preloads can be hardcoded here.
 import SchoolHome from "@/components/SchoolHome";
-
-/**
- * The editorial display serif of the public home redesign (2026-11-10),
- * self-hosted per the layout's next/font/local convention — next/font/google
- * fetches at build time and both the sandbox and CI-adjacent environments must
- * never depend on that. Scoped to the home wrapper via its CSS variable.
- */
-const fraunces = localFont({
-  src: [
-    { path: "./fonts/Fraunces-Variable.woff2", style: "normal", weight: "100 900" },
-    { path: "./fonts/Fraunces-Variable-Italic.woff2", style: "italic", weight: "100 900" },
-  ],
-  variable: "--font-fraunces",
-  display: "swap",
-});
 
 /**
  * Root page — Famex OS is a single-school install (W1 / F0-23, F0-26): every
@@ -30,7 +20,7 @@ const fraunces = localFont({
  */
 export default function HomePage() {
   return (
-    <div className={fraunces.variable}>
+    <>
       <link
         rel="preload"
         as="image"
@@ -38,7 +28,21 @@ export default function HomePage() {
         href="/home/hero-campus-750.avif"
         fetchPriority="high"
       />
+      <link
+        rel="preload"
+        as="font"
+        type="font/woff2"
+        href="/fonts/Fraunces-Variable.woff2"
+        crossOrigin="anonymous"
+      />
+      <link
+        rel="preload"
+        as="font"
+        type="font/woff2"
+        href="/fonts/Fraunces-Variable-Italic.woff2"
+        crossOrigin="anonymous"
+      />
       <SchoolHome />
-    </div>
+    </>
   );
 }

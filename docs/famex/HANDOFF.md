@@ -446,9 +446,37 @@ Run from repo root. The table below is the **latest actual evidence** from the V
 | school-scope coverage (legacy script name) | `npm run check:tenant-coverage` | 14 UNCOVERED = CI baseline (`--max-uncovered 14`), all pre-existing; the WhatsApp webhook is a reviewed provider-global exemption printed on every run (Meta callbacks carry a provider message id, not a school context). This is a `schoolId` integrity ratchet, not evidence of a multi-tenant product surface |
 | ledger loop | `npm run verify:ledger` (`scripts/verify-ledger-loop.ts`) | **Blocked locally** (no Postgres). Runs in CI's `schema-drift` job on Postgres 17 — it is the only place the deferred balance trigger and the kobo reconciliation are proved for real |
 | DB gates + Browser E2E | `check:drift`, migration apply, `verify:rls` + `verify:rls:coverage`, `verify:admissions`, `verify:ledger`, `db:seed*`, `npx playwright test` | **Passed in GitHub CI on PR #14 (`8704113`) and again on merged `main` (`c586c4a`)**: Schema Drift applied `20261021120000_assignments_virtual_classes` to clean Postgres 17 with no drift and verified RLS/admissions/ledger; Browser E2E seeded FIS and passed the full CBT sit→submit→marked, JSS1A attendance lock, assignment create→submit→grade, and live-class join/launch journeys. Local sandbox still has no Postgres, but the Next production build compiled locally. `check:readiness` still needs a seeded school and has no CI step; run it on staging after migration/seed. |
-| Lighthouse budgets | GitHub `Lighthouse budgets` workflow | Green since PR #12 (`4422fe9`, 2026-10-20): home performance 0.88, LCP 3845ms, TBT 53ms, accessibility 0.96 (medians). Variance-prone — judge the exact PR head, never a single run. |
+| Lighthouse budgets | GitHub `Lighthouse budgets` workflow | Green since PR #12 (`4422fe9`, 2026-10-20): home performance 0.88, LCP 3845ms, TBT 53ms, accessibility 0.96 (medians). The §4n home redesign regressed home LCP to 7950ms on first submit; §4n.1 records the forensics and the fixes at this branch's head. Variance-prone — judge the exact PR head, never a single run. |
 
 Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only lowers; gate fails if it grows).
+
+### 4n.1 LCP budget forensics — how the home regression was found and fixed (2026-11-10)
+
+The `Lighthouse CI (budgets)` gate holds home `largest-contentful-paint` to ≤4000ms. The redesign's first
+submit measured **7950ms**; four CI cycles and these fixes brought it back inside budget:
+
+1. **In-viewport lazy slides.** The three non-first carousel JPEGs sit inside the initial viewport, so
+   `loading="lazy"` still fetched them immediately (~865KB competing with the LCP image on simulated 4G).
+   `HeroCarousel` now mounts slides 2-4 at 6s — past the observation window, just before the 6.5s
+   auto-rotation. 7950ms → ~4280ms.
+2. **The image preload was inert.** `metadata.other` renders `<meta>` tags; a `rel=preload` *meta* does
+   nothing. React 19 hoists `<link rel="preload">` from JSX into the real `<head>`, so `app/page.tsx` now
+   renders the tags directly. Run-to-run variance collapsed (the 5.8s tail disappeared).
+3. **AVIF LCP slide.** `public/home/hero-campus-750.avif` (27.9KB) ships beside the WebP (48.3KB) through
+   `<picture><source type="image/avif">`; the preload targets the AVIF with `type="image/avif"` so
+   non-AVIF clients skip it. The E2E contract still matches the WebP `<img src*="hero-campus">`.
+4. **The real LCP element was the serif H1, not the image.** `next/font/local` emitted *no* preload links
+   in this setup (verified in the SSR head), so Fraunces was discovered only after the render-blocking CSS
+   parsed and the H1 font-swapped at ~4.3s — over budget even with a preloaded 27KB image, while
+   `/admissions` (preloaded image LCP, 3.6s) passed. Fraunces now lives at stable `public/fonts/` URLs with
+   hand-written `@font-face` in `app/globals.css` (`--font-fraunces` on `:root`) and two explicit
+   `<link rel="preload" as="font" crossorigin="anonymous">` tags in `app/page.tsx`.
+
+Tooling: `scripts/lighthouse-report-summary.mjs` now annotates the LCP element (selector + snippet) and its
+phase split, plus a truncated raw dump of the audit details when the shaped parse finds nothing — the next
+regression is diagnosable from the check annotations alone. Sandbox traps logged while chasing this:
+`fuser` does not exist here (kill servers by pid from `ss -ltnp`), and a stale `next start` left on a port
+answers smoke-test curls with the previous build — verify the pid before trusting any local check.
 
 ---
 
