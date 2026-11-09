@@ -17,6 +17,17 @@ const ROTATE_MS = 6500;
 export default function HeroCarousel({ slides, motto }: { slides: HeroSlide[]; motto: string }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  // The non-first slides sit inside the initial viewport, so loading="lazy"
+  // would still fetch them immediately — three JPEGs competing with the LCP
+  // image and the display font on a throttled connection (Lighthouse caught
+  // it: LCP 7950ms against a 4000ms budget). Mount them only after the page
+  // has been idle a moment; the crossfade is unaffected.
+  const [restMounted, setRestMounted] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setRestMounted(true), 2500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const go = useCallback(
     (next: number) => setIndex((next + slides.length) % slides.length),
@@ -40,20 +51,22 @@ export default function HeroCarousel({ slides, motto }: { slides: HeroSlide[]; m
       <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[28px] shadow-[0_30px_80px_rgba(33,29,25,0.25)]">
         {/* Slides — real campus photographs, cross-faded */}
         <div className="relative aspect-[4/5] w-full sm:aspect-[16/10] lg:aspect-[16/8.4]">
-          {slides.map((slide, i) => (
-            <img
-              key={slide.src}
-              src={slide.src}
-              alt={slide.alt}
-              loading={i === 0 ? "eager" : "lazy"}
-              fetchPriority={i === 0 ? "high" : "low"}
-              decoding="async"
-              aria-hidden={i !== index}
-              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ${
-                i === index ? "opacity-100" : "opacity-0"
-              }`}
-            />
-          ))}
+          {slides.map((slide, i) =>
+            i === 0 || restMounted ? (
+              <img
+                key={slide.src}
+                src={slide.src}
+                alt={slide.alt}
+                loading={i === 0 ? "eager" : "lazy"}
+                fetchPriority={i === 0 ? "high" : "low"}
+                decoding="async"
+                aria-hidden={i !== index}
+                className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ${
+                  i === index ? "opacity-100" : "opacity-0"
+                }`}
+              />
+            ) : null,
+          )}
           {/* Warm unifying grade + readability gradient */}
           <div className="absolute inset-0 bg-[#c96f4a]/15 mix-blend-multiply" aria-hidden="true" />
           <div

@@ -6,7 +6,7 @@ export const metadata = {
     {
       rel: "preload",
       as: "image",
-      href: "/home/hero-campus-1200.webp",
+      href: "/home/hero-campus-750.webp",
       fetchpriority: "high",
     },
   ],
