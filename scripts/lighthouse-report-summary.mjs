@@ -162,4 +162,10 @@ for (const [url, reports] of [...reportsByUrl.entries()].sort(([a], [b]) => a.lo
         .slice(0, 120)} | phases: ${phaseText || "n/a"}`,
     );
   }
+  // Unconditional raw dump: the shaped parse above has missed Lighthouse's
+  // real details layout before, and an empty annotation costs a whole CI
+  // cycle to notice. Truncated so it stays inside the annotation budget.
+  if (audit) {
+    emit("notice", `${url} LCP audit raw: ${JSON.stringify(audit.details ?? {}).slice(0, 450)}`);
+  }
 }

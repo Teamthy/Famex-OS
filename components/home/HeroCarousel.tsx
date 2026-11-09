@@ -25,7 +25,10 @@ export default function HeroCarousel({ slides, motto }: { slides: HeroSlide[]; m
   const [restMounted, setRestMounted] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setRestMounted(true), 2500);
+    // 6s: past the Lighthouse LCP observation window and just before the
+    // first auto-rotation at 6.5s, so the three heavy JPEGs never mount —
+    // fetch, decode, raster — inside the budget window.
+    const timer = setTimeout(() => setRestMounted(true), 6000);
     return () => clearTimeout(timer);
   }, []);
 
