@@ -111,40 +111,84 @@ export const viewport: Viewport = {
 };
 
 import { headers } from "next/headers";
-import { getSession } from "@/lib/session";
-import { resolveSchoolForRequest } from "@/lib/school-resolution";
+import { Prisma } from "@prisma/client";
+import { getSession, IdentityCheckUnavailableError } from "@/lib/session";
+import {
+  isDatabaseInfrastructureError,
+  resolveSchoolForRequestSafe,
+} from "@/lib/school-resolution";
 import { getTenantBranding, DEFAULT_BRANDING } from "@/lib/branding";
 import { PRODUCT_NAME, getSchoolBrandTokens } from "@/lib/brand";
 import { prisma } from "@/lib/prisma";
+import SetupIncompleteBanner from "@/components/SetupIncompleteBanner";
+
+const SCHOOL_IDENTITY_SELECT = {
+  slug: true,
+  name: true,
+  address: true,
+  phone: true,
+  email: true,
+} as const;
+
+type SchoolIdentity = Prisma.SchoolGetPayload<{ select: typeof SCHOOL_IDENTITY_SELECT }>;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // ── Resolve branding for the one configured school ──
   // Authenticated pages use the session schoolId; public pages resolve the
   // same single FIS school. Hostnames never switch schools.
+  //
+  // An environment whose database is unusable — e.g. staging while
+  // DATABASE_URL is still the documented placeholder
+  // (docs/HOSTING-DECISION-2K-USERS.md §9) — renders an honest "setup
+  // incomplete" state from environment brand tokens instead of crashing every
+  // route at the layout level with a blank 500. Only infrastructure errors
+  // degrade; every other error keeps propagating (fail closed, never fake).
   const host = (await headers()).get("host");
-  const session = await getSession();
+
+  let databaseDegraded = false;
+  let session: Awaited<ReturnType<typeof getSession>> = null;
+  try {
+    session = await getSession();
+  } catch (error) {
+    // Identity state lookup could not reach the database. Fail closed — treat
+    // the visitor as signed out (authenticated routes stay guarded by
+    // requireRole/503) — but keep the page shell renderable.
+    if (!(error instanceof IdentityCheckUnavailableError)) throw error;
+    databaseDegraded = true;
+  }
 
   let schoolId: string | null = null;
 
   if (session) {
     schoolId = session.schoolId;
-  } else {
-    const { school: resolvedSchool } = await resolveSchoolForRequest(host);
-    schoolId = resolvedSchool?.id ?? null;
+  } else if (!databaseDegraded) {
+    const resolution = await resolveSchoolForRequestSafe(host);
+    if (resolution.databaseError) databaseDegraded = true;
+    schoolId = resolution.school?.id ?? null;
   }
 
-  const branding = schoolId ? await getTenantBranding(schoolId) : null;
+  let branding: Awaited<ReturnType<typeof getTenantBranding>> = null;
 
   // AUD-F5 / W1: the schema.org structured-data block below must never hardcode
   // one school's identity — not in the HTML and not fed to search engines. It
   // describes the resolved school (or brand-token fallback) only, and publishes
   // contacts solely when THIS school has configured them.
-  const school = schoolId
-    ? await prisma.school.findUnique({
+  let school: SchoolIdentity | null = null;
+  if (schoolId && !databaseDegraded) {
+    try {
+      branding = await getTenantBranding(schoolId);
+      school = await prisma.school.findUnique({
         where: { id: schoolId },
-        select: { slug: true, name: true, address: true, phone: true, email: true },
-      })
-    : null;
+        select: SCHOOL_IDENTITY_SELECT,
+      });
+    } catch (error) {
+      if (!isDatabaseInfrastructureError(error)) throw error;
+      databaseDegraded = true;
+      branding = null;
+      school = null;
+    }
+  }
+
   // W1: single-school install — identity comes from the resolved School row,
   // falling back to brand tokens (env). No hard-coded school name, contacts or
   // platform-default branch (F0-21, F0-23).
@@ -153,6 +197,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const publicAddress = confirmedSchoolAddress(school?.address);
   const schoolName = school?.name ?? tokens.schoolName;
   const siteUrl = tokens.siteUrl;
+
+  // Honest degraded state: "database" when the DB is unusable, "school" when
+  // the DB answers but no school record is configured (unseeded environment).
+  const setupIncomplete: "database" | "school" | null = databaseDegraded
+    ? "database"
+    : !session && schoolId === null
+      ? "school"
+      : null;
 
   const primary = branding?.primaryColor ?? DEFAULT_BRANDING.primaryColor;
   const secondary = branding?.secondaryColor ?? DEFAULT_BRANDING.secondaryColor;
@@ -239,7 +291,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     email: school?.email ?? null,
                   }}
                 >
-                  <div className="relative z-10">{children}</div>
+                  <div className="relative z-10">
+                    {setupIncomplete ? <SetupIncompleteBanner reason={setupIncomplete} /> : null}
+                    {children}
+                  </div>
                 </SchoolProfileProvider>
               </MotionProvider>
               <CookieConsent />

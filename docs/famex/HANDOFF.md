@@ -24,7 +24,7 @@ If a session ends mid-workstream, §9 must say exactly where it stopped and what
 ## 1. Repo & branch identity
 
 - Repo: `Teamthy/Famex-OS` (origin). W3 base commit: `ca1c10886f50b5c699dd0f0327f3d90606ed7c1f` (main, W1 + W2 merged); stage A merged at `e96217a` (PR #4).
-- **Session branches (fixed, one per session):** W3 stage A used `arena/ce3a9b67-famex-os` → PR #4 (merged); stage B used `arena/f5d78cef-famex-os` → PR #5 (merged `193ff93`); OCI hosting used `arena/ca91d7ae-famex-os` → PR #9 (merged `e9a1193`); the CI-rescue session (2026-10-20) used `arena/ea852f26-famex-os` (base `1f50c0f`, PR #11/#12 lineage); FIS production core used `arena/0e9f562e-famex-os` → PR #13 (merged `fa8d092`, 2026-10-21); the single-school/assignments/live-classes/deployment slice used `arena/cb6c3d85-famex-os` → PR #14 (merged `c586c4a`, 2026-10-21) and PR #15 (GHCR lowercase publish fix, merged `1163ebb`, 2026-10-21). The audit session used `arena/7e03c832-famex-os` → PR #16 (audit docs only, merged `5ba9a16`, 2026-10-23). The launch-blocker close-out session used `arena/a545871c-famex-os` → PR #17 (merged `b4415d0`, 2026-11-08). The B-01 dependency-gate session used `arena/2aed24db-famex-os` → PR #18 (merged `75caee3`, 2026-11-08). **The current release-path session works only on `arena/e697eea8-famex-os`, branched from merged `main` at `75caee3`.** Always work/commit/push on your session branch; open PRs from it to `main`. Never create/switch/push other branches. (W1 used `arena/7f29531d-famex-os` → PR #1; W2 used `arena/9abf8aef-famex-os` → PR #2, merge `74f236c`.)
+- **Session branches (fixed, one per session):** W3 stage A used `arena/ce3a9b67-famex-os` → PR #4 (merged); stage B used `arena/f5d78cef-famex-os` → PR #5 (merged `193ff93`); OCI hosting used `arena/ca91d7ae-famex-os` → PR #9 (merged `e9a1193`); the CI-rescue session (2026-10-20) used `arena/ea852f26-famex-os` (base `1f50c0f`, PR #11/#12 lineage); FIS production core used `arena/0e9f562e-famex-os` → PR #13 (merged `fa8d092`, 2026-10-21); the single-school/assignments/live-classes/deployment slice used `arena/cb6c3d85-famex-os` → PR #14 (merged `c586c4a`, 2026-10-21) and PR #15 (GHCR lowercase publish fix, merged `1163ebb`, 2026-10-21). The audit session used `arena/7e03c832-famex-os` → PR #16 (audit docs only, merged `5ba9a16`, 2026-10-23). The launch-blocker close-out session used `arena/a545871c-famex-os` → PR #17 (merged `b4415d0`, 2026-11-08). The B-01 dependency-gate session used `arena/2aed24db-famex-os` → PR #18 (merged `75caee3`, 2026-11-08). The release-path session used `arena/e697eea8-famex-os` → PR #19 (merged `c0a2fd9`, 2026-11-09). **The current Vercel-degradation session works only on `arena/a6b381c5-famex-os`, branched from merged `main` at `c0a2fd9`.** Always work/commit/push on your session branch; open PRs from it to `main`. Never create/switch/push other branches. (W1 used `arena/7f29531d-famex-os` → PR #1; W2 used `arena/9abf8aef-famex-os` → PR #2, merge `74f236c`.)
 - The old Ykay repo (`upstream`) is **read-only, out of bounds** (Rule 15). Never push/edit it.
 - Product: **Famex OS** — single-school Nigerian secondary-school OS (~3,000 users, 5-yr horizon). Rebuilt from a school EduPortal base with the SaaS platform layer removed.
 
@@ -280,14 +280,69 @@ PR #18 merged (`75caee3`) with B-01 green. This slice finishes what Phase 1 can 
 - **Guards**: `tests/lib/release-path.test.ts` (13 tests) — Bearer header/no `x-jobs-secret`/no `|| true` (comment-stripped), migrate one-shot + boot ordering, env-overridable images, executable pin-image.sh, dependabot ecosystems, pinned expo-doctor, dual-scope audit, exclusion hygiene shape, directory-check disable ↔ governance doc coupling. Register updated in place: B-01 → FIXED (#18), B-09 → PARTIALLY FIXED (code done, VM drill + metrics owed), B-18 → PARTIALLY FIXED (code done, owner steps listed).
 - **Gates (local, this branch)**: tsc 0; vitest **110 files / 1394 tests**; lint 0 errors/126 warnings; prettier clean; `npm run build` exit 0; audit:deps exit 0 (root+mobile); modules/orphans(94)/dead-ui(102)/features(331)/boundary(171)/brand(72/38)/tenant(14)/audit(0 blockers) all exit 0; mobile typecheck exit 0; local expo-doctor exit 0 (17 checks). DB gates remain CI-authoritative.
 
+## 4l. Vercel "UI not showing" — diagnosed; honest degraded rendering (2026-11-09, branch `arena/a6b381c5-famex-os`)
+
+Founder report: **"the ui and frontend not showing on vercel"**. Diagnosed entirely through the
+Vercel connector API (the sandbox has no network path to `*.vercel.app`): production deployment
+`dpl_75A8U2tVi9T93uhoxi9BbKCGgXqF` (commit `c0a2fd9`) is `READY`/`PROMOTED`, aliased to
+`famex-os.vercel.app` — the BUILD is fine (log: `npm ci` 55s, `prisma generate` ✔, all routes
+emitted). The failure is runtime: `DATABASE_URL` (sensitive, unreadable via API) is the
+deliberate `localhost` placeholder documented in `docs/HOSTING-DECISION-2K-USERS.md` §9 — no
+staging Postgres has ever been provisioned. The root layout (`app/layout.tsx`) performs Prisma
+reads on EVERY request (`resolveSchoolForRequest`, `getTenantBranding`, `school.findUnique`;
+plus `getSession`→`verifyCurrentSession` for signed-in visitors) → ECONNREFUSED inside the Vercel
+function → a root-layout crash takes down every route as a blank 500. Secondary wall: Vercel
+Deployment Protection (`ssoProtection: all_except_custom_domains`, no custom domains) puts even
+that crash behind Vercel Authentication for signed-out visitors — the correct default while the
+DB is a placeholder, but it means outsiders see an auth wall, not the app.
+
+**Code changes (this branch):**
+
+- `lib/school-resolution.ts` — `isDatabaseInfrastructureError()` (ONLY
+  `PrismaClientInitializationError` + known-request `P2021`/`P2022` = unreachable/unmigrated) and
+  `resolveSchoolForRequestSafe()` returning `databaseError` (log-only diagnostic text, never
+  rendered — it can contain connection details). Application errors still propagate: degradation
+  must never hide bugs or fake an "empty" state over a broken write path.
+- `app/layout.tsx` — catches infrastructure failures at all three DB touchpoints, and
+  `IdentityCheckUnavailableError` from `getSession` (fail closed → treated as signed out;
+  authenticated routes stay guarded). Degraded renders use the env brand tokens (`SCHOOL_*` are
+  set on Vercel) and show `<SetupIncompleteBanner>`; `reason="school"` also covers a healthy DB
+  with no configured school row (unseeded environment) — the layout already had the token
+  fallback for `schoolId === null`, it just could never reach it when the DB threw first.
+- `components/SetupIncompleteBanner.tsx` — new: server component, zero client JS, zero data
+  reads; honest amber "Setup incomplete — database not connected" strip pointing administrators
+  at `/api/health` + the §9 runbook. No brand literals (uses `PRODUCT_NAME`/tokens).
+- `app/error.tsx` — removed the illegal nested `<html>/<body>` (a route error boundary renders
+  INSIDE the root layout; only `app/global-error.tsx` may emit the document — latent bug fixed)
+  and added the honest staging/DB hint with an `/api/health` link (production error messages are
+  sanitized, so the boundary cannot inspect the cause).
+- `tests/lib/school-resolution-degraded.test.ts` — 10 tests: healthy pass-through, single-school
+  fallback, refuse-to-guess between two schools, degrade on P1001-style init error / P2021 /
+  P2022, RETHROW on P2002 and non-Prisma errors, classifier matrix.
+- `docs/HOSTING-DECISION-2K-USERS.md` §9 — dated update: symptom → mechanism → banner is
+  truthful degradation, NOT a working school OS; owner steps 1–5 unchanged and still required.
+
+**Gates (this branch):** tsc 0; vitest **111 files / 1404 tests**; lint 0 errors/126 warnings;
+prettier clean; `npm run build` exit 0 **with a placeholder `DATABASE_URL` mirroring Vercel**;
+all 8 static checkers exit 0 (brand baseline 72/38 unchanged, audit 0 blockers/16 warnings).
+Sandbox limitation stated honestly: Prisma engine binaries are stubs (§6), so no local runtime
+request was served; runtime proof = the unit tests against the exact error classes Vercel
+produces + the successful build. The real verification is owner step 4 (`/api/health/ready`).
+
+**Not agent-workable (owner):** provision staging Postgres, replace `DATABASE_URL` in the Vercel
+dashboard (NEVER via chat/agent tooling — §8 secrets rule; the connector's `update_env_var`
+would transit the secret through the conversation), migrate + seed from a trusted shell, decide
+Deployment Protection policy for testers. Until then the Vercel deployment shows the banner —
+by design.
+
 ## 5. Gates: commands + latest evidence + blockers
 
-Run from repo root. The table below is the **latest actual evidence** from the release-path session (2026-11-08, branch `arena/e697eea8-famex-os`, base `75caee3`, §4k). Older delivery-gate evidence (2026-10-21, §§4f–4g), the 2026-10-23 audit recheck (§4h) and the B-01 session (§4j) are superseded by it.
+Run from repo root. The table below is the **latest actual evidence** from the Vercel-degradation session (2026-11-09, branch `arena/a6b381c5-famex-os`, base `c0a2fd9`, §4l); dependency-gate/build/checker rows re-verified unchanged from the release-path session (§4k). Older delivery-gate evidence (2026-10-21, §§4f–4g), the 2026-10-23 audit recheck (§4h) and the B-01 session (§4j) are superseded by it.
 
 | Gate | Command | Result (actual output) |
 |---|---|---|
 | typecheck | `npx tsc --noEmit` | exit 0 — no errors (on zod 4.6.7 / next 16.4.5 / sentry 10.78.0) |
-| unit/integration | `npx vitest run` | `Test Files 110 passed (110)` / `Tests 1394 passed (1394)` — includes the 2 mobile files (install `mobile/` deps first, §6), the 3 E2E-login-budget guards (§4j) and the 13 release-path guards (§4k) |
+| unit/integration | `npx vitest run` | `Test Files 111 passed (111)` / `Tests 1404 passed (1404)` — includes the 2 mobile files (install `mobile/` deps first, §6), the 3 E2E-login-budget guards (§4j), the 13 release-path guards (§4k) and the 10 degraded-DB resolver guards (§4l) |
 | lint | `npm run lint` | `✖ 126 problems (0 errors, 126 warnings)` — no errors |
 | formatting | `npx prettier --check .` | `All matched files use Prettier code style!` |
 | dep audit | `npm run audit:deps` | **PASS, dual scope (§4k):** `[root] 0 high, 0 critical, 14 moderate, 4 low` (EXCLUSIONS empty) + `[mobile] 3 high` all excluded via the dated `decode-uri-component` chain entry → `Dependency audit passed (root + mobile)`, exit 0. Closes B-01; adds the mobile gate |
@@ -452,36 +507,53 @@ Re-cut brand baseline after de-branding: `npm run audit:brand -- --update` (only
   on statements). Printing a kobo integer as naira makes a ₦8,500 payment read as ₦850,000.
 - **`lib/module-registry.ts` must stay prisma-free** and `lib/stages.ts`/`lib/stage-types.ts` must stay `@prisma/client`-free — client components import them; `check:boundary` fails otherwise.
 - **W2 migration is unapplied locally** (`20261014090000_w2_school_stages_and_settings`): 2 enums, `SchoolClass.stage` + backfill, `School.settings`, `StageConfig`, `GradeBand`, and **RLS (`eduos_apply_tenant_rls`) on both new tables** — the 2026-08 policy backfill only covers tables that existed then, so every new `schoolId` table needs the explicit call or `verify:rls:coverage` fails the build (it caught this on the first CI run of the PR). Re-run `PRISMA_*` stub generate after any schema change (recipe in §6).
-- **Deployment secrets never transit chat or Git.** OCI values live only in `/opt/famex/.env` on the VM; Vercel staging values live only in the Vercel project settings. If a session lacks OCI/Vercel tokens, prepare the repo/runbook and state the owner-console step plainly — do not invent a live URL or ask for credentials.
+- **Deployment secrets never transit chat or Git.** OCI values live only in `/opt/famex/.env` on the VM; Vercel staging values live only in the Vercel project settings. If a session lacks OCI/Vercel tokens, prepare the repo/runbook and state the owner-console step plainly — do not invent a live URL or ask for credentials. This also bans "helpfully" setting a user-supplied `DATABASE_URL` through the Vercel connector (`update_env_var` would transit the secret through the conversation).
+- **Degraded-DB rendering stays narrow on purpose (§4l):** `isDatabaseInfrastructureError` accepts ONLY `PrismaClientInitializationError` + `P2021`/`P2022`. Never widen it to "any Prisma error" — degradation must not mask application bugs or fake an empty state over a broken write path. `databaseError` text is for logs only, never rendered (may contain connection details). `app/error.tsx` must never emit `<html>/<body>` (route boundaries render inside the root layout; only `app/global-error.tsx` emits the document — a latent nested-`<html>` bug was fixed there in §4l).
 
 ---
 
-## 9. Next session: verify the release path fired, then Phase 2 identity/RBAC (exact stop-point)
+## 9. Next session: Vercel staging is owner-blocked on its database; then Phase 2 identity/RBAC (exact stop-point)
 
-**Where this session stopped (2026-11-08, branch `arena/e697eea8-famex-os`, base `75caee3`):**
-Phase 1's code-able remainder is DONE (§4k) — B-09 sidecar fixed, B-18 code-ables landed
-(dual-scope audit gate, dependabot, digest pinning mechanism, migration single-flight via the
-one-shot `migrate` service), Mobile (Expo) CI unblocked (pinned expo-doctor + official
-directory-check disable with the dataset verified by hand), `docs/RELEASE-GOVERNANCE.md` lists
-every owner step with exact values, and `tests/lib/release-path.test.ts` (13 guards) keeps it
-all from regressing. All local gates green: tsc 0, vitest 110 files / 1394 tests, lint 0
-errors, prettier clean, build exit 0, audit:deps exit 0 (root + mobile), all static checkers
-exit 0, mobile typecheck + local expo-doctor exit 0. Committed, pushed, PR'd to `main`.
-**Do not deploy anything to production yet** — the §4h certification is still NO-GO until the
-roadmap's remaining P0s close and a successor commit is recertified.
+**Where this session stopped (2026-11-09, branch `arena/a6b381c5-famex-os`, base `c0a2fd9`):**
+The founder's "UI not showing on Vercel" report is diagnosed and the code-side fix is done
+(§4l): with the documented placeholder `DATABASE_URL`, the root layout no longer crashes every
+route into a blank 500 — it renders the page shell from environment brand tokens plus an honest
+"Setup incomplete — database not connected" banner. Gates all green (vitest **111 files / 1404
+tests**, build exit 0 with the placeholder DB env mirroring Vercel). Committed, pushed, PR'd to
+`main`. The previous session's release-path verification also closed out: main CI run
+`42538162353` all-success; **Docker Publish run `42538539358` SUCCESS → `ghcr.io/teamthy/famex-os:main`
++ `:latest` published** (first ever; digest is resolved VM-side by `pin-image.sh` — the sandbox
+token lacks `read:packages`). Evidence posted as PR #19 comments. **Do not deploy anything to
+production yet** — the §4h certification is still NO-GO until the roadmap's remaining P0s close
+and a successor commit is recertified.
 
-**First thing next session (5 minutes, needs GitHub only):**
+**Owner actions — the ACTUAL Vercel fix (agent cannot and must not do these):**
 
-1. Check the merge landed and CI on `main` is FULLY green for the first time since
-   2026-10-21: `gh run list --branch main --limit 3`. Mobile (Expo) must now pass —
-   if `expo-doctor` still fails, read the `::error title=expo-doctor::` ANNOTATIONS
-   (`gh api repos/Teamthy/Famex-OS/check-runs/<job-id>/annotations` — runner log zips are
-   NOT fetchable from the sandbox; annotations are).
-2. Check **Docker Publish** fired on that green `main` (`gh run list --workflow
-   docker-publish.yml`) and produced `ghcr.io/teamthy/famex-os:main`. If it did, the
-   release path is open end-to-end for the first time — record the digest
-   (`gh api /orgs/teamthy/packages/container/famex-os/versions` or the run summary) in the
-   next handoff: it is what `pin-image.sh` will pin on the VM.
+1. Provision a staging Postgres near `iad1` and replace `DATABASE_URL` in the Vercel dashboard
+   (Settings → Environment Variables → `famex-os`). **Never paste the URL into chat or let an
+   agent set it** — §8 secrets rule; the Vercel connector's `update_env_var` would transit the
+   secret through the conversation. Redeploy after changing it.
+2. From a trusted shell: `DATABASE_URL="$STAGING_DIRECT_URL" npx prisma migrate deploy` then
+   `SEED_PASSWORD="…" npx tsx prisma/seed-all.ts` (full runbook: `docs/HOSTING-DECISION-2K-USERS.md` §9
+   steps 3–5). Verify `/api/health/ready` reports `database: up`, `migrations.pending: 0`
+   (`storage: down` on Vercel is expected — §3.1).
+3. Deployment Protection (SSO wall on every `*.vercel.app` URL) is ON — the right default while
+   the DB is a placeholder. Owner decision when testers/staff need access: keep it (they sign in
+   with Vercel accounts) or adjust in the dashboard.
+4. Until the DB exists: the banner on public pages is BY DESIGN, and the Vercel cron
+   (`/api/jobs/dispatch-notifications`, daily 08:00) will report failures — expected noise, not
+   a new bug.
+
+**Dependabot triage (four PRs opened within a minute of the #19 merge):**
+
+- **PR #36 `typescript` 5.9.3 → 7.0.2 (major): its Vercel preview build ERRORED**
+  (`dpl_FDVNdFAstu5yJmB2189GBz1vfWRh`). TS 7 is the native-preview rewrite line — do NOT merge
+  without a dedicated evaluation slice; recommend closing or holding.
+- PR #35 `jose` 5.10.0 → 6.2.15 (major, auth-critical): preview built READY; review the
+  breaking-change notes against `lib/session.ts`/`lib/mfa/*` in its own slice.
+- Docker `node:20-alpine` → `26-alpine`: OCI-side decision; note Vercel builds use `engines`
+  22.x regardless of the project's 26.x setting (build-log warning confirms).
+- github-actions grouped PR: routine; merge when CI is green.
 
 **Then the next slice (roadmap order):**
 
@@ -494,7 +566,8 @@ roadmap's remaining P0s close and a successor commit is recertified.
 3. **Owner reminders (not agent work, listed in `docs/RELEASE-GOVERNANCE.md` §2):** protect
    `main` (7 named required checks), enable Dependabot alerts + code/secret scanning, create
    the `production` environment (then a one-line PR wires it into docker-publish), B-12 DB
-   role split on the VM, secrets rotation. B-09's VM drill (queue a notification, watch one
+   role split on the VM, secrets rotation — plus the Vercel staging database bring-up above
+   (`docs/HOSTING-DECISION-2K-USERS.md` §9). B-09's VM drill (queue a notification, watch one
    tick, `logs cron | grep FAILED`) happens at first staging bring-up (B-10).
 
 W3 close-out below stays parked behind the audit roadmap (founder-approved order: remediation

@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export const DEFAULT_SLUG = process.env.SCHOOL_SLUG || "famex-international-schools";
@@ -66,4 +67,62 @@ export async function getConfiguredSchool(): Promise<ResolvedSchool | null> {
 export async function resolveSchoolForRequest(_host?: string | null): Promise<SchoolResolution> {
   const school = await getConfiguredSchool();
   return { school, configured: Boolean(school) };
+}
+
+/**
+ * A resolution result that distinguishes "the database is fine but no school
+ * is configured" from "the database itself is unreachable or unmigrated".
+ *
+ * `databaseError` is diagnostic text for logs only — it is never rendered to
+ * visitors (it can contain connection details). The UI shows a generic,
+ * honest "setup incomplete" state instead.
+ */
+export type SafeSchoolResolution = SchoolResolution & {
+  databaseError: string | null;
+};
+
+/**
+ * True only for errors that mean "this environment's database is not usable":
+ * the server cannot be reached / DATABASE_URL is missing or invalid
+ * (PrismaClientInitializationError, e.g. P1001), or the schema has not been
+ * migrated yet (P2021 table / P2022 column does not exist).
+ *
+ * Everything else (query bugs, constraint violations, serialization failures)
+ * is a real application error and must keep propagating — silently degrading
+ * those would hide bugs and could fake an "empty" state that is actually a
+ * broken write path.
+ */
+export function isDatabaseInfrastructureError(error: unknown): boolean {
+  if (error instanceof Prisma.PrismaClientInitializationError) return true;
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    (error.code === "P2021" || error.code === "P2022")
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * `resolveSchoolForRequest` that never throws for an unusable database. Used
+ * by the root layout so a deployment whose staging database has not been
+ * provisioned/migrated yet (see docs/HOSTING-DECISION-2K-USERS.md §9) renders
+ * an honest "setup incomplete" page from environment brand tokens instead of
+ * crashing every route at the layout level with a blank 500.
+ */
+export async function resolveSchoolForRequestSafe(
+  host?: string | null,
+): Promise<SafeSchoolResolution> {
+  try {
+    const resolution = await resolveSchoolForRequest(host);
+    return { ...resolution, databaseError: null };
+  } catch (error) {
+    if (!isDatabaseInfrastructureError(error)) throw error;
+    return {
+      school: null,
+      configured: false,
+      databaseError:
+        error instanceof Error ? error.message.split("\n")[0].slice(0, 300) : "unknown",
+    };
+  }
 }
