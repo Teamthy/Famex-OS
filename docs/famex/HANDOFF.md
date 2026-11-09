@@ -474,6 +474,19 @@ submit measured **7950ms**; four CI cycles and these fixes brought it back insid
    The italic face stays CSS-discovered on purpose: preloading its 45.7KB too kept the first wave
    ~650ms heavier than the identical shell on `/admissions`, whose preloaded-image LCP passes at
    ~3.6s — the only above-the-fold italic is the H1 `<em>`, a smaller paint than the hero image.
+5. **The decisive fix — initial layout scope.** With transfers all optimised the home still sat at
+   ~4.25s while `/admissions` passed at ~3.6s; the remaining structural difference was document
+   size (124KB / ~600 tags vs 72KB), whose full style+layout pass runs on the throttled CPU before
+   the hero's paint frame. The nine below-fold sections and the footer now carry
+   `.home-below-fold { content-visibility: auto; contain-intrinsic-size: auto 720px }`
+   (app/globals.css), confining first layout to the visible viewport with zero SEO/no-JS impact.
+   Home LCP landed at **3925ms median (3905-4008) against the 4000ms budget**, perf 0.88,
+   `all assertions passed` (run 42615802263) — green board on PR #39.
+
+Diagnostics worth keeping: `scripts/lighthouse-report-summary.mjs` annotates the LCP element audit
+and (when a paired trace exists) the final LCP candidate; in LHCI 0.14 the `.lighthouseci/` dir holds
+only `lhr-*.json` + `assertion-results.json` — no traces — so the `largest-contentful-paint-element`
+audit's empty `details` in this setup remains unexplained and the annotations fall back to metrics.
 
 Tooling: `scripts/lighthouse-report-summary.mjs` now annotates the LCP element (selector + snippet) and its
 phase split, plus a truncated raw dump of the audit details when the shaped parse finds nothing — the next
