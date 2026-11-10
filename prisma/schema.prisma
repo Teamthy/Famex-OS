@@ -1099,11 +1099,18 @@ model FeeRefund {
   amountNaira       Int
   reason            String
   status            FeeRefundStatus @default(PENDING)
-  requestedByUserId String
+  /// Null only for provider-driven reversals (B-04: Paystack
+  /// refund.processed / chargeback events post their own refund document);
+  /// maker-checker refunds always record the requester.
+  requestedByUserId String?
   approvedByUserId  String?
   approvedAt        DateTime?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  /// Provider idempotency key (Rule 4): the provider's own reversal event id,
+  /// unique so retried webhooks post a partial reversal exactly once. Null
+  /// for maker-checker refunds.
+  providerEventId   String?           @unique
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   school  School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   invoice FeeInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)

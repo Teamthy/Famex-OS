@@ -175,6 +175,34 @@ jobs:
         env:
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
 
+      - name: Verify fee-payment replay & reversals (B-04)
+        # B-04 (2026-10-23 audit, P0): drives the REAL fee-payment service
+        # against this database — concurrent duplicate completions (webhook +
+        # browser verify racing one attempt), the binding-conflict matrix on
+        # a posted reference, PAID/FAILED attempt state transitions, the
+        # offline PENDING_REVIEW completion/rejection lifecycle, and provider
+        # refund/chargeback reversals with providerEventId idempotency — then
+        # reconciles the ledger against the documents to the kobo. Unit tests
+        # mock Prisma and cannot prove the database actually refuses the
+        # double-post.
+        #
+        # Same `::error::` re-emission as verify:ledger so failures are
+        # readable from the annotations API.
+        run: |
+          set +e
+          npm run verify:fee-replay > /tmp/fee-replay.log 2>&1
+          status=$?
+          cat /tmp/fee-replay.log
+          if [ $status -ne 0 ]; then
+            echo "::error::fee-payment replay verification failed (exit $status)"
+            grep -E "FAIL|Error|error:|error " /tmp/fee-replay.log | head -30 | while IFS= read -r line; do
+              echo "::error title=fee-replay::$line"
+            done
+          fi
+          exit $status
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
   e2e:
     name: Browser E2E
     runs-on: ubuntu-latest

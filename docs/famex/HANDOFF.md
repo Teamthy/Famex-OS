@@ -45,7 +45,7 @@ Read in this order before any work:
 
 | WS | Scope (short) | Status |
 |---|---|---|
-| **REM** | Audit remediation (§4h roadmap: Phases 0–8) | 🟡 **IN PROGRESS — supersedes W-workstreams until Phase 3 is green.** PR #16 (`5ba9a16`) landed the audit package; PR #17 (`b4415d0`) closed the fixable-now launch blockers; PR #18 (`75caee3`) closed **B-01** (dependency gate) + the E2E 429-cascade fix. Current branch: **Phase 1 remainder** — B-09 sidecar fix, B-18 code-ables (dual-scope audit gate, dependabot, digest pinning, migration single-flight), mobile CI unblock (§4k). Phase 2 identity/RBAC (**B-06**) landed in §4o (branch `arena/3460a832-famex-os`); next: Phase 3 finance (B-04/B-16). |
+| **REM** | Audit remediation (§4h roadmap: Phases 0–8) | 🟡 **IN PROGRESS — supersedes W-workstreams until Phase 3 is green.** PR #16 (`5ba9a16`) landed the audit package; PR #17 (`b4415d0`) closed the fixable-now launch blockers; PR #18 (`75caee3`) closed **B-01** (dependency gate) + the E2E 429-cascade fix. Phase 1 remainder (§4k): B-09 sidecar fix, B-18 code-ables (dual-scope audit gate, dependabot, digest pinning, migration single-flight), mobile CI unblock. Phase 2 identity/RBAC (**B-06**) merged in §4o (PR #40, `e56c9a6`, deployed READY). Current branch: **Phase 3 finance integrity** — **B-04** (fee-payment replay binding + offline review lifecycle + provider reversals) done in §4p (branch `arena/ab279367-famex-os`, PR pending); next: **B-16** finance lifecycle. |
 | **W1** | Strip EDUos platform + Ykay arms; single-school boot; brand tokens; Licence & Usage; re-cut audit | ✅ **MERGED into main** — PR #1, 2026-10-14 (commits `a9451cd`, `ccaab0b` + this handoff commit). Gates green at merge; DB gates environment-blocked and stated in the PR. |
 | **W2** | Module registry drives nav/routes/entitlements; settings framework; first-run wizard; `check:modules` | ✅ **merged** — PR #2, merge commit `74f236c` (branch `arena/9abf8aef-famex-os`, 2026-10-14). All CI jobs green except the pre-existing red `Lighthouse budgets` workflow (also red on the W1 merge). |
 | **W3** | Double-entry ledger → Fees & Billing; bursar dashboard; gateway reconciliation | ✅ **stage A MERGED** (PR #4, `e96217a`) and **stage B MERGED** (PR #5, `193ff93`, 2026-10-15): discounts (F5-12), refunds (F5-13), credits (F5-11), transfers (F5-14), gateway settlement (F5-16), ageing + statements (F5-17/18), bursar queues (F5-19), receipts re-brand (F5-04/22) + `verify:ledger` extended to 12 steps. Instalment plans (F5-10) delivered 2026-10-21 (§4e). **Close-out still owed** (§9): real-DB ledger backfill/opening balances, manual adjustments screen (F5-20), cashbook polish (F5-15/F5-23/F5-25), per-reference settlement matching |
@@ -265,7 +265,7 @@ Closed **B-01** (the audit's critical dependency-gate failure) by upgrading to p
   2. **Browser E2E red**: one chromium crash in `02-attendance-camera` restarted the Playwright worker, wiping the in-memory E2E session cache while the server-side login limiter (10/15min/IP, deliberately not weakened for tests) kept its count — every later spec signed in afresh and hit a 429 wall (11 misleading failures from one flake). Fixed at the root: the cache now **persists to disk** under `test-results/` (wiped per run, restored at module load, written after every login) so a worker restart costs zero login attempts; the limiter-burning spec was renamed `99-` → `zz-rate-limit.spec.ts` because `axe-smoke` sorted after `99-` ("deliberately last" was luck); and `tests/lib/e2e-login-budget.test.ts` (3 static guards) keeps persistence, budget < limit, and last-position from regressing. The crash itself was an unreproducible runner flake — retries now cost nothing.
 - CI on this PR: Lint & Type Check, Build, Schema Drift, Load test, Lighthouse, Vercel all **pass**. Mobile (Expo) `expo-doctor` still fails — pre-existing on `main` since at least #16, untouched here (local: typecheck exit 0, expo-doctor 16/18 with the 2 failures being network-dependent checks that can't run in this sandbox). Docker Publish failing in ~9s on `main` is B-18/Phase-1 release-path work for the next slice.
 
-**Register state after this session**: B-01 ✅ (pending merge), B-02 ✅, B-15-web ✅; B-03/B-05/B-07/B-08 partial; **B-06 ✅ fixed pending merge (§4o — role×page×API entitlement matrix)**; open P0s: B-04 (fee-payment replay binding), B-09 (OCI sidecar), B-12 (DB least-privilege/RLS fail-open), B-13 (JSON stores → Postgres), B-14 (privacy/retention); P1: B-16 (finance lifecycle), B-17 (promotion/transfer service), B-18 (release hygiene); B-10/B-11/B-19 blocked on infra. Next in roadmap order: remaining Phase 1 items, then Phase 3 (finance integrity) — Phase 2 landed in §4o.
+**Register state after this session**: B-01 ✅, B-02 ✅, B-15-web ✅; B-03/B-05/B-07/B-08 partial; **B-06 ✅ merged (PR #40, §4o)**; **B-04 ✅ fixed pending merge (§4p — replay binding, offline review lifecycle, provider reversals)**; open P0s: B-09 (OCI sidecar), B-12 (DB least-privilege/RLS fail-open), B-13 (JSON stores → Postgres), B-14 (privacy/retention); P1: B-16 (finance lifecycle — next), B-17 (promotion/transfer service), B-18 (release hygiene); B-10/B-11/B-19 blocked on infra. Roadmap order: Phase 3 continues with B-16, then remaining Phase 1 items.
 
 ## 4k. Phase 1 remainder — release path: B-09 fixed, B-18 code-ables done, mobile CI unblocked (2026-11-08, branch `arena/e697eea8-famex-os`)
 
@@ -425,13 +425,13 @@ rendering, and the journal's honest empty state.
 
 ## 5. Gates: commands + latest evidence + blockers
 
-Run from repo root. The table below is the **latest actual evidence** from the Vercel-degradation session (2026-11-09, branch `arena/a6b381c5-famex-os`, base `c0a2fd9`, §4l); dependency-gate/build/checker rows re-verified unchanged from the release-path session (§4k). Older delivery-gate evidence (2026-10-21, §§4f–4g), the 2026-10-23 audit recheck (§4h) and the B-01 session (§4j) are superseded by it.
+Run from repo root. The table below is the **latest actual evidence** from the B-04 finance-integrity session (2026-11-10, branch `arena/ab279367-famex-os`, base `e56c9a6`, §4p); rows not re-listed there were re-run unchanged. Older delivery-gate evidence (2026-10-21, §§4f–4g), the 2026-10-23 audit recheck (§4h), the B-01 session (§4j) and the Vercel-degradation session (§4l) are superseded by it.
 
 | Gate | Command | Result (actual output) |
 |---|---|---|
 | typecheck | `npx tsc --noEmit` | exit 0 — no errors (on zod 4.6.7 / next 16.4.5 / sentry 10.78.0) |
-| unit/integration | `npx vitest run` | `Test Files 112 passed (112)` / `Tests 1417 passed (1417)` — includes the 2 mobile files (install `mobile/` deps first, §6), the 3 E2E-login-budget guards (§4j), the 13 release-path guards (§4k), the 10 degraded-DB resolver guards (§4l) and the 13 env-validation guards (§4m) |
-| lint | `npm run lint` | `✖ 126 problems (0 errors, 126 warnings)` — no errors |
+| unit/integration | `npx vitest run` | `Test Files 113 passed (113)` / `Tests 1557 passed (1557)` — includes the 2 mobile files (install `mobile/` deps first, §6), the 101 RBAC-entitlement guards (§4o) and the rewritten 59-test fee-payment-service suite (§4p) |
+| lint | `npm run lint` | `✖ 119 problems (0 errors, 119 warnings)` — no errors |
 | formatting | `npx prettier --check .` | `All matched files use Prettier code style!` |
 | dep audit | `npm run audit:deps` | **PASS, dual scope (§4k):** `[root] 0 high, 0 critical, 14 moderate, 4 low` (EXCLUSIONS empty) + `[mobile] 3 high` all excluded via the dated `decode-uri-component` chain entry → `Dependency audit passed (root + mobile)`, exit 0. Closes B-01; adds the mobile gate |
 | project audit | `npm run audit` | `No blockers. 16 warning(s).` |
@@ -440,11 +440,12 @@ Run from repo root. The table below is the **latest actual evidence** from the V
 | orphans | `npm run check:orphans` | `All 94 portal pages are reachable.` |
 | dead UI | `npm run check:dead-ui` | `Checked 102 portal pages.` / `No dead UI found.` (student results page ALLOWED: "Assign" is a column header, not a button) |
 | modules | `npm run check:modules` | `Admin API directories: 31 owned, 81 guard calls.` / `Modules, nav and routes agree.` |
-| client boundary | `npm run check:boundary` | `Checking 171 client component(s)…` / `No client component reaches a server-only module.` |
+| client boundary | `npm run check:boundary` | `Checking 173 client component(s)…` / `No client component reaches a server-only module.` |
 | prisma schema | `npx prisma validate` | `The schema at prisma/schema.prisma is valid 🚀` (needs a dummy `DATABASE_URL`) |
 | production build | `npm run build` (with §6 stub-engine env) | exit 0 — compiles on next 16.4.5 / sentry 10.78.0 / zod 4.6.7 |
 | school-scope coverage (legacy script name) | `npm run check:tenant-coverage` | 14 UNCOVERED = CI baseline (`--max-uncovered 14`), all pre-existing; the WhatsApp webhook is a reviewed provider-global exemption printed on every run (Meta callbacks carry a provider message id, not a school context). This is a `schoolId` integrity ratchet, not evidence of a multi-tenant product surface |
 | ledger loop | `npm run verify:ledger` (`scripts/verify-ledger-loop.ts`) | **Blocked locally** (no Postgres). Runs in CI's `schema-drift` job on Postgres 17 — it is the only place the deferred balance trigger and the kobo reconciliation are proved for real |
+| fee-payment replay loop (B-04) | `npm run verify:fee-replay` (`scripts/verify-fee-payment-replay.ts`) | **Blocked locally** (no Postgres). Runs in CI's `schema-drift` job on Postgres 17 (§4p): concurrent duplicate completions, binding-conflict matrix, attempt state machine, offline review lifecycle, provider reversals + providerEventId dedupe, ledger-to-document reconciliation to the kobo — driving the REAL service, not a mirror |
 | DB gates + Browser E2E | `check:drift`, migration apply, `verify:rls` + `verify:rls:coverage`, `verify:admissions`, `verify:ledger`, `db:seed*`, `npx playwright test` | **Passed in GitHub CI on PR #14 (`8704113`) and again on merged `main` (`c586c4a`)**: Schema Drift applied `20261021120000_assignments_virtual_classes` to clean Postgres 17 with no drift and verified RLS/admissions/ledger; Browser E2E seeded FIS and passed the full CBT sit→submit→marked, JSS1A attendance lock, assignment create→submit→grade, and live-class join/launch journeys. Local sandbox still has no Postgres, but the Next production build compiled locally. `check:readiness` still needs a seeded school and has no CI step; run it on staging after migration/seed. |
 | Lighthouse budgets | GitHub `Lighthouse budgets` workflow | Green since PR #12 (`4422fe9`, 2026-10-20): home performance 0.88, LCP 3845ms, TBT 53ms, accessibility 0.96 (medians). The §4n home redesign regressed home LCP to 7950ms on first submit; §4n.1 records the forensics and the fixes at this branch's head. Variance-prone — judge the exact PR head, never a single run. |
 
@@ -553,8 +554,105 @@ but not the teacher workspace (owner oversight, not classroom presence);
 PRINCIPAL/VICE_PRINCIPAL get the teacher workspace; COORDINATOR homes on
 admissions; BURSAR homes on `/admin/fees`; LIBRARIAN/NURSE enter `/admin`
 because their arms live there while what they may DO inside stays the API's
-call. Remaining roadmap: Phase 3 finance integrity (B-04 replay binding,
-B-16 lifecycle).
+call. Phase 3 finance integrity started immediately after: B-04 (fee-payment
+replay binding) landed in §4p; next is B-16 (finance lifecycle).
+
+---
+
+### 4p. B-04 — fee-payment replay binding, offline review lifecycle, provider reversals (2026-11-10)
+
+The audit's P0 money-integrity blocker (register §B-04): `postCompletedFeePayment`
+used to find an existing payment **by reference alone** and report it as a
+successful replay before validating school, invoice, student, amount, method or
+the attempt — so a duplicate or conflicting reference could be reported as
+success for the wrong financial context. The same review found three siblings:
+offline `PENDING_REVIEW` cash entries were a dead end (nothing could ever
+settle or reject them), a PAID attempt could be re-pointed at a different
+document, and the webhook silently acked `refund.processed` /
+`chargeback.success` — reversed money stayed a COMPLETED receipt forever.
+
+**What landed (branch `arena/ab279367-famex-os`):**
+
+1. **`lib/fee-payment-service.ts` rewritten as an explicit state machine**
+   returning `posted | replay | conflict` with codes
+   `REFERENCE_BOUND_ELSEWHERE` / `ATTEMPT_ALREADY_PAID` /
+   `ATTEMPT_NOT_POSTABLE` / `ATTEMPT_FIELD_MISMATCH`. Order of operations:
+   resolve + school-lock the attempt FIRST, compare its immutable fields
+   against the caller, PAID attempts replay only their own exactly-bound
+   payment, then a reference hit replays only on an exact five-field binding
+   match (school/invoice/student/amount/method). Every conflict writes a
+   `FEE_PAYMENT_REFERENCE_CONFLICT` audit row in the same transaction.
+2. **Atomic attempt↔payment transition.** The attempt moves PENDING → PAID
+   via guarded `updateMany` INSIDE the posting transaction (payment row,
+   invoice draw-down, ledger journal, credit document). Two concurrent
+   completions of one attempt (webhook + browser verify) cannot both commit:
+   the loser's guard count is 0 and its whole posting throws → rolls back.
+   The winner is the only receipt that exists.
+3. **First-class offline review.** `completeOfflineReviewPayment` (guarded
+   PENDING_REVIEW → COMPLETED + draw-down + journal in one tx; a balance that
+   moved underneath leaves it queued) and `rejectOfflineReviewPayment`
+   (→ FAILED, never deleted — Rule 9). Wired to new admin actions
+   `APPROVE_OFFLINE_PAYMENT` / `REJECT_OFFLINE_PAYMENT`, a `queuedOffline`
+   list on the review GET, and an offline-queue card on
+   `/admin/fees/transfers` (page + nav label renamed "Payment Review").
+4. **Provider reversals.** New `postPaymentReversal` handles Paystack
+   `refund.processed` + `chargeback.success`: posts a FeeRefund document
+   (APPROVED, `requestedByUserId` null = provider-initiated), flips FULL
+   reversals COMPLETED → REFUNDED (guarded), books the `postFeeRefund`
+   journal, audits `FEE_PAYMENT_REFUNDED` / `FEE_PAYMENT_CHARGED_BACK`.
+   Partial reversals stay COMPLETED with the refund document carrying the
+   part returned. **Idempotency (Rule 4):** new unique
+   `FeeRefund.providerEventId` (migration
+   `20261110120000_fee_refund_provider_reversal`, same migration makes
+   `requestedByUserId` nullable) dedupes retried webhook deliveries —
+   including partials, which status alone cannot dedupe; a P2002 race loser
+   is reported as replay.
+5. **Route semantics.** Webhook conflict → `logger.error` + audit + still
+   `ok:true` 200 (acking stops provider retries of a payload that can never
+   succeed; finance reconciles from the audit trail). Parent verify + admin
+   RECORD_CASH / APPROVE_TRANSFER conflicts → 409 with the detail. Transfer
+   review stamp now lands via guarded `updateMany` on PAID only.
+6. **Two decisions worth keeping:**
+   - *Reversals do NOT reopen the invoice* — the exact F5-13 convention
+     `decideRefund` follows and `verify:ledger` step 10 pins (income nets
+     through the refunds account; receivable ledger keeps reconciling with
+     documents to the kobo). A family owing again after a chargeback is a
+     bursary decision (re-invoice/adjust), never a webhook side effect.
+   - *Money units:* fee documents (invoices, payments, attempts, refunds)
+     store **whole-naira integers**; the ledger stores kobo (`nairaToKobo`
+     inside `lib/ledger-postings`). Paystack speaks kobo — the webhook
+     compares `payload.amount === attempt.amount * 100` and reversals divide
+     by 100. While wiring the review UI I found and fixed a display bug: the
+     transfers page divided whole-naira amounts by 100 (showed ₦250 for a
+     ₦25,000 transfer).
+7. **Evidence:** `scripts/verify-fee-payment-replay.ts`
+   (`npm run verify:fee-replay`, wired into the CI schema-drift job on
+   Postgres 17 with the same `::error::` re-emission as `verify:ledger`)
+   drives the REAL service through the audit's regression list: concurrent
+   duplicate webhook+browser verify, webhook-before-browser ordering,
+   wrong-invoice/student/amount references, paid-attempt rebinding,
+   FAILED-attempt posting, offline complete/reject/replay/double-decision,
+   partial refund, full refund, chargeback, retried provider events, then
+   reconciles ledger vs documents to the kobo (bank = net of receipts and
+   reversals; refunds account = returned money; nothing deleted). Provider
+   timeout behaviour is unchanged (non-definite verify failure → attempt
+   stays PENDING → 503 → later retry lands in the replay/conflict machine)
+   and stays covered by `tests/lib/paystack-verify.test.ts`.
+8. **Unit suite:** `tests/lib/fee-payment-service.test.ts` rewritten +
+   extended to **59 tests** (attempt-first state machine, binding-conflict
+   matrix, guarded transitions incl. the concurrent loser, offline lifecycle,
+   reversal full/partial/replay/conflict/dedupe). Suite totals: **113 files /
+   1557 tests** (was 1518).
+
+**Gates at PR time (actual output):** `npx tsc --noEmit` exit 0 · `npx vitest
+run` 113 files / 1557 tests passed · `npm run lint` 0 errors / 119 warnings ·
+`npx prettier --check .` clean · `npm run audit:brand` 71 findings / 37 files
+(= baseline) · `npm run audit` no blockers, 16 warnings · `check:features`
+OK · `check:orphans` 94 pages reachable · `check:dead-ui` clean (102 pages) ·
+`check:modules` agree (31 owned / 81 guards) · `check:boundary` clean (173
+client components) · `prisma validate` valid · `npm run build` exit 0 ·
+`verify:fee-replay` + `check:drift` + migration apply run in CI (no local
+Postgres — same standing as `verify:ledger`).
 
 ---
 
@@ -727,10 +825,11 @@ and a successor commit is recertified.
 **2026-11-10 addendum:** the public home redesign (§4n) landed on this branch lineage — twelve
 sections, four-image hero carousel, editorial paper palette, Ykay-era home components deleted.
 The **portal/admin reskin is a separate workstream** (founder to schedule); the other public
-pages (about, academics, admissions…) keep the existing shell until then. After this merges, the
-next engineering slice is **Phase 3 finance integrity** (B-04 fee-payment replay
-binding, B-16 lifecycle) — Phase 2 / B-06 (role×page×API entitlement matrix)
-landed in §4o on branch `arena/3460a832-famex-os`.
+pages (about, academics, admissions…) keep the existing shell until then. Since then Phase 2 /
+B-06 (role×page×API entitlement matrix) MERGED (PR #40, `e56c9a6`, §4o, Vercel production
+READY), and Phase 3 finance integrity opened: **B-04** (fee-payment replay binding + offline
+review lifecycle + provider reversals) is recorded in §4p on branch
+`arena/ab279367-famex-os`. The next engineering slice is **B-16 — finance lifecycle**.
 
 **Owner actions — the ACTUAL Vercel fix (agent cannot and must not do these):**
 
@@ -764,12 +863,17 @@ landed in §4o on branch `arena/3460a832-famex-os`.
 
 **Then the next slice (roadmap order):**
 
-1. **Phase 2 (identity/RBAC/provisioning)**: B-06 role×page×API entitlement matrix —
-   start from `lib/roles.ts` + `lib/module-guard.ts`; every route: auth → role → module
-   entitlement, in that order (Rule 13). Parameterized tests per role (roadmap exit
-   criteria), align middleware/login destinations/nav/APIs.
-2. **Then Phase 3 (finance integrity)**: B-04 fee-payment replay binding + B-16 finance
-   lifecycle (numbering races, maker-checker, settlement, receipts, due-date fee locks).
+1. **Phase 2 (identity/RBAC/provisioning)** — ✅ DONE: B-06 role×page×API entitlement
+   matrix merged as PR #40 (§4o): `lib/rbac/entitlements.ts` owns homes/groups/areas,
+   middleware+login delegate, nav mirrors the API surface, 101 parameterized guards.
+2. **Phase 3 (finance integrity)** — B-04 fee-payment replay binding ✅ DONE (§4p, PR
+   pending): attempt-first state machine, exact-binding replay, guarded atomic transitions,
+   offline review completion/rejection, provider refund/chargeback reversals with
+   `providerEventId` idempotency, `verify:fee-replay` CI gate. **Next: B-16 finance
+   lifecycle** (numbering races, arbitrary cash references, zero-total generation failure,
+   single-actor expense/transfer weaknesses, caller-optional credit-transfer idempotency,
+   aggregate settlement recounting, refund proof gaps, receipt path, due-date fee locks —
+   across `lib/finance.ts`, `lib/ledger.ts`, `lib/fee-adjustments.ts`, `lib/fee-lock.ts`).
 3. **Owner reminders (not agent work, listed in `docs/RELEASE-GOVERNANCE.md` §2):** protect
    `main` (7 named required checks), enable Dependabot alerts + code/secret scanning, create
    the `production` environment (then a one-line PR wires it into docker-publish), B-12 DB

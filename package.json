@@ -59,6 +59,7 @@
     "repair:labels": "tsx scripts/repair-labels.ts",
     "verify:admissions": "tsx scripts/verify-admissions-loop.ts",
     "verify:ledger": "tsx scripts/verify-ledger-loop.ts",
+    "verify:fee-replay": "tsx scripts/verify-fee-payment-replay.ts",
     "verify:grading": "tsx scripts/verify-exam-grading.ts",
     "verify:docx": "tsx scripts/verify-docx-import.ts",
     "db:backup": "tsx scripts/backup-db.ts",

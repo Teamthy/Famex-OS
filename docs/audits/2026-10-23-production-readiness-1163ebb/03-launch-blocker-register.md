@@ -63,8 +63,58 @@
 
 ## B-04 — Fee payment reference replay is not bound to the intended attempt
 
-- **Severity/status:** P0 / FAIL
-- **Evidence:** `lib/fee-payment-service.ts:46–49`, `postCompletedFeePayment()`, finds an existing payment solely by `reference` and returns it as a replay before validating the supplied school, invoice, student, amount, method, status, or `attemptId`. Parent verification and the Paystack webhook both call this service (`app/api/parent/fees/payments/route.ts`, `app/api/payments/paystack/webhook/route.ts`). Source review also found offline `PENDING_REVIEW` collisions/dead ends, paid-attempt rebinding risk, and ignored refund/chargeback webhook events.
+- **Severity/status:** P0 / **FIXED** — branch `arena/ab279367-famex-os` (PR pending, 2026-11-10)
+- **Fix:** `lib/fee-payment-service.ts` rewritten as an explicit state machine
+  returning `posted | replay | conflict` (codes `REFERENCE_BOUND_ELSEWHERE`,
+  `ATTEMPT_ALREADY_PAID`, `ATTEMPT_NOT_POSTABLE`, `ATTEMPT_FIELD_MISMATCH`;
+  every conflict audited `FEE_PAYMENT_REFERENCE_CONFLICT`):
+  - *Attempt first.* The server-created attempt is resolved and school-locked
+    before anything else; its invoice/student/amount are compared against the
+    caller (mismatch → conflict); a PAID attempt can only ever return the
+    payment bound to its own reference AND the exact five-field binding
+    (school/invoice/student/amount/method); FAILED/ABANDONED never post.
+  - *Exact-match replay only.* A reference hit replays as success only when
+    every immutable field matches; any difference is a conflict, never a
+    silent success.
+  - *Atomic transitions.* The attempt moves PENDING → PAID via guarded
+    `updateMany` inside the same transaction as the payment, the invoice
+    draw-down and the ledger journal — the concurrent loser's guard count is
+    0 and its whole posting throws/rolls back (proved against real Postgres).
+  - *First-class pending-review lifecycle.* New `completeOfflineReviewPayment`
+    (guarded PENDING_REVIEW → COMPLETED + draw-down + journal in one tx) and
+    `rejectOfflineReviewPayment` (→ FAILED, never deleted, Rule 9), wired to
+    new `APPROVE_OFFLINE_PAYMENT`/`REJECT_OFFLINE_PAYMENT` admin actions, a
+    `queuedOffline` list on the review GET, and an offline-queue section on
+    `/admin/fees/transfers` (renamed "Payment Review").
+  - *Reversal postings.* The webhook now handles `refund.processed` and
+    `chargeback.success` via `postPaymentReversal`: posts a FeeRefund document
+    (APPROVED, `requestedByUserId` null for provider-initiated — migration
+    `20261110120000_fee_refund_provider_reversal`), flips full reversals to
+    REFUNDED (guarded), books the refund journal, audits
+    `FEE_PAYMENT_REFUNDED`/`FEE_PAYMENT_CHARGED_BACK`. Retried deliveries
+    dedupe on the new unique `FeeRefund.providerEventId` (Rule 4) — including
+    PARTIAL reversals, which stay COMPLETED and cannot dedupe by status.
+    Invoices are deliberately NOT reopened, matching the F5-13 convention
+    `decideRefund` and `verify:ledger` already pin, so the receivable ledger
+    keeps reconciling with the documents.
+  - *Routes.* Webhook conflicts log + audit + still ack 200 (stops provider
+    retries); parent verify and admin RECORD_CASH/APPROVE_TRANSFER conflicts
+    return 409 with the detail. Also fixed the review page's money display
+    (it divided whole-naira amounts by 100).
+- **Regression evidence (this fix):** `scripts/verify-fee-payment-replay.ts`
+  (`npm run verify:fee-replay`, wired into the CI schema-drift job against
+  real Postgres 17) drives the REAL service through: concurrent duplicate
+  webhook + browser verify (exactly one payment/journal/draw-down),
+  webhook-before-browser replay, wrong-invoice/student/amount references,
+  paid-attempt rebinding, FAILED-attempt posting, field mismatch, offline
+  complete/reject/replay/double-decision, partial refund, full refund,
+  chargeback, retried provider events, and final ledger-to-document
+  reconciliation to the kobo. Provider-timeout behavior is unchanged and
+  stays covered by `tests/lib/paystack-verify.test.ts` (non-definite verify
+  failures leave the attempt PENDING and answer 503; the later retry lands in
+  the replay/conflict machine above). Unit suite: 59 tests in
+  `tests/lib/fee-payment-service.test.ts`.
+- **Evidence (original finding):** `lib/fee-payment-service.ts:46–49`, `postCompletedFeePayment()`, finds an existing payment solely by `reference` and returns it as a replay before validating the supplied school, invoice, student, amount, method, status, or `attemptId`. Parent verification and the Paystack webhook both call this service (`app/api/parent/fees/payments/route.ts`, `app/api/payments/paystack/webhook/route.ts`). Source review also found offline `PENDING_REVIEW` collisions/dead ends, paid-attempt rebinding risk, and ignored refund/chargeback webhook events.
 - **Impact:** A duplicate/conflicting reference can be reported as success for the wrong financial context, strand a legitimate payment, or conceal a reversal. Ledger balance checks do not cure wrong-document binding.
 - **Required fix:** Resolve and lock the server-created attempt first; compare every immutable field; transition attempt and payment atomically; make replay return success only for an exact match and a conflict otherwise; implement first-class pending-review completion/rejection and refund/chargeback reversal postings.
 - **Regression evidence:** Concurrent duplicate webhook + browser verify, wrong-amount/invoice/student references, paid-reference reuse, partial refund, full refund, chargeback, provider timeout, and webhook-before-browser ordering tests against real Postgres.

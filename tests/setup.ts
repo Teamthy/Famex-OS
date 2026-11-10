@@ -261,8 +261,12 @@ const mockPrisma = {
   },
   feePaymentAttempt: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(async () => []),
     create: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
+    count: vi.fn(async () => 0),
   },
   gradebookEntry: {
     findFirst: vi.fn(),

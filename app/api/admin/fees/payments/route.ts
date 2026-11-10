@@ -7,7 +7,11 @@ import {
   generatePaymentReference,
   generateUniqueReceiptNumber,
 } from "@/lib/finance";
-import { postCompletedFeePayment } from "@/lib/fee-payment-service";
+import {
+  completeOfflineReviewPayment,
+  postCompletedFeePayment,
+  rejectOfflineReviewPayment,
+} from "@/lib/fee-payment-service";
 import { getClientIp } from "@/lib/requests";
 import { requireModule } from "@/lib/module-guard";
 import { isOfflineReplay } from "@/lib/fee-guard";
@@ -26,6 +30,17 @@ const cashSchema = z.object({
 const reviewSchema = z.object({
   action: z.enum(["APPROVE_TRANSFER", "REJECT_TRANSFER"]),
   attemptId: z.string().min(1),
+  note: z.string().trim().max(500).optional(),
+});
+
+/**
+ * B-04: first-class decisions for offline-queued (PENDING_REVIEW) cash
+ * entries. Before this the queue was a dead end — the release gate queued
+ * offline money but nothing could ever settle or reject it.
+ */
+const offlineReviewSchema = z.object({
+  action: z.enum(["APPROVE_OFFLINE_PAYMENT", "REJECT_OFFLINE_PAYMENT"]),
+  paymentId: z.string().min(1),
   note: z.string().trim().max(500).optional(),
 });
 
@@ -50,7 +65,22 @@ export async function GET() {
     orderBy: { createdAt: "asc" },
   });
 
-  return NextResponse.json({ transfers });
+  // B-04: the offline (fee-guard) queue rides alongside the transfer queue —
+  // queued money must be visible where the bursar works, or review is fiction.
+  const queuedOffline = await prisma.feePayment.findMany({
+    take: 500,
+    where: {
+      schoolId: context.user.schoolId,
+      status: FeePaymentStatus.PENDING_REVIEW,
+    },
+    include: {
+      invoice: { select: { invoiceNumber: true, title: true, balanceDue: true } },
+      studentProfile: { select: { displayName: true, studentId: true } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return NextResponse.json({ transfers, queuedOffline });
 }
 
 export async function POST(request: NextRequest) {
@@ -135,6 +165,10 @@ export async function POST(request: NextRequest) {
         allowExcessAsCredit: input.carryExcessAsCredit ?? false,
       });
 
+      if (result.outcome === "conflict") {
+        return NextResponse.json({ error: result.detail, code: result.code }, { status: 409 });
+      }
+
       await prisma.auditLog.create({
         data: {
           schoolId: context.user.schoolId,
@@ -143,11 +177,40 @@ export async function POST(request: NextRequest) {
           entityType: "FeePayment",
           entityId: result.payment.id,
           ipAddress: getClientIp(request),
-          metadata: { reference, amount: input.amount, replay: result.replay },
+          metadata: {
+            reference,
+            amount: input.amount,
+            replay: result.outcome === "replay",
+          },
         },
       });
 
-      return NextResponse.json({ payment: result.payment, replay: result.replay });
+      return NextResponse.json({
+        payment: result.payment,
+        replay: result.outcome === "replay",
+      });
+    }
+
+    if (action === "APPROVE_OFFLINE_PAYMENT" || action === "REJECT_OFFLINE_PAYMENT") {
+      const input = offlineReviewSchema.parse(body);
+      const decision =
+        input.action === "APPROVE_OFFLINE_PAYMENT"
+          ? await completeOfflineReviewPayment({
+              paymentId: input.paymentId,
+              schoolId: context.user.schoolId,
+              actorUserId: context.user.id,
+              note: input.note,
+            })
+          : await rejectOfflineReviewPayment({
+              paymentId: input.paymentId,
+              schoolId: context.user.schoolId,
+              actorUserId: context.user.id,
+              note: input.note,
+            });
+      if (decision.outcome === "conflict") {
+        return NextResponse.json({ error: decision.detail }, { status: 409 });
+      }
+      return NextResponse.json({ ok: true, outcome: decision.outcome });
     }
 
     const input = reviewSchema.parse(body);
@@ -208,8 +271,13 @@ export async function POST(request: NextRequest) {
       actorUserId: context.user.id,
     });
 
-    await prisma.feePaymentAttempt.update({
-      where: { id: attempt.id },
+    if (result.outcome === "conflict") {
+      return NextResponse.json({ error: result.detail, code: result.code }, { status: 409 });
+    }
+
+    // Review stamp only lands on an attempt the service actually settled.
+    await prisma.feePaymentAttempt.updateMany({
+      where: { id: attempt.id, status: PaymentStatus.PAID },
       data: { reviewedByUserId: context.user.id, reviewedAt: new Date() },
     });
 
@@ -225,12 +293,15 @@ export async function POST(request: NextRequest) {
           reference: attempt.reference,
           amount: attempt.amount,
           paymentId: result.payment.id,
-          replay: result.replay,
+          replay: result.outcome === "replay",
         },
       },
     });
 
-    return NextResponse.json({ payment: result.payment, replay: result.replay });
+    return NextResponse.json({
+      payment: result.payment,
+      replay: result.outcome === "replay",
+    });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unable to process payment." },
