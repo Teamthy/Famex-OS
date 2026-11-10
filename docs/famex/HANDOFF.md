@@ -45,7 +45,7 @@ Read in this order before any work:
 
 | WS | Scope (short) | Status |
 |---|---|---|
-| **REM** | Audit remediation (§4h roadmap: Phases 0–8) | 🟡 **IN PROGRESS — supersedes W-workstreams until Phase 3 is green.** PR #16 (`5ba9a16`) landed the audit package; PR #17 (`b4415d0`) closed the fixable-now launch blockers; PR #18 (`75caee3`) closed **B-01** (dependency gate) + the E2E 429-cascade fix. Phase 1 remainder (§4k): B-09 sidecar fix, B-18 code-ables (dual-scope audit gate, dependabot, digest pinning, migration single-flight), mobile CI unblock. Phase 2 identity/RBAC (**B-06**) merged in §4o (PR #40, `e56c9a6`, deployed READY). Current branch: **Phase 3 finance integrity** — **B-04** (fee-payment replay binding + offline review lifecycle + provider reversals) done in §4p (branch `arena/ab279367-famex-os`, PR pending); next: **B-16** finance lifecycle. |
+| **REM** | Audit remediation (§4h roadmap: Phases 0–8) | 🟡 **IN PROGRESS — supersedes W-workstreams until Phase 3 is green.** PR #16 (`5ba9a16`) landed the audit package; PR #17 (`b4415d0`) closed the fixable-now launch blockers; PR #18 (`75caee3`) closed **B-01** (dependency gate) + the E2E 429-cascade fix. Phase 1 remainder (§4k): B-09 sidecar fix, B-18 code-ables (dual-scope audit gate, dependabot, digest pinning, migration single-flight), mobile CI unblock. Phase 2 identity/RBAC (**B-06**) merged in §4o (PR #40, `e56c9a6`, deployed READY). Phase 3 finance integrity: **B-04** merged (PR #41, main `9eb558a`, §4p, Vercel production READY); **B-16** finance lifecycle done in §4q (branch `arena/7a059201-famex-os`, PR pending); next: **B-17** academic lifecycle transitions. |
 | **W1** | Strip EDUos platform + Ykay arms; single-school boot; brand tokens; Licence & Usage; re-cut audit | ✅ **MERGED into main** — PR #1, 2026-10-14 (commits `a9451cd`, `ccaab0b` + this handoff commit). Gates green at merge; DB gates environment-blocked and stated in the PR. |
 | **W2** | Module registry drives nav/routes/entitlements; settings framework; first-run wizard; `check:modules` | ✅ **merged** — PR #2, merge commit `74f236c` (branch `arena/9abf8aef-famex-os`, 2026-10-14). All CI jobs green except the pre-existing red `Lighthouse budgets` workflow (also red on the W1 merge). |
 | **W3** | Double-entry ledger → Fees & Billing; bursar dashboard; gateway reconciliation | ✅ **stage A MERGED** (PR #4, `e96217a`) and **stage B MERGED** (PR #5, `193ff93`, 2026-10-15): discounts (F5-12), refunds (F5-13), credits (F5-11), transfers (F5-14), gateway settlement (F5-16), ageing + statements (F5-17/18), bursar queues (F5-19), receipts re-brand (F5-04/22) + `verify:ledger` extended to 12 steps. Instalment plans (F5-10) delivered 2026-10-21 (§4e). **Close-out still owed** (§9): real-DB ledger backfill/opening balances, manual adjustments screen (F5-20), cashbook polish (F5-15/F5-23/F5-25), per-reference settlement matching |
@@ -265,7 +265,7 @@ Closed **B-01** (the audit's critical dependency-gate failure) by upgrading to p
   2. **Browser E2E red**: one chromium crash in `02-attendance-camera` restarted the Playwright worker, wiping the in-memory E2E session cache while the server-side login limiter (10/15min/IP, deliberately not weakened for tests) kept its count — every later spec signed in afresh and hit a 429 wall (11 misleading failures from one flake). Fixed at the root: the cache now **persists to disk** under `test-results/` (wiped per run, restored at module load, written after every login) so a worker restart costs zero login attempts; the limiter-burning spec was renamed `99-` → `zz-rate-limit.spec.ts` because `axe-smoke` sorted after `99-` ("deliberately last" was luck); and `tests/lib/e2e-login-budget.test.ts` (3 static guards) keeps persistence, budget < limit, and last-position from regressing. The crash itself was an unreproducible runner flake — retries now cost nothing.
 - CI on this PR: Lint & Type Check, Build, Schema Drift, Load test, Lighthouse, Vercel all **pass**. Mobile (Expo) `expo-doctor` still fails — pre-existing on `main` since at least #16, untouched here (local: typecheck exit 0, expo-doctor 16/18 with the 2 failures being network-dependent checks that can't run in this sandbox). Docker Publish failing in ~9s on `main` is B-18/Phase-1 release-path work for the next slice.
 
-**Register state after this session**: B-01 ✅, B-02 ✅, B-15-web ✅; B-03/B-05/B-07/B-08 partial; **B-06 ✅ merged (PR #40, §4o)**; **B-04 ✅ fixed pending merge (§4p — replay binding, offline review lifecycle, provider reversals)**; open P0s: B-09 (OCI sidecar), B-12 (DB least-privilege/RLS fail-open), B-13 (JSON stores → Postgres), B-14 (privacy/retention); P1: B-16 (finance lifecycle — next), B-17 (promotion/transfer service), B-18 (release hygiene); B-10/B-11/B-19 blocked on infra. Roadmap order: Phase 3 continues with B-16, then remaining Phase 1 items.
+**Register state after this session**: B-01 ✅, B-02 ✅, B-15-web ✅; B-03/B-05/B-07/B-08 partial; **B-06 ✅ merged (PR #40, §4o)**; **B-04 ✅ merged (PR #41, main `9eb558a`, §4p)**; **B-16 ✅ fixed (§4q — numbering sequences, maker-checker, per-reference settlements, payout proof, receipts, due-date fee locks; PR pending from branch `arena/7a059201-famex-os`)**; open P0s: B-09 (OCI sidecar), B-12 (DB least-privilege/RLS fail-open), B-13 (JSON stores → Postgres), B-14 (privacy/retention); P1: B-17 (promotion/transfer lifecycle service — next), B-18 (release hygiene); B-10/B-11/B-19 blocked on infra. Roadmap order: Phase 3 continues with B-17, then remaining Phase 1 items.
 
 ## 4k. Phase 1 remainder — release path: B-09 fixed, B-18 code-ables done, mobile CI unblocked (2026-11-08, branch `arena/e697eea8-famex-os`)
 
@@ -425,12 +425,12 @@ rendering, and the journal's honest empty state.
 
 ## 5. Gates: commands + latest evidence + blockers
 
-Run from repo root. The table below is the **latest actual evidence** from the B-04 finance-integrity session (2026-11-10, branch `arena/ab279367-famex-os`, base `e56c9a6`, §4p); rows not re-listed there were re-run unchanged. Older delivery-gate evidence (2026-10-21, §§4f–4g), the 2026-10-23 audit recheck (§4h), the B-01 session (§4j) and the Vercel-degradation session (§4l) are superseded by it.
+Run from repo root. The table below is the **latest actual evidence** from the B-16 finance-lifecycle session (2026-11-10, branch `arena/7a059201-famex-os`, base `9eb558a`, §4q); rows not re-listed there were re-run unchanged. Older delivery-gate evidence (2026-10-21, §§4f–4g), the 2026-10-23 audit recheck (§4h), the B-01 session (§4j) and the Vercel-degradation session (§4l) are superseded by it.
 
 | Gate | Command | Result (actual output) |
 |---|---|---|
 | typecheck | `npx tsc --noEmit` | exit 0 — no errors (on zod 4.6.7 / next 16.4.5 / sentry 10.78.0) |
-| unit/integration | `npx vitest run` | `Test Files 113 passed (113)` / `Tests 1557 passed (1557)` — includes the 2 mobile files (install `mobile/` deps first, §6), the 101 RBAC-entitlement guards (§4o) and the rewritten 59-test fee-payment-service suite (§4p) |
+| unit/integration | `npx vitest run` | `Test Files 115 passed (115)` / `Tests 1587 passed (1587)` — includes the 2 mobile files (install `mobile/` deps first, §6), the 101 RBAC-entitlement guards (§4o), the rewritten 59-test fee-payment-service suite (§4p) and the 30-test B-16 lifecycle suite (§4q) |
 | lint | `npm run lint` | `✖ 119 problems (0 errors, 119 warnings)` — no errors |
 | formatting | `npx prettier --check .` | `All matched files use Prettier code style!` |
 | dep audit | `npm run audit:deps` | **PASS, dual scope (§4k):** `[root] 0 high, 0 critical, 14 moderate, 4 low` (EXCLUSIONS empty) + `[mobile] 3 high` all excluded via the dated `decode-uri-component` chain entry → `Dependency audit passed (root + mobile)`, exit 0. Closes B-01; adds the mobile gate |
@@ -446,6 +446,7 @@ Run from repo root. The table below is the **latest actual evidence** from the B
 | school-scope coverage (legacy script name) | `npm run check:tenant-coverage` | 14 UNCOVERED = CI baseline (`--max-uncovered 14`), all pre-existing; the WhatsApp webhook is a reviewed provider-global exemption printed on every run (Meta callbacks carry a provider message id, not a school context). This is a `schoolId` integrity ratchet, not evidence of a multi-tenant product surface |
 | ledger loop | `npm run verify:ledger` (`scripts/verify-ledger-loop.ts`) | **Blocked locally** (no Postgres). Runs in CI's `schema-drift` job on Postgres 17 — it is the only place the deferred balance trigger and the kobo reconciliation are proved for real |
 | fee-payment replay loop (B-04) | `npm run verify:fee-replay` (`scripts/verify-fee-payment-replay.ts`) | **Blocked locally** (no Postgres). Runs in CI's `schema-drift` job on Postgres 17 (§4p): concurrent duplicate completions, binding-conflict matrix, attempt state machine, offline review lifecycle, provider reversals + providerEventId dedupe, ledger-to-document reconciliation to the kobo — driving the REAL service, not a mirror |
+| finance lifecycle loop (B-16) | `npm run verify:finance` (`scripts/verify-finance-lifecycle.ts`) | **Blocked locally** (no Postgres). Runs in CI's `schema-drift` job on Postgres 17 (§4q): 40 racing DocumentSequence draws, 12 racing accrual postings, due-date fee-lock schedules, settlement claim/re-claim/over-gross fixtures, refund proof refusal, racing expense approvers, transferId replay, whole-ledger zero-kobo reconciliation — driving the REAL services, not mirrors |
 | DB gates + Browser E2E | `check:drift`, migration apply, `verify:rls` + `verify:rls:coverage`, `verify:admissions`, `verify:ledger`, `db:seed*`, `npx playwright test` | **Passed in GitHub CI on PR #14 (`8704113`) and again on merged `main` (`c586c4a`)**: Schema Drift applied `20261021120000_assignments_virtual_classes` to clean Postgres 17 with no drift and verified RLS/admissions/ledger; Browser E2E seeded FIS and passed the full CBT sit→submit→marked, JSS1A attendance lock, assignment create→submit→grade, and live-class join/launch journeys. Local sandbox still has no Postgres, but the Next production build compiled locally. `check:readiness` still needs a seeded school and has no CI step; run it on staging after migration/seed. |
 | Lighthouse budgets | GitHub `Lighthouse budgets` workflow | Green since PR #12 (`4422fe9`, 2026-10-20): home performance 0.88, LCP 3845ms, TBT 53ms, accessibility 0.96 (medians). The §4n home redesign regressed home LCP to 7950ms on first submit; §4n.1 records the forensics and the fixes at this branch's head. Variance-prone — judge the exact PR head, never a single run. |
 
@@ -656,6 +657,134 @@ Postgres — same standing as `verify:ledger`).
 
 ---
 
+### 4q. B-16 — finance lifecycle controls: sequences, maker-checker, per-reference settlements, payout proof, receipts, due-date fee locks (2026-11-10)
+
+The audit's P1 finance-controls blocker (register §B-16): "Database
+sequences/unique retry-safe numbering, mandatory idempotency keys,
+maker-checker thresholds, per-reference settlement ingestion, payout proof,
+receipt issuance, and due-date-aware fee locks." Branch
+`arena/7a059201-famex-os`, base `9eb558a` (B-04 merged). One migration:
+`20261110140000_finance_lifecycle_controls` (forward-only; existing Expense
+rows default APPROVED — no data rewrite).
+
+1. **Retry-safe numbering — the DocumentSequence pivot.** The original plan
+   (in-transaction P2002 retry loops re-drawing `count()+1`) is IMPOSSIBLE on
+   Postgres: any error aborts the enclosing transaction and every later
+   statement in it fails. Do not re-add retry loops or count-based numbering.
+   Instead a `DocumentSequence` counter table (one row per school+kind,
+   unique `(schoolId, kind)`, seeded by the migration from existing
+   LedgerJournal rows per `journal:<year>` and FeeInvoice rows per
+   `invoice:<termId>`) is incremented INSIDE the posting transaction via
+   `lib/document-sequence.ts` `nextDocumentNumber()` — the row lock serialises
+   concurrent draws, a rollback gives the number back, and collisions cannot
+   occur. `lib/ledger.ts` (journal numbers, `journal:<UTC year of postedAt>` —
+   matches the seed's `date_part('year', postedAt)` on a tz-naive column) and
+   `lib/fee-structures.ts` (invoice numbers inside each per-student tx) both
+   draw from it. `generateInvoices` also gained P2002 discrimination
+   (`p2002Targets`): a unique violation on `(studentProfileId, termId)` still
+   means "already billed" (skip), but an `invoiceNumber` collision now THROWS
+   instead of silently dropping a billable student.
+2. **Zero-total fee structures.** Refused at `upsertFeeStructure` ("must
+   total more than ₦0"), surfaced as a dry-run plan blocker in
+   `planInvoiceGeneration`, and skipped-with-count during generation
+   (`zeroTotalSkipped` in the result; the generate route reports it) — the
+   old behaviour aborted the whole billing run mid-school when the ledger's
+   zero-leg guard met a ₦0 accrual.
+3. **Cash references.** `lib/payment-reference.ts` (`cashReferenceProblem`):
+   4–120 chars, `[A-Za-z0-9][A-Za-z0-9._-]*`, and the server's `YKC-`
+   namespace is reserved (case-insensitive) so bursars cannot mint
+   gateway-looking references. Enforced by the RECORD_CASH route schema.
+4. **Expense maker-checker.** New `lib/expenses.ts`: `recordExpense` creates
+   expenses ≥ `EXPENSE_APPROVAL_THRESHOLD_NAIRA` (₦100,000) as
+   PENDING_APPROVAL with NO journal; `approveExpense` (approver roles
+   ADMIN/DIRECTOR/PROPRIETOR/PRINCIPAL, never the recorder) flips a guarded
+   `updateMany` (PENDING_APPROVAL → APPROVED) and posts the spend journal in
+   the same tx — racing approvers post exactly once, the loser gets "decided
+   by another approver". Below the threshold behaviour is unchanged (document
+   + posting in one tx). The route grew an `action: "APPROVE"` branch (202 on
+   pending create) and pending expenses are excluded from EVERY spend
+   aggregate: expenses GET summary, `finances/overview`, `budgets` groupBy,
+   and `scripts/backfill-ledger.ts`. Voiding a pending expense needs no
+   reversal (there is no journal) — the existing DELETE already handled the
+   journal-absent case. UI: approval badge + approve button + pending count
+   on `/admin/expenses`.
+5. **Credit-transfer idempotency.** `transferId` is now caller-mandatory in
+   the credits route schema (the server's `?? randomUUID()` fallback made
+   every retry a NEW transfer). While wiring the verify script a REAL latent
+   bug surfaced: `transferFeeCredit` had no replay guard — a retried
+   transferId moved the invoice balances a second time while the journal
+   correctly replayed (documents and books drifting apart). Fixed with an
+   in-tx `ledgerJournal.findFirst` on `fee-transfer:<transferId>` returning
+   `{replay: true}` before any mutation. The ledger UI now generates one
+   `crypto.randomUUID()` per transfer INTENT (state), reuses it across
+   retries, and rotates it only after success.
+6. **Per-reference settlement ingestion.** New `lib/settlements.ts`:
+   `recordGatewaySettlement` takes `paymentReferences` from the gateway's own
+   settlement report; every reference must exist, be COMPLETED, be non-CASH
+   and be unclaimed (`SettlementClaimError` with structured issues → 409);
+   the claim is ONE guarded `updateMany` (`settlementId: null` → this
+   settlement) whose count must equal the claim list (a concurrent payout
+   wins and this record rolls back); `matchedKobo` is the SUM OF THE CLAIMED
+   PAYMENTS ×100 (fee docs are naira, GatewaySettlement is kobo) and may not
+   exceed the gross; the charges journal (DR expense:gateway_charges / CR
+   bank) still posts in the same tx; re-recording a reference is a replay.
+   `listUnclaimedPayments` replaces the old ±5-day aggregate: the
+   ledger-to-bank exception report is now a per-payment work list. Schema:
+   `FeePayment.settlementId` (FK SetNull + `(schoolId, settlementId)` index).
+   UI: settlements form grew a references textarea + clickable unclaimed
+   chips on the ledger page.
+7. **Refund payout proof.** `decideRefund` validates `proofReference`
+   (3–120 chars, trimmed) BEFORE opening the tx on APPROVE — stored on
+   `FeeRefund.proofReference` and in the `FEE_REFUND_APPROVED` audit
+   metadata; rejection needs none (nothing moved). Route schema + ledger-page
+   inline proof step ("Approve & pay out" now reveals a required proof input).
+8. **Receipt issuance (admin side).** New `GET /api/admin/fees/receipt?
+   paymentId=` builds the `ReceiptData` server-side from the payment/invoice/
+   student/parent rows (COMPLETED only; Rule 3/10 — the document is a
+   projection of stored facts). `/admin/fees` wires the existing
+   `ReceiptModal` (printable PDF + verification QR via `lib/receipt.ts`) onto
+   every recent-payment row and opens it automatically after recording cash —
+   the methods that most often left without a paper document.
+9. **Due-date-aware fee locks.** `lib/fee-lock.ts` rewritten: an invoice
+   blocks only when `balanceDue > 0` AND status is blocking AND (status is
+   OVERDUE OR `dueDate` is null — payable on issue, the conservative reading
+   — OR `dueDate <= now`). A not-yet-due February instalment no longer locks
+   a child out of CBT in November.
+10. **Tests:** `tests/lib/finance-lifecycle-controls.test.ts` (24: zero-total
+    ×3, maker-checker ×8, settlement claims ×7, refund proof ×3, cash
+    references ×3), `tests/lib/document-sequence.test.ts` (5: draw
+    arithmetic, bootstrap, create race, give-up bound, rethrow), fee-lock
+    due-date pin, and `decideRefund` proof added to the existing
+    fee-adjustments suite. `tests/setup.ts` grew `expense` +
+    `documentSequence` mocks. Suite totals: **115 files / 1587 tests** (was
+    113/1557).
+11. **Verify script:** `scripts/verify-finance-lifecycle.ts`
+    (`npm run verify:finance`, wired as the CI schema-drift job's next step
+    with the same `::error::` re-emission): sections 1–8 per the register's
+    evidence list — concurrency numbering (40 racing draws → 1..40 exactly
+    once; 12 racing accruals → 12 distinct journal numbers), instalment
+    fee-lock schedules, settlement-file reconciliation fixtures (claim,
+    replay, re-claim, ghost, over-gross, partial → PARTIALLY_MATCHED),
+    refund payout proof, expense maker-checker races, transferId replay,
+    ledger-to-bank exception report, whole-ledger zero-kobo reconciliation.
+    Throwaway school, self-cleaning, refuses production URLs.
+12. **Cleanup folded in:** deleted unused `public/home/hero-campus-1200.webp`
+    (only the 750 variants are referenced). NOTE: the earlier session note
+    calling `scripts/lighthouse-report-summary.mjs` dead was WRONG —
+    `.github/workflows/lighthouse.yml:65` uses it; it stays.
+
+**Gates at PR time (actual output):** `npx tsc --noEmit` exit 0 · `npx vitest
+run` 115 files / 1587 tests passed · `npm run lint` 0 errors / 119 warnings ·
+`npx prettier --check .` clean · `npm run audit:brand` 71 findings / 37 files
+(= baseline) · `npm run audit` no blockers, 16 warnings · `check:features`
+OK (32 cited ids resolve) · `check:orphans` 94 pages reachable ·
+`check:dead-ui` clean · `check:modules` agree · `check:boundary` clean ·
+`prisma validate` valid · `npm run build` exit 0 · `verify:finance` +
+`check:drift` + migration apply run in CI (no local Postgres — same standing
+as `verify:ledger` / `verify:fee-replay`).
+
+---
+
 ## 6. Environment recipes (sandbox quirks — do not rediscover)
 
 - **node_modules is snapshot-excluded.** After a sandbox restart: `npm install --ignore-scripts --no-audit --no-fund`, then regenerate Prisma (below). `mobile/node_modules` also needs install for the mobile vitest files to load.
@@ -828,8 +957,12 @@ The **portal/admin reskin is a separate workstream** (founder to schedule); the 
 pages (about, academics, admissions…) keep the existing shell until then. Since then Phase 2 /
 B-06 (role×page×API entitlement matrix) MERGED (PR #40, `e56c9a6`, §4o, Vercel production
 READY), and Phase 3 finance integrity opened: **B-04** (fee-payment replay binding + offline
-review lifecycle + provider reversals) is recorded in §4p on branch
-`arena/ab279367-famex-os`. The next engineering slice is **B-16 — finance lifecycle**.
+review lifecycle + provider reversals) MERGED as PR #41 → main `9eb558a` (Vercel production
+READY/PROMOTED, `dpl_wsH3AAcwzc2TweMTmrQuw8sccLQf`), and **B-16** (finance lifecycle controls —
+DocumentSequence numbering, expense maker-checker, per-reference settlement claims, refund
+payout proof, admin receipts, due-date fee locks) is recorded in §4q on branch
+`arena/7a059201-famex-os`. The next engineering slice is **B-17 — academic lifecycle
+transitions** (single audited promotion/transfer service with dry-run + exception reports).
 
 **Owner actions — the ACTUAL Vercel fix (agent cannot and must not do these):**
 
@@ -866,14 +999,18 @@ review lifecycle + provider reversals) is recorded in §4p on branch
 1. **Phase 2 (identity/RBAC/provisioning)** — ✅ DONE: B-06 role×page×API entitlement
    matrix merged as PR #40 (§4o): `lib/rbac/entitlements.ts` owns homes/groups/areas,
    middleware+login delegate, nav mirrors the API surface, 101 parameterized guards.
-2. **Phase 3 (finance integrity)** — B-04 fee-payment replay binding ✅ DONE (§4p, PR
-   pending): attempt-first state machine, exact-binding replay, guarded atomic transitions,
-   offline review completion/rejection, provider refund/chargeback reversals with
-   `providerEventId` idempotency, `verify:fee-replay` CI gate. **Next: B-16 finance
-   lifecycle** (numbering races, arbitrary cash references, zero-total generation failure,
-   single-actor expense/transfer weaknesses, caller-optional credit-transfer idempotency,
-   aggregate settlement recounting, refund proof gaps, receipt path, due-date fee locks —
-   across `lib/finance.ts`, `lib/ledger.ts`, `lib/fee-adjustments.ts`, `lib/fee-lock.ts`).
+2. **Phase 3 (finance integrity)** — B-04 fee-payment replay binding ✅ MERGED (§4p, PR
+   #41 → `9eb558a`): attempt-first state machine, exact-binding replay, guarded atomic
+   transitions, offline review completion/rejection, provider refund/chargeback reversals
+   with `providerEventId` idempotency, `verify:fee-replay` CI gate. B-16 finance lifecycle
+   ✅ DONE (§4q, this branch's PR): DocumentSequence numbering, zero-total guards, cash
+   reference rules, expense maker-checker, mandatory + replay-guarded credit transfers,
+   per-reference settlement claims, refund payout proof, admin receipt issuance, due-date
+   fee locks, `verify:finance` CI gate. **Next: B-17 academic lifecycle transitions**
+   (promotion/subject rollover gaps, transfers not updating enrolments/subjects/capacity —
+   required fix: single audited lifecycle service with dry-run + exception reports;
+   evidence: promotion/repeat/transfer/withdrawal/re-entry/elective-change/capacity-
+   overflow integration tests across two sessions).
 3. **Owner reminders (not agent work, listed in `docs/RELEASE-GOVERNANCE.md` §2):** protect
    `main` (7 named required checks), enable Dependabot alerts + code/secret scanning, create
    the `production` environment (then a one-line PR wires it into docker-publish), B-12 DB

@@ -172,6 +172,8 @@ describe("refunds (F5-13)", () => {
       schoolId: "school_1",
       refundId: "fref_1",
       approve: true,
+      // B-16: approval is impossible without the payout proof reference.
+      proofReference: "GTB-USSD-99120",
       actor: director,
     });
     expect(result.posted).toBe(true);
@@ -210,7 +212,13 @@ describe("refunds (F5-13)", () => {
     db.feePayment.updateMany.mockResolvedValue({ count: 0 });
     const { decideRefund } = await import("@/lib/fee-adjustments");
     await expect(
-      decideRefund({ schoolId: "school_1", refundId: "fref_1", approve: true, actor: director }),
+      decideRefund({
+        schoolId: "school_1",
+        refundId: "fref_1",
+        approve: true,
+        proofReference: "GTB-USSD-99120",
+        actor: director,
+      }),
     ).rejects.toThrow(/no longer in a refundable state/);
   });
 });

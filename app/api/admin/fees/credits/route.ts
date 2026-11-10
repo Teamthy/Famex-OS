@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { randomUUID } from "crypto";
 import { z } from "zod";
 import { getAdminFinanceContext } from "@/lib/finance";
 import { listOpenCredits, transferFeeCredit } from "@/lib/fee-adjustments";
@@ -13,12 +12,14 @@ export const runtime = "nodejs";
  * Credits are born inside the payment posting (a deliberate overpayment)
  * and spent automatically when the pupil's next invoice is generated.
  * A TRANSFER moves settled money from one invoice to another — one
- * journal, one idempotency key; the caller supplies the transfer id so a
- * retried request is the same transfer, not a second one.
+ * journal, one idempotency key. B-16: the transfer id is MANDATORY (it was
+ * caller-optional, and the server's randomUUID fallback meant a retried
+ * request — a double-click, a flaky network — moved the money twice). The
+ * client generates one id per transfer intent and reuses it across retries.
  */
 const transferSchema = z.object({
   action: z.literal("TRANSFER"),
-  transferId: z.string().min(8).max(64).optional(),
+  transferId: z.string().min(8).max(64),
   fromInvoiceId: z.string().min(1),
   toInvoiceId: z.string().min(1),
   amountNaira: z.number().int().positive(),
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
     const input = transferSchema.parse(body);
     const result = await transferFeeCredit({
       schoolId: context.user.schoolId,
-      transferId: input.transferId ?? randomUUID(),
+      transferId: input.transferId,
       fromInvoiceId: input.fromInvoiceId,
       toInvoiceId: input.toInvoiceId,
       amountNaira: input.amountNaira,

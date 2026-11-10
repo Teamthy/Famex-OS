@@ -403,6 +403,16 @@ type OpenCredit = {
   amountRemainingNaira: number;
   amountNaira: number;
 };
+type UnclaimedPayment = {
+  id: string;
+  reference: string;
+  receiptNumber: string;
+  amountNaira: number;
+  method: string;
+  paidAt: string;
+  studentName: string;
+};
+
 type Settlement = {
   id: string;
   reference: string;
@@ -440,10 +450,18 @@ function StageBPanel({ data, reload }: { data: LedgerResponse; reload: () => voi
   const [sRef, setSRef] = useState("");
   const [sGross, setSGross] = useState("");
   const [sCharges, setSCharges] = useState("");
-  // Transfer form
+  // Transfer form. B-16: one idempotency key per transfer INTENT — reused
+  // across retries of the same click, regenerated after success. The server
+  // no longer invents one (that made a retry a second transfer).
   const [tFrom, setTFrom] = useState("");
   const [tTo, setTTo] = useState("");
   const [tAmount, setTAmount] = useState("");
+  const [tId, setTId] = useState(() => crypto.randomUUID());
+  // B-16: refund payout proof + per-reference settlement claims.
+  const [proofFor, setProofFor] = useState<string | null>(null);
+  const [proof, setProof] = useState("");
+  const [sRefs, setSRefs] = useState("");
+  const [unclaimed, setUnclaimed] = useState<UnclaimedPayment[]>([]);
 
   const refresh = useCallback(async () => {
     const [d, r, c, st] = await Promise.all([
@@ -464,6 +482,7 @@ function StageBPanel({ data, reload }: { data: LedgerResponse; reload: () => voi
     setRefunds((r.refunds ?? []).filter((x: PendingRefund) => x.status === "PENDING"));
     setCredits(c.credits ?? []);
     setSettlements(st.settlements ?? []);
+    setUnclaimed(st.unclaimedPayments ?? []);
   }, []);
 
   useEffect(() => {
@@ -656,9 +675,10 @@ function StageBPanel({ data, reload }: { data: LedgerResponse; reload: () => voi
                   type="button"
                   className={ghostCls}
                   disabled={busy !== ""}
-                  onClick={() =>
-                    void act("/api/admin/fees/refunds", { action: "APPROVE", refundId: r.id }, "ra")
-                  }
+                  onClick={() => {
+                    setProofFor(r.id);
+                    setProof("");
+                  }}
                 >
                   Approve &amp; pay out
                 </button>
@@ -673,6 +693,49 @@ function StageBPanel({ data, reload }: { data: LedgerResponse; reload: () => voi
                   Reject
                 </button>
               </div>
+              {proofFor === r.id && (
+                <div className="flex w-full flex-wrap items-center gap-2 border-t border-[var(--border-subtle)] pt-3">
+                  <input
+                    className={inputCls + " min-w-[16rem] flex-1"}
+                    placeholder="Payout proof — bank/USSD/cheque reference (required)"
+                    value={proof}
+                    onChange={(e) => setProof(e.target.value)}
+                    maxLength={120}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className={btnCls}
+                    disabled={busy !== "" || proof.trim().length < 3}
+                    onClick={() =>
+                      void act(
+                        "/api/admin/fees/refunds",
+                        {
+                          action: "APPROVE",
+                          refundId: r.id,
+                          proofReference: proof.trim(),
+                        },
+                        "ra",
+                      ).then(() => {
+                        setProofFor(null);
+                        setProof("");
+                      })
+                    }
+                  >
+                    Confirm &amp; post refund
+                  </button>
+                  <button
+                    type="button"
+                    className={ghostCls}
+                    onClick={() => {
+                      setProofFor(null);
+                      setProof("");
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
             </div>
           ))}
           <form
@@ -754,6 +817,7 @@ function StageBPanel({ data, reload }: { data: LedgerResponse; reload: () => voi
                   "/api/admin/fees/credits",
                   {
                     action: "TRANSFER",
+                    transferId: tId,
                     fromInvoiceId: tFrom,
                     toInvoiceId: tTo,
                     amountNaira: Number(tAmount),
@@ -763,6 +827,8 @@ function StageBPanel({ data, reload }: { data: LedgerResponse; reload: () => voi
                   setTFrom("");
                   setTTo("");
                   setTAmount("");
+                  // A new intent needs a new key; a retry of THIS one must not.
+                  setTId(crypto.randomUUID());
                 });
               }}
             >
@@ -818,6 +884,28 @@ function StageBPanel({ data, reload }: { data: LedgerResponse; reload: () => voi
             {!settlements.length && (
               <p className="text-[var(--text-muted)]">No payouts recorded yet.</p>
             )}
+            {unclaimed.length > 0 && (
+              <div className="border-t border-[var(--border-subtle)] pt-3">
+                <p className="text-xs text-[var(--text-muted)]">
+                  Unclaimed online payments ({unclaimed.length}) — click a reference to add it to
+                  the payout below:
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {unclaimed.slice(0, 40).map((up) => (
+                    <button
+                      key={up.id}
+                      type="button"
+                      className="rounded-full border border-[var(--border-default)] px-2.5 py-1 text-[10px] font-semibold hover:border-brand-green hover:text-brand-green"
+                      onClick={() =>
+                        setSRefs((v) => (v.trim() ? `${v.trim()}\n${up.reference}` : up.reference))
+                      }
+                    >
+                      {up.reference} · {naira(up.amountNaira)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <form
               className="grid gap-2 border-t border-[var(--border-subtle)] pt-4 sm:grid-cols-4"
               onSubmit={(e) => {
@@ -832,12 +920,17 @@ function StageBPanel({ data, reload }: { data: LedgerResponse; reload: () => voi
                     grossKobo: gross,
                     chargesKobo: charges,
                     netKobo: gross - charges,
+                    paymentReferences: sRefs
+                      .split(/[\s,;]+/)
+                      .map((x) => x.trim())
+                      .filter(Boolean),
                   },
                   "st",
                 ).then(() => {
                   setSRef("");
                   setSGross("");
                   setSCharges("");
+                  setSRefs("");
                 });
               }}
             >
@@ -862,6 +955,14 @@ function StageBPanel({ data, reload }: { data: LedgerResponse; reload: () => voi
                 inputMode="decimal"
                 value={sCharges}
                 onChange={(e) => setSCharges(e.target.value)}
+                required
+              />
+              <textarea
+                className={inputCls + " sm:col-span-3"}
+                rows={2}
+                placeholder="Payment references this payout clears (one per line, from the gateway settlement report)"
+                value={sRefs}
+                onChange={(e) => setSRefs(e.target.value)}
                 required
               />
               <button type="submit" className={btnCls} disabled={busy !== ""}>

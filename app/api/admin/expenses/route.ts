@@ -1,14 +1,21 @@
+import { ExpenseApprovalStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { approveExpense, recordExpense } from "@/lib/expenses";
 import { getAdminFinanceContext } from "@/lib/finance";
 import { reverseJournal } from "@/lib/ledger";
-import { postExpenseSpend } from "@/lib/ledger-postings";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
 import { requireModule } from "@/lib/module-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const approveSchema = z.object({
+  action: z.literal("APPROVE"),
+  expenseId: z.string().min(1),
+  note: z.string().trim().max(500).optional(),
+});
 
 const createSchema = z.object({
   category: z.string().trim().min(2).max(80),
@@ -43,14 +50,17 @@ export async function GET(request: NextRequest) {
     take: limit,
   });
 
-  const total = expenses.reduce((s, e) => s + e.amount, 0);
+  // B-16: pending-approval expenses have posted nothing — counting them as
+  // spending would overstate the ledger side of the net position.
+  const posted = expenses.filter((e) => e.approvalStatus === ExpenseApprovalStatus.APPROVED);
+  const total = posted.reduce((s, e) => s + e.amount, 0);
   const byCategory = new Map<string, number>();
-  for (const e of expenses)
-    byCategory.set(e.category, (byCategory.get(e.category) || 0) + e.amount);
+  for (const e of posted) byCategory.set(e.category, (byCategory.get(e.category) || 0) + e.amount);
 
   return NextResponse.json({
     summary: {
       count: expenses.length,
+      postedCount: posted.length,
       totalSpent: total,
       byCategory: [...byCategory.entries()].map(([category, amount]) => ({ category, amount })),
     },
@@ -64,9 +74,16 @@ export async function GET(request: NextRequest) {
       paymentMethod: e.paymentMethod,
       reference: e.reference,
       notes: e.notes,
+      approvalStatus: e.approvalStatus,
+      recordedByUserId: e.recordedByUserId,
+      approvedByUserId: e.approvedByUserId,
+      approvedAt: e.approvedAt ? e.approvedAt.toISOString() : null,
       voidedAt: e.voidedAt ? e.voidedAt.toISOString() : null,
       voidReason: e.voidReason,
     })),
+    pendingApprovals: expenses.filter(
+      (e) => e.approvalStatus === ExpenseApprovalStatus.PENDING_APPROVAL && !e.voidedAt,
+    ).length,
   });
 }
 
@@ -76,64 +93,75 @@ export async function POST(request: NextRequest) {
   const moduleCheck = await requireModule("expenses");
   if (!moduleCheck.ok) return moduleCheck.response;
 
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const raw = (body ?? {}) as { action?: string };
+
+  // B-16: second-actor approval for expenses at/above the threshold. The
+  // journal posts HERE, not at record time, and never for the recorder.
+  if (raw.action === "APPROVE") {
+    let input: z.infer<typeof approveSchema>;
+    try {
+      input = approveSchema.parse(body);
+    } catch {
+      return NextResponse.json({ error: "Invalid approval request." }, { status: 400 });
+    }
+    try {
+      const result = await approveExpense({
+        schoolId: context.user.schoolId,
+        expenseId: input.expenseId,
+        actor: { userId: context.user.id, role: context.user.role },
+        note: input.note,
+        ipAddress: getClientIp(request),
+      });
+      return NextResponse.json(result);
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "The expense could not be approved." },
+        { status: 400 },
+      );
+    }
+  }
+
   let input: z.infer<typeof createSchema>;
   try {
-    input = createSchema.parse(await request.json());
+    input = createSchema.parse(body);
   } catch {
     return NextResponse.json({ error: "Invalid expense details." }, { status: 400 });
   }
 
-  // The expense document and its ledger posting are one transaction (F5-08):
-  // an expenditure that is not in the books is money the school cannot
-  // explain later, and a posting that fails must not leave the document
-  // behind either.
-  const expense = await prisma.$transaction(async (tx) => {
-    const created = await tx.expense.create({
-      data: {
-        schoolId: context.user.schoolId,
-        category: input.category,
-        title: input.title,
-        amount: input.amount,
-        spentAt: input.spentAt ? new Date(input.spentAt) : new Date(),
-        vendor: input.vendor || null,
-        paymentMethod: input.paymentMethod || null,
-        reference: input.reference || null,
-        notes: input.notes || null,
-        recordedByUserId: context.user.id,
-      },
-    });
-
-    await postExpenseSpend(tx, {
+  // The expense document and (below the maker-checker threshold) its ledger
+  // posting are one transaction (F5-08); at or above the threshold the
+  // document waits PENDING_APPROVAL and the posting lands on approval.
+  let expense;
+  try {
+    expense = await recordExpense({
       schoolId: context.user.schoolId,
-      expenseId: created.id,
-      category: created.category,
-      title: created.title,
-      amountNaira: created.amount,
-      paymentMethod: created.paymentMethod,
-      actorUserId: context.user.id,
-      spentAt: created.spentAt,
+      category: input.category,
+      title: input.title,
+      amount: input.amount,
+      spentAt: input.spentAt ? new Date(input.spentAt) : undefined,
+      vendor: input.vendor,
+      paymentMethod: input.paymentMethod,
+      reference: input.reference,
+      notes: input.notes,
+      actor: { userId: context.user.id, role: context.user.role },
+      ipAddress: getClientIp(request),
     });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "The expense could not be recorded." },
+      { status: 400 },
+    );
+  }
 
-    await tx.auditLog.create({
-      data: {
-        schoolId: context.user.schoolId,
-        actorUserId: context.user.id,
-        action: "EXPENSE_RECORDED",
-        entityType: "Expense",
-        entityId: created.id,
-        ipAddress: getClientIp(request),
-        metadata: {
-          amount: created.amount,
-          category: created.category,
-          title: created.title,
-        },
-      },
-    });
-
-    return created;
-  });
-
-  return NextResponse.json({ expense }, { status: 201 });
+  const pending = expense.approvalStatus === ExpenseApprovalStatus.PENDING_APPROVAL;
+  return NextResponse.json({ expense, pendingApproval: pending }, { status: pending ? 202 : 201 });
 }
 
 /**

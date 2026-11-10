@@ -27,6 +27,7 @@
  * `lib/money.ts` converts once at the posting boundary.
  */
 import { Prisma } from "@prisma/client";
+import { nextDocumentNumber } from "@/lib/document-sequence";
 import { assertIntegerAmount, assertSignedAmount, negate, sumKobo } from "@/lib/money";
 import {
   DEFAULT_CHART_OF_ACCOUNTS,
@@ -309,10 +310,12 @@ export async function postJournal(
 
   const postedAt = input.postedAt ?? new Date();
   const year = postedAt.getUTCFullYear();
-  const sequence =
-    (await client.ledgerJournal.count({
-      where: { schoolId, postedAt: { gte: new Date(Date.UTC(year, 0, 1)) } },
-    })) + 1;
+  // B-16: the number comes from the school's DocumentSequence counter, drawn
+  // inside this transaction — count-based numbering raced and the unique
+  // (schoolId, number) index then refused one of two concurrent postings
+  // outright. The counter row lock serialises numbering; a rolled-back
+  // posting gives its number back.
+  const sequence = await nextDocumentNumber(client, schoolId, `journal:${year}`);
 
   try {
     const journal = await client.ledgerJournal.create({

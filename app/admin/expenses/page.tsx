@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Ban, LoaderCircle, Plus, Wallet } from "lucide-react";
+import { BadgeCheck, Ban, LoaderCircle, Plus, Wallet } from "lucide-react";
 import AdminSidebar from "@/components/AdminSidebar";
 import PortalTopbar from "@/components/PortalTopbar";
 import { useToast } from "@/components/Toast";
@@ -18,6 +18,10 @@ type Expense = {
   /** W3: voided rows are kept and hidden from the live list (Rule 9). */
   voidedAt?: string | null;
   voidReason?: string | null;
+  /** B-16 maker-checker: ₦100,000+ waits for a second actor before posting. */
+  approvalStatus?: "PENDING_APPROVAL" | "APPROVED";
+  recordedByUserId?: string | null;
+  approvedByUserId?: string | null;
 };
 
 const CATEGORIES = [
@@ -38,6 +42,7 @@ export default function AdminExpensesPage() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [pendingApprovals, setPendingApprovals] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -47,6 +52,7 @@ export default function AdminExpensesPage() {
       if (!r.ok) throw new Error(j.error || "Unable to load expenses.");
       setExpenses(j.expenses || []);
       setTotal(j.summary?.totalSpent || 0);
+      setPendingApprovals(j.pendingApprovals || 0);
     } catch (e) {
       toast(e instanceof Error ? e.message : "Unable to load expenses.", "error");
     } finally {
@@ -80,11 +86,41 @@ export default function AdminExpensesPage() {
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Unable to save expense.");
-      toast("Expense recorded.", "success");
+      toast(
+        j.pendingApproval
+          ? "Expense recorded — ₦100,000 and above needs a second approver before it posts."
+          : "Expense recorded.",
+        "success",
+      );
       setOpen(false);
       await load();
     } catch (err) {
       toast(err instanceof Error ? err.message : "Unable to save expense.", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * B-16 maker-checker: approve a pending expense. The approver can never be
+   * the recorder — the server refuses it, and the ledger posting lands only
+   * here, at approval.
+   */
+  async function approveExpense(id: string) {
+    if (!confirm("Approve this expense? It posts to the ledger under your name.")) return;
+    setBusy(true);
+    try {
+      const r = await fetch("/api/admin/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "APPROVE", expenseId: id }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Approval failed.");
+      toast("Expense approved — posted to the ledger.", "success");
+      await load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Approval failed.", "error");
     } finally {
       setBusy(false);
     }
@@ -140,15 +176,27 @@ export default function AdminExpensesPage() {
             </h1>
             <p className="mt-3 text-sm text-white/65">
               Record school spending with categories for budget tracking and net-position reporting.
+              Spending of ₦100,000 or more waits for a second approver — the person who recorded it
+              cannot approve it — and only posts to the ledger on approval.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] px-5 py-3">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
-                Total recorded
+            <div className="flex flex-wrap gap-3">
+              <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] px-5 py-3">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                  Total recorded
+                </div>
+                <div className="font-display text-2xl">₦{total.toLocaleString()}</div>
               </div>
-              <div className="font-display text-2xl">₦{total.toLocaleString()}</div>
+              {pendingApprovals > 0 && (
+                <div className="rounded-2xl border border-yellow-400/50 bg-yellow-400/10 px-5 py-3">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-yellow-600">
+                    Awaiting second approval
+                  </div>
+                  <div className="font-display text-2xl text-yellow-600">{pendingApprovals}</div>
+                </div>
+              )}
             </div>
             <button
               onClick={() => setOpen(true)}
@@ -182,6 +230,11 @@ export default function AdminExpensesPage() {
                       </td>
                       <td className="p-4">
                         <b>{e.title}</b>
+                        {e.approvalStatus === "PENDING_APPROVAL" && (
+                          <span className="ml-2 rounded-full bg-yellow-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-yellow-600">
+                            Awaiting approval — not yet in the ledger
+                          </span>
+                        )}
                         {e.vendor && (
                           <span className="mt-1 block text-xs text-[var(--text-muted)]">
                             {e.vendor}
@@ -191,14 +244,27 @@ export default function AdminExpensesPage() {
                       <td className="p-4">{e.category}</td>
                       <td className="p-4 font-semibold">₦{e.amount.toLocaleString()}</td>
                       <td className="p-4">
-                        <button
-                          onClick={() => void voidExpense(e.id)}
-                          className="text-red-500 hover:text-red-600"
-                          aria-label="Void expense"
-                          title="Void (the record is kept)"
-                        >
-                          <Ban size={16} />
-                        </button>
+                        <div className="flex items-center gap-3">
+                          {e.approvalStatus === "PENDING_APPROVAL" && (
+                            <button
+                              onClick={() => void approveExpense(e.id)}
+                              disabled={busy}
+                              className="text-emerald-600 hover:text-emerald-700 disabled:opacity-50"
+                              aria-label="Approve expense"
+                              title="Approve — posts to the ledger (you cannot approve your own)"
+                            >
+                              <BadgeCheck size={17} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => void voidExpense(e.id)}
+                            className="text-red-500 hover:text-red-600"
+                            aria-label="Void expense"
+                            title="Void (the record is kept)"
+                          >
+                            <Ban size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

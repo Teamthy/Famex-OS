@@ -69,6 +69,24 @@ describe("getStudentFeeLock", () => {
     expect(where.status.in).not.toContain("PAID");
   });
 
+  it("blocks only on DUE balances — a future instalment is a plan, not arrears (B-16)", async () => {
+    mockPrisma.feeInvoice.findMany.mockResolvedValue([]);
+
+    const { getStudentFeeLock } = await import("@/lib/fee-lock");
+    await getStudentFeeLock("school_1", "stu_1");
+
+    const where = mockPrisma.feeInvoice.findMany.mock.calls[0][0].where;
+    // Either OVERDUE, no due date (payable on issue — the conservative
+    // reading), or the due date has passed. A February instalment must not
+    // lock a child out of CBT in November.
+    expect(where.OR).toEqual([
+      { status: "OVERDUE" },
+      { dueDate: null },
+      { dueDate: { lte: expect.any(Date) } },
+    ]);
+    expect(where.OR[2].dueDate.lte.getTime()).toBeLessThanOrEqual(Date.now());
+  });
+
   it("bounds the query so a long fee history cannot blow up the request", async () => {
     mockPrisma.feeInvoice.findMany.mockResolvedValue([]);
 

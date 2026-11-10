@@ -220,6 +220,27 @@ const mockPrisma = {
     update: vi.fn(async () => ({})),
     count: vi.fn(async () => 0),
   },
+  expense: {
+    findFirst: vi.fn(),
+    findMany: vi.fn(async () => []),
+    findUniqueOrThrow: vi.fn(async (args: Record<string, unknown>) => ({
+      id: "exp_1",
+      ...(args.where as object),
+    })),
+    create: vi.fn(async (args: Record<string, unknown>) => ({
+      id: "exp_1",
+      voidedAt: null,
+      recordedByUserId: "user_rec",
+      ...(args.data as object),
+    })),
+    update: vi.fn(async (args: Record<string, unknown>) => ({
+      id: "exp_1",
+      ...(args.data as object),
+    })),
+    updateMany: vi.fn(async () => ({ count: 1 })),
+    aggregate: vi.fn(async () => ({ _sum: { amount: 0 } })),
+    groupBy: vi.fn(async () => []),
+  },
   gatewaySettlement: {
     findMany: vi.fn(async () => []),
     findFirst: vi.fn(),
@@ -267,6 +288,14 @@ const mockPrisma = {
     update: vi.fn(),
     updateMany: vi.fn(),
     count: vi.fn(async () => 0),
+  },
+  // B-16 retry-safe numbering: by default every draw hands out 1 (the row
+  // comes back incremented to 2), matching the old count-mock default of 0.
+  documentSequence: {
+    update: vi.fn(async () => ({ nextValue: 2 })),
+    create: vi.fn(async () => ({ nextValue: 2 })),
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
   },
   gradebookEntry: {
     findFirst: vi.fn(),

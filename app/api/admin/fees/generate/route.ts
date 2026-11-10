@@ -103,6 +103,8 @@ export async function POST(request: NextRequest) {
   const parts = [`${result.created} invoice(s) raised`];
   if (result.skipped) parts.push(`${result.skipped} already invoiced`);
   if (result.blocked) parts.push(`${result.blocked} blocked (no fee structure)`);
+  if (result.zeroTotalSkipped)
+    parts.push(`${result.zeroTotalSkipped} skipped (structure totals ₦0)`);
 
   return NextResponse.json({
     ok: true,
