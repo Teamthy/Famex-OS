@@ -45,7 +45,7 @@ Read in this order before any work:
 
 | WS | Scope (short) | Status |
 |---|---|---|
-| **REM** | Audit remediation (§4h roadmap: Phases 0–8) | 🟡 **IN PROGRESS — supersedes W-workstreams until Phase 3 is green.** PR #16 (`5ba9a16`) landed the audit package; PR #17 (`b4415d0`) closed the fixable-now launch blockers; PR #18 (`75caee3`) closed **B-01** (dependency gate) + the E2E 429-cascade fix. Current branch: **Phase 1 remainder** — B-09 sidecar fix, B-18 code-ables (dual-scope audit gate, dependabot, digest pinning, migration single-flight), mobile CI unblock (§4k). Next: Phase 2 identity/RBAC (B-06) → Phase 3 finance (B-04/B-16). |
+| **REM** | Audit remediation (§4h roadmap: Phases 0–8) | 🟡 **IN PROGRESS — supersedes W-workstreams until Phase 3 is green.** PR #16 (`5ba9a16`) landed the audit package; PR #17 (`b4415d0`) closed the fixable-now launch blockers; PR #18 (`75caee3`) closed **B-01** (dependency gate) + the E2E 429-cascade fix. Current branch: **Phase 1 remainder** — B-09 sidecar fix, B-18 code-ables (dual-scope audit gate, dependabot, digest pinning, migration single-flight), mobile CI unblock (§4k). Phase 2 identity/RBAC (**B-06**) landed in §4o (branch `arena/3460a832-famex-os`); next: Phase 3 finance (B-04/B-16). |
 | **W1** | Strip EDUos platform + Ykay arms; single-school boot; brand tokens; Licence & Usage; re-cut audit | ✅ **MERGED into main** — PR #1, 2026-10-14 (commits `a9451cd`, `ccaab0b` + this handoff commit). Gates green at merge; DB gates environment-blocked and stated in the PR. |
 | **W2** | Module registry drives nav/routes/entitlements; settings framework; first-run wizard; `check:modules` | ✅ **merged** — PR #2, merge commit `74f236c` (branch `arena/9abf8aef-famex-os`, 2026-10-14). All CI jobs green except the pre-existing red `Lighthouse budgets` workflow (also red on the W1 merge). |
 | **W3** | Double-entry ledger → Fees & Billing; bursar dashboard; gateway reconciliation | ✅ **stage A MERGED** (PR #4, `e96217a`) and **stage B MERGED** (PR #5, `193ff93`, 2026-10-15): discounts (F5-12), refunds (F5-13), credits (F5-11), transfers (F5-14), gateway settlement (F5-16), ageing + statements (F5-17/18), bursar queues (F5-19), receipts re-brand (F5-04/22) + `verify:ledger` extended to 12 steps. Instalment plans (F5-10) delivered 2026-10-21 (§4e). **Close-out still owed** (§9): real-DB ledger backfill/opening balances, manual adjustments screen (F5-20), cashbook polish (F5-15/F5-23/F5-25), per-reference settlement matching |
@@ -265,7 +265,7 @@ Closed **B-01** (the audit's critical dependency-gate failure) by upgrading to p
   2. **Browser E2E red**: one chromium crash in `02-attendance-camera` restarted the Playwright worker, wiping the in-memory E2E session cache while the server-side login limiter (10/15min/IP, deliberately not weakened for tests) kept its count — every later spec signed in afresh and hit a 429 wall (11 misleading failures from one flake). Fixed at the root: the cache now **persists to disk** under `test-results/` (wiped per run, restored at module load, written after every login) so a worker restart costs zero login attempts; the limiter-burning spec was renamed `99-` → `zz-rate-limit.spec.ts` because `axe-smoke` sorted after `99-` ("deliberately last" was luck); and `tests/lib/e2e-login-budget.test.ts` (3 static guards) keeps persistence, budget < limit, and last-position from regressing. The crash itself was an unreproducible runner flake — retries now cost nothing.
 - CI on this PR: Lint & Type Check, Build, Schema Drift, Load test, Lighthouse, Vercel all **pass**. Mobile (Expo) `expo-doctor` still fails — pre-existing on `main` since at least #16, untouched here (local: typecheck exit 0, expo-doctor 16/18 with the 2 failures being network-dependent checks that can't run in this sandbox). Docker Publish failing in ~9s on `main` is B-18/Phase-1 release-path work for the next slice.
 
-**Register state after this session**: B-01 ✅ (pending merge), B-02 ✅, B-15-web ✅; B-03/B-05/B-07/B-08 partial; open P0s: B-04 (fee-payment replay binding), B-06 (role×page×API matrix), B-09 (OCI sidecar), B-12 (DB least-privilege/RLS fail-open), B-13 (JSON stores → Postgres), B-14 (privacy/retention); P1: B-16 (finance lifecycle), B-17 (promotion/transfer service), B-18 (release hygiene); B-10/B-11/B-19 blocked on infra. Next in roadmap order: remaining Phase 1 items, then Phase 2 (identity/RBAC), Phase 3 (finance integrity).
+**Register state after this session**: B-01 ✅ (pending merge), B-02 ✅, B-15-web ✅; B-03/B-05/B-07/B-08 partial; **B-06 ✅ fixed pending merge (§4o — role×page×API entitlement matrix)**; open P0s: B-04 (fee-payment replay binding), B-09 (OCI sidecar), B-12 (DB least-privilege/RLS fail-open), B-13 (JSON stores → Postgres), B-14 (privacy/retention); P1: B-16 (finance lifecycle), B-17 (promotion/transfer service), B-18 (release hygiene); B-10/B-11/B-19 blocked on infra. Next in roadmap order: remaining Phase 1 items, then Phase 3 (finance integrity) — Phase 2 landed in §4o.
 
 ## 4k. Phase 1 remainder — release path: B-09 fixed, B-18 code-ables done, mobile CI unblocked (2026-11-08, branch `arena/e697eea8-famex-os`)
 
@@ -494,6 +494,68 @@ regression is diagnosable from the check annotations alone. Sandbox traps logged
 `fuser` does not exist here (kill servers by pid from `ss -ltnp`), and a stale `next start` left on a port
 answers smoke-test curls with the previous build — verify the pid before trusting any local check.
 
+### 4o. B-06 — the role × page × API entitlement matrix (2026-11-10)
+
+The audit's P0 said leadership and operations roles had inconsistent page/API
+authority: `middleware.ts` knew 8 of 13 roles (PROPRIETOR, PRINCIPAL,
+VICE_PRINCIPAL, LIBRARIAN and NURSE fell through to `/student/dashboard`), its
+`/admin` allowlist admitted only four, `app/login/page.tsx` carried its own
+13-role destination map that disagreed with both, `lib/nav.ts` filtered the
+sidebar against an 8-role type, the library API refused the LIBRARIAN and the
+clinic API refused the NURSE (the two roles those arms exist for), and the
+staff screen could create only six of eleven staff roles. A nurse signing in
+was bounced login → `/admin/clinic` → denied → `/student/dashboard` → denied →
+… forever: an unbreakable redirect loop.
+
+What landed:
+
+- **`lib/rbac/entitlements.ts`** — the matrix. One prisma-free table (edge-safe)
+  of `home` (login destination AND middleware bounce target), `areas`
+  (workspaces the role may enter) and `adminNav` per role, plus
+  `canRoleEnterPath` / `areaOfPath` / `homeFor`. Segment-exact area matching:
+  `/admin-admissions` is no longer swallowed by a `startsWith("/admin")`.
+- **Middleware + login read the matrix.** `destinationFor` and the hand-written
+  allow-list are gone; the login page builds its destinations from `homeFor`.
+  Every role's `home` sits inside an area the role may enter, so a bounce
+  always terminates — `tests/lib/rbac-entitlements.test.ts` asserts that
+  property per role forever (the loop's regression test).
+- **Named role groups replace inline lists (Rule 13):** `LIBRARY_ROLES`
+  (includes LIBRARIAN), `CLINIC_ROLES` (includes NURSE; child health is
+  need-to-know, so the proprietor stays out), `INVENTORY_ROLES`,
+  `PEOPLE_ADMIN_ROLE_NAMES` (lib/people.ts maps them onto the Prisma enum),
+  `PROVISIONABLE_STAFF_ROLES` (every staff role; PARENT/STUDENT are enrolment
+  and linkage, never a staff form).
+- **Provisioning:** the staff screen's `<select>` renders
+  `PROVISIONABLE_STAFF_ROLES` with human `ROLE_LABELS` (the enum is never shown
+  raw); `STAFF_ROLES` in lib/people.ts validates all eleven at the API.
+- **Nav alignment:** `AdminNavRole` is now an alias of the one vocabulary;
+  groups carry `roles` (Fees & Billing = ADMIN_WORKSPACE, mirroring its APIs)
+  and items mirror their route's group (Library/Inventory/Clinic/Staff);
+  `resolveNav` returns nothing at all for roles outside the admin workspace,
+  and planned rows respect role gates too.
+- **`scripts/check-modules.ts` carried its own stale 8-role copy** — the very
+  drift that hid the blind spot — and now validates item AND group roles
+  against `ALL_ROLES`.
+
+Evidence: `tests/lib/rbac-entitlements.test.ts` parameterizes every assertion
+over all 13 `UserRole`s (matrix row, area table, direct-URL access, login
+destination, bounce termination, forged-role fallback, nav visibility) —
++101 tests, suite 113 files / 1518 tests green. Forged-cookie smoke against a
+production build: NURSE `/student/dashboard` → 307 `/admin/clinic` (her home,
+enterable), NURSE `/admin/clinic` → 200, STUDENT `/admin` → 307
+`/student/dashboard`, LIBRARIAN `/teacher/dashboard` → 307 `/admin/library`,
+no cookie → `/login?next=…`. Gates: tsc/lint(0 errors)/prettier/build/
+check:modules/orphans/dead-ui/features/boundary/tenant-coverage/audit-brand
+(71 findings / 37 files, baseline unchanged) all clean.
+
+Judgement calls recorded in the matrix header: PROPRIETOR gets admin + staff
+but not the teacher workspace (owner oversight, not classroom presence);
+PRINCIPAL/VICE_PRINCIPAL get the teacher workspace; COORDINATOR homes on
+admissions; BURSAR homes on `/admin/fees`; LIBRARIAN/NURSE enter `/admin`
+because their arms live there while what they may DO inside stays the API's
+call. Remaining roadmap: Phase 3 finance integrity (B-04 replay binding,
+B-16 lifecycle).
+
 ---
 
 ## 6. Environment recipes (sandbox quirks — do not rediscover)
@@ -666,7 +728,9 @@ and a successor commit is recertified.
 sections, four-image hero carousel, editorial paper palette, Ykay-era home components deleted.
 The **portal/admin reskin is a separate workstream** (founder to schedule); the other public
 pages (about, academics, admissions…) keep the existing shell until then. After this merges, the
-next engineering slice remains **Phase 2 / B-06** (role×page×API entitlement matrix).
+next engineering slice is **Phase 3 finance integrity** (B-04 fee-payment replay
+binding, B-16 lifecycle) — Phase 2 / B-06 (role×page×API entitlement matrix)
+landed in §4o on branch `arena/3460a832-famex-os`.
 
 **Owner actions — the ACTUAL Vercel fix (agent cannot and must not do these):**
 

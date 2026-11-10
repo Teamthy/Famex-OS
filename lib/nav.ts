@@ -30,10 +30,24 @@
  * back on (`/admin/licence`), its own settings, or its dashboard.
  */
 import type { ModuleKey, ReleaseTag } from "@/lib/module-registry";
+import { ADMIN_NAV_ROLES } from "@/lib/rbac/entitlements";
+import {
+  ADMIN_WORKSPACE_ROLES,
+  CLINIC_ROLES,
+  INVENTORY_ROLES,
+  LIBRARY_ROLES,
+  PEOPLE_ADMIN_ROLE_NAMES,
+  type Role,
+} from "@/lib/roles";
 
-/** Roles the admin workspace recognises. Mirrors the Prisma UserRole enum. */
-export type AdminNavRole =
-  "ADMIN" | "DIRECTOR" | "BURSAR" | "COORDINATOR" | "HOD" | "TEACHER" | "PARENT" | "STUDENT";
+/**
+ * Roles the admin workspace recognises. B-06: this used to be a hand-written
+ * 8-role union that omitted PROPRIETOR, PRINCIPAL, VICE_PRINCIPAL, LIBRARIAN
+ * and NURSE — so the sidebar's role filter could not even express them. It
+ * is now an alias of the one vocabulary in lib/roles.ts (which tests keep in
+ * step with the Prisma `UserRole` enum).
+ */
+export type AdminNavRole = Role;
 
 /** Icon names, resolved to components inside the sidebar (keeps this file pure). */
 export type NavIcon =
@@ -94,6 +108,13 @@ export type AdminNavGroup = {
   icon: NavIcon;
   /** Module that owns the whole group. `null` = core, always visible. */
   moduleKey: ModuleKey | null;
+  /**
+   * Roles allowed to see anything in this group (B-06). Omit when every
+   * admin-workspace role may. MUST mirror the role guard the group's APIs
+   * enforce — the same rule item-level `roles` already carries, one level
+   * up, for groups whose whole arm belongs to one role set.
+   */
+  roles?: AdminNavRole[];
   items: AdminNavItem[];
 };
 
@@ -171,6 +192,10 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     label: "Fees & Billing",
     icon: "fees",
     moduleKey: "fees",
+    // B-06: the money arm's APIs run on requireModule's default role set
+    // (ADMIN_WORKSPACE_ROLES); the group gate mirrors it so a librarian or
+    // nurse never sees money rows their tokens would 403 on.
+    roles: [...ADMIN_WORKSPACE_ROLES],
     items: [
       live("Collect Fee", "/admin/fees", "W3"),
       live("Generate Invoices", "/admin/fees/generate", "W3"),
@@ -303,7 +328,10 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       live("Students", "/admin/students", "W5"),
       live("Profile completeness", "/admin/students/completeness", "W5"),
-      live("Staff", "/admin/staff", "W5"),
+      // B-06: provisioning is PEOPLE_ADMIN (ADMIN/DIRECTOR/COORDINATOR) in
+      // the staff APIs; the row mirrors that. Staff Attendance next door
+      // stays open to the whole admin workspace, as its API is.
+      live("Staff", "/admin/staff", "W5", { roles: [...PEOPLE_ADMIN_ROLE_NAMES] }),
       planned("Parents", "W11"),
       planned("Alumni", "W11", {
         note: "Alumni keep access to their own records for five years after graduation.",
@@ -355,9 +383,13 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     icon: "operations",
     moduleKey: "operations",
     items: [
-      live("Library", "/admin/library", "W17"),
-      live("Inventory & Assets", "/admin/inventory", "W17"),
-      live("Clinic / Health", "/admin/clinic", "W17"),
+      // B-06: each operations row mirrors its own API's role group
+      // (LIBRARY_ROLES / INVENTORY_ROLES / CLINIC_ROLES) — before the matrix
+      // the library row showed to roles the library API refused, and hid
+      // from the librarian who owns it.
+      live("Library", "/admin/library", "W17", { roles: [...LIBRARY_ROLES] }),
+      live("Inventory & Assets", "/admin/inventory", "W17", { roles: [...INVENTORY_ROLES] }),
+      live("Clinic / Health", "/admin/clinic", "W17", { roles: [...CLINIC_ROLES] }),
     ],
   },
   {
@@ -447,11 +479,19 @@ function moduleFor(item: AdminNavItem, group: AdminNavGroup): ModuleKey | null {
   return group.moduleKey;
 }
 
-function roleAllowed(item: AdminNavItem, role: NavVisibilityInput["role"]): boolean {
-  if (!item.roles || item.roles.length === 0) return true;
+function roleAllowed(
+  item: AdminNavItem,
+  group: AdminNavGroup,
+  role: NavVisibilityInput["role"],
+): boolean {
   // No role known yet (the session is still loading): show the item rather
   // than flashing an incomplete sidebar, and let the route itself refuse.
   if (!role) return true;
+  const groupRoles = group.roles;
+  if (groupRoles && groupRoles.length > 0 && !groupRoles.includes(role as AdminNavRole)) {
+    return false;
+  }
+  if (!item.roles || item.roles.length === 0) return true;
   return item.roles.includes(role as AdminNavRole);
 }
 
@@ -473,6 +513,11 @@ export function resolveNav(
   role?: NavVisibilityInput["role"],
   groups: AdminNavGroup[] = ADMIN_NAV_GROUPS,
 ): ResolvedNavGroup[] {
+  // B-06: roles outside the admin workspace never get an admin sidebar, not
+  // even the core groups — the matrix decides this, not the caller. (The
+  // middleware keeps those roles out of /admin entirely; this is the belt to
+  // its braces so a future layout cannot leak the sidebar into a portal.)
+  if (role && !ADMIN_NAV_ROLES.includes(role as Role)) return [];
   const enabledSet = new Set(enabled);
 
   return groups
@@ -480,8 +525,9 @@ export function resolveNav(
       const items = group.items.filter((item) => {
         const moduleKey = moduleFor(item, group);
         if (moduleKey !== null && !enabledSet.has(moduleKey)) return false;
-        if (item.status === "planned") return true;
-        return roleAllowed(item, role);
+        // B-06: role gating applies to planned rows too — a roadmap row for
+        // an arm whose API will never admit you is noise, not a roadmap.
+        return roleAllowed(item, group, role);
       });
       return { ...group, items, hasLiveItems: items.some((item) => item.status === "live") };
     })

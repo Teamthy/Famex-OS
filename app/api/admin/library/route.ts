@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireModule } from "@/lib/module-guard";
 import { UserRole } from "@prisma/client";
+import { LIBRARY_ROLES } from "@/lib/roles";
 import { addBook, catalogueStats, listBooks, listLoans, loanBook, returnBook } from "@/lib/library";
 import { getClientIp } from "@/lib/requests";
 import { prisma } from "@/lib/prisma";
@@ -10,13 +11,12 @@ export const dynamic = "force-dynamic";
 
 async function adminCtx() {
   // Rule 13: auth → role → module entitlement (Operations owns the library).
-  return requireModule("operations", [
-    UserRole.ADMIN,
-    UserRole.DIRECTOR,
-    UserRole.COORDINATOR,
-    UserRole.HOD,
-    UserRole.TEACHER,
-  ]);
+  // B-06: the role list is the named LIBRARY_ROLES group — the old inline
+  // list omitted LIBRARIAN, the one role the arm exists for.
+  return requireModule(
+    "operations",
+    LIBRARY_ROLES.map((role) => UserRole[role]),
+  );
 }
 
 export async function GET() {

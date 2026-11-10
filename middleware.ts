@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveAllowedOrigin } from "@/lib/cors";
 import { buildContentSecurityPolicy, storageUploadOrigin } from "@/lib/csp";
 import { mustCompletePasswordChange, PASSWORD_CHANGE_REQUIRED } from "@/lib/password-gate";
+import { canRoleEnterPath, homeFor } from "@/lib/rbac/entitlements";
 
 const protectedPrefixes = [
   "/admin",
@@ -26,11 +27,16 @@ const protectedPrefixes = [
 const publicPaths = ["/staff/activate"];
 const encoder = new TextEncoder();
 
+/**
+ * Where a denied role is bounced to. B-06: this used to be a hand-written
+ * 8-role map that sent PROPRIETOR/PRINCIPAL/VICE_PRINCIPAL/LIBRARIAN/NURSE to
+ * /student/dashboard — a workspace that then denied them too, forever. The
+ * matrix in lib/rbac/entitlements.ts is now the only place this is decided,
+ * and every role's `home` sits inside an area the role may enter, so a
+ * bounce always terminates.
+ */
 function destinationFor(role: string) {
-  if (["ADMIN", "DIRECTOR", "COORDINATOR", "BURSAR"].includes(role)) return "/admin";
-  if (["TEACHER", "HOD"].includes(role)) return "/teacher/dashboard";
-  if (role === "PARENT") return "/parent/dashboard";
-  return "/student/dashboard";
+  return homeFor(role);
 }
 
 /**
@@ -179,21 +185,11 @@ async function routeRequest(request: NextRequest) {
       return NextResponse.redirect(new URL("/change-password", request.url));
     }
 
+    // B-06: the role × area allow-list is the entitlement matrix, not a
+    // hand-written copy here. `/change-password` stays open to every role —
+    // it is the page the password gate sends people to.
     const changePasswordPath = pathname.startsWith("/change-password");
-    const adminPath = pathname.startsWith("/admin") || pathname.startsWith("/admin-admissions");
-    const teacherPath = pathname.startsWith("/teacher");
-    const parentPath = pathname.startsWith("/parent");
-    const studentPath = pathname.startsWith("/student");
-    const staffPath = pathname.startsWith("/staff");
-
-    const allowed =
-      changePasswordPath ||
-      (adminPath && ["ADMIN", "DIRECTOR", "COORDINATOR", "BURSAR"].includes(role)) ||
-      (teacherPath && ["TEACHER", "HOD", "ADMIN", "DIRECTOR"].includes(role)) ||
-      (parentPath && role === "PARENT") ||
-      (studentPath && role === "STUDENT") ||
-      (staffPath &&
-        ["TEACHER", "HOD", "ADMIN", "DIRECTOR", "COORDINATOR", "BURSAR"].includes(role));
+    const allowed = changePasswordPath || canRoleEnterPath(role, pathname);
 
     if (!allowed) {
       logDenial(

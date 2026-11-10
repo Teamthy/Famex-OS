@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import AdminSidebar from "@/components/AdminSidebar";
 import PortalTopbar from "@/components/PortalTopbar";
 import { KeyRound, Mail, RotateCcw, Trash2, UserPlus, Users, X } from "lucide-react";
+import { PROVISIONABLE_STAFF_ROLES, ROLE_LABELS } from "@/lib/roles";
 
 type Staff = {
   id: string;
@@ -16,7 +17,14 @@ type Staff = {
 };
 type Invite = { id: string; name: string; email: string; role: string; expiresAt: string };
 
-const roles = ["ADMIN", "DIRECTOR", "BURSAR", "COORDINATOR", "HOD", "TEACHER"];
+/**
+ * B-06: the provisionable roles come from the same prisma-free list the
+ * matrix and the staff API validate against (lib/roles.ts) — this <select>
+ * used to offer six of eleven staff roles, so five could never be created.
+ * Options show human labels (the enum is never shown raw to a user) while
+ * submitting the enum value the API expects.
+ */
+const roles = PROVISIONABLE_STAFF_ROLES;
 
 export default function StaffPage() {
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -271,7 +279,9 @@ export default function StaffPage() {
                   className="mt-2 w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-sm normal-case"
                 >
                   {roles.map((x) => (
-                    <option key={x}>{x}</option>
+                    <option key={x} value={x}>
+                      {ROLE_LABELS[x]}
+                    </option>
                   ))}
                 </select>
               </label>
