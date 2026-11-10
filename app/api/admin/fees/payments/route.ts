@@ -15,6 +15,7 @@ import {
 import { getClientIp } from "@/lib/requests";
 import { requireModule } from "@/lib/module-guard";
 import { isOfflineReplay } from "@/lib/fee-guard";
+import { cashReferenceProblem } from "@/lib/payment-reference";
 
 export const runtime = "nodejs";
 
@@ -23,7 +24,17 @@ const cashSchema = z.object({
   invoiceId: z.string().min(1),
   amount: z.number().int().positive(),
   carryExcessAsCredit: z.boolean().optional(),
-  reference: z.string().trim().min(4).max(120).optional(),
+  // B-16: cash references were arbitrary free text — a bursar (or a crafted
+  // request) could type a gateway-looking reference and muddy reconciliation
+  // between Paystack receipts and cash. Rules live in lib/payment-reference.ts.
+  reference: z
+    .string()
+    .trim()
+    .superRefine((value, ctx) => {
+      const problem = cashReferenceProblem(value);
+      if (problem) ctx.addIssue({ code: "custom", message: problem });
+    })
+    .optional(),
   note: z.string().trim().max(500).optional(),
 });
 

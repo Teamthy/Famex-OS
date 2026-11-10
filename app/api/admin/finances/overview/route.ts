@@ -43,7 +43,8 @@ export async function GET() {
     }),
     prisma.expense.aggregate({
       // Rule 9 / W3: voided expenditures are excluded from every figure.
-      where: { schoolId, voidedAt: null },
+      // B-16: so are pending-approval ones — they have posted nothing yet.
+      where: { schoolId, voidedAt: null, approvalStatus: "APPROVED" },
       _sum: { amount: true },
     }),
     prisma.feeInvoice.aggregate({
@@ -72,7 +73,7 @@ export async function GET() {
       },
     }),
     prisma.expense.findMany({
-      where: { schoolId, voidedAt: null },
+      where: { schoolId, voidedAt: null, approvalStatus: "APPROVED" },
       orderBy: { spentAt: "desc" },
       take: 200,
       select: { id: true, spentAt: true, amount: true, category: true, title: true, vendor: true },

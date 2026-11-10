@@ -63,7 +63,7 @@
 
 ## B-04 — Fee payment reference replay is not bound to the intended attempt
 
-- **Severity/status:** P0 / **FIXED** — branch `arena/ab279367-famex-os` (PR pending, 2026-11-10)
+- **Severity/status:** P0 / **FIXED** — merged as PR #41 → main `9eb558a` (2026-11-10); Vercel production READY/PROMOTED (`dpl_wsH3AAcwzc2TweMTmrQuw8sccLQf`)
 - **Fix:** `lib/fee-payment-service.ts` rewritten as an explicit state machine
   returning `posted | replay | conflict` (codes `REFERENCE_BOUND_ELSEWHERE`,
   `ATTEMPT_ALREADY_PAID`, `ATTEMPT_NOT_POSTABLE`, `ATTEMPT_FIELD_MISMATCH`;
@@ -279,7 +279,59 @@
 
 ## B-16 — Finance operations still contain material reconciliation and control gaps
 
-- **Severity/status:** P1 / FAIL
+- **Severity/status:** P1 / **FIXED** — branch `arena/7a059201-famex-os` (PR pending, 2026-11-10; HANDOFF §4q)
+- **Fix (2026-11-10):** every sub-defect closed at service level, driven by
+  migration `20261110140000_finance_lifecycle_controls`:
+  - *Retry-safe numbering.* New `DocumentSequence` counter table (one row per
+    school+kind, seeded from existing journals/invoices) drawn via
+    `lib/document-sequence.ts` INSIDE the posting transaction — the row lock
+    serialises concurrent draws and a rollback returns the number. In-tx
+    P2002 retry loops were rejected as a design (an errored Postgres
+    transaction is aborted and cannot continue). Journal numbers
+    (`journal:<year>`, `lib/ledger.ts`) and invoice numbers
+    (`invoice:<termId>`, `lib/fee-structures.ts`) both draw from it;
+    `generateInvoices` now discriminates P2002 targets — an invoiceNumber
+    collision throws instead of masquerading as "student already billed".
+  - *Zero-total structures.* Refused at `upsertFeeStructure`, surfaced as a
+    dry-run plan blocker, and skipped-with-count (`zeroTotalSkipped`) during
+    generation instead of aborting the run mid-school.
+  - *Cash references.* `lib/payment-reference.ts`: safe charset, 4–120 chars,
+    server's `YKC-` namespace reserved; enforced by the payments route schema.
+  - *Expense maker-checker.* New `lib/expenses.ts`: expenses ≥ ₦100,000 are
+    created PENDING_APPROVAL and post NO journal until a second actor
+    (approver role ≠ recorder) approves; approval is a guarded `updateMany`
+    so racing approvers post exactly once. Pending expenses are excluded
+    from every spend aggregate (expenses GET summary, finances overview,
+    budgets, ledger backfill).
+  - *Credit-transfer idempotency.* `transferId` is caller-mandatory (route
+    schema; server-side `randomUUID` fallback removed) AND `transferFeeCredit`
+    gained a replay guard — previously a retried transferId re-moved the
+    invoice balances while the journal (correctly) replayed. The ledger UI
+    generates one key per intent and rotates it only after success.
+  - *Per-reference settlement ingestion.* New `lib/settlements.ts`: a payout
+    claims named payment references exactly once (all-or-nothing guarded
+    `updateMany`; count must equal the claim list), `matchedKobo` is the
+    CLAIMED sum ×100 (never a ±5-day aggregate recount), over-gross claims
+    and ghost/cash/incomplete/already-claimed references refuse with
+    structured 409 issues; the unmatched work list is per-payment.
+  - *Refund payout proof.* `decideRefund` requires `proofReference`
+    (bank/USSD/cheque) on APPROVE — stored on the refund and in the audit
+    metadata; rejection needs none. Ledger page has an inline proof step.
+  - *Receipt issuance (admin side).* `GET /api/admin/fees/receipt` builds
+    `ReceiptData` server-side from the payment/invoice rows; the admin fees
+    page wires the existing `ReceiptModal` (printable PDF + verification QR)
+    onto every recent payment and offers it immediately after recording cash.
+  - *Due-date-aware fee locks.* `lib/fee-lock.ts` blocks only on OVERDUE
+    status, null due date (payable on issue), or a passed due date — a
+    not-yet-due instalment never locks a pupil out of CBT.
+- **Regression evidence:** `tests/lib/finance-lifecycle-controls.test.ts` (24)
+  + `tests/lib/document-sequence.test.ts` (5) + the due-date fee-lock pin;
+  `scripts/verify-finance-lifecycle.ts` (`npm run verify:finance`, CI
+  schema-drift job on real Postgres 17) drives the REAL services through
+  40 racing sequence draws, 12 racing accrual postings, instalment fee-lock
+  schedules, settlement-file claim/re-claim/over-gross fixtures, refund
+  proof refusal, racing expense approvers, transferId replay, and a
+  whole-ledger zero-kobo reconciliation.
 - **Evidence:** Beyond B-04, source review found count-based invoice/journal numbering races, arbitrary cash references, zero-total fee-structure generation failure, single-actor expense/transfer weaknesses, caller-optional credit-transfer idempotency, aggregate settlement recounting, refund proof gaps, no automatic/downloadable receipt path, and fee-lock behavior that can block CBT for not-yet-due instalment balances across `lib/finance.ts`, `lib/ledger.ts`, `lib/fee-adjustments.ts`, `lib/fee-lock.ts`, and admin/parent finance routes.
 - **Impact:** Duplicate numbers, unexplained balances, weak segregation of duties, incorrect student blocking, and difficult month-end reconciliation.
 - **Required fix:** Database sequences/unique retry-safe numbering, mandatory idempotency keys, maker-checker thresholds, per-reference settlement ingestion, payout proof, receipt issuance, and due-date-aware fee locks.

@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CreditCard, LoaderCircle, Search, Send } from "lucide-react";
+import { CreditCard, FileText, LoaderCircle, Search, Send } from "lucide-react";
 import AdminSidebar from "@/components/AdminSidebar";
 import PortalTopbar from "@/components/PortalTopbar";
 import InstalmentPlansPanel from "@/components/InstalmentPlansPanel";
+import ReceiptModal from "@/components/ReceiptModal";
+import type { ReceiptData } from "@/lib/receipt";
 import { useToast } from "@/components/Toast";
 
 type FeesOverviewResponse = {
@@ -55,6 +57,28 @@ export default function AdminFeesPage() {
   const [cashInvoiceId, setCashInvoiceId] = useState("");
   const [cashAmount, setCashAmount] = useState("");
   const [cashBusy, setCashBusy] = useState(false);
+  // B-16: receipt issuance for the bursary — every completed payment can
+  // produce the same printable document parents get after paying online.
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  const [showReceipt, setShowReceipt] = useState(false);
+
+  const openReceipt = useCallback(
+    async (paymentId: string) => {
+      try {
+        const r = await fetch(
+          `/api/admin/fees/receipt?paymentId=${encodeURIComponent(paymentId)}`,
+          { cache: "no-store" },
+        );
+        const body = await r.json();
+        if (!r.ok) throw new Error(body.error || "Unable to build the receipt.");
+        setReceipt({ ...body.receipt, date: new Date(body.receipt.date).toLocaleDateString() });
+        setShowReceipt(true);
+      } catch (e) {
+        toast(e instanceof Error ? e.message : "Unable to build the receipt.", "error");
+      }
+    },
+    [toast],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -127,6 +151,9 @@ export default function AdminFeesPage() {
       setCashInvoiceId("");
       setCashAmount("");
       await load();
+      // Cash is the method that most often left without a paper document —
+      // offer the receipt immediately (B-16).
+      if (body.payment?.id) await openReceipt(body.payment.id);
     } catch (err) {
       toast(err instanceof Error ? err.message : "Unable to record cash.", "error");
     } finally {
@@ -354,9 +381,20 @@ export default function AdminFeesPage() {
                           {p.student.displayName} · {p.receiptNumber}
                         </div>
                       </div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-brand-green">
-                        {p.method}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-brand-green">
+                          {p.method}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => void openReceipt(p.id)}
+                          className="text-[var(--text-muted)] hover:text-brand-green"
+                          aria-label="Issue receipt"
+                          title="Issue receipt (printable, with verification QR)"
+                        >
+                          <FileText size={16} />
+                        </button>
+                      </div>
                     </li>
                   ))}
                   {!data?.recentPayments?.length && (
@@ -370,6 +408,8 @@ export default function AdminFeesPage() {
           <InstalmentPlansPanel />
         </section>
       </main>
+
+      <ReceiptModal open={showReceipt} data={receipt} onClose={() => setShowReceipt(false)} />
     </>
   );
 }

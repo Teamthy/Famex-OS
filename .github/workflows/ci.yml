@@ -203,6 +203,37 @@ jobs:
         env:
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
 
+      - name: Verify finance lifecycle controls (B-16)
+        # B-16 (2026-10-23 audit, P1): drives the REAL finance services
+        # against this database — 40 racing DocumentSequence draws inside
+        # live transactions (numbers serialise, never collide), 12 racing
+        # accrual postings, due-date-aware fee locks (a future instalment
+        # never blocks CBT), per-reference settlement claims (a payment can
+        # be claimed exactly once; over-gross and ghost references refuse),
+        # refund payout proof (approval without proof writes nothing),
+        # expense maker-checker (₦100,000+ posts only on a second actor's
+        # approval; racing approvers post once), and credit-transfer
+        # idempotency (a replayed transferId never moves balances twice) —
+        # then reconciles the whole ledger to zero kobo. Unit tests mock
+        # Prisma and cannot prove the database actually serialises any of it.
+        #
+        # Same `::error::` re-emission as verify:ledger so failures are
+        # readable from the annotations API.
+        run: |
+          set +e
+          npm run verify:finance > /tmp/finance.log 2>&1
+          status=$?
+          cat /tmp/finance.log
+          if [ $status -ne 0 ]; then
+            echo "::error::finance lifecycle verification failed (exit $status)"
+            grep -E "FAIL|Error|error:|error " /tmp/finance.log | head -30 | while IFS= read -r line; do
+              echo "::error title=finance::$line"
+            done
+          fi
+          exit $status
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
   e2e:
     name: Browser E2E
     runs-on: ubuntu-latest

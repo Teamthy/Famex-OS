@@ -295,10 +295,23 @@ export async function decideRefund(input: {
   schoolId: string;
   refundId: string;
   approve: boolean;
+  /**
+   * B-16 payout proof: the bank/USSD/cheque reference the refund money
+   * actually left under. Mandatory on approval — an approved refund with no
+   * proof is an unexplained balance at month-end. Not taken on rejection
+   * (nothing moved).
+   */
+  proofReference?: string | null;
   actor: AdjustmentActor;
 }) {
   if (input.approve && !APPROVER_ROLES.has(input.actor.role)) {
     throw new Error("Only an admin or director can approve a refund.");
+  }
+  const proof = (input.proofReference ?? "").trim();
+  if (input.approve && (proof.length < 3 || proof.length > 120)) {
+    throw new Error(
+      "Approval requires the payout proof reference — the bank, USSD or cheque number the refund left under.",
+    );
   }
 
   return prisma.$transaction(async (tx) => {
@@ -366,6 +379,7 @@ export async function decideRefund(input: {
         status: FeeRefundStatus.APPROVED,
         approvedByUserId: input.actor.userId,
         approvedAt: new Date(),
+        proofReference: proof,
       },
     });
 
@@ -381,6 +395,7 @@ export async function decideRefund(input: {
           reference: payment.reference,
           amountNaira: refund.amountNaira,
           requestedByUserId: refund.requestedByUserId,
+          proofReference: proof,
         },
       },
     });
@@ -405,6 +420,24 @@ export async function transferFeeCredit(input: {
   }
 
   return prisma.$transaction(async (tx) => {
+    // B-16 replay guard: the journal's idempotency key makes the POSTING
+    // replay-safe, but without this check a retried transferId would move
+    // the invoice balances a second time while the ledger (correctly) stood
+    // still — documents and books drifting apart. A replay returns the same
+    // shape and touches nothing.
+    const existing = await tx.ledgerJournal.findFirst({
+      where: { schoolId: input.schoolId, idempotencyKey: `fee-transfer:${input.transferId}` },
+      select: { id: true },
+    });
+    if (existing) {
+      return {
+        fromInvoiceId: input.fromInvoiceId,
+        toInvoiceId: input.toInvoiceId,
+        amountNaira: input.amountNaira,
+        replay: true as const,
+      };
+    }
+
     const [from, to] = await Promise.all([
       tx.feeInvoice.findFirst({ where: { id: input.fromInvoiceId, schoolId: input.schoolId } }),
       tx.feeInvoice.findFirst({ where: { id: input.toInvoiceId, schoolId: input.schoolId } }),
@@ -478,7 +511,12 @@ export async function transferFeeCredit(input: {
         },
       },
     });
-    return { fromInvoiceId: from.id, toInvoiceId: to.id, amountNaira: input.amountNaira };
+    return {
+      fromInvoiceId: from.id,
+      toInvoiceId: to.id,
+      amountNaira: input.amountNaira,
+      replay: false as const,
+    };
   });
 }
 

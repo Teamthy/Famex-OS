@@ -1,6 +1,7 @@
 import { FeeCreditStatus, FeeInvoiceStatus, Prisma, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { postCreditApplication, postInvoiceAccrual } from "@/lib/ledger-postings";
+import { nextDocumentNumber } from "@/lib/document-sequence";
 import { computeInvoiceStatus } from "@/lib/finance";
 
 /**
@@ -60,6 +61,14 @@ export function buildInvoiceNumber(
   return `YKC-INV-${sessionLabel.replace("/", "-")}-T${termIndex}-${String(sequence).padStart(4, "0")}`;
 }
 
+/** Which index a P2002 came from, across Prisma's shapes for `meta.target`. */
+function p2002Targets(error: Prisma.PrismaClientKnownRequestError): string[] {
+  const target = (error.meta as { target?: unknown } | undefined)?.target;
+  if (Array.isArray(target)) return target.map(String);
+  if (typeof target === "string") return [target];
+  return [];
+}
+
 export async function upsertFeeStructure(params: {
   schoolId: string;
   termId: string;
@@ -84,6 +93,16 @@ export async function upsertFeeStructure(params: {
       mandatory: item.mandatory ?? true,
       sortOrder: item.sortOrder ?? index + 1,
     }));
+
+  // B-16: a zero-total structure used to be created happily and then detonate
+  // mid billing-run — the ₦0 accrual is refused by the ledger's zero-leg
+  // guard, aborting generation partway through a school. There is also
+  // nothing to bill. Refuse it at creation, with the reason.
+  if (structureTotal(items) <= 0) {
+    throw new Error(
+      "A fee structure must total more than ₦0 — add at least one priced item before saving.",
+    );
+  }
 
   return prisma.$transaction(async (tx) => {
     const existing = await tx.feeStructure.findUnique({
@@ -200,9 +219,13 @@ export async function planInvoiceGeneration(params: {
       amount: structure ? structureTotal(structure.items) : 0,
       // A missing structure is surfaced, never guessed at. Billing a student
       // zero because nobody set their level's fees is worse than refusing.
-      blocker: structure
-        ? null
-        : `No fee structure for ${level} in ${term.label}. Create one first.`,
+      // B-16: the same holds for a structure that totals ₦0 — surfaced as a
+      // blocker in the dry-run plan instead of failing the billing run.
+      blocker: !structure
+        ? `No fee structure for ${level} in ${term.label}. Create one first.`
+        : structureTotal(structure.items) <= 0
+          ? `The ${level} fee structure totals ₦0 — price its items before billing.`
+          : null,
       alreadyInvoiced,
     };
   });
@@ -244,6 +267,8 @@ export async function generateInvoices(params: {
   created: number;
   skipped: number;
   blocked: number;
+  /** B-16: billable rows whose structure totals ₦0 — skipped, never crashed. */
+  zeroTotalSkipped: number;
   totalBilled: number;
   creditsAppliedNaira: number;
 }> {
@@ -255,6 +280,7 @@ export async function generateInvoices(params: {
       created: 0,
       skipped: plan.summary.skipped,
       blocked: plan.summary.blocked,
+      zeroTotalSkipped: 0,
       totalBilled: 0,
       creditsAppliedNaira: 0,
     };
@@ -266,10 +292,6 @@ export async function generateInvoices(params: {
   });
   const byLevel = new Map(structures.map((s) => [s.level, s]));
 
-  // Continue the term's numbering rather than restarting at 1 — otherwise a
-  // second run collides with the first run's invoice numbers.
-  const issued = await prisma.feeInvoice.count({ where: { termId: params.termId } });
-
   const links = await prisma.parentStudentLink.findMany({
     where: { studentProfileId: { in: toBill.map((r) => r.studentProfileId) }, isPrimary: true },
     select: { studentProfileId: true, parentProfileId: true },
@@ -279,7 +301,7 @@ export async function generateInvoices(params: {
   let creditsApplied = 0;
   let created = 0;
   let totalBilled = 0;
-  let sequence = issued;
+  let zeroTotalSkipped = 0;
 
   // Chunked rather than one giant transaction: a whole-school run can be
   // hundreds of invoices, and a single transaction that large risks the same
@@ -289,8 +311,14 @@ export async function generateInvoices(params: {
     const structure = byLevel.get(row.level);
     if (!structure) continue;
 
-    sequence += 1;
     const total = structureTotal(structure.items);
+    // B-16 defence-in-depth: the plan already blocks ₦0 structures, and
+    // upsert refuses to create them — but a ₦0 accrual would abort the run
+    // mid-school, so generation skips (and reports) rather than crashes.
+    if (total <= 0) {
+      zeroTotalSkipped += 1;
+      continue;
+    }
     const dueDate = structure.dueInDays
       ? new Date(Date.now() + structure.dueInDays * 86_400_000)
       : null;
@@ -302,6 +330,13 @@ export async function generateInvoices(params: {
       // bugs aside, the only way to guarantee they agree is to write them
       // together.
       await prisma.$transaction(async (tx) => {
+        // B-16: the number is drawn from the school's DocumentSequence
+        // counter INSIDE this transaction. Count-based numbering raced:
+        // two concurrent runs drew the same invoiceNumber, and the P2002
+        // was indistinguishable from "student already billed" — silently
+        // skipping a billable student. The counter row lock serialises
+        // numbering and rolls back with a failed posting.
+        const sequence = await nextDocumentNumber(tx, params.schoolId, `invoice:${params.termId}`);
         const invoice = await tx.feeInvoice.create({
           data: {
             schoolId: params.schoolId,
@@ -395,9 +430,16 @@ export async function generateInvoices(params: {
       created += 1;
       totalBilled += total;
     } catch (error) {
-      // P2002 = someone else already raised this student's invoice. That is
-      // the desired outcome, not a failure — skip and carry on.
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      // P2002 on (studentProfileId, termId) = someone else already raised
+      // this student's invoice — the desired outcome, skip and carry on.
+      // A collision on invoiceNumber must NOT be read as "already billed"
+      // (that was the silent-skip bug); with sequence numbering it cannot
+      // happen, so if it ever does, it surfaces as the failure it is.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002" &&
+        !p2002Targets(error).some((target) => target.includes("invoiceNumber"))
+      ) {
         continue;
       }
       throw error;
@@ -426,6 +468,7 @@ export async function generateInvoices(params: {
     created,
     skipped: plan.summary.skipped,
     blocked: plan.summary.blocked,
+    zeroTotalSkipped,
     totalBilled,
     creditsAppliedNaira: creditsApplied,
   };

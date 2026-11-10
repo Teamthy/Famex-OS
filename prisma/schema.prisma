@@ -415,6 +415,7 @@ model School {
   feeRefunds              FeeRefund[]
   feeCredits              FeeCredit[]
   gatewaySettlements      GatewaySettlement[]
+  documentSequences       DocumentSequence[]
   staffAttendanceEvents   StaffAttendanceEvent[]
   studentClockEvents      StudentClockEvent[]
   branding                TenantBranding?
@@ -891,18 +892,24 @@ model FeePayment {
   receiptNumber    String           @unique
   providerData     Json?
   paidAt           DateTime         @default(now())
+  /// B-16: the payout that claimed this payment, per reference — a payment
+  /// can only be matched into ONE settlement (guarded claim in
+  /// lib/settlements.ts). Null until a payout ingests it.
+  settlementId     String?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
-  school         School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  invoice        FeeInvoice     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  studentProfile StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
-  parentProfile  ParentProfile? @relation(fields: [parentProfileId], references: [id], onDelete: SetNull)
+  school         School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  invoice        FeeInvoice         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  studentProfile StudentProfile     @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  parentProfile  ParentProfile?     @relation(fields: [parentProfileId], references: [id], onDelete: SetNull)
+  settlement     GatewaySettlement? @relation(fields: [settlementId], references: [id], onDelete: SetNull)
 
   @@index([schoolId, paidAt])
   @@index([invoiceId, paidAt])
   @@index([parentProfileId, paidAt])
   @@index([status])
+  @@index([schoolId, settlementId])
 }
 
 model FeePaymentAttempt {
@@ -1109,6 +1116,11 @@ model FeeRefund {
   /// unique so retried webhooks post a partial reversal exactly once. Null
   /// for maker-checker refunds.
   providerEventId   String?           @unique
+  /// B-16: payout proof — the bank/USSD/cheque reference the refund money
+  /// left under. Enforced by decideRefund on approval (a refund without
+  /// payout proof is an unexplained balance at month-end); null on pending/
+  /// rejected requests and provider-driven reversals.
+  proofReference    String?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
@@ -1170,6 +1182,8 @@ model GatewaySettlement {
   updatedAt        DateTime                @updatedAt
 
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  /// B-16: the payments this payout claimed, per reference.
+  payments FeePayment[]
 
   @@unique([schoolId, reference])
   @@index([schoolId, settledAt])
@@ -2025,6 +2039,13 @@ model Expense {
   reference        String?
   notes            String?
   recordedByUserId String?
+  /// B-16 maker-checker: expenses at or above the approval threshold are
+  /// created PENDING_APPROVAL and post NO journal until a second actor
+  /// (approver ≠ recorder) approves. Below the threshold they are APPROVED
+  /// at creation — the default also keeps every pre-existing row approved.
+  approvalStatus   ExpenseApprovalStatus @default(APPROVED)
+  approvedByUserId String?
+  approvedAt       DateTime?
   /// W3 (Rule 9): an expense is never deleted. Voiding posts a counter-entry
   /// to the ledger and stamps who did it, when and why, so last term's
   /// spending still explains itself.
@@ -2039,6 +2060,31 @@ model Expense {
   @@index([schoolId, spentAt])
   @@index([schoolId, category])
   @@index([schoolId, voidedAt])
+}
+
+enum ExpenseApprovalStatus {
+  PENDING_APPROVAL
+  APPROVED
+}
+
+/// B-16: retry-safe document numbering. One row per school + kind (e.g.
+/// `journal:2026`, `invoice:<termId>`), incremented atomically INSIDE the
+/// posting transaction: the row lock serialises numbering per school, a
+/// rolled-back posting gives its number back, and two concurrent postings
+/// can never draw the same number. Replaces the count-based numbering that
+/// raced (duplicate journal numbers refused the posting outright; duplicate
+/// invoice numbers silently skipped a billable student).
+model DocumentSequence {
+  id        String @id @default(cuid())
+  schoolId  String
+  /// What is being numbered, e.g. "journal:2026" or "invoice:<termId>".
+  kind      String
+  /// The next value to hand out.
+  nextValue Int    @default(1)
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, kind])
 }
 
 model Budget {

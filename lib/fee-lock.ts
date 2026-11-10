@@ -8,16 +8,28 @@ const BLOCKING: FeeInvoiceStatus[] = [
 ];
 
 /**
- * CBT / digital learning gate: block when the student has any outstanding term fees.
+ * CBT / digital learning gate: block when the student has outstanding term
+ * fees THAT ARE DUE.
+ *
+ * B-16: this used to block on ANY balance, which punished pupils for
+ * instalment plans the school itself raised — a not-yet-due February
+ * instalment locked a child out of CBT in November. Due-date-aware now:
+ * an invoice blocks when it is OVERDUE, or when it has no due date (payable
+ * on issue — the conservative reading, and how structures without dueInDays
+ * have always behaved), or when its due date has passed. A future-dated
+ * balance is a plan, not arrears, and never blocks.
+ *
  * Returns null when access is allowed.
  */
 export async function getStudentFeeLock(schoolId: string, studentProfileId: string) {
+  const now = new Date();
   const invoices = await prisma.feeInvoice.findMany({
     where: {
       schoolId,
       studentProfileId,
       balanceDue: { gt: 0 },
       status: { in: BLOCKING },
+      OR: [{ status: FeeInvoiceStatus.OVERDUE }, { dueDate: null }, { dueDate: { lte: now } }],
     },
     orderBy: { dueDate: "asc" },
     take: 5,

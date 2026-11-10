@@ -24,6 +24,9 @@ const requestSchema = z.object({
 const decideSchema = z.object({
   action: z.enum(["APPROVE", "REJECT"]),
   refundId: z.string().min(1),
+  // B-16: payout proof, mandatory on APPROVE (enforced in decideRefund —
+  // the money must leave under a reference the bursary can find again).
+  proofReference: z.string().trim().max(120).optional(),
 });
 
 export async function GET() {
@@ -54,6 +57,7 @@ export async function GET() {
       status: r.status,
       requestedByUserId: r.requestedByUserId,
       approvedByUserId: r.approvedByUserId,
+      proofReference: r.proofReference,
       createdAt: r.createdAt.toISOString(),
     })),
     pendingCount: refunds.filter((r) => r.status === FeeRefundStatus.PENDING).length,
@@ -92,6 +96,7 @@ export async function POST(request: NextRequest) {
         schoolId: context.user.schoolId,
         refundId: input.refundId,
         approve: input.action === "APPROVE",
+        proofReference: input.proofReference ?? null,
         actor: { userId: context.user.id, role: context.user.role },
       });
       return NextResponse.json(result);

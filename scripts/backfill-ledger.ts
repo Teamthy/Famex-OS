@@ -124,7 +124,9 @@ async function main() {
     cursor = undefined;
     for (;;) {
       const expenses = await prisma.expense.findMany({
-        where: { schoolId: school.id, voidedAt: null },
+        // B-16: only APPROVED expenses ever post a journal; pending ones
+        // must not be backfilled into the ledger.
+        where: { schoolId: school.id, voidedAt: null, approvalStatus: "APPROVED" },
         orderBy: { id: "asc" },
         take: BATCH,
         ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
