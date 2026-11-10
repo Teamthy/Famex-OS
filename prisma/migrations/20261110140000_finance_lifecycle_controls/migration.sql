@@ -29,7 +29,7 @@ ALTER TABLE "public"."Expense" ADD COLUMN "approvedAt" TIMESTAMP(3);
 
 ALTER TABLE "public"."FeePayment" ADD CONSTRAINT "FeePayment_settlementId_fkey" FOREIGN KEY ("settlementId") REFERENCES "public"."GatewaySettlement"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
-CREATE INDEX "public"."FeePayment_schoolId_settlementId_idx" ON "public"."FeePayment"("schoolId", "settlementId");
+CREATE INDEX "FeePayment_schoolId_settlementId_idx" ON "public"."FeePayment"("schoolId", "settlementId");
 
 -- 4. RETRY-SAFE DOCUMENT NUMBERING (DocumentSequence). Count-based numbering
 --    raced: two concurrent journal postings drew the same number and the
@@ -50,7 +50,7 @@ CREATE TABLE "public"."DocumentSequence" (
     CONSTRAINT "DocumentSequence_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX "public"."DocumentSequence_schoolId_kind_key" ON "public"."DocumentSequence"("schoolId", "kind");
+CREATE UNIQUE INDEX "DocumentSequence_schoolId_kind_key" ON "public"."DocumentSequence"("schoolId", "kind");
 
 ALTER TABLE "public"."DocumentSequence" ADD CONSTRAINT "DocumentSequence_schoolId_fkey" FOREIGN KEY ("schoolId") REFERENCES "public"."School"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
