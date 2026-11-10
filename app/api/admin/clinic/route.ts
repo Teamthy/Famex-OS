@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireModule } from "@/lib/module-guard";
 import { UserRole } from "@prisma/client";
+import { CLINIC_ROLES } from "@/lib/roles";
 import { addAlert, clinicStats, listAlerts, listVisits, recordVisit } from "@/lib/clinic";
 import { getClientIp } from "@/lib/requests";
 import { prisma } from "@/lib/prisma";
@@ -10,12 +11,13 @@ export const dynamic = "force-dynamic";
 
 async function ctx() {
   // Rule 13: auth → role → module entitlement (Operations owns the clinic).
-  return requireModule("operations", [
-    UserRole.ADMIN,
-    UserRole.DIRECTOR,
-    UserRole.COORDINATOR,
-    UserRole.TEACHER,
-  ]);
+  // B-06: the named CLINIC_ROLES group — the old inline list omitted NURSE.
+  // Child health is need-to-know, so the group is narrower than the
+  // library's (see lib/roles.ts).
+  return requireModule(
+    "operations",
+    CLINIC_ROLES.map((role) => UserRole[role]),
+  );
 }
 
 export async function GET() {

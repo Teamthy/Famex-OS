@@ -4,25 +4,21 @@ import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { safeNextPath } from "@/lib/safe-redirect";
+import { ALL_ROLES } from "@/lib/roles";
+import { homeFor } from "@/lib/rbac/entitlements";
 import { LockKeyhole, ShieldCheck, AlertCircle, GraduationCap, User, Users } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { useSchoolProfile } from "@/components/SchoolProfileContext";
 
-const destinations: Record<string, string> = {
-  ADMIN: "/admin",
-  DIRECTOR: "/admin",
-  PROPRIETOR: "/admin",
-  PRINCIPAL: "/admin",
-  VICE_PRINCIPAL: "/admin",
-  COORDINATOR: "/admin-admissions",
-  BURSAR: "/admin/fees",
-  LIBRARIAN: "/admin/library",
-  NURSE: "/admin/clinic",
-  HOD: "/teacher/dashboard",
-  TEACHER: "/teacher/dashboard",
-  PARENT: "/parent/dashboard",
-  STUDENT: "/student/dashboard",
-};
+/**
+ * B-06: login destinations are READ from the entitlement matrix, not copied
+ * here. This map used to disagree with middleware about five roles; the
+ * matrix (lib/rbac/entitlements.ts) is the only place the decision lives, and
+ * middleware bounces to the same `home`, so sign-in and denial agree.
+ */
+const destinations: Record<string, string> = Object.fromEntries(
+  ALL_ROLES.map((role) => [role, homeFor(role)]),
+);
 
 const portalContext: Record<string, { heading: string; sub: string; icon: typeof GraduationCap }> =
   {

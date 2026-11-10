@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireModule } from "@/lib/module-guard";
 import { UserRole } from "@prisma/client";
+import { INVENTORY_ROLES } from "@/lib/roles";
 import {
   addAsset,
   addMovement,
@@ -17,7 +18,11 @@ export const dynamic = "force-dynamic";
 
 async function ctx() {
   // Rule 13: auth → role → module entitlement (Operations owns inventory).
-  return requireModule("operations", [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.BURSAR]);
+  // B-06: named INVENTORY_ROLES group (lib/roles.ts), shared with the nav row.
+  return requireModule(
+    "operations",
+    INVENTORY_ROLES.map((role) => UserRole[role]),
+  );
 }
 
 export async function GET() {

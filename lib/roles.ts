@@ -117,6 +117,65 @@ export const OPERATIONS_ROLES: readonly Role[] = [
 ];
 
 /**
+ * Library arm (B-06): the LIBRARIAN role exists precisely to run it, plus
+ * leadership oversight and the academic roles that browse/catalogue for
+ * classes. Before the entitlement matrix this list was hand-written in the
+ * library route and OMITTED the librarian — the one role the arm is for.
+ */
+export const LIBRARY_ROLES: readonly Role[] = [
+  "ADMIN",
+  "DIRECTOR",
+  "PROPRIETOR",
+  "PRINCIPAL",
+  "VICE_PRINCIPAL",
+  "COORDINATOR",
+  "HOD",
+  "TEACHER",
+  "LIBRARIAN",
+];
+
+/**
+ * Clinic / health arm (B-06): child health records are need-to-know, so this
+ * list is deliberately narrower than LIBRARY_ROLES — the NURSE runs the arm,
+ * academic leadership oversees it, and the proprietor (a non-academic owner)
+ * is out. The clinic route's hand-written list previously omitted the nurse.
+ */
+export const CLINIC_ROLES: readonly Role[] = [
+  "ADMIN",
+  "DIRECTOR",
+  "PRINCIPAL",
+  "VICE_PRINCIPAL",
+  "COORDINATOR",
+  "TEACHER",
+  "NURSE",
+];
+
+/**
+ * Inventory & assets arm (B-06): the bursar tracks assets alongside money;
+ * leadership oversees. Named here so the inventory route and the nav row
+ * read one list (the route previously inlined it).
+ */
+export const INVENTORY_ROLES: readonly Role[] = ["ADMIN", "DIRECTOR", "BURSAR"];
+
+/**
+ * People administration (Staff & HR): who may create, invite and edit staff
+ * accounts. lib/people.ts maps these names onto the Prisma enum for the API;
+ * the nav group reads the names directly.
+ */
+export const PEOPLE_ADMIN_ROLE_NAMES: readonly Role[] = ["ADMIN", "DIRECTOR", "COORDINATOR"];
+
+/**
+ * Roles the staff provisioning flow (Staff & HR → invite / create direct)
+ * may create (B-06). PARENT and STUDENT are excluded on purpose: students are
+ * provisioned by admissions enrolment and parents by linkage to a student,
+ * never by a staff-screen form. tests/lib/rbac-entitlements.test.ts asserts
+ * this union and lib/people.ts's Prisma-typed STAFF_ROLES stay in step.
+ */
+export const PROVISIONABLE_STAFF_ROLES: readonly Role[] = ALL_ROLES.filter(
+  (role) => role !== "PARENT" && role !== "STUDENT",
+);
+
+/**
  * Roles for which MFA is required once the school enables the policy:
  * anyone who can move money or administer accounts. Enrolment itself is
  * self-service (lib/mfa.ts); login enforces the second factor whenever a

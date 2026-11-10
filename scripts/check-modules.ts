@@ -35,6 +35,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { ADMIN_NAV_GROUPS, NAV_ALLOWED_PAGES } from "../lib/nav";
 import { MODULE_KEYS, isModuleKey, type ModuleKey } from "../lib/module-registry";
+import { ALL_ROLES } from "../lib/roles";
 
 const ROOT = process.cwd();
 const APP = join(ROOT, "app");
@@ -122,6 +123,11 @@ for (const group of ADMIN_NAV_GROUPS) {
     fail("module-key", `nav group "${group.key}" uses unknown module key "${groupModule}"`);
   }
   if (groupModule) usedModuleKeys.add(groupModule);
+  for (const role of group.roles ?? []) {
+    if (!(ALL_ROLES as readonly string[]).includes(role)) {
+      fail("nav-role", `nav group "${group.key}" lists unknown role "${role}"`);
+    }
+  }
 
   for (const item of group.items) {
     const moduleKey = item.moduleKey === undefined ? groupModule : item.moduleKey;
@@ -143,18 +149,10 @@ for (const group of ADMIN_NAV_GROUPS) {
         );
       }
       for (const role of item.roles ?? []) {
-        if (
-          ![
-            "ADMIN",
-            "DIRECTOR",
-            "BURSAR",
-            "COORDINATOR",
-            "HOD",
-            "TEACHER",
-            "PARENT",
-            "STUDENT",
-          ].includes(role)
-        ) {
+        // B-06: the valid role vocabulary is lib/roles.ts's ALL_ROLES — this
+        // checker used to carry its own stale 8-role copy, which is how the
+        // five-role blind spot stayed invisible.
+        if (!(ALL_ROLES as readonly string[]).includes(role)) {
           fail("nav-role", `live item "${item.label}" lists unknown role "${role}"`);
         }
       }
