@@ -193,6 +193,15 @@ async function main() {
 
   // ── 1. High-concurrency numbering ───────────────────────────────────────
   console.log("\n1. High-concurrency document numbering");
+  // Bootstrap the counter row with a single draw first: the race below then
+  // proves SERIALISATION (the production property), not the create-race
+  // storm — which is unit-tested in document-sequence.test.ts — and the
+  // expected P2025/P2002 log noise cannot drown the CI error annotations.
+  check(
+    "the first draw bootstraps the counter and hands out 1",
+    await nextDocumentNumber(prisma, SCHOOL, "verify:concurrency"),
+    1,
+  );
   const draws = await Promise.all(
     Array.from({ length: 40 }, () =>
       prisma.$transaction((tx) => nextDocumentNumber(tx, SCHOOL, "verify:concurrency")),
@@ -200,14 +209,22 @@ async function main() {
   );
   const sorted = [...draws].sort((a, b) => a - b);
   check(
-    "40 racing draws hand out 1..40 exactly once each",
+    "40 racing draws in live transactions hand out 2..41 exactly once each",
     sorted,
-    Array.from({ length: 40 }, (_, i) => i + 1),
+    Array.from({ length: 40 }, (_, i) => i + 2),
   );
   checkTrue("no draw repeated", new Set(draws).size === 40);
 
   // 12 racing accrual postings — the journal numbers come from the same
-  // counter mechanism under real row locks.
+  // counter mechanism under real row locks. Bootstrap the year's journal
+  // counter first (same noise reason as above); the accruals then draw
+  // 2..13 and must all be distinct.
+  const YEAR = new Date().getUTCFullYear();
+  check(
+    "the journal counter bootstraps for the current UTC year",
+    await nextDocumentNumber(prisma, SCHOOL, `journal:${YEAR}`),
+    1,
+  );
   const accrualInvoices = [];
   for (let i = 1; i <= 12; i += 1) {
     accrualInvoices.push(
@@ -663,7 +680,9 @@ async function main() {
       ? "\nFinance lifecycle verification passed — numbering serialises, claims bind once, proofs and second actors are mandatory, books balance.\n"
       : `\n${failures} check(s) FAILED.\n`,
   );
-  process.exit(failures === 0 ? 0 : 1);
+  // exitCode, not process.exit: with piped stdout (CI) process.exit can
+  // truncate the very log lines the annotations are built from.
+  process.exitCode = failures === 0 ? 0 : 1;
 }
 
 /** requestRefund returns the created refund row (shape kept loose on purpose). */
@@ -676,13 +695,18 @@ function refundIdOf(refund: unknown): string {
 
 main()
   .catch(async (error) => {
+    // One greppable line with the full stack — CI annotations key off it.
+    console.log(
+      "SCRIPT CRASHED: " +
+        (error instanceof Error ? (error.stack ?? error.message) : String(error)),
+    );
     console.error("Finance lifecycle verification crashed:", error);
     try {
       await cleanup();
     } catch {
       // best effort
     }
-    process.exit(1);
+    process.exitCode = 1;
   })
   .finally(async () => {
     await prisma.$disconnect();
