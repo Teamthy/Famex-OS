@@ -201,7 +201,7 @@ describe("wiring — the documents that already existed now post", () => {
       actorUserId: "user_1",
     });
 
-    expect(result.replay).toBe(false);
+    expect(result.outcome).toBe("posted");
     const data = db.ledgerJournal.create.mock.calls.at(-1)?.[0].data;
     expect(data.sourceType).toBe("FEE_PAYMENT");
     expect(data.sourceId).toBe("pay_1");
@@ -216,7 +216,17 @@ describe("wiring — the documents that already existed now post", () => {
     const { postCompletedFeePayment } = await import("@/lib/fee-payment-service");
 
     // The unique reference already exists — this is the retry of a webhook.
-    db.feePayment.findUnique.mockResolvedValue({ id: "pay_1", amount: 25_000 });
+    // B-04: a replay is only a replay when EVERY immutable field matches;
+    // the mock carries the full binding.
+    db.feePayment.findUnique.mockResolvedValue({
+      id: "pay_1",
+      amount: 25_000,
+      schoolId: "school_1",
+      invoiceId: "inv_1",
+      studentProfileId: "stu_1",
+      method: "PAYSTACK",
+      reference: "YKC-PAY-2026-ABCDEF123456",
+    });
 
     const result = await postCompletedFeePayment({
       schoolId: "school_1",
@@ -227,7 +237,7 @@ describe("wiring — the documents that already existed now post", () => {
       reference: "YKC-PAY-2026-ABCDEF123456",
     });
 
-    expect(result.replay).toBe(true);
+    expect(result.outcome).toBe("replay");
     expect(db.ledgerJournal.create).not.toHaveBeenCalled();
   });
 

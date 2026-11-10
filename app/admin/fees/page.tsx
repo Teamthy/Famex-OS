@@ -173,7 +173,7 @@ export default function AdminFeesPage() {
               href="/admin/fees/transfers"
               className="inline-flex items-center rounded-full border border-[var(--border-default)] px-4 py-2 text-[10px] font-bold uppercase tracking-widest"
             >
-              Transfer review
+              Payment review
             </Link>
             <Link
               href="/admin/expenses"

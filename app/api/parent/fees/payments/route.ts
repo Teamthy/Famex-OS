@@ -104,6 +104,16 @@ export async function POST(request: NextRequest) {
       actorUserId: context.user.id,
     });
 
+    // B-04: a reference/attempt bound to a different document is a hard
+    // conflict — never reported as success. The attempt stays untouched so
+    // the bursary can reconcile; the parent sees an honest instruction.
+    if (result.outcome === "conflict") {
+      return jsonNoStore(
+        { error: result.detail, code: result.code, reference: attempt.reference },
+        { status: 409 },
+      );
+    }
+
     await prisma.auditLog.create({
       data: {
         schoolId: context.user.schoolId,
@@ -112,7 +122,11 @@ export async function POST(request: NextRequest) {
         entityType: "FeePayment",
         entityId: result.payment.id,
         ipAddress: getClientIp(request),
-        metadata: { reference: attempt.reference, amount: attempt.amount, replay: result.replay },
+        metadata: {
+          reference: attempt.reference,
+          amount: attempt.amount,
+          replay: result.outcome === "replay",
+        },
       },
     });
 
@@ -135,7 +149,7 @@ export async function POST(request: NextRequest) {
         paidAt: result.payment.paidAt.toISOString(),
       },
       invoice: serializeInvoice(invoice),
-      replay: result.replay,
+      replay: result.outcome === "replay",
     });
   } catch (error) {
     // Only a DEFINITIVE "no" from Paystack may fail the attempt. An

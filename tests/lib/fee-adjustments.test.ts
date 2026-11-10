@@ -245,6 +245,8 @@ describe("overpayment → credit (F5-11)", () => {
       actorUserId: "user_bursar",
       allowExcessAsCredit: true,
     });
+    expect(result.outcome).toBe("posted");
+    if (result.outcome !== "posted") throw new Error("expected a posted outcome");
     expect(result.creditExcessNaira).toBe(25_000);
     expect(db.feeCredit.create).toHaveBeenCalledWith(
       expect.objectContaining({
