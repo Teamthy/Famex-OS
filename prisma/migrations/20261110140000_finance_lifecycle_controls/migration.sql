@@ -54,6 +54,11 @@ CREATE UNIQUE INDEX "DocumentSequence_schoolId_kind_key" ON "public"."DocumentSe
 
 ALTER TABLE "public"."DocumentSequence" ADD CONSTRAINT "DocumentSequence_schoolId_fkey" FOREIGN KEY ("schoolId") REFERENCES "public"."School"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+-- Tenant isolation like every other schoolId-bearing table — the RLS
+-- coverage guard (verify:rls:coverage) fails the build on any table that
+-- carries schoolId without a policy, and rightly so.
+SELECT eduos_apply_tenant_rls('DocumentSequence');
+
 INSERT INTO "public"."DocumentSequence" ("id", "schoolId", "kind", "nextValue")
 SELECT
     'dseq_journal_' || j."schoolId" || '_' || date_part('year', j."postedAt")::int,
