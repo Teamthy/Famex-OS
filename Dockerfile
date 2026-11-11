@@ -4,7 +4,7 @@
 # ─────────────────────────────────────────────────────────────
 
 # Stage 1: Dependencies
-FROM node:20-alpine AS deps
+FROM node:26-alpine AS deps
 WORKDIR /app
 # Keep the project's npm peer-dependency policy with the lockfile; Render's
 # npm ci runs inside this image layer, not at the repository root.
@@ -20,7 +20,7 @@ COPY prisma/schema.prisma ./prisma/schema.prisma
 RUN npm ci --include=dev
 
 # Stage 2: Build
-FROM node:20-alpine AS builder
+FROM node:26-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -103,7 +103,7 @@ RUN node scripts/copy-prisma-runtime-deps.mjs --dest /prisma-cli-deps \
       --exclude prisma --exclude "@prisma/*" --strip-types
 
 # Stage 3: Production runner
-FROM node:20-alpine AS runner
+FROM node:26-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
