@@ -63,11 +63,22 @@ async function main() {
     schoolId = school.id;
 
     const first = runBootstrap(outputPath);
-    const firstOutput =
-      first.error?.message ||
-      first.stderr ||
-      first.stdout ||
-      `status=${first.status}; signal=${first.signal ?? "none"}`;
+    const firstOutput = JSON.stringify({
+      status: first.status,
+      signal: first.signal,
+      spawnError: first.error
+        ? {
+            name: first.error.name,
+            message: first.error.message,
+            code: first.error.code,
+            errno: first.error.errno,
+            syscall: first.error.syscall,
+            path: first.error.path,
+          }
+        : null,
+      stdout: typeof first.stdout === "string" ? first.stdout.slice(0, 1200) : null,
+      stderr: typeof first.stderr === "string" ? first.stderr.slice(0, 1200) : null,
+    });
     check(first.status === 0, `bootstrap CLI succeeds (${firstOutput})`);
     const bundle = JSON.parse(await readFile(outputPath, "utf8")) as {
       email: string;
