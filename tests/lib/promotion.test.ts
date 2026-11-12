@@ -32,7 +32,10 @@ function enrolment(id: string, classroom: (typeof CLASSES)[number], active = tru
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockPrisma.schoolClass.findMany.mockResolvedValue(CLASSES);
+  mockPrisma.schoolClass.findMany.mockImplementation(async (args: unknown) => {
+    const ids = (args as { where?: { id?: { in?: string[] } } }).where?.id?.in;
+    return ids ? CLASSES.filter((classroom) => ids.includes(classroom.id)) : CLASSES;
+  });
 });
 
 describe("buildPlan", () => {
@@ -55,6 +58,27 @@ describe("buildPlan", () => {
 
     expect(row.proposedOutcome).toBe("GRADUATED");
     expect(row.targetClassId).toBeNull();
+  });
+
+  it("blocks a promotion dry-run when the destination would overflow its capacity", async () => {
+    mockPrisma.studentEnrolment.findMany.mockResolvedValue([enrolment("moving", CLASSES[0])]);
+    mockPrisma.schoolClass.findMany.mockResolvedValue(
+      CLASSES.map((classroom) =>
+        classroom.id === "c_jss2a" ? { ...classroom, capacity: 1 } : classroom,
+      ),
+    );
+    mockPrisma.studentProfile.findMany.mockResolvedValue([
+      { id: "moving", currentClassId: "c_jss1a" },
+      { id: "already-there", currentClassId: "c_jss2a" },
+    ]);
+
+    const { buildPlan } = await import("@/lib/promotion");
+    const [row] = await buildPlan(SCHOOL, SESSION_A);
+
+    expect(row.targetClassId).toBe("c_jss2a");
+    expect(row.blocker).toMatch(
+      /Capacity overflow: JSS2A would hold 2 students against a capacity of 1/,
+    );
   });
 
   it("flags a missing destination rather than dropping the student elsewhere", async () => {
@@ -258,6 +282,7 @@ describe("commitPromotion", () => {
   };
 
   beforeEach(() => {
+    mockPrisma.studentProfile.findFirst.mockResolvedValue({ currentClassId: "c_jss1a" });
     // Leaver handling reads back userId to close the login, so the update must
     // resolve to something. Default to a student who HAS an account.
     mockPrisma.studentProfile.update.mockResolvedValue({ userId: "u9" });
@@ -292,6 +317,26 @@ describe("commitPromotion", () => {
         decisions: [{ studentProfileId: "s1", outcome: "PROMOTED", targetClassId: "c_jss2a" }],
       }),
     ).rejects.toThrow(/different from the one being closed/i);
+  });
+
+  it("rechecks destination capacity under class locks before applying a promotion", async () => {
+    mockPrisma.schoolClass.findMany.mockResolvedValue([
+      { id: "c_jss2a", displayName: "JSS2A", capacity: 1 },
+    ]);
+    mockPrisma.studentProfile.findMany.mockResolvedValue([
+      { id: "moving", currentClassId: "c_jss1a" },
+      { id: "already-there", currentClassId: "c_jss2a" },
+    ]);
+
+    const { commitPromotion } = await import("@/lib/promotion");
+    await expect(
+      commitPromotion({
+        ...base,
+        decisions: [{ studentProfileId: "moving", outcome: "PROMOTED", targetClassId: "c_jss2a" }],
+      }),
+    ).rejects.toThrow(/would exceed capacity/i);
+    expect(mockPrisma.studentProfile.update).not.toHaveBeenCalled();
+    expect(mockPrisma.studentEnrolment.create).not.toHaveBeenCalled();
   });
 
   it("refuses an empty decision list", async () => {

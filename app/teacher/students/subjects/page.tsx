@@ -36,6 +36,16 @@ type Payload = {
   subjects: SubjectRow[];
 };
 
+type ElectivePlan = {
+  ok: boolean;
+  student: { displayName: string };
+  level: string;
+  add: Array<{ id: string; name: string }>;
+  remove: Array<{ id: string; name: string }>;
+  keep: Array<{ id: string; name: string }>;
+  exceptions: Array<{ severity: "blocking" | "warning"; message: string }>;
+};
+
 function Inner() {
   const { toast } = useToast();
   const studentProfileId = useSearchParams().get("studentProfileId") || "";
@@ -45,6 +55,8 @@ function Inner() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState<ElectivePlan | null>(null);
+  const [pendingIdempotencyKey, setPendingIdempotencyKey] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!studentProfileId) {
@@ -82,6 +94,41 @@ function Inner() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          mode: "PLAN",
+          studentProfileId: data.student.id,
+          subjectIds: [...chosen],
+        }),
+      });
+      const body = (await response.json()) as { plan?: ElectivePlan; error?: string };
+      if (!response.ok || !body.plan)
+        throw new Error(body.error || "Unable to preview the elective change.");
+      const blockers = body.plan.exceptions.filter((entry) => entry.severity === "blocking");
+      if (!body.plan.ok || blockers.length)
+        throw new Error(
+          blockers.map((entry) => entry.message).join(" ") ||
+            "Resolve the lifecycle exception first.",
+        );
+      setPendingPlan(body.plan);
+      setPendingIdempotencyKey(crypto.randomUUID());
+    } catch (saveError) {
+      toast(saveError instanceof Error ? saveError.message : "Unable to save.", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function commitElectives() {
+    if (!data || !pendingPlan) return;
+    setSaving(true);
+    try {
+      const response = await fetch("/api/teacher/students/subjects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": pendingIdempotencyKey ?? crypto.randomUUID(),
+        },
+        body: JSON.stringify({
+          mode: "COMMIT",
           studentProfileId: data.student.id,
           subjectIds: [...chosen],
         }),
@@ -89,6 +136,8 @@ function Inner() {
       const body = (await response.json()) as { message?: string; error?: string };
       if (!response.ok) throw new Error(body.error || "Unable to save.");
       toast(body.message || "Subjects saved.", "success");
+      setPendingPlan(null);
+      setPendingIdempotencyKey(null);
       await load();
     } catch (saveError) {
       toast(saveError instanceof Error ? saveError.message : "Unable to save.", "error");
@@ -201,14 +250,16 @@ function Inner() {
                               key={subject.id}
                               role="switch"
                               aria-checked={on}
-                              onClick={() =>
+                              onClick={() => {
+                                setPendingPlan(null);
+                                setPendingIdempotencyKey(null);
                                 setChosen((current) => {
                                   const next = new Set(current);
                                   if (next.has(subject.id)) next.delete(subject.id);
                                   else next.add(subject.id);
                                   return next;
-                                })
-                              }
+                                });
+                              }}
                               className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-colors ${
                                 on
                                   ? "border-brand-green/50 bg-brand-green/10"
@@ -237,9 +288,55 @@ function Inner() {
                         })}
                       </div>
 
+                      {pendingPlan ? (
+                        <div className="mt-5 rounded-2xl border border-brand-orange/30 bg-brand-orange/5 p-4">
+                          <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                            Review elective changes for {pendingPlan.student.displayName}
+                          </h3>
+                          <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                            {pendingPlan.level}: {pendingPlan.add.length} to add ·{" "}
+                            {pendingPlan.remove.length} to remove · {pendingPlan.keep.length}{" "}
+                            unchanged
+                          </p>
+                          {pendingPlan.add.length || pendingPlan.remove.length ? (
+                            <ul className="mt-2 space-y-1 text-xs text-[var(--text-secondary)]">
+                              {pendingPlan.add.map((subject) => (
+                                <li key={`add-${subject.id}`}>Add: {subject.name}</li>
+                              ))}
+                              {pendingPlan.remove.map((subject) => (
+                                <li key={`remove-${subject.id}`}>Remove: {subject.name}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="mt-2 text-xs text-[var(--text-muted)]">
+                              No changes detected.
+                            </p>
+                          )}
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button
+                              onClick={() => void commitElectives()}
+                              disabled={saving}
+                              className="rounded-full bg-brand-green px-5 py-2 text-xs font-bold text-brand-navy disabled:opacity-60"
+                            >
+                              {saving ? "Saving…" : "Confirm elective changes"}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setPendingPlan(null);
+                                setPendingIdempotencyKey(null);
+                              }}
+                              disabled={saving}
+                              className="rounded-full border border-[var(--border-subtle)] px-5 py-2 text-xs font-bold text-[var(--text-primary)]"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+
                       <button
                         onClick={() => void save()}
-                        disabled={saving}
+                        disabled={saving || Boolean(pendingPlan)}
                         className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-brand-green py-3.5 font-bold text-brand-navy disabled:opacity-60"
                       >
                         {saving ? (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import PortalTopbar from "@/components/PortalTopbar";
 import AdminSidebar from "@/components/AdminSidebar";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -44,6 +44,39 @@ type Response = {
   classes: ClassRow[];
 };
 
+type LifecycleReport = {
+  generatedAt: string;
+  total: number;
+  blocking: number;
+  warnings: number;
+  byCode: Record<string, number>;
+  exceptions: Array<{
+    code: string;
+    severity: "blocking" | "warning";
+    message: string;
+    studentProfileId?: string;
+    studentLabel?: string;
+    className?: string;
+    suggestedFix?: string;
+  }>;
+};
+
+type LifecyclePlan = {
+  ok: boolean;
+  student?: { displayName: string; studentId: string };
+  fromClass?: { displayName: string };
+  toClass?: { displayName: string };
+  capacity?: { occupied: number; capacity: number | null; projected: number; full: boolean };
+  enrolmentAction?: string;
+  enrolmentsOpen?: number;
+  loginOpen?: boolean;
+  loginReopens?: boolean;
+  outstandingBalance?: number;
+  subjects?: { add: string[]; reactivate: string[]; deactivate: string[] };
+  exceptions: Array<{ severity: "blocking" | "warning"; message: string }>;
+  warnings?: string[];
+};
+
 type ArchivedStudent = {
   id: string;
   studentId: string;
@@ -57,6 +90,9 @@ export default function AdminClassManagerPage() {
   const { toast } = useToast();
   const [data, setData] = useState<Response | null>(null);
   const [archived, setArchived] = useState<ArchivedStudent[] | null>(null);
+  const [lifecycleReport, setLifecycleReport] = useState<LifecycleReport | null>(null);
+  const [showLifecycleReport, setShowLifecycleReport] = useState(false);
+  const lifecycleKeyRef = useRef<{ fingerprint: string; key: string } | null>(null);
   const [openClassId, setOpenClassId] = useState("");
   const [teacherPick, setTeacherPick] = useState<Record<string, string>>({});
   const [movePick, setMovePick] = useState<Record<string, string>>({});
@@ -113,6 +149,113 @@ export default function AdminClassManagerPage() {
     } finally {
       setBusy(false);
       setConfirm(null);
+    }
+  }
+
+  async function loadLifecycleReport() {
+    const response = await fetch("/api/admin/student-lifecycle", { cache: "no-store" });
+    const body = (await response.json()) as LifecycleReport & { error?: string };
+    if (!response.ok) throw new Error(body.error || "Unable to load the lifecycle report.");
+    setLifecycleReport(body);
+    setShowLifecycleReport(true);
+  }
+
+  async function previewLifecycle(
+    planRequest: Record<string, unknown>,
+    commitRequest: Record<string, unknown>,
+    refreshArchived = false,
+  ) {
+    setBusy(true);
+    try {
+      const response = await fetch("/api/admin/student-lifecycle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(planRequest),
+      });
+      const body = (await response.json()) as { plan?: LifecyclePlan; error?: string };
+      if (!response.ok || !body.plan)
+        throw new Error(body.error || "Unable to preview this change.");
+      const plan = body.plan;
+      const blockers = plan.exceptions.filter((entry) => entry.severity === "blocking");
+      if (!plan.ok || blockers.length) {
+        toast(
+          blockers.map((entry) => entry.message).join(" ") ||
+            "Resolve the lifecycle exceptions first.",
+          "error",
+        );
+        return;
+      }
+
+      const fingerprint = JSON.stringify(commitRequest);
+      if (lifecycleKeyRef.current?.fingerprint !== fingerprint) {
+        lifecycleKeyRef.current = { fingerprint, key: crypto.randomUUID() };
+      }
+      const idempotencyKey = lifecycleKeyRef.current.key;
+      const parts = [
+        plan.fromClass && plan.toClass
+          ? `${plan.fromClass.displayName} → ${plan.toClass.displayName}`
+          : plan.toClass?.displayName
+            ? `Class: ${plan.toClass.displayName}`
+            : "",
+        plan.capacity
+          ? `Capacity: ${plan.capacity.occupied}/${plan.capacity.capacity ?? "unlimited"} → ${plan.capacity.projected}`
+          : "",
+        plan.enrolmentAction ? `Enrolment: ${plan.enrolmentAction}` : "",
+        plan.subjects
+          ? `Subjects: +${plan.subjects.add.length} added, ${plan.subjects.reactivate.length} reactivated, ${plan.subjects.deactivate.length} retired`
+          : "",
+        plan.enrolmentsOpen !== undefined ? `Open enrolments to close: ${plan.enrolmentsOpen}` : "",
+        plan.loginOpen !== undefined
+          ? `Student login will be ${plan.loginOpen ? "revoked" : "left unchanged"}`
+          : "",
+        plan.loginReopens ? "Student login will reopen; existing sessions will be revoked." : "",
+        plan.outstandingBalance ? `Outstanding fees remain: ${plan.outstandingBalance}` : "",
+        ...plan.exceptions
+          .filter((entry) => entry.severity === "warning")
+          .map((entry) => entry.message),
+        ...(plan.warnings ?? []),
+      ].filter(Boolean);
+      const studentName = plan.student?.displayName ?? "this student";
+      setConfirm({
+        label: `Review for ${studentName}: ${parts.join(" · ")}. Commit this lifecycle change?`,
+        danger: planRequest.action === "PLAN_WITHDRAW",
+        run: async () => {
+          setBusy(true);
+          try {
+            const commitResponse = await fetch("/api/admin/student-lifecycle", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Idempotency-Key": idempotencyKey,
+              },
+              body: JSON.stringify(commitRequest),
+            });
+            const commitBody = (await commitResponse.json()) as {
+              result?: unknown;
+              error?: string;
+            };
+            if (!commitResponse.ok) throw new Error(commitBody.error || "Lifecycle change failed.");
+            toast("Student lifecycle updated.", "success");
+            await load();
+            if (refreshArchived && archived !== null) await loadArchived();
+          } catch (commitError) {
+            toast(
+              commitError instanceof Error ? commitError.message : "Lifecycle change failed.",
+              "error",
+            );
+          } finally {
+            setBusy(false);
+            setConfirm(null);
+          }
+        },
+      });
+    } catch (previewError) {
+      toast(
+        previewError instanceof Error ? previewError.message : "Unable to preview this change.",
+        "error",
+      );
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -244,18 +387,38 @@ export default function AdminClassManagerPage() {
                         className="w-72 rounded-full border border-[var(--input-border)] bg-[var(--input-bg)] py-2.5 pl-11 pr-4 text-sm text-[var(--input-text)]"
                       />
                     </div>
-                    <button
-                      onClick={() => {
-                        if (archived === null) void loadArchived();
-                        else setArchived(null);
-                      }}
-                      className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy shadow"
-                    >
-                      <Archive size={13} />{" "}
-                      {archived === null
-                        ? `Archived Students (${data.archivedCount})`
-                        : "Hide Archived"}
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => {
+                          if (archived === null) void loadArchived();
+                          else setArchived(null);
+                        }}
+                        className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy shadow"
+                      >
+                        <Archive size={13} />{" "}
+                        {archived === null
+                          ? `Archived Students (${data.archivedCount})`
+                          : "Hide Archived"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (showLifecycleReport) setShowLifecycleReport(false);
+                          else
+                            void loadLifecycleReport().catch((reportError: unknown) =>
+                              toast(
+                                reportError instanceof Error
+                                  ? reportError.message
+                                  : "Unable to load the lifecycle report.",
+                                "error",
+                              ),
+                            );
+                        }}
+                        className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-card)] px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-[var(--text-primary)]"
+                      >
+                        {showLifecycleReport ? "Hide lifecycle report" : "Lifecycle exceptions"}
+                        {lifecycleReport ? ` (${lifecycleReport.total})` : ""}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Archived panel */}
@@ -282,8 +445,13 @@ export default function AdminClassManagerPage() {
                               </div>
                               <button
                                 onClick={() =>
-                                  void act(
-                                    { action: "RESTORE_STUDENT", studentProfileId: student.id },
+                                  void previewLifecycle(
+                                    { action: "PLAN_READMIT", studentProfileId: student.id },
+                                    {
+                                      action: "COMMIT_READMIT",
+                                      studentProfileId: student.id,
+                                      reason: "Student re-entry approved",
+                                    },
                                     true,
                                   )
                                 }
@@ -297,6 +465,57 @@ export default function AdminClassManagerPage() {
                         </div>
                       ) : (
                         <p className="text-sm text-[var(--text-muted)]">No archived students.</p>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {showLifecycleReport && lifecycleReport ? (
+                    <div className="rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6">
+                      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+                        <h2 className="font-display text-xl text-[var(--text-primary)]">
+                          Student lifecycle exceptions
+                        </h2>
+                        <span className="text-xs text-[var(--text-muted)]">
+                          {lifecycleReport.blocking} blocking · {lifecycleReport.warnings} warnings
+                        </span>
+                      </div>
+                      {lifecycleReport.exceptions.length === 0 ? (
+                        <p className="text-sm text-[var(--text-secondary)]">
+                          No enrolment, subject, capacity, login or guardian drift found.
+                        </p>
+                      ) : (
+                        <ul className="space-y-3">
+                          {lifecycleReport.exceptions.map((exception, index) => (
+                            <li
+                              key={`${exception.code}-${exception.studentProfileId ?? exception.className ?? index}`}
+                              className="rounded-xl border border-[var(--border-subtle)] p-4"
+                            >
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span
+                                  className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${exception.severity === "blocking" ? "bg-red-500/10 text-red-600" : "bg-brand-orange/10 text-brand-orange"}`}
+                                >
+                                  {exception.severity}
+                                </span>
+                                <span className="text-xs font-bold text-[var(--text-primary)]">
+                                  {exception.code}
+                                </span>
+                                {exception.studentLabel || exception.className ? (
+                                  <span className="text-xs text-[var(--text-muted)]">
+                                    {exception.studentLabel ?? exception.className}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                                {exception.message}
+                              </p>
+                              {exception.suggestedFix ? (
+                                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                                  Suggested fix: {exception.suggestedFix}
+                                </p>
+                              ) : null}
+                            </li>
+                          ))}
+                        </ul>
                       )}
                     </div>
                   ) : null}
@@ -440,11 +659,19 @@ export default function AdminClassManagerPage() {
                                             toast("Choose a destination class.", "warning");
                                             return;
                                           }
-                                          void act({
-                                            action: "MOVE_STUDENT",
-                                            studentProfileId: student.id,
-                                            targetClassId,
-                                          });
+                                          void previewLifecycle(
+                                            {
+                                              action: "PLAN_CLASS_CHANGE",
+                                              studentProfileId: student.id,
+                                              toClassId: targetClassId,
+                                            },
+                                            {
+                                              action: "COMMIT_CLASS_CHANGE",
+                                              studentProfileId: student.id,
+                                              toClassId: targetClassId,
+                                              reason: "Class manager transfer",
+                                            },
+                                          );
                                         }}
                                         disabled={busy}
                                         className="inline-flex items-center gap-1 rounded-full bg-brand-green px-3.5 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
@@ -453,18 +680,18 @@ export default function AdminClassManagerPage() {
                                       </button>
                                       <button
                                         onClick={() =>
-                                          setConfirm({
-                                            label: `Archive ${student.displayName}? Their records are preserved and they can be restored later.`,
-                                            danger: true,
-                                            run: () =>
-                                              act(
-                                                {
-                                                  action: "ARCHIVE_STUDENT",
-                                                  studentProfileId: student.id,
-                                                },
-                                                true,
-                                              ),
-                                          })
+                                          void previewLifecycle(
+                                            {
+                                              action: "PLAN_WITHDRAW",
+                                              studentProfileId: student.id,
+                                            },
+                                            {
+                                              action: "COMMIT_WITHDRAW",
+                                              studentProfileId: student.id,
+                                              reason: "Student withdrawn from active roll",
+                                            },
+                                            true,
+                                          )
                                         }
                                         disabled={busy}
                                         className="inline-flex items-center gap-1 rounded-full bg-red-500 px-3.5 py-2 text-[10px] font-bold uppercase tracking-widest text-white disabled:opacity-50"

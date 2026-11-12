@@ -234,6 +234,28 @@ jobs:
         env:
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
 
+      - name: Verify academic lifecycle transitions (B-17)
+        # Exercises the production lifecycle service on real Postgres across
+        # two sessions: a class move updates the current enrolment and subjects
+        # but preserves the prior session, capacity is dry-run and transaction
+        # enforced, withdrawal closes the active enrolment and revokes login,
+        # and re-entry reopens that unique session row without duplicating it.
+        # The script emits one `::error::` annotation per failed assertion.
+        run: |
+          set +e
+          npm run verify:student-lifecycle > /tmp/student-lifecycle.log 2>&1
+          status=$?
+          cat /tmp/student-lifecycle.log
+          if [ $status -ne 0 ]; then
+            echo "::error::academic lifecycle verification failed (exit $status)"
+            grep -E "FAIL|CRASH|Error|error:" /tmp/student-lifecycle.log | head -40 | while IFS= read -r line; do
+              echo "::error title=student-lifecycle::$line"
+            done
+          fi
+          exit $status
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
   e2e:
     name: Browser E2E
     runs-on: ubuntu-latest

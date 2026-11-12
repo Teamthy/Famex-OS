@@ -2,6 +2,7 @@
 // Next.js 16 removed `next lint`; run `eslint .` via `npm run lint`.
 // eslint-config-next@16 ships a native flat config array, so no FlatCompat needed.
 import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import reactHooks from "eslint-plugin-react-hooks";
 
 const eslintConfig = [
   {
@@ -17,6 +18,11 @@ const eslintConfig = [
     ],
   },
   ...nextCoreWebVitals,
+  // Register explicitly: flat config does not resolve the plugin by the
+  // legacy string key in every npm install layout.
+  {
+    plugins: { "react-hooks": reactHooks },
+  },
   {
     rules: {
       // Match the previous permissive intent (lint never actually ran before).

@@ -60,6 +60,8 @@ const mockPrisma = {
   },
   parentProfile: {
     findFirst: vi.fn(),
+    findMany: vi.fn(),
+    update: vi.fn(),
   },
   userNotification: {
     findMany: vi.fn(),

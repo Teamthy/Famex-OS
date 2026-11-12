@@ -1,4 +1,5 @@
 import {
+  Prisma,
   ClassResultStatus,
   EnrolmentOutcome,
   PromotionStatus,
@@ -68,7 +69,7 @@ export type PlanRow = {
  * would be a silent, hard-to-spot error.
  */
 export async function buildPlan(schoolId: string, fromSessionId: string): Promise<PlanRow[]> {
-  const [enrolments, classes, session] = await Promise.all([
+  const [enrolments, classes, session, activeProfiles] = await Promise.all([
     prisma.studentEnrolment.findMany({
       where: { schoolId, sessionId: fromSessionId, outcome: EnrolmentOutcome.IN_PROGRESS },
       include: {
@@ -82,11 +83,15 @@ export async function buildPlan(schoolId: string, fromSessionId: string): Promis
     }),
     prisma.schoolClass.findMany({
       where: { schoolId, isActive: true },
-      select: { id: true, displayName: true, level: true, arm: true },
+      select: { id: true, displayName: true, level: true, arm: true, capacity: true },
     }),
     prisma.academicSession.findFirst({
       where: { id: fromSessionId, schoolId },
       select: { label: true },
+    }),
+    prisma.studentProfile.findMany({
+      where: { schoolId, isActive: true },
+      select: { id: true, currentClassId: true },
     }),
   ]);
 
@@ -144,7 +149,7 @@ export async function buildPlan(schoolId: string, fromSessionId: string): Promis
     releasedTermsByClass.set(row.classId, set);
   }
 
-  return enrolments
+  const plannedRows = enrolments
     .filter((e) => e.studentProfile.isActive)
     .map((e) => {
       const level = e.classroom.level;
@@ -248,6 +253,44 @@ export async function buildPlan(schoolId: string, fromSessionId: string): Promis
       };
     })
     .sort((a, b) => a.currentClassName.localeCompare(b.currentClassName));
+
+  // Project capacity across the WHOLE cohort, not one student at a time: an
+  // arm can receive promoted students while its current cohort moves out in the
+  // same transaction. Existing active profiles are the occupancy authority;
+  // enrolments are only a fallback for unit fixtures without profile rows.
+  const occupancy = new Map<string, number>();
+  const active = activeProfiles ?? [];
+  for (const profile of active) {
+    occupancy.set(profile.currentClassId, (occupancy.get(profile.currentClassId) ?? 0) + 1);
+  }
+  if (active.length === 0) {
+    for (const row of enrolments.filter((entry) => entry.studentProfile.isActive)) {
+      occupancy.set(row.classId, (occupancy.get(row.classId) ?? 0) + 1);
+    }
+  }
+  const departures = new Map<string, number>();
+  const arrivals = new Map<string, number>();
+  for (const row of plannedRows) {
+    if (row.targetClassId !== row.currentClassId) {
+      departures.set(row.currentClassId, (departures.get(row.currentClassId) ?? 0) + 1);
+    }
+    if (row.targetClassId) {
+      arrivals.set(row.targetClassId, (arrivals.get(row.targetClassId) ?? 0) + 1);
+    }
+  }
+  const classById = new Map(classes.map((classroom) => [classroom.id, classroom]));
+  for (const [classId, incoming] of arrivals) {
+    const classroom = classById.get(classId);
+    if (!classroom || classroom.capacity == null) continue;
+    const projected = (occupancy.get(classId) ?? 0) - (departures.get(classId) ?? 0) + incoming;
+    if (projected <= classroom.capacity) continue;
+    for (const row of plannedRows) {
+      if (row.targetClassId !== classId || row.blocker) continue;
+      row.blocker = `Capacity overflow: ${classroom.displayName} would hold ${projected} students against a capacity of ${classroom.capacity}. Increase capacity or choose another class.`;
+    }
+  }
+
+  return plannedRows;
 }
 
 /** Three terms make a session; used to decide whether a year average is final. */
@@ -282,6 +325,84 @@ export type CommitResult = {
 };
 
 /**
+ * Validate projected class occupancy under class-row locks before any profile
+ * moves. The same complete roster is used to subtract everyone moving out and
+ * add everyone moving in, so two arms that swap cohorts do not reject each
+ * other transiently; a direct commit cannot bypass the dry-run capacity result.
+ */
+async function assertPromotionCapacity(params: {
+  tx: import("@prisma/client").Prisma.TransactionClient;
+  schoolId: string;
+  decisions: PromotionDecision[];
+}): Promise<void> {
+  const targetIds = [
+    ...new Set(
+      params.decisions
+        .filter(
+          (decision) =>
+            decision.outcome === EnrolmentOutcome.PROMOTED ||
+            decision.outcome === EnrolmentOutcome.REPEATED,
+        )
+        .map((decision) => decision.targetClassId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  if (!targetIds.length) return;
+
+  const [targetClasses, activeProfiles] = await Promise.all([
+    params.tx.schoolClass.findMany({
+      where: { schoolId: params.schoolId, id: { in: targetIds }, isActive: true },
+      select: { id: true, displayName: true, capacity: true },
+    }),
+    params.tx.studentProfile.findMany({
+      where: { schoolId: params.schoolId, isActive: true },
+      select: { id: true, currentClassId: true },
+    }),
+  ]);
+  if (targetClasses.length !== targetIds.length) {
+    throw new Error("One or more destination classes are inactive or not found.");
+  }
+  const finiteClasses = targetClasses.filter((classroom) => classroom.capacity != null);
+  if (!finiteClasses.length) return;
+
+  const sourceIds = (activeProfiles ?? [])
+    .filter((profile) => params.decisions.some((d) => d.studentProfileId === profile.id))
+    .map((profile) => profile.currentClassId);
+  const lockIds = [...new Set([...targetIds, ...sourceIds])].sort();
+  for (const classId of lockIds) {
+    await params.tx
+      .$queryRaw`SELECT id FROM "SchoolClass" WHERE id = ${classId} AND "schoolId" = ${params.schoolId} FOR UPDATE`;
+  }
+
+  const occupancy = new Map<string, number>();
+  for (const profile of activeProfiles ?? []) {
+    occupancy.set(profile.currentClassId, (occupancy.get(profile.currentClassId) ?? 0) + 1);
+  }
+  for (const decision of params.decisions) {
+    const profile = (activeProfiles ?? []).find((row) => row.id === decision.studentProfileId);
+    if (!profile) continue;
+    occupancy.set(profile.currentClassId, (occupancy.get(profile.currentClassId) ?? 0) - 1);
+    if (
+      (decision.outcome === EnrolmentOutcome.PROMOTED ||
+        decision.outcome === EnrolmentOutcome.REPEATED) &&
+      decision.targetClassId
+    ) {
+      occupancy.set(decision.targetClassId, (occupancy.get(decision.targetClassId) ?? 0) + 1);
+    }
+  }
+
+  for (const classroom of finiteClasses) {
+    const projected = occupancy.get(classroom.id) ?? 0;
+    const capacity = classroom.capacity;
+    if (capacity !== null && capacity !== undefined && projected > capacity) {
+      throw new Error(
+        `Class ${classroom.displayName} would exceed capacity (${projected}/${capacity}). Review the promotion plan before committing.`,
+      );
+    }
+  }
+}
+
+/**
  * Apply the reviewed decisions.
  *
  * Everything happens inside one transaction: closing the old enrolments,
@@ -294,6 +415,12 @@ export async function commitPromotion(params: {
   toSessionId: string;
   decisions: PromotionDecision[];
   actorUserId: string;
+  promotionAudit?: {
+    plan: Array<PlanRow & { overrideReason?: string | null }>;
+    fromSessionLabel: string;
+    toSessionLabel: string | null;
+  };
+  onCommit?: (_tx: Prisma.TransactionClient, _result: CommitResult) => Promise<void>;
 }): Promise<CommitResult> {
   const { schoolId, fromSessionId, toSessionId, decisions, actorUserId } = params;
 
@@ -340,16 +467,32 @@ export async function commitPromotion(params: {
       );
     }
 
+    await assertPromotionCapacity({ tx, schoolId, decisions });
+
     const now = new Date();
 
     for (const d of decisions) {
       // Close the outgoing enrolment with its outcome. Read it first: its
       // classId is where the student is coming FROM, which the subject
       // rollover below needs.
-      const outgoing = await tx.studentEnrolment.findFirst({
-        where: { schoolId, sessionId: fromSessionId, studentProfileId: d.studentProfileId },
-        select: { classId: true },
-      });
+      const [outgoing, profile] = await Promise.all([
+        tx.studentEnrolment.findFirst({
+          where: { schoolId, sessionId: fromSessionId, studentProfileId: d.studentProfileId },
+          select: { classId: true },
+        }),
+        tx.studentProfile.findFirst({
+          where: { id: d.studentProfileId, schoolId, isActive: true },
+          select: { currentClassId: true },
+        }),
+      ]);
+      if (!outgoing || !profile) {
+        throw new Error(`Student ${d.studentProfileId} is no longer active in the source session.`);
+      }
+      if (outgoing.classId !== profile.currentClassId) {
+        throw new Error(
+          `Student ${d.studentProfileId} has enrolment/profile class drift. Reconcile the class change before promotion.`,
+        );
+      }
       await tx.studentEnrolment.updateMany({
         where: { schoolId, sessionId: fromSessionId, studentProfileId: d.studentProfileId },
         data: { outcome: d.outcome, completedAt: now },
@@ -461,6 +604,16 @@ export async function commitPromotion(params: {
         metadata: { fromSessionId, toSessionId, ...result },
       },
     });
+    if (params.promotionAudit) {
+      await recordPromotionDecisionRows(tx, {
+        schoolId,
+        fromSessionId,
+        toSessionId,
+        actorUserId,
+        ...params.promotionAudit,
+      });
+    }
+    await params.onCommit?.(tx, result);
   });
 
   return result;
@@ -529,7 +682,7 @@ function statusFor(outcome: EnrolmentOutcome) {
  * child promoted, and did anyone override it?" One row per student per session,
  * UPSERTed so re-running a preview does not create duplicates.
  */
-export async function recordPromotionDecisions(params: {
+type PromotionAuditParams = {
   schoolId: string;
   fromSessionId: string;
   toSessionId: string | null;
@@ -538,54 +691,61 @@ export async function recordPromotionDecisions(params: {
   plan: Array<PlanRow & { overrideReason?: string | null }>;
   fromSessionLabel: string;
   toSessionLabel: string | null;
-}) {
+};
+
+/** Write the per-student decision records using the caller's transaction. */
+async function recordPromotionDecisionRows(
+  tx: Prisma.TransactionClient,
+  params: PromotionAuditParams,
+): Promise<void> {
   const now = new Date();
-  await prisma.$transaction(
-    params.plan.map((row) => {
-      const status = statusFor(row.proposedOutcome);
-      // An override is only recorded when the final call differs from what the
-      // results alone proposed. Silently writing "override" on every row would
-      // destroy the audit signal.
-      //
-      // academicProposal is a VERB ("PROMOTE"), not a PromotionStatus
-      // ("PROMOTED") — passing it straight to statusFor() fell through its
-      // default and stored PENDING, which then compared unequal to every real
-      // status. The effect was that every row in every run was flagged as an
-      // override, which is the same as having no flag at all.
-      const proposedStatus =
-        row.academicProposal === "UNKNOWN" ? null : statusForProposal(row.academicProposal);
-      const isOverride = proposedStatus !== null && proposedStatus !== status;
-      const payload = {
-        schoolId: params.schoolId,
-        studentProfileId: row.studentProfileId,
-        fromSessionId: params.fromSessionId,
-        fromSessionLabel: params.fromSessionLabel,
-        toSessionId: params.toSessionId,
-        toSessionLabel: params.toSessionLabel,
-        fromClassId: row.currentClassId,
-        fromClassName: row.currentClassName,
-        toClassId: row.targetClassId ?? null,
-        toClassName: row.targetClassName ?? null,
-        status,
-        yearAverage: row.yearAverage,
-        yearGrade: row.yearGrade,
-        isOverride,
-        proposedStatus,
-        overrideReason: isOverride ? (row.overrideReason ?? "Changed by an administrator.") : null,
-        decidedByUserId: params.actorUserId,
-        decidedAt: now,
-        blocker: row.blocker,
-      };
-      return prisma.promotionRecord.upsert({
-        where: {
-          studentProfileId_fromSessionId: {
-            studentProfileId: row.studentProfileId,
-            fromSessionId: params.fromSessionId,
-          },
+  for (const row of params.plan) {
+    const status = statusFor(row.proposedOutcome);
+    // An override is only recorded when the final call differs from what the
+    // results alone proposed. Silently writing "override" on every row would
+    // destroy the audit signal.
+    const proposedStatus =
+      row.academicProposal === "UNKNOWN" ? null : statusForProposal(row.academicProposal);
+    const isOverride = proposedStatus !== null && proposedStatus !== status;
+    const payload = {
+      schoolId: params.schoolId,
+      studentProfileId: row.studentProfileId,
+      fromSessionId: params.fromSessionId,
+      fromSessionLabel: params.fromSessionLabel,
+      toSessionId: params.toSessionId,
+      toSessionLabel: params.toSessionLabel,
+      fromClassId: row.currentClassId,
+      fromClassName: row.currentClassName,
+      toClassId: row.targetClassId ?? null,
+      toClassName: row.targetClassName ?? null,
+      status,
+      yearAverage: row.yearAverage,
+      yearGrade: row.yearGrade,
+      isOverride,
+      proposedStatus,
+      overrideReason: isOverride ? (row.overrideReason ?? "Changed by an administrator.") : null,
+      decidedByUserId: params.actorUserId,
+      decidedAt: now,
+      blocker: row.blocker,
+    };
+    await tx.promotionRecord.upsert({
+      where: {
+        studentProfileId_fromSessionId: {
+          studentProfileId: row.studentProfileId,
+          fromSessionId: params.fromSessionId,
         },
-        update: payload,
-        create: payload,
-      });
-    }),
-  );
+      },
+      update: payload,
+      create: payload,
+    });
+  }
+}
+
+/**
+ * Record what was decided, and why, for every student in a run. The main
+ * promotion service calls the same helper inside its transaction; this
+ * standalone entry point remains for audited repair/reconciliation tools.
+ */
+export async function recordPromotionDecisions(params: PromotionAuditParams): Promise<void> {
+  await prisma.$transaction((tx) => recordPromotionDecisionRows(tx, params));
 }

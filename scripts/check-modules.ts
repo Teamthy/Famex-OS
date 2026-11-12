@@ -73,6 +73,7 @@ const API_OWNERS: Record<string, ModuleKey | null> = {
   "admin/results": "report_cards",
   "admin/school-profile": null,
   "admin/sessions": null,
+  "admin/student-lifecycle": null,
   "admin/settings": null,
   "admin/staff": "users",
   "admin/staff-attendance": "staff_attendance",
