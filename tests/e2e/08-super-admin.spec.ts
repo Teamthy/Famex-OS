@@ -161,9 +161,10 @@ test.describe("Super Admin bootstrap, MFA and DevOps controls", () => {
     request,
   }) => {
     test.setTimeout(90_000);
+    // Consent appears on a delayed timer; dismiss it deterministically before
+    // navigating so it cannot cover the privileged action controls later.
+    await page.addInitScript(() => localStorage.setItem("fis_cookie_consent", "accepted"));
     await page.goto("/login");
-    const acceptCookies = page.getByRole("button", { name: "Accept All" });
-    if (await acceptCookies.isVisible().catch(() => false)) await acceptCookies.click();
     await page.getByLabel("Email", { exact: true }).fill(email);
     await page.getByLabel("Password", { exact: true }).fill(password);
 
