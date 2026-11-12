@@ -139,7 +139,7 @@ export default function BulkAnnouncementPage() {
       <main className="bg-[var(--bg-primary)] min-h-screen theme-transition">
         <section className="pt-24 pb-10 bg-brand-navy px-6">
           <div className="mx-auto max-w-7xl">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-green/20 border border-brand-green/40 text-brand-green text-[10px] font-bold uppercase tracking-widest mb-3">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-famex-lime/20 border border-brand-green/40 text-brand-green text-[10px] font-bold uppercase tracking-widest mb-3">
               <Megaphone size={11} /> Bulk Announcement
             </span>
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
@@ -161,7 +161,7 @@ export default function BulkAnnouncementPage() {
                 {/* Audience */}
                 <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] p-6 shadow-[var(--card-shadow)]">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-brand-green/10 text-brand-green flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-famex-lime/10 text-brand-green flex items-center justify-center">
                       <Users size={18} />
                     </div>
                     <div>
@@ -206,7 +206,7 @@ export default function BulkAnnouncementPage() {
                         onClick={() => setAudience(a.key as any)}
                         className={`p-4 rounded-xl border text-left transition-all ${
                           audience === a.key
-                            ? "bg-brand-green/10 border-brand-green"
+                            ? "bg-famex-lime/10 border-brand-green"
                             : "border-[var(--border-subtle)] hover:border-brand-green/30"
                         }`}
                       >
@@ -238,8 +238,8 @@ export default function BulkAnnouncementPage() {
                             onClick={() => toggleClass(c.id)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                               selectedClasses.includes(c.id)
-                                ? "bg-brand-green text-white"
-                                : "bg-[var(--surface-disabled)] text-[var(--text-muted)] hover:bg-brand-green/10"
+                                ? "bg-famex-lime text-white"
+                                : "bg-[var(--surface-disabled)] text-[var(--text-muted)] hover:bg-famex-lime/10"
                             }`}
                           >
                             {c.name}
@@ -307,7 +307,7 @@ export default function BulkAnnouncementPage() {
                           <button
                             key={p.key}
                             onClick={() => setPriority(p.key as any)}
-                            className={`p-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${priority === p.key ? (p.key === "urgent" ? "bg-red-500 text-white" : "bg-brand-green text-white") : "bg-[var(--surface-disabled)] text-[var(--text-muted)]"}`}
+                            className={`p-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${priority === p.key ? (p.key === "urgent" ? "bg-red-500 text-white" : "bg-famex-lime text-white") : "bg-[var(--surface-disabled)] text-[var(--text-muted)]"}`}
                           >
                             <p.icon size={12} /> {p.label}
                           </button>
@@ -345,7 +345,7 @@ export default function BulkAnnouncementPage() {
                         onClick={() => toggleChannel(c.key)}
                         className={`p-4 rounded-xl border-2 transition-all ${
                           channels.includes(c.key)
-                            ? "border-brand-green bg-brand-green/10 text-brand-green"
+                            ? "border-brand-green bg-famex-lime/10 text-brand-green"
                             : "border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-brand-green/30"
                         }`}
                       >
@@ -378,7 +378,7 @@ export default function BulkAnnouncementPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => setSchedule("now")}
-                      className={`p-4 rounded-xl border-2 text-left transition-all ${schedule === "now" ? "border-brand-green bg-brand-green/10" : "border-[var(--border-subtle)] hover:border-brand-green/30"}`}
+                      className={`p-4 rounded-xl border-2 text-left transition-all ${schedule === "now" ? "border-brand-green bg-famex-lime/10" : "border-[var(--border-subtle)] hover:border-brand-green/30"}`}
                     >
                       <Zap
                         className={
@@ -395,7 +395,7 @@ export default function BulkAnnouncementPage() {
                     </button>
                     <button
                       onClick={() => setSchedule("later")}
-                      className={`p-4 rounded-xl border-2 text-left transition-all ${schedule === "later" ? "border-brand-green bg-brand-green/10" : "border-[var(--border-subtle)] hover:border-brand-green/30"}`}
+                      className={`p-4 rounded-xl border-2 text-left transition-all ${schedule === "later" ? "border-brand-green bg-famex-lime/10" : "border-[var(--border-subtle)] hover:border-brand-green/30"}`}
                     >
                       <Calendar
                         className={

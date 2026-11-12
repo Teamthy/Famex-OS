@@ -42,7 +42,7 @@ function whenLabel(iso: string | null): string | null {
 
 /** Colour + icon per state, so the list is scannable without reading it. */
 const AVAILABILITY_STYLE: Record<string, { chip: string; icon: typeof Clock }> = {
-  READY: { chip: "bg-brand-green/10 text-brand-green", icon: PlayCircle },
+  READY: { chip: "bg-famex-lime/10 text-brand-green", icon: PlayCircle },
   UPCOMING: { chip: "bg-brand-orange/10 text-brand-orange", icon: CalendarClock },
   CLOSED: { chip: "bg-red-500/10 text-red-500", icon: XCircle },
   COMPLETED: { chip: "bg-[var(--surface-disabled)] text-[var(--text-muted)]", icon: CheckCircle2 },
@@ -249,7 +249,7 @@ export default function StudentExamsPage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-6xl">
-            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <ClipboardCheck size={11} /> Computer-Based Tests
             </span>
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
@@ -315,7 +315,7 @@ export default function StudentExamsPage() {
                             <h3 className="font-display text-xl text-[var(--text-primary)]">
                               {exam.title}
                             </h3>
-                            <span className="rounded-full bg-brand-green/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-brand-green">
+                            <span className="rounded-full bg-famex-lime/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-brand-green">
                               {exam.examType}
                             </span>
                             {exam.status === "CLOSED" ? (
@@ -395,7 +395,7 @@ export default function StudentExamsPage() {
                             </span>
                           ) : null}
                           {downloadededMarker(downloaded, exam.id) ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-green/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-famex-lime/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-green">
                               <CheckCircle size={11} /> Ready offline
                             </span>
                           ) : exam.offlineReady && (exam.canStart || exam.canResume) ? (
@@ -422,7 +422,7 @@ export default function StudentExamsPage() {
                           ) : exam.canStart ? (
                             <Link
                               href={`/student/exams/${exam.id}`}
-                              className="inline-flex items-center gap-2 rounded-full bg-brand-green px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg hover:bg-brand-green-dark"
+                              className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg hover:bg-famex-lime-soft"
                             >
                               <PlayCircle size={13} /> Start Exam
                             </Link>
@@ -445,7 +445,7 @@ export default function StudentExamsPage() {
               </p>
               <Link
                 href="/student/results"
-                className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-green hover:bg-brand-green/10"
+                className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-green hover:bg-famex-lime/10"
               >
                 Term Results
               </Link>

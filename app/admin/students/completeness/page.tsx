@@ -50,7 +50,7 @@ type Payload = {
 };
 
 const GRADE_STYLE: Record<Graded["grade"], string> = {
-  COMPLETE: "bg-brand-green/15 text-brand-green",
+  COMPLETE: "bg-famex-lime/15 text-brand-green",
   GOOD: "bg-emerald-500/15 text-emerald-600",
   PARTIAL: "bg-amber-500/15 text-amber-600",
   INCOMPLETE: "bg-rose-500/15 text-rose-600",
@@ -228,7 +228,7 @@ export default function CompletenessPage() {
                         <div className="flex items-center gap-2">
                           <div className="h-2 w-16 overflow-hidden rounded-full bg-[var(--border-subtle)]">
                             <div
-                              className="h-full rounded-full bg-brand-green"
+                              className="h-full rounded-full bg-famex-lime"
                               style={{ width: `${student.score}%` }}
                             />
                           </div>

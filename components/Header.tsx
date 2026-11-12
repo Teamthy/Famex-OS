@@ -122,7 +122,7 @@ export default function Header() {
                           <Link
                             key={item.href}
                             href={item.href}
-                            className="block px-5 py-3 font-body text-sm text-white hover:bg-brand-green/10 hover:text-brand-green transition-colors"
+                            className="block px-5 py-3 font-body text-sm text-white hover:bg-famex-lime/10 hover:text-brand-green transition-colors"
                           >
                             {item.label}
                           </Link>

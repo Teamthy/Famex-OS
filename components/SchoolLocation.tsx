@@ -46,7 +46,7 @@ export function SchoolLocation() {
       {/* Address Card */}
       <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] p-6 shadow-[var(--card-shadow)]">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-brand-green/10 text-brand-green flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-famex-lime/10 text-brand-green flex items-center justify-center shrink-0">
             <MapPin size={22} />
           </div>
           <div className="flex-1">

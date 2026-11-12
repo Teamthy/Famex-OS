@@ -228,8 +228,6 @@ export default function OnboardingPage() {
                     email: String(form.get("email") ?? "").trim(),
                     motto: String(form.get("motto") ?? "").trim(),
                     displayName: String(form.get("displayName") ?? "").trim(),
-                    primaryColor: String(form.get("primaryColor") ?? ""),
-                    accentColor: String(form.get("accentColor") ?? ""),
                   },
                   "academic",
                 );
@@ -282,31 +280,30 @@ export default function OnboardingPage() {
                     className={inputClass}
                   />
                 </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <label>
-                    <span className={labelClass}>Dark colour</span>
-                    <input
-                      name="primaryColor"
-                      type="color"
-                      defaultValue="#0c1824"
-                      className="mt-1.5 h-11 w-full cursor-pointer rounded-xl border border-gray-200"
-                    />
-                  </label>
-                  <label>
-                    <span className={labelClass}>Accent</span>
-                    <input
-                      name="accentColor"
-                      type="color"
-                      defaultValue="#4ec54d"
-                      className="mt-1.5 h-11 w-full cursor-pointer rounded-xl border border-gray-200"
-                    />
-                  </label>
+                <div
+                  className="grid grid-cols-3 gap-2 sm:col-span-2"
+                  aria-label="Famex brand palette"
+                >
+                  <div className="rounded-xl bg-[var(--famex-forest-dark)] p-3 text-xs font-semibold text-white">
+                    Forest
+                    <span className="mt-1 block font-mono text-[10px] text-white/75">#123A35</span>
+                  </div>
+                  <div className="rounded-xl bg-[var(--famex-lime)] p-3 text-xs font-semibold text-[var(--famex-forest-dark)]">
+                    Electric lime
+                    <span className="mt-1 block font-mono text-[10px]">#B6E618</span>
+                  </div>
+                  <div className="rounded-xl border border-[var(--famex-border)] bg-white p-3 text-xs font-semibold text-[var(--famex-ink)]">
+                    White
+                    <span className="mt-1 block font-mono text-[10px] text-[var(--famex-text-muted)]">
+                      #FFFFFF
+                    </span>
+                  </div>
                 </div>
               </div>
               <button
                 type="submit"
                 disabled={busy}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-brand-green)] py-3.5 text-sm font-bold uppercase tracking-widest text-white disabled:opacity-50"
+                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--famex-lime)] py-3.5 text-sm font-bold uppercase tracking-widest text-[var(--famex-forest-dark)] transition hover:bg-[var(--famex-lime-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-forest-mid)] disabled:opacity-50"
               >
                 {busy ? "Saving…" : "Continue"} {!busy && <ArrowRight size={16} />}
               </button>
@@ -367,7 +364,7 @@ export default function OnboardingPage() {
               <button
                 type="submit"
                 disabled={busy}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-brand-green)] py-3.5 text-sm font-bold uppercase tracking-widest text-white disabled:opacity-50"
+                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--famex-lime)] py-3.5 text-sm font-bold uppercase tracking-widest text-[var(--famex-forest-dark)] transition hover:bg-[var(--famex-lime-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-forest-mid)] disabled:opacity-50"
               >
                 {busy ? "Saving…" : "Continue"} {!busy && <ArrowRight size={16} />}
               </button>
@@ -416,7 +413,7 @@ export default function OnboardingPage() {
                 type="button"
                 disabled={busy || chosenStages.length === 0}
                 onClick={() => void submitStep({ step: "stages", stages: chosenStages }, "classes")}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-brand-green)] py-3.5 text-sm font-bold uppercase tracking-widest text-white disabled:opacity-50"
+                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--famex-lime)] py-3.5 text-sm font-bold uppercase tracking-widest text-[var(--famex-forest-dark)] transition hover:bg-[var(--famex-lime-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-forest-mid)] disabled:opacity-50"
               >
                 {busy ? "Saving…" : "Continue"} {!busy && <ArrowRight size={16} />}
               </button>
@@ -496,7 +493,7 @@ export default function OnboardingPage() {
                       "subjects",
                     )
                   }
-                  className="flex items-center justify-center gap-2 rounded-xl bg-[var(--color-brand-green)] py-3.5 text-sm font-bold uppercase tracking-widest text-white disabled:opacity-50"
+                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--famex-lime)] py-3.5 text-sm font-bold uppercase tracking-widest text-[var(--famex-forest-dark)] transition hover:bg-[var(--famex-lime-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-forest-mid)] disabled:opacity-50"
                 >
                   {busy ? "Saving…" : "Create classes"} {!busy && <ArrowRight size={16} />}
                 </button>
@@ -538,7 +535,7 @@ export default function OnboardingPage() {
                   onClick={() =>
                     void submitStep({ step: "subjects", levels: chosenLevels }, "modules")
                   }
-                  className="flex items-center justify-center gap-2 rounded-xl bg-[var(--color-brand-green)] py-3.5 text-sm font-bold uppercase tracking-widest text-white disabled:opacity-50"
+                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--famex-lime)] py-3.5 text-sm font-bold uppercase tracking-widest text-[var(--famex-forest-dark)] transition hover:bg-[var(--famex-lime-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-forest-mid)] disabled:opacity-50"
                 >
                   {busy ? "Saving…" : "Create subjects"} {!busy && <ArrowRight size={16} />}
                 </button>
@@ -605,7 +602,7 @@ export default function OnboardingPage() {
                     "staff",
                   )
                 }
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-brand-green)] py-3.5 text-sm font-bold uppercase tracking-widest text-white disabled:opacity-50"
+                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--famex-lime)] py-3.5 text-sm font-bold uppercase tracking-widest text-[var(--famex-forest-dark)] transition hover:bg-[var(--famex-lime-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-forest-mid)] disabled:opacity-50"
               >
                 {busy ? "Saving…" : "Save modules"} {!busy && <ArrowRight size={16} />}
               </button>
@@ -664,7 +661,7 @@ export default function OnboardingPage() {
                 <button
                   type="submit"
                   disabled={busy}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-[var(--color-brand-green)] py-3.5 text-sm font-bold uppercase tracking-widest text-white disabled:opacity-50"
+                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--famex-lime)] py-3.5 text-sm font-bold uppercase tracking-widest text-[var(--famex-forest-dark)] transition hover:bg-[var(--famex-lime-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-forest-mid)] disabled:opacity-50"
                 >
                   {busy ? "Saving…" : "Send invitations"} {!busy && <ArrowRight size={16} />}
                 </button>

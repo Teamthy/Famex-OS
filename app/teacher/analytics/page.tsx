@@ -59,7 +59,7 @@ export default function TeacherAnalyticsPage() {
       <main className="bg-[var(--bg-primary)] min-h-screen theme-transition">
         <section className="pt-24 pb-10 bg-brand-navy px-6">
           <div className="mx-auto max-w-7xl">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-green/20 border border-brand-green/40 text-brand-green text-[10px] font-bold uppercase tracking-widest mb-3">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-famex-lime/20 border border-brand-green/40 text-brand-green text-[10px] font-bold uppercase tracking-widest mb-3">
               <BarChart3 size={11} /> Teaching Analytics
             </span>
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
@@ -91,7 +91,7 @@ export default function TeacherAnalyticsPage() {
                   <option>First Term 2026/2027</option>
                   <option>Full Session</option>
                 </select>
-                <button className="ml-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-brand-green text-brand-navy text-sm font-bold hover:bg-brand-green-dark transition-all">
+                <button className="ml-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-famex-lime text-brand-navy text-sm font-bold hover:bg-famex-lime-soft transition-all">
                   <Download size={14} /> Export Report
                 </button>
               </div>
@@ -137,7 +137,7 @@ export default function TeacherAnalyticsPage() {
                     className="p-5 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] shadow-[var(--card-shadow)]"
                   >
                     <div
-                      className={`w-10 h-10 rounded-xl bg-brand-green/10 flex items-center justify-center mb-3 ${s.color}`}
+                      className={`w-10 h-10 rounded-xl bg-famex-lime/10 flex items-center justify-center mb-3 ${s.color}`}
                     >
                       <s.icon size={18} />
                     </div>
@@ -291,7 +291,7 @@ export default function TeacherAnalyticsPage() {
                           </td>
                           <td className="px-3 py-3 text-center">
                             <span
-                              className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${c.avgScore >= 75 ? "bg-brand-green/10 text-brand-green" : c.avgScore >= 60 ? "bg-brand-orange/10 text-brand-orange" : "bg-red-500/10 text-red-500"}`}
+                              className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${c.avgScore >= 75 ? "bg-famex-lime/10 text-brand-green" : c.avgScore >= 60 ? "bg-brand-orange/10 text-brand-orange" : "bg-red-500/10 text-red-500"}`}
                             >
                               {c.avgScore}%
                             </span>
@@ -311,7 +311,7 @@ export default function TeacherAnalyticsPage() {
                               <div
                                 className={
                                   c.avgScore >= 75
-                                    ? "bg-brand-green h-full"
+                                    ? "bg-famex-lime h-full"
                                     : c.avgScore >= 60
                                       ? "bg-brand-orange h-full"
                                       : "bg-red-500 h-full"
@@ -330,7 +330,7 @@ export default function TeacherAnalyticsPage() {
               {/* Insights */}
               <div className="rounded-2xl bg-gradient-to-br from-brand-navy to-brand-navy-light p-6 text-white">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-brand-green/20 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-famex-lime/20 flex items-center justify-center">
                     <Zap className="text-brand-green" size={18} />
                   </div>
                   <div>
@@ -362,10 +362,10 @@ export default function TeacherAnalyticsPage() {
                   ].map((i, idx) => (
                     <div
                       key={idx}
-                      className={`flex items-start gap-3 p-3 rounded-xl ${i.type === "success" ? "bg-brand-green/10 border border-brand-green/20" : i.type === "warning" ? "bg-brand-orange/10 border border-brand-orange/20" : "bg-blue-500/10 border border-blue-500/20"}`}
+                      className={`flex items-start gap-3 p-3 rounded-xl ${i.type === "success" ? "bg-famex-lime/10 border border-brand-green/20" : i.type === "warning" ? "bg-brand-orange/10 border border-brand-orange/20" : "bg-blue-500/10 border border-blue-500/20"}`}
                     >
                       <div
-                        className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${i.type === "success" ? "bg-brand-green" : i.type === "warning" ? "bg-brand-orange" : "bg-blue-500"}`}
+                        className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${i.type === "success" ? "bg-famex-lime" : i.type === "warning" ? "bg-brand-orange" : "bg-blue-500"}`}
                       />
                       <p className="text-sm text-white/90">{i.text}</p>
                     </div>

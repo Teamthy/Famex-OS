@@ -24,7 +24,7 @@ If a session ends mid-workstream, §9 must say exactly where it stopped and what
 ## 1. Repo & branch identity
 
 - Repo: `Teamthy/Famex-OS` (origin). W3 base commit: `ca1c10886f50b5c699dd0f0327f3d90606ed7c1f` (main, W1 + W2 merged); stage A merged at `e96217a` (PR #4).
-- **Session branches (fixed, one per session):** W3 stage A used `arena/ce3a9b67-famex-os` → PR #4 (merged); stage B used `arena/f5d78cef-famex-os` → PR #5 (merged `193ff93`); OCI hosting used `arena/ca91d7ae-famex-os` → PR #9 (merged `e9a1193`); the CI-rescue session (2026-10-20) used `arena/ea852f26-famex-os` (base `1f50c0f`, PR #11/#12 lineage); FIS production core used `arena/0e9f562e-famex-os` → PR #13 (merged `fa8d092`, 2026-10-21); the single-school/assignments/live-classes/deployment slice used `arena/cb6c3d85-famex-os` → PR #14 (merged `c586c4a`, 2026-10-21) and PR #15 (GHCR lowercase publish fix, merged `1163ebb`, 2026-10-21). The audit session used `arena/7e03c832-famex-os` → PR #16 (audit docs only, merged `5ba9a16`, 2026-10-23). The launch-blocker close-out session used `arena/a545871c-famex-os` → PR #17 (merged `b4415d0`, 2026-11-08). The B-01 dependency-gate session used `arena/2aed24db-famex-os` → PR #18 (merged `75caee3`, 2026-11-08). The release-path session used `arena/e697eea8-famex-os` → PR #19 (merged `c0a2fd9`, 2026-11-09). **The current Vercel-degradation session works only on `arena/a6b381c5-famex-os`, branched from merged `main` at `c0a2fd9`.** Always work/commit/push on your session branch; open PRs from it to `main`. Never create/switch/push other branches. (W1 used `arena/7f29531d-famex-os` → PR #1; W2 used `arena/9abf8aef-famex-os` → PR #2, merge `74f236c`.)
+- **Session branches (fixed, one per session):** W3 stage A used `arena/ce3a9b67-famex-os` → PR #4 (merged); stage B used `arena/f5d78cef-famex-os` → PR #5 (merged `193ff93`); OCI hosting used `arena/ca91d7ae-famex-os` → PR #9 (merged `e9a1193`); the CI-rescue session (2026-10-20) used `arena/ea852f26-famex-os` (base `1f50c0f`, PR #11/#12 lineage); FIS production core used `arena/0e9f562e-famex-os` → PR #13 (merged `fa8d092`, 2026-10-21); the single-school/assignments/live-classes/deployment slice used `arena/cb6c3d85-famex-os` → PR #14 (merged `c586c4a`, 2026-10-21) and PR #15 (GHCR lowercase publish fix, merged `1163ebb`, 2026-10-21). The audit session used `arena/7e03c832-famex-os` → PR #16 (audit docs only, merged `5ba9a16`, 2026-10-23). The launch-blocker close-out session used `arena/a545871c-famex-os` → PR #17 (merged `b4415d0`, 2026-11-08). The B-01 dependency-gate session used `arena/2aed24db-famex-os` → PR #18 (merged `75caee3`, 2026-11-08). The release-path session used `arena/e697eea8-famex-os` → PR #19 (merged `c0a2fd9`, 2026-11-09). **The Vercel-degradation session historically used `arena/a6b381c5-famex-os` (base `c0a2fd9`). The current botanical design-system continuation works only on `arena/e10caba4-famex-os`, branched from `main` at `3825160f925499d344590874236dbbf90f1d34dd`.** Always work/commit/push on your session branch; open PRs from it to `main`. Never create/switch/push other branches. (W1 used `arena/7f29531d-famex-os` → PR #1; W2 used `arena/9abf8aef-famex-os` → PR #2, merge `74f236c`.)
 - The old Ykay repo (`upstream`) is **read-only, out of bounds** (Rule 15). Never push/edit it.
 - Product: **Famex OS** — single-school Nigerian secondary-school OS (~3,000 users, 5-yr horizon). Rebuilt from a school EduPortal base with the SaaS platform layer removed.
 
@@ -46,6 +46,7 @@ Read in this order before any work:
 | WS | Scope (short) | Status |
 |---|---|---|
 | **REM** | Audit remediation (§4h roadmap: Phases 0–8) | 🟡 **IN PROGRESS — supersedes W-workstreams until Phase 3 is green.** PR #16 (`5ba9a16`) landed the audit package; PR #17 (`b4415d0`) closed fixable-now launch blockers; PR #18 (`75caee3`) closed B-01; PR #19 (`c0a2fd9`) closed B-09/B-18 code-ables + mobile CI. Phase 2 B-06 merged (PR #40); Phase 3 B-04 merged (PR #41) and B-16 finance lifecycle merged as PR #42 (`f347f55`). **B-17 academic lifecycle is implemented on `arena/50d27962-famex-os`, PR #43 open**; real-Postgres verifier passed in CI run `43156704166` and all 9 PR checks are green. |
+| **UI** | Famex botanical visual system (F0-18 / F0-21) | 🟡 **PR forthcoming from `arena/e10caba4-famex-os`** — centralized forest/lime/paper tokens, light default, consistent lime actions, green workspace navigation, icon refresh, homepage and login palette; school-not-configured banner removed globally while DB-outage notice remains. Local lint, typecheck (stub-generated Prisma types), 118 test files / 1,613 tests, brand audit and formatting pass; DB-backed and browser visual checks not run. |
 | **W1** | Strip EDUos platform + Ykay arms; single-school boot; brand tokens; Licence & Usage; re-cut audit | ✅ **MERGED into main** — PR #1, 2026-10-14 (commits `a9451cd`, `ccaab0b` + this handoff commit). Gates green at merge; DB gates environment-blocked and stated in the PR. |
 | **W2** | Module registry drives nav/routes/entitlements; settings framework; first-run wizard; `check:modules` | ✅ **merged** — PR #2, merge commit `74f236c` (branch `arena/9abf8aef-famex-os`, 2026-10-14). All CI jobs green except the pre-existing red `Lighthouse budgets` workflow (also red on the W1 merge). |
 | **W3** | Double-entry ledger → Fees & Billing; bursar dashboard; gateway reconciliation | ✅ **stage A MERGED** (PR #4, `e96217a`) and **stage B MERGED** (PR #5, `193ff93`, 2026-10-15): discounts (F5-12), refunds (F5-13), credits (F5-11), transfers (F5-14), gateway settlement (F5-16), ageing + statements (F5-17/18), bursar queues (F5-19), receipts re-brand (F5-04/22) + `verify:ledger` extended to 12 steps. Instalment plans (F5-10) delivered 2026-10-21 (§4e). **Close-out still owed** (§9): real-DB ledger backfill/opening balances, manual adjustments screen (F5-20), cashbook polish (F5-15/F5-23/F5-25), per-reference settlement matching |
@@ -305,10 +306,9 @@ DB is a placeholder, but it means outsiders see an auth wall, not the app.
   must never hide bugs or fake an "empty" state over a broken write path.
 - `app/layout.tsx` — catches infrastructure failures at all three DB touchpoints, and
   `IdentityCheckUnavailableError` from `getSession` (fail closed → treated as signed out;
-  authenticated routes stay guarded). Degraded renders use the env brand tokens (`SCHOOL_*` are
-  set on Vercel) and show `<SetupIncompleteBanner>`; `reason="school"` also covers a healthy DB
-  with no configured school row (unseeded environment) — the layout already had the token
-  fallback for `schoolId === null`, it just could never reach it when the DB threw first.
+  authenticated routes stay guarded). Database-degraded renders use the env brand tokens
+  (`SCHOOL_*` are set on Vercel) and show `<SetupIncompleteBanner>`. A healthy database with no
+  school row still uses the token fallback; no school-configuration warning is rendered.
 - `components/SetupIncompleteBanner.tsx` — new: server component, zero client JS, zero data
   reads; honest amber "Setup incomplete — database not connected" strip pointing administrators
   at `/api/health` + the §9 runbook. No brand literals (uses `PRODUCT_NAME`/tokens).
@@ -425,7 +425,7 @@ rendering, and the journal's honest empty state.
 
 ## 5. Gates: commands + latest evidence + blockers
 
-Run from repo root. The latest B-17 local and CI evidence is summarized in §4r. Historical CI outcomes below remain accurate for their named PRs. Older delivery-gate evidence (2026-10-21, §§4f–4g), the 2026-10-23 audit recheck (§4h), the B-01 session (§4j) and the Vercel-degradation session (§4l) are superseded by it.
+Run from repo root. The latest B-17 local and CI evidence is summarized in §4r; the current UI branch's local gates are recorded in §4s. Historical CI outcomes below remain accurate for their named PRs. Older delivery-gate evidence (2026-10-21, §§4f–4g), the 2026-10-23 audit recheck (§4h), the B-01 session (§4j) and the Vercel-degradation session (§4l) are superseded by it.
 
 | Gate | Command | Result (actual output) |
 |---|---|---|
@@ -798,6 +798,16 @@ Implements F7-09 lifecycle reliability without claiming the wider catalogue feat
 
 ---
 
+### 4s. Famex botanical design system + warning cleanup (2026-11-12, branch `arena/e10caba4-famex-os`, base `3825160f925499d344590874236dbbf90f1d34dd`)
+
+Implements the founder's visual palette and UI direction (F0-18 / F0-21): semantic Tailwind/CSS tokens for forest `#1D4A45` / `#123A35` / `#28645B`, lime `#B6E618` / `#C8EE53` / `#F1F9D9`, paper `#F6F8F5`, white, borders, text, status colors, radii and shadows. The product defaults to a light workspace, with dark opt-in. Legacy green-fill utilities were migrated to semantic lime actions, with dark forest text for contrast; shared admin/teacher/portal sidebars use forest surfaces and item-level Lucide icons. Login retains the split image/form structure and now has forest/lime framing and geometric accents. Homepage sections consume the shared tokens; onboarding/settings show the standardized palette rather than editable color pickers. Branding fallbacks and PWA theme color use the new palette.
+
+The school-not-configured notice was removed everywhere: layout no longer emits that state, its component has only the DB-unavailable state, the homepage-only CSS hide rule is gone, and the HANDOFF no longer describes a school-reason banner. Keep the distinct database-not-connected notice for real infrastructure degradation.
+
+**Local gates (this branch):** `npm run lint -- --quiet` passed; `npm run typecheck` passed after Prisma Client generation with the documented stub engine (type checking only, not DB/runtime proof); `npm test -- --reporter=dot` passed **118 files / 1,613 tests**; `npm run audit:brand` passed at the existing **71 findings / 37 files** baseline; Prettier and `git diff --check` passed. No production build, DB integration, E2E, or browser visual review was run for this UI slice. Open a PR from this branch after pushing; do not merge without owner direction.
+
+---
+
 ## 6. Environment recipes (sandbox quirks — do not rediscover)
 
 - **node_modules is snapshot-excluded.** After a sandbox restart: `npm install --ignore-scripts --no-audit --no-fund`, then regenerate Prisma (below). `mobile/node_modules` also needs install for the mobile vitest files to load.
@@ -820,6 +830,7 @@ Implements F7-09 lifecycle reliability without claiming the wider catalogue feat
 - User impersonation remains stripped. Founder direction supersedes the F0-27 console strip: Super Admin is a distinct DevOps role for this single-school Famex deployment, with the same in-school ADMIN access as Director plus a separate operational dashboard. No EDUos surface, school switching, cross-school operations, or impersonation.
 - Boot does NOT require an admin user; first ADMIN via `db:seed`, then W2 wizard (F0-22). `/onboarding` wizard kept.
 - Brand burn-down is a **ratchet**, not zero: redis prefix (`ykay:`), cookie `ykay_session`, demo seed emails (`@ykaycollege.com`), marketing copy (about/careers/privacy), OG image, `lib/receipt.ts` receipt PDF, `lib/email.ts` sender, mobile app branding, docker-compose names all **stay in the brand baseline** and are de-branded in their owning workstream (receipts→W3, comms/email→W4, website→W12/W18, mobile→mobile WS).
+- **Famex visual system (F0-18/F0-21):** use the shared forest/lime/paper tokens in `app/globals.css`; light botanical surfaces are default, dark is opt-in. Lime fills require forest-dark text; never use lime text for important copy on white. Keep sidebars forest, pages white/off-white, and status colors semantic. Do not restore per-school color pickers or the school-not-configured banner; the separate database-outage notice remains.
 - Receipt PDFs are money documents → re-branded with the W3 ledger rework, not W1.
 - Licence & Usage = client page + role-guarded API (rule 13); usage meters land in W12 (F20) — UI shows an honest empty state until then.
 - Logo default = `/logo.png`; school-specific logo later via `School.logoUrl`/branding (W2 settings).
@@ -946,9 +957,11 @@ Implements F7-09 lifecycle reliability without claiming the wider catalogue feat
 
 ---
 
-## 9. Next session: backend-source-of-truth + UX sweep (B-17 complete)
+## 9. Next session: backend-source-of-truth + UX sweep (B-17 complete; visual-system PR in progress)
 
-**Current stop-point (2026-11-12, branch `arena/50d27962-famex-os`, base `f347f55`):** B-17 is committed (`46d7e2e`), pushed, PR #43 is open, and all 9 required PR checks are green. The real-Postgres verifier passed in CI; no deployment or merge has occurred. Next, continue with the founder-requested admin/tutor/student/exam/report-card backend synchronization and toast UX as a separate feature slice; acceptance is recorded in §4r. Preserve the current green PR record and do not merge without owner direction. The following older deployment notes remain operational context, not the current workstream.
+**Current stop-point (2026-11-12, branch `arena/e10caba4-famex-os`, base `3825160f925499d344590874236dbbf90f1d34dd`):** Famex's botanical palette and shared UI styling are implemented, the school-not-configured notice is removed globally, and local lint/typecheck/118-file test suite/brand audit/formatting gates pass (§4s). Handoff is updated. Next: commit/push this branch and open the PR to `main`, then wait for checks/review; do not merge without owner direction. A production build, DB integration, E2E and browser visual review were not run for this slice.
+
+**Previous stop-point (2026-11-12, branch `arena/50d27962-famex-os`, base `f347f55`):** B-17 is committed (`46d7e2e`), pushed, PR #43 is open, and all 9 required PR checks are green. The real-Postgres verifier passed in CI; no deployment or merge has occurred. After the visual-system PR is reviewed, continue with the founder-requested admin/tutor/student/exam/report-card backend synchronization and toast UX as a separate feature slice; acceptance is recorded in §4r. Preserve the current green PR record and do not merge without owner direction. The following older deployment notes remain operational context, not the current workstream.
 
 **Historical Vercel degradation stop-point (2026-11-09, branch `arena/a6b381c5-famex-os`, base `c0a2fd9`):**
 The founder's "UI not showing on Vercel" report had TWO stacked walls, both now fixed in code:

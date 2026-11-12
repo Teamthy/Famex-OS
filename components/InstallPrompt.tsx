@@ -91,7 +91,7 @@ export function InstallPrompt() {
   return (
     <div className="fixed bottom-24 left-4 z-40 flex max-w-xs items-start gap-3 rounded-2xl border border-brand-green/30 bg-[var(--surface-card)] p-4 shadow-2xl md:bottom-8 md:left-8">
       <span
-        className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-green/15 text-lg"
+        className="grid size-10 shrink-0 place-items-center rounded-xl bg-famex-lime/15 text-lg"
         aria-hidden="true"
       >
         📲
@@ -108,7 +108,7 @@ export function InstallPrompt() {
               <button
                 type="button"
                 onClick={() => void install()}
-                className="rounded-lg bg-brand-green px-3 py-1 text-xs font-bold text-brand-navy hover:bg-brand-green-dark"
+                className="rounded-lg bg-famex-lime px-3 py-1 text-xs font-bold text-brand-navy hover:bg-famex-lime-soft"
               >
                 Install
               </button>

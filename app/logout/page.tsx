@@ -56,7 +56,7 @@ export default function LogoutPage() {
 
           {!loading && user ? (
             <div className="mt-6 flex items-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-disabled)] p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-green text-sm font-bold text-brand-navy">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-famex-lime text-sm font-bold text-brand-navy">
                 {user.name?.charAt(0)?.toUpperCase() || "?"}
               </div>
               <div className="min-w-0">

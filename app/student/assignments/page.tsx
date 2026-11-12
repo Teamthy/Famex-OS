@@ -156,7 +156,7 @@ export default function StudentAssignmentsPage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-12">
           <div className="mx-auto max-w-7xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <BookOpenCheck size={11} /> Homework & classwork
             </span>
             <h1 className="mt-3 font-display text-4xl tracking-widest text-white md:text-5xl">
@@ -212,7 +212,7 @@ export default function StudentAssignmentsPage() {
                             {assignment.maxScore} mark{assignment.maxScore === 1 ? "" : "s"}
                           </p>
                         </div>
-                        <span className="rounded-full bg-brand-green/10 px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-brand-green">
+                        <span className="rounded-full bg-famex-lime/10 px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-brand-green">
                           {submission ? submission.status : assignment.status}
                           {assignment.isOverdue ? " · OVERDUE" : ""}
                           {submission?.isLate ? " · LATE" : ""}
@@ -224,7 +224,7 @@ export default function StudentAssignmentsPage() {
                       </div>
 
                       {submission?.status === "GRADED" ? (
-                        <div className="mt-5 rounded-2xl border border-brand-green/25 bg-brand-green/10 p-4">
+                        <div className="mt-5 rounded-2xl border border-brand-green/25 bg-famex-lime/10 p-4">
                           <div className="flex items-center gap-2 font-semibold text-brand-green">
                             <CheckCircle2 size={17} /> Score: {submission.score}/
                             {assignment.maxScore}
@@ -293,7 +293,7 @@ export default function StudentAssignmentsPage() {
                             data-testid="submit-assignment"
                             disabled={savingId === assignment.id || !draft.content.trim()}
                             onClick={() => void submit(assignment)}
-                            className="inline-flex items-center gap-2 rounded-xl bg-brand-green px-5 py-3 text-sm font-bold text-brand-navy disabled:opacity-60"
+                            className="inline-flex items-center gap-2 rounded-xl bg-famex-lime px-5 py-3 text-sm font-bold text-brand-navy disabled:opacity-60"
                           >
                             {savingId === assignment.id ? (
                               <LoaderCircle className="animate-spin" size={16} />

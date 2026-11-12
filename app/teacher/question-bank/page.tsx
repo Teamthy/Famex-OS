@@ -104,7 +104,7 @@ export default function QuestionBankPage() {
           <div className="flex justify-end">
             <Link
               href="/teacher/upload-questions"
-              className="inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
+              className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
             >
               <PlusCircle size={15} /> Upload questions
             </Link>
@@ -144,7 +144,7 @@ export default function QuestionBankPage() {
                         <span
                           className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
                             e.status === "PUBLISHED"
-                              ? "bg-brand-green/15 text-brand-green"
+                              ? "bg-famex-lime/15 text-brand-green"
                               : "bg-brand-orange/15 text-brand-orange"
                           }`}
                         >

@@ -220,7 +220,7 @@ export default function SecuritySettingsPage() {
               </label>
               <button
                 disabled={busy}
-                className="flex items-center gap-2 rounded-full bg-brand-green px-5 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy transition hover:bg-brand-green-dark disabled:opacity-50"
+                className="flex items-center gap-2 rounded-full bg-famex-lime px-5 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy transition hover:bg-famex-lime-soft disabled:opacity-50"
               >
                 <ShieldCheck size={15} /> Turn on two-factor
               </button>
@@ -236,7 +236,7 @@ export default function SecuritySettingsPage() {
             <button
               onClick={() => void start()}
               disabled={busy}
-              className="mt-5 flex items-center gap-2 rounded-full bg-brand-green px-5 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy transition hover:bg-brand-green-dark disabled:opacity-50"
+              className="mt-5 flex items-center gap-2 rounded-full bg-famex-lime px-5 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy transition hover:bg-famex-lime-soft disabled:opacity-50"
             >
               <KeyRound size={15} /> Set up two-factor
             </button>

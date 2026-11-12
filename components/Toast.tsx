@@ -33,7 +33,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   };
 
   const colors = {
-    success: "bg-brand-green text-brand-navy-dark",
+    success: "bg-famex-lime text-brand-navy-dark",
     error: "bg-red-500 text-white",
     info: "bg-brand-navy text-white",
     warning: "bg-brand-orange text-white",

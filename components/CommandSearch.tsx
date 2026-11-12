@@ -128,7 +128,7 @@ export default function CommandSearch() {
                   <button
                     key={item.url}
                     onClick={() => handleSelect(item.url)}
-                    className="w-full text-left p-3 rounded-lg hover:bg-brand-green/10 transition-colors group flex items-center justify-between gap-4"
+                    className="w-full text-left p-3 rounded-lg hover:bg-famex-lime/10 transition-colors group flex items-center justify-between gap-4"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-bold text-white group-hover:text-brand-green transition-colors">

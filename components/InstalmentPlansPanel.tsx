@@ -52,7 +52,7 @@ function naira(value: number) {
 }
 
 function stateChip(state: string) {
-  if (state === "PAID") return "bg-brand-green/10 text-brand-green";
+  if (state === "PAID") return "bg-famex-lime/10 text-brand-green";
   if (state === "OVERDUE") return "bg-red-500/10 text-red-500";
   if (state === "PARTIAL") return "bg-brand-orange/10 text-brand-orange";
   return "bg-[var(--surface-disabled)] text-[var(--text-muted)]";
@@ -211,7 +211,7 @@ export default function InstalmentPlansPanel() {
               type="button"
               disabled={lookupBusy}
               onClick={() => void runLookup(invoiceRef)}
-              className="inline-flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-full bg-famex-lime px-4 py-2 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
             >
               {lookupBusy ? (
                 <LoaderCircle size={14} className="animate-spin" />
@@ -338,7 +338,7 @@ export default function InstalmentPlansPanel() {
             type="button"
             disabled={creating || !lookup || Boolean(lookup?.plan)}
             onClick={() => void createPlan()}
-            className="mt-3 rounded-full bg-brand-green px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
+            className="mt-3 rounded-full bg-famex-lime px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
           >
             {creating ? "Creating…" : "Create plan"}
           </button>

@@ -92,7 +92,7 @@ type CompileOutcome = {
 const STATUS_STYLES: Record<ClassGrid["status"], string> = {
   DRAFT: "bg-[var(--surface-disabled)] text-[var(--text-muted)]",
   COMPILED: "bg-amber-500/15 text-amber-600",
-  RELEASED: "bg-brand-green/15 text-brand-green",
+  RELEASED: "bg-famex-lime/15 text-brand-green",
 };
 
 const STATUS_LABELS: Record<ClassGrid["status"], string> = {
@@ -225,7 +225,7 @@ export default function AdminResultsPage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-14 no-print">
           <div className="mx-auto max-w-7xl">
-            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <CheckCircle2 size={11} /> Term Result Cycle
             </span>
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
@@ -251,7 +251,7 @@ export default function AdminResultsPage() {
                 </div>
               ) : null}
               {notice ? (
-                <div className="rounded-2xl border border-brand-green/30 bg-brand-green/10 p-4 text-sm text-brand-green">
+                <div className="rounded-2xl border border-brand-green/30 bg-famex-lime/10 p-4 text-sm text-brand-green">
                   {notice}
                 </div>
               ) : null}
@@ -321,7 +321,7 @@ export default function AdminResultsPage() {
                           })
                         }
                         disabled={busy !== null}
-                        className="inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-brand-navy shadow-lg hover:bg-brand-green-dark disabled:opacity-40"
+                        className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-brand-navy shadow-lg hover:bg-famex-lime-soft disabled:opacity-40"
                       >
                         {busy === "compile-all" ? (
                           <LoaderCircle className="animate-spin" size={13} />
@@ -413,7 +413,7 @@ export default function AdminResultsPage() {
                                     })
                                   }
                                   disabled={busy !== null}
-                                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-[9px] font-bold uppercase tracking-widest text-brand-navy hover:bg-brand-green-dark disabled:opacity-40"
+                                  className="inline-flex items-center gap-1.5 rounded-full bg-famex-lime px-4 py-2 text-[9px] font-bold uppercase tracking-widest text-brand-navy hover:bg-famex-lime-soft disabled:opacity-40"
                                 >
                                   {busy === `release-${row.class.id}` ? (
                                     <LoaderCircle className="animate-spin" size={11} />

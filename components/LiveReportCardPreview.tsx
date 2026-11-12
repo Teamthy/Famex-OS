@@ -165,7 +165,7 @@ export default function LiveReportCardPreview({
                   </td>
                   <td className="px-4 py-3 text-center">
                     <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest ${subject.total >= 70 ? "bg-brand-green/15 text-brand-green" : subject.total >= 45 ? "bg-brand-orange/15 text-brand-orange" : "bg-red-500/15 text-red-500"}`}
+                      className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest ${subject.total >= 70 ? "bg-famex-lime/15 text-brand-green" : subject.total >= 45 ? "bg-brand-orange/15 text-brand-orange" : "bg-red-500/15 text-red-500"}`}
                     >
                       {subject.grade}
                     </span>

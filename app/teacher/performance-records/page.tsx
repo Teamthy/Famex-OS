@@ -197,7 +197,7 @@ export default function PerformanceRecordsPage() {
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
             <div className="mb-3 flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
                 <BarChart3 size={11} /> Scores
               </span>
               {data ? (
@@ -302,7 +302,7 @@ export default function PerformanceRecordsPage() {
                               <button
                                 onClick={() => void save(subject.gradebookId)}
                                 disabled={savingId === subject.gradebookId}
-                                className="inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-2 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-60"
+                                className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-5 py-2 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-60"
                               >
                                 {savingId === subject.gradebookId ? (
                                   <LoaderCircle size={13} className="animate-spin" />
@@ -382,7 +382,7 @@ export default function PerformanceRecordsPage() {
                                         <span
                                           className={`rounded-full px-2 py-1 text-[10px] font-bold ${
                                             row.total >= 50
-                                              ? "bg-brand-green/15 text-brand-green"
+                                              ? "bg-famex-lime/15 text-brand-green"
                                               : "bg-red-500/15 text-red-500"
                                           }`}
                                         >

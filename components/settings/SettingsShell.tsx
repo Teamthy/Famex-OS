@@ -33,7 +33,7 @@ export function SettingsShell({
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
-            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               {badge}
             </div>
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
@@ -51,7 +51,7 @@ export function SettingsShell({
                     aria-current={tab.active ? "page" : undefined}
                     className={`rounded-full border px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest transition-colors ${
                       tab.active
-                        ? "border-brand-green bg-brand-green/20 text-brand-green"
+                        ? "border-brand-green bg-famex-lime/20 text-brand-green"
                         : "border-white/15 text-white/60 hover:border-brand-green/40 hover:text-white"
                     }`}
                   >
@@ -114,7 +114,7 @@ export function SettingsNotice({
     kind === "error"
       ? "border-red-500/20 bg-red-500/10 text-red-500"
       : kind === "success"
-        ? "border-brand-green/20 bg-brand-green/10 text-brand-green"
+        ? "border-brand-green/20 bg-famex-lime/10 text-brand-green"
         : "border-[var(--border-subtle)] bg-[var(--surface-disabled)] text-[var(--text-secondary)]";
   return <div className={`rounded-xl border p-3 text-sm ${classes}`}>{children}</div>;
 }

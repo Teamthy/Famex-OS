@@ -632,7 +632,7 @@ export default function UploadQuestionsPage() {
           {/* Step 1: Select exam */}
           <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6">
             <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-[var(--text-muted)]">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-green text-xs text-brand-navy">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-famex-lime text-xs text-brand-navy">
                 1
               </span>
               Select Exam
@@ -650,7 +650,7 @@ export default function UploadQuestionsPage() {
               ))}
             </select>
             {selectedExam && (
-              <div className="mt-3 flex items-center gap-3 rounded-xl bg-brand-green/5 border border-brand-green/20 p-3 text-sm">
+              <div className="mt-3 flex items-center gap-3 rounded-xl bg-famex-lime/5 border border-brand-green/20 p-3 text-sm">
                 <Info size={14} className="text-brand-green" />
                 <span>
                   <b>{selectedExam.title}</b> currently has <b>{selectedExam.questionCount}</b>{" "}
@@ -663,7 +663,7 @@ export default function UploadQuestionsPage() {
           {/* Step 2: Download template */}
           <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6">
             <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-[var(--text-muted)]">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-green text-xs text-brand-navy">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-famex-lime text-xs text-brand-navy">
                 2
               </span>
               Download Template
@@ -673,7 +673,7 @@ export default function UploadQuestionsPage() {
                 <button
                   key={fmt}
                   onClick={() => downloadTemplate(fmt)}
-                  className="flex items-center gap-3 rounded-xl border border-[var(--border-subtle)] p-4 text-left transition hover:border-brand-green hover:bg-brand-green/5"
+                  className="flex items-center gap-3 rounded-xl border border-[var(--border-subtle)] p-4 text-left transition hover:border-brand-green hover:bg-famex-lime/5"
                 >
                   {fmt === "docx" ? (
                     <FileText size={20} className="text-blue-500" />
@@ -704,7 +704,7 @@ export default function UploadQuestionsPage() {
           <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-[var(--text-muted)]">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-green text-xs text-brand-navy">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-famex-lime text-xs text-brand-navy">
                   3
                 </span>
                 Upload & Parse
@@ -727,7 +727,7 @@ export default function UploadQuestionsPage() {
                   onClick={() => setFileFormat(fmt)}
                   className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider transition ${
                     fileFormat === fmt
-                      ? "bg-brand-green text-white"
+                      ? "bg-famex-lime text-white"
                       : "bg-[var(--surface-disabled)] text-[var(--text-secondary)]"
                   }`}
                 >
@@ -747,7 +747,7 @@ export default function UploadQuestionsPage() {
               onClick={() => fileInputRef.current?.click()}
               className={`cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition ${
                 dragging
-                  ? "border-brand-green bg-brand-green/5"
+                  ? "border-brand-green bg-famex-lime/5"
                   : "border-[var(--border-subtle)] hover:border-brand-green/50"
               }`}
             >
@@ -915,7 +915,7 @@ export default function UploadQuestionsPage() {
                                   key={opt.key}
                                   className={`flex items-center gap-2 rounded-lg p-2 text-xs ${
                                     opt.key === q.correctKey
-                                      ? "bg-brand-green/10 text-brand-green font-bold"
+                                      ? "bg-famex-lime/10 text-brand-green font-bold"
                                       : "text-[var(--text-secondary)]"
                                   }`}
                                 >
@@ -928,7 +928,7 @@ export default function UploadQuestionsPage() {
                             </div>
                           )}
                           {q.correctText && (
-                            <div className="mt-2 rounded-lg bg-brand-green/10 p-2 text-xs font-bold text-brand-green">
+                            <div className="mt-2 rounded-lg bg-famex-lime/10 p-2 text-xs font-bold text-brand-green">
                               Answer: {q.correctText}
                             </div>
                           )}
@@ -948,7 +948,7 @@ export default function UploadQuestionsPage() {
               {parseResult.questions.length > 0 &&
                 parseResult.errors.length === 0 &&
                 selectedExamId && (
-                  <div className="flex items-center justify-between rounded-2xl border border-brand-green/30 bg-brand-green/5 p-6">
+                  <div className="flex items-center justify-between rounded-2xl border border-brand-green/30 bg-famex-lime/5 p-6">
                     <div>
                       <h3 className="font-bold text-[var(--text-primary)]">
                         Ready to sync {parseResult.questions.length} questions
@@ -962,7 +962,7 @@ export default function UploadQuestionsPage() {
                     <button
                       onClick={() => void syncToDatabase()}
                       disabled={syncing}
-                      className="flex items-center gap-2 rounded-full bg-brand-green px-6 py-3 text-sm font-bold text-brand-navy shadow-lg shadow-brand-green/20 transition hover:bg-brand-green/90 disabled:opacity-50"
+                      className="flex items-center gap-2 rounded-full bg-famex-lime px-6 py-3 text-sm font-bold text-brand-navy shadow-lg shadow-brand-green/20 transition hover:bg-famex-lime/90 disabled:opacity-50"
                     >
                       {syncing ? (
                         <LoaderCircle className="animate-spin" size={16} />
@@ -983,7 +983,7 @@ export default function UploadQuestionsPage() {
               {/* Sync result */}
               {syncResult && (
                 <div
-                  className={`rounded-2xl border p-6 ${syncResult.ok ? "border-brand-green/30 bg-brand-green/5" : "border-red-500/30 bg-red-500/5"}`}
+                  className={`rounded-2xl border p-6 ${syncResult.ok ? "border-brand-green/30 bg-famex-lime/5" : "border-red-500/30 bg-red-500/5"}`}
                 >
                   <div className="flex items-center gap-3">
                     {syncResult.ok ? (

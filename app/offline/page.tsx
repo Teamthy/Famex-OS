@@ -15,7 +15,7 @@ export default function OfflinePage() {
   return (
     <main className="grid min-h-screen place-items-center bg-brand-navy px-6 py-20">
       <div className="w-full max-w-md text-center">
-        <div className="mx-auto mb-6 grid size-16 place-items-center rounded-2xl bg-brand-green/15 text-brand-green">
+        <div className="mx-auto mb-6 grid size-16 place-items-center rounded-2xl bg-famex-lime/15 text-brand-green">
           <WifiOff size={28} />
         </div>
         <h1 className="font-display text-3xl tracking-widest text-white sm:text-4xl">

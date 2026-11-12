@@ -227,14 +227,14 @@ export default function PracticeRunnerPage() {
             <div
               className={`p-8 rounded-[2rem] text-center border ${
                 passed
-                  ? "bg-brand-green/5 border-brand-green/40"
+                  ? "bg-famex-lime/5 border-brand-green/40"
                   : "bg-brand-orange/5 border-brand-orange/40"
               }`}
             >
               <div
                 className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
                   passed
-                    ? "bg-brand-green/15 text-brand-green"
+                    ? "bg-famex-lime/15 text-brand-green"
                     : "bg-brand-orange/15 text-brand-orange"
                 }`}
               >

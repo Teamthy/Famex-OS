@@ -307,7 +307,7 @@ export default function ResultSettingsPage() {
               <button
                 type="submit"
                 disabled={busy}
-                className="mt-4 rounded-xl bg-brand-green px-5 py-3 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
+                className="mt-4 rounded-xl bg-famex-lime px-5 py-3 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
               >
                 {busy ? "Saving…" : "Save grade bands"}
               </button>
@@ -358,7 +358,7 @@ export default function ResultSettingsPage() {
                 <button
                   type="submit"
                   disabled={busy}
-                  className="rounded-xl bg-brand-green px-5 py-3 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
+                  className="rounded-xl bg-famex-lime px-5 py-3 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
                 >
                   {busy ? "Saving…" : "Save result policy"}
                 </button>

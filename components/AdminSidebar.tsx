@@ -55,6 +55,21 @@ import { resolveNav, type NavIcon } from "@/lib/nav";
  * it cannot disturb the `flex` row every admin page lays out.
  */
 
+const ITEM_ICONS: Record<string, typeof Home> = {
+  "/admin": LayoutDashboard,
+  "/onboarding": Sparkles,
+  "/admin/students": Users,
+  "/admin/staff": Briefcase,
+  "/admin/attendance": CalendarDays,
+  "/admin/results": BarChart3,
+  "/admin/report-cards": FileText,
+  "/admin/fees": CreditCard,
+  "/admin/admissions": FileText,
+  "/admin/timetable": CalendarDays,
+  "/admin/subjects": BookOpen,
+  "/admin/sessions": CalendarDays,
+};
+
 const ICONS: Record<NavIcon, typeof Home> = {
   home: Home,
   learning: GraduationCap,
@@ -117,7 +132,7 @@ export default function AdminSidebar() {
               type="button"
               onClick={() => setCollapsed((prev) => ({ ...prev, [group.key]: !folded }))}
               aria-expanded={!folded}
-              className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] hover:bg-[var(--surface-disabled)] hover:text-[var(--text-primary)]"
+              className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-white/60 transition-colors hover:bg-white/10 hover:text-white"
             >
               <Icon size={13} aria-hidden />
               <span className="flex-1 text-left">{group.label}</span>
@@ -137,7 +152,7 @@ export default function AdminSidebar() {
                         key={`${group.key}:${item.label}`}
                         aria-disabled="true"
                         title={item.note ?? `Arrives in ${item.release}`}
-                        className="flex cursor-not-allowed items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-sm text-[var(--text-muted)]/60"
+                        className="flex cursor-not-allowed items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-sm text-white/40"
                       >
                         <AlertCircle size={14} aria-hidden />
                         <span className="flex-1 tracking-wide">{item.label}</span>
@@ -148,6 +163,7 @@ export default function AdminSidebar() {
                     );
                   }
 
+                  const ItemIcon = ITEM_ICONS[item.href] ?? Icon;
                   const isActive =
                     pathname === item.href ||
                     (item.href !== "/admin" && pathname.startsWith(item.href));
@@ -156,12 +172,13 @@ export default function AdminSidebar() {
                       key={`${group.key}:${item.href}`}
                       href={item.href}
                       onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all ${
+                      className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-lime)] ${
                         isActive
-                          ? "border-brand-green/20 bg-brand-green/10 text-brand-green"
-                          : "border-transparent text-[var(--text-muted)] hover:bg-[var(--surface-disabled)] hover:text-[var(--text-primary)]"
+                          ? "border-[var(--famex-lime)]/30 bg-[var(--famex-lime)] text-[var(--famex-forest-dark)]"
+                          : "border-transparent text-white/75 hover:bg-white/10 hover:text-white"
                       }`}
                     >
+                      <ItemIcon size={16} aria-hidden />
                       <span className="flex-1 tracking-wide">{item.label}</span>
                     </Link>
                   );
@@ -176,7 +193,7 @@ export default function AdminSidebar() {
 
   const identity = (
     <>
-      <div className="rounded-2xl border border-white/10 bg-brand-navy p-4">
+      <div className="rounded-2xl border border-white/10 bg-[var(--famex-primary)] p-4">
         <div className="flex items-center gap-3">
           <Image
             src="/logo.png"
@@ -186,7 +203,7 @@ export default function AdminSidebar() {
             className="h-9 w-9 object-contain"
           />
           <div className="min-w-0">
-            <div className="text-[9px] font-bold uppercase tracking-widest text-brand-green">
+            <div className="text-[9px] font-bold uppercase tracking-widest text-[var(--famex-lime)]">
               Admin workspace
             </div>
             <div className="truncate font-display text-sm tracking-[1px] text-white uppercase">
@@ -197,18 +214,18 @@ export default function AdminSidebar() {
       </div>
 
       {user && (
-        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-3">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-white/60">
             <LayoutDashboard size={12} aria-hidden /> Signed in
           </div>
-          <div className="truncate text-sm font-bold text-[var(--text-primary)]">{user.name}</div>
-          <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+          <div className="truncate text-sm font-bold text-white">{user.name}</div>
+          <div className="text-[10px] uppercase tracking-wider text-white/60">
             {role?.replaceAll("_", " ")}
           </div>
           {user.role === "SUPER_ADMIN" && (
             <Link
               href="/super-admin"
-              className="mt-2 inline-flex text-xs font-semibold text-brand-green underline-offset-2 hover:underline"
+              className="mt-2 inline-flex text-xs font-semibold text-[var(--famex-lime)] underline-offset-2 hover:underline"
             >
               DevOps dashboard
             </Link>
@@ -225,7 +242,7 @@ export default function AdminSidebar() {
         type="button"
         onClick={() => setMobileOpen(true)}
         aria-expanded={mobileOpen}
-        className="fixed bottom-5 left-5 z-40 flex items-center gap-2 rounded-full bg-brand-navy px-4 py-3 text-xs font-bold uppercase tracking-widest text-white shadow-lg lg:hidden"
+        className="fixed bottom-5 left-5 z-40 flex min-h-11 items-center gap-2 rounded-xl bg-[var(--famex-lime)] px-4 py-3 text-xs font-bold uppercase tracking-widest text-[var(--famex-forest-dark)] shadow-lg transition hover:bg-[var(--famex-lime-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:hidden"
       >
         <Menu size={16} aria-hidden /> Menu
       </button>
@@ -238,16 +255,16 @@ export default function AdminSidebar() {
             onClick={() => setMobileOpen(false)}
             className="absolute inset-0 h-full w-full cursor-default bg-black/60"
           />
-          <div className="absolute inset-y-0 left-0 flex w-[280px] max-w-[85vw] flex-col gap-4 overflow-y-auto bg-[var(--bg-primary)] p-4 shadow-2xl">
+          <div className="absolute inset-y-0 left-0 flex w-[280px] max-w-[85vw] flex-col gap-4 overflow-y-auto bg-[var(--famex-forest-dark)] p-4 text-white shadow-2xl">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/60">
                 Admin menu
               </span>
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
                 aria-label="Close menu"
-                className="rounded-full p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                className="rounded-xl p-2 text-white/65 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-lime)]"
               >
                 <X size={16} aria-hidden />
               </button>
@@ -256,7 +273,7 @@ export default function AdminSidebar() {
             {nav}
             <button
               onClick={logout}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] hover:text-red-500"
+              className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 py-2 text-xs text-white/70 transition hover:bg-red-500/15 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-lime)]"
             >
               <LogOut size={14} aria-hidden /> Sign out
             </button>
@@ -264,13 +281,13 @@ export default function AdminSidebar() {
         </div>
       )}
 
-      <aside className="hidden w-[280px] shrink-0 lg:block">
+      <aside className="hidden w-[280px] shrink-0 rounded-2xl bg-[var(--famex-forest-dark)] p-3 text-white lg:block">
         <div className="sticky top-24 space-y-4">
           {identity}
           <div className="max-h-[calc(100vh-22rem)] overflow-y-auto pr-1">{nav}</div>
           <button
             onClick={logout}
-            className="flex w-full items-center gap-2 rounded-lg px-4 py-2 text-xs text-[var(--text-muted)] hover:text-red-500"
+            className="flex min-h-11 w-full items-center gap-2 rounded-xl px-4 py-2 text-xs text-white/70 transition hover:bg-red-500/15 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-lime)]"
           >
             <LogOut size={14} aria-hidden /> Sign out
           </button>

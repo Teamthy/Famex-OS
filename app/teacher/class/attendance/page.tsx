@@ -77,7 +77,7 @@ type RegisterResponse = {
 };
 
 const STATUS_BUTTONS: Array<{ label: string; value: AttendanceStatus; accent: string }> = [
-  { label: "P", value: "PRESENT", accent: "bg-brand-green text-white" },
+  { label: "P", value: "PRESENT", accent: "bg-famex-lime text-white" },
   { label: "A", value: "ABSENT", accent: "bg-red-500 text-white" },
   { label: "L", value: "LATE", accent: "bg-brand-orange text-white" },
 ];
@@ -384,7 +384,7 @@ export default function ClassAttendancePage() {
                     Register state
                   </div>
                   <div
-                    className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-bold uppercase tracking-widest ${isLocked ? "bg-brand-green/15 text-brand-green" : "bg-brand-orange/15 text-brand-orange"}`}
+                    className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-bold uppercase tracking-widest ${isLocked ? "bg-famex-lime/15 text-brand-green" : "bg-brand-orange/15 text-brand-orange"}`}
                   >
                     <Lock size={12} /> {isLocked ? "Locked" : "Editable"}
                   </div>
@@ -443,7 +443,7 @@ export default function ClassAttendancePage() {
                         value: stats.present,
                         icon: UserCheck,
                         color: "text-brand-green",
-                        bg: "bg-brand-green/10",
+                        bg: "bg-famex-lime/10",
                       },
                       {
                         label: "Absent",
@@ -466,7 +466,7 @@ export default function ClassAttendancePage() {
                           : "0%",
                         icon: Calendar,
                         color: "text-brand-green",
-                        bg: "bg-brand-green/10",
+                        bg: "bg-famex-lime/10",
                       },
                     ].map((card) => (
                       <div
@@ -490,7 +490,7 @@ export default function ClassAttendancePage() {
                     <button
                       onClick={markAllPresent}
                       disabled={isLocked || Boolean(savingMode)}
-                      className="inline-flex items-center gap-2 rounded-xl bg-brand-green/10 px-4 py-2.5 text-sm font-bold text-brand-green transition-all hover:bg-brand-green hover:text-brand-navy disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-xl bg-famex-lime/10 px-4 py-2.5 text-sm font-bold text-brand-green transition-all hover:bg-famex-lime hover:text-brand-navy disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Check size={14} /> Mark all present
                     </button>
@@ -593,7 +593,7 @@ export default function ClassAttendancePage() {
                   </div>
 
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="rounded-2xl border border-brand-green/20 bg-brand-green/5 p-4 text-sm text-[var(--text-secondary)]">
+                    <div className="rounded-2xl border border-brand-green/20 bg-famex-lime/5 p-4 text-sm text-[var(--text-secondary)]">
                       <div className="flex items-start gap-3">
                         <BellRing className="mt-0.5 shrink-0 text-brand-green" size={18} />
                         <p>
@@ -620,7 +620,7 @@ export default function ClassAttendancePage() {
                       <button
                         onClick={() => void saveRegister(true)}
                         disabled={isLocked || Boolean(savingMode) || !rows.length}
-                        className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green px-6 py-3 text-sm font-bold uppercase tracking-widest text-brand-navy shadow-lg transition-all hover:bg-brand-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center justify-center gap-2 rounded-full bg-famex-lime px-6 py-3 text-sm font-bold uppercase tracking-widest text-brand-navy shadow-lg transition-all hover:bg-famex-lime-soft disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {savingMode === "submit" ? (
                           <LoaderCircle className="animate-spin" size={16} />

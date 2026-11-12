@@ -166,8 +166,8 @@ async function runStep(
           create: {
             schoolId: user.schoolId,
             displayName: input.displayName,
-            primaryColor: input.primaryColor ?? "#0c1824",
-            accentColor: input.accentColor ?? "#4ec54d",
+            primaryColor: input.primaryColor ?? "#123a35",
+            accentColor: input.accentColor ?? "#b6e618",
           },
         });
       }

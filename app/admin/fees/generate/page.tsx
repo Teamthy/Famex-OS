@@ -95,7 +95,7 @@ export default function GenerateInvoicesPage() {
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
             <div className="mb-3 flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
                 <Receipt size={11} /> Bursary
               </span>
               {data ? (
@@ -264,7 +264,7 @@ export default function GenerateInvoicesPage() {
                   <button
                     onClick={() => setConfirming(true)}
                     disabled={busy || data.summary.billable === 0}
-                    className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-green py-3.5 font-bold text-brand-navy disabled:cursor-not-allowed disabled:opacity-60"
+                    className="flex w-full items-center justify-center gap-2 rounded-full bg-famex-lime py-3.5 font-bold text-brand-navy disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {busy ? (
                       <LoaderCircle size={16} className="animate-spin" />

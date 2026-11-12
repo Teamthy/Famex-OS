@@ -300,7 +300,7 @@ export default function AdminClassManagerPage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
-            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <School size={11} /> Class Management
             </span>
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
@@ -348,7 +348,7 @@ export default function AdminClassManagerPage() {
                   <button
                     onClick={() => void createClass()}
                     disabled={creating || !newLevel.trim() || !newArm.trim()}
-                    className="rounded-full bg-brand-green px-6 py-3 text-sm font-bold text-brand-navy disabled:opacity-60"
+                    className="rounded-full bg-famex-lime px-6 py-3 text-sm font-bold text-brand-navy disabled:opacity-60"
                   >
                     {creating
                       ? "Creating…"
@@ -456,7 +456,7 @@ export default function AdminClassManagerPage() {
                                   )
                                 }
                                 disabled={busy}
-                                className="inline-flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
+                                className="inline-flex items-center gap-1.5 rounded-full bg-famex-lime px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
                               >
                                 <ArchiveRestore size={12} /> Restore
                               </button>
@@ -542,7 +542,7 @@ export default function AdminClassManagerPage() {
                             className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
                           >
                             <div className="flex items-center gap-4">
-                              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green">
+                              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-famex-lime/10 text-brand-green">
                                 <School size={19} />
                               </div>
                               <div>
@@ -556,7 +556,7 @@ export default function AdminClassManagerPage() {
                               </div>
                             </div>
                             <div className="flex items-center gap-3">
-                              <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-3 py-1 text-xs font-bold text-brand-green">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-famex-lime/10 px-3 py-1 text-xs font-bold text-brand-green">
                                 <Users size={12} /> {schoolClass.studentCount}
                               </span>
                               <ChevronDown
@@ -606,7 +606,7 @@ export default function AdminClassManagerPage() {
                                       });
                                     }}
                                     disabled={busy}
-                                    className="inline-flex items-center gap-2 rounded-full bg-brand-green px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
+                                    className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
                                   >
                                     <GraduationCap size={13} /> Update Teacher
                                   </button>
@@ -674,7 +674,7 @@ export default function AdminClassManagerPage() {
                                           );
                                         }}
                                         disabled={busy}
-                                        className="inline-flex items-center gap-1 rounded-full bg-brand-green px-3.5 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
+                                        className="inline-flex items-center gap-1 rounded-full bg-famex-lime px-3.5 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
                                       >
                                         <MoveRight size={11} /> Move
                                       </button>

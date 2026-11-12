@@ -17,13 +17,13 @@ export default function HomeFooter() {
   ];
 
   return (
-    <footer className="home-below-fold border-t border-[#211d19]/10 bg-[#efe7d8]">
+    <footer className="home-below-fold border-t border-[var(--famex-primary)]/10 bg-[var(--famex-lime-pale)]">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 sm:px-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-sm">
-          <p className="font-[family-name:var(--font-fraunces)] text-2xl font-semibold text-[#211d19]">
+          <p className="font-[family-name:var(--font-fraunces)] text-2xl font-semibold text-[var(--famex-primary)]">
             {schoolName}
           </p>
-          <p className="mt-2 text-sm italic text-[#6b6459]">
+          <p className="mt-2 text-sm italic text-[var(--famex-text-secondary)]">
             {process.env.SCHOOL_MOTTO?.trim() || "Raising Role Models"}
           </p>
         </div>
@@ -32,15 +32,15 @@ export default function HomeFooter() {
             <a
               key={link.href}
               href={link.href}
-              className="text-sm text-[#4a443c] transition hover:text-[#20261f]"
+              className="text-sm text-[var(--famex-text-secondary)] transition hover:text-[var(--famex-primary)]"
             >
               {link.label}
             </a>
           ))}
         </nav>
       </div>
-      <div className="border-t border-[#211d19]/10">
-        <p className="mx-auto max-w-6xl px-4 py-5 text-xs text-[#8a8175] sm:px-6">
+      <div className="border-t border-[var(--famex-primary)]/10">
+        <p className="mx-auto max-w-6xl px-4 py-5 text-xs text-[var(--famex-text-muted)] sm:px-6">
           © {year} {schoolName}. Powered by {PRODUCT_NAME}.
         </p>
       </div>

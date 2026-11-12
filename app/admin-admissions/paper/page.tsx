@@ -147,7 +147,7 @@ export default function PaperIntakePage() {
             </div>
 
             {done && (
-              <div className="p-5 rounded-2xl bg-brand-green/5 border border-brand-green/40 flex items-start gap-3">
+              <div className="p-5 rounded-2xl bg-famex-lime/5 border border-brand-green/40 flex items-start gap-3">
                 <CheckCircle2 size={20} className="text-brand-green shrink-0 mt-0.5" />
                 <div className="text-sm">
                   <p className="font-bold text-[var(--text-primary)]">Saved — {done.studentName}</p>

@@ -105,7 +105,7 @@ export default function AdminNewsPage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
-            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <Megaphone size={11} /> Post &amp; News
             </span>
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
@@ -130,7 +130,7 @@ export default function AdminNewsPage() {
 
               <button
                 onClick={() => setShowForm(!showForm)}
-                className="inline-flex items-center gap-2 rounded-full bg-brand-green px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg"
+                className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg"
               >
                 <PlusCircle size={15} /> {showForm ? "Hide Editor" : "New Post"}
               </button>
@@ -182,7 +182,7 @@ export default function AdminNewsPage() {
                     <button
                       onClick={() => void createPost(true)}
                       disabled={busy}
-                      className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-8 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg disabled:opacity-50"
                     >
                       {busy ? (
                         <LoaderCircle size={14} className="animate-spin" />
@@ -224,11 +224,11 @@ export default function AdminNewsPage() {
                             <h3 className="font-display text-xl text-[var(--text-primary)]">
                               {post.title}
                             </h3>
-                            <span className="rounded-full bg-brand-green/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-brand-green">
+                            <span className="rounded-full bg-famex-lime/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-brand-green">
                               {post.category}
                             </span>
                             <span
-                              className={`rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest ${post.isPublished ? "bg-brand-green/10 text-brand-green" : "bg-brand-orange/10 text-brand-orange"}`}
+                              className={`rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest ${post.isPublished ? "bg-famex-lime/10 text-brand-green" : "bg-brand-orange/10 text-brand-orange"}`}
                             >
                               {post.isPublished ? "Published" : "Draft"}
                             </span>
@@ -253,7 +253,7 @@ export default function AdminNewsPage() {
                             <button
                               onClick={() => void act(post, "PUBLISH")}
                               disabled={busy}
-                              className="inline-flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
+                              className="inline-flex items-center gap-1.5 rounded-full bg-famex-lime px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
                             >
                               <Eye size={12} /> Publish
                             </button>

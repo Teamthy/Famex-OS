@@ -90,7 +90,7 @@ export default function CareersPage() {
                     </div>
                     <a
                       href={`mailto:careers@ykaycollege.com?subject=Application: ${job.title}`}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-brand-green text-brand-navy text-sm font-bold uppercase tracking-widest hover:bg-brand-green-dark transition-all shadow-lg shrink-0"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-famex-lime text-brand-navy text-sm font-bold uppercase tracking-widest hover:bg-famex-lime-soft transition-all shadow-lg shrink-0"
                     >
                       Apply
                     </a>

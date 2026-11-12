@@ -80,14 +80,14 @@ export default function Assignments() {
             <p className="mt-5 rounded-2xl bg-red-500/10 p-4 text-sm text-red-600">{error}</p>
           )}
           {notice && (
-            <p className="mt-5 rounded-2xl border border-brand-green/30 bg-brand-green/10 p-4 text-sm">
+            <p className="mt-5 rounded-2xl border border-brand-green/30 bg-famex-lime/10 p-4 text-sm">
               {notice}
             </p>
           )}
           <div className="mt-6 flex justify-end">
             <button
               onClick={() => setOpen(true)}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
+              className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
             >
               <Plus size={15} /> Assign subject
             </button>
@@ -99,7 +99,7 @@ export default function Assignments() {
                 className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6"
               >
                 <div className="flex gap-3">
-                  <span className="grid h-11 w-11 place-items-center rounded-2xl bg-brand-green/10 text-brand-green">
+                  <span className="grid h-11 w-11 place-items-center rounded-2xl bg-famex-lime/10 text-brand-green">
                     <UserCog />
                   </span>
                   <div>
@@ -181,7 +181,7 @@ export default function Assignments() {
                 ))}
               </div>
             </fieldset>
-            <button className="mt-6 w-full rounded-full bg-brand-green py-3 text-xs font-bold uppercase tracking-widest text-brand-navy">
+            <button className="mt-6 w-full rounded-full bg-famex-lime py-3 text-xs font-bold uppercase tracking-widest text-brand-navy">
               Save subject assignment
             </button>
           </form>

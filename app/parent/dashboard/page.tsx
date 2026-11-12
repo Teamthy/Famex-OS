@@ -174,7 +174,7 @@ export default function ParentDashboardPage() {
                       {data.children.map((child) => (
                         <div
                           key={child.id}
-                          className={`rounded-xl border px-5 py-4 ${data.selectedChild?.id === child.id ? "border-brand-green/30 bg-brand-green/5" : "border-[var(--border-subtle)] bg-[var(--surface-disabled)]"}`}
+                          className={`rounded-xl border px-5 py-4 ${data.selectedChild?.id === child.id ? "border-brand-green/30 bg-famex-lime/5" : "border-[var(--border-subtle)] bg-[var(--surface-disabled)]"}`}
                         >
                           <div className="font-display text-base tracking-[2px] text-[var(--text-primary)]">
                             {child.displayName}
@@ -252,7 +252,7 @@ export default function ParentDashboardPage() {
                           </div>
                           <Link
                             href="/parent/fees"
-                            className="rounded-full bg-brand-green px-5 py-3 text-sm font-bold uppercase tracking-widest text-brand-navy shadow-lg transition-all hover:bg-brand-green-dark"
+                            className="rounded-full bg-famex-lime px-5 py-3 text-sm font-bold uppercase tracking-widest text-brand-navy shadow-lg transition-all hover:bg-famex-lime-soft"
                           >
                             Open Fees
                           </Link>
@@ -329,7 +329,7 @@ export default function ParentDashboardPage() {
                               href={item.link}
                               className="group rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-disabled)] p-5 transition-all hover:-translate-y-0.5 hover:border-brand-green/30"
                             >
-                              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green transition-colors group-hover:bg-brand-green group-hover:text-brand-navy">
+                              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-famex-lime/10 text-brand-green transition-colors group-hover:bg-famex-lime group-hover:text-brand-navy">
                                 <item.icon size={20} />
                               </div>
                               <h3 className="mb-1 text-sm font-bold text-[var(--text-primary)]">

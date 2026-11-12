@@ -14,7 +14,15 @@ const ROTATE_MS = 6500;
  * control. The first slide stays eager + preloaded (it is the LCP element);
  * the rest load lazily so the carousel never taxes the first paint.
  */
-export default function HeroCarousel({ slides, motto }: { slides: HeroSlide[]; motto: string }) {
+export default function HeroCarousel({
+  slides,
+  motto,
+  schoolName,
+}: {
+  slides: HeroSlide[];
+  motto: string;
+  schoolName: string;
+}) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   // The non-first slides sit inside the initial viewport, so loading="lazy"
@@ -47,11 +55,11 @@ export default function HeroCarousel({ slides, motto }: { slides: HeroSlide[]; m
     <section
       id="top"
       aria-label="Campus highlights"
-      className="px-3 pt-24 sm:px-6 sm:pt-28"
+      className="px-3 pt-3 sm:px-6"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[28px] shadow-[0_30px_80px_rgba(33,29,25,0.25)]">
+      <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[28px] shadow-[0_30px_80px_rgba(10,49,42,0.24)]">
         {/* Slides — real campus photographs, cross-faded */}
         <div className="relative aspect-[4/5] w-full sm:aspect-[16/10] lg:aspect-[16/8.4]">
           {slides.map((slide, i) =>
@@ -75,11 +83,13 @@ export default function HeroCarousel({ slides, motto }: { slides: HeroSlide[]; m
               </picture>
             ) : null,
           )}
-          {/* Warm unifying grade + readability gradient. No mix-blend-multiply:
-              a full-bleed blend layer costs an extra composite pass over the
-              LCP image on throttled CPUs (Lighthouse budget §4n). */}
+          {/* Evergreen readability grade, kept as one inexpensive overlay layer. */}
           <div
-            className="absolute inset-0 bg-gradient-to-tr from-[#1d1a16]/85 via-[#3a2a1d]/40 to-[#c96f4a]/10"
+            className="absolute inset-0 bg-gradient-to-r from-[var(--famex-forest-dark)]/85 via-[var(--famex-primary)]/40 to-transparent"
+            aria-hidden="true"
+          />
+          <div
+            className="absolute inset-0 bg-gradient-to-t from-[var(--famex-forest-dark)]/45 via-transparent to-[var(--famex-forest-dark)]/10"
             aria-hidden="true"
           />
         </div>
@@ -87,42 +97,36 @@ export default function HeroCarousel({ slides, motto }: { slides: HeroSlide[]; m
         {/* Copy block */}
         <div className="absolute inset-0 flex flex-col justify-between p-6 sm:p-10 lg:p-14">
           <div className="flex items-center gap-3">
-            <div className="flex -space-x-2" aria-hidden="true">
-              {["#7fb069", "#e8dcc8", "#c96f4a"].map((tone) => (
-                <span
-                  key={tone}
-                  className="h-8 w-8 rounded-full border-2 border-white/70"
-                  style={{ background: tone }}
-                />
-              ))}
-            </div>
-            <p className="text-sm font-medium text-white/85">
-              Pre-school → SS3 · one continuous school · NERDC-aligned
-            </p>
+            <span className="rounded-full border border-white/35 bg-[var(--famex-primary)]/35 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white backdrop-blur-sm">
+              {schoolName} · Lagos
+            </span>
+            <span className="hidden rounded-full bg-[var(--famex-lime)] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--famex-primary)] sm:inline-flex">
+              Pre-school to SS3
+            </span>
           </div>
 
           <div className="max-w-2xl">
             <h1
               className={`${SERIF} text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-6xl`}
             >
-              Excellence in Education,
+              A bright start.
               <br />
-              <em className="font-light italic text-[#e8dcc8]">rooted in character.</em>
+              <em className="font-light italic text-[var(--famex-lime)]">A bold future.</em>
             </h1>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/80 sm:text-base">
-              {motto} — a Nigerian day school from pre-school to SS3 with a digital campus that
-              keeps parents close to every lesson, term and triumph.
+              {motto} — a joyful, rigorous school journey where strong learning, character and care
+              help every child grow with confidence.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <a
                 href="/admissions"
-                className="inline-flex items-center gap-2 rounded-full bg-[#7fb069] px-6 py-3 text-sm font-semibold text-[#1d241a] transition hover:bg-[#5d8f4e] hover:text-white"
+                className="inline-flex items-center gap-2 rounded-full bg-[var(--famex-lime)] px-6 py-3 text-sm font-semibold text-[var(--famex-forest-dark)] transition hover:bg-[var(--famex-lime-soft)]"
               >
-                Apply Now <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                Explore admissions <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </a>
               <a
                 href="#campus"
-                className="rounded-full border border-white/50 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white hover:text-[#211d19]"
+                className="rounded-full border border-white/50 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white hover:text-[var(--famex-primary)]"
               >
                 Take the campus tour
               </a>
@@ -133,7 +137,7 @@ export default function HeroCarousel({ slides, motto }: { slides: HeroSlide[]; m
         {/* Floating stat card */}
         <aside
           aria-label="School at a glance"
-          className="absolute right-5 top-1/2 hidden w-56 -translate-y-1/2 rounded-2xl bg-[#fffdf8] p-4 shadow-[0_20px_50px_rgba(33,29,25,0.35)] lg:block"
+          className="absolute right-5 top-1/2 hidden w-56 -translate-y-1/2 rounded-2xl bg-[var(--famex-white)] p-4 shadow-[0_20px_50px_rgba(33,29,25,0.35)] lg:block"
         >
           <img
             src="/home/identity-pair.jpg"
@@ -142,12 +146,14 @@ export default function HeroCarousel({ slides, motto }: { slides: HeroSlide[]; m
             decoding="async"
             className="h-28 w-full rounded-xl object-cover"
           />
-          <p className={`${SERIF} mt-3 text-3xl font-semibold text-[#211d19]`}>6 stages</p>
-          <p className="mt-1 text-xs leading-relaxed text-[#6b6459]">
+          <p className={`${SERIF} mt-3 text-3xl font-semibold text-[var(--famex-primary)]`}>
+            6 stages
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--famex-text-secondary)]">
             pre-school, kindergarten, nursery, primary, JSS and SSS under one roof.
           </p>
-          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[#211d19]/10">
-            <div className="h-full w-full rounded-full bg-[#7fb069]" />
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--famex-primary)]/10">
+            <div className="h-full w-full rounded-full bg-[var(--famex-lime)]" />
           </div>
         </aside>
 
@@ -157,7 +163,7 @@ export default function HeroCarousel({ slides, motto }: { slides: HeroSlide[]; m
             type="button"
             onClick={() => go(index - 1)}
             aria-label="Previous banner image"
-            className="grid h-9 w-9 place-items-center rounded-full border border-white/40 bg-white/15 text-white backdrop-blur transition hover:bg-white hover:text-[#211d19]"
+            className="grid h-9 w-9 place-items-center rounded-full border border-white/40 bg-white/15 text-white backdrop-blur transition hover:bg-white hover:text-[var(--famex-primary)]"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -183,7 +189,7 @@ export default function HeroCarousel({ slides, motto }: { slides: HeroSlide[]; m
             type="button"
             onClick={() => go(index + 1)}
             aria-label="Next banner image"
-            className="grid h-9 w-9 place-items-center rounded-full border border-white/40 bg-white/15 text-white backdrop-blur transition hover:bg-white hover:text-[#211d19]"
+            className="grid h-9 w-9 place-items-center rounded-full border border-white/40 bg-white/15 text-white backdrop-blur transition hover:bg-white hover:text-[var(--famex-primary)]"
           >
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </button>

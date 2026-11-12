@@ -55,7 +55,7 @@ export default function WhatsNewPage() {
         <Reveal>
           <section className="pt-32 pb-16 bg-brand-navy px-6">
             <div className="mx-auto max-w-4xl text-center">
-              <div className="w-16 h-16 rounded-2xl bg-brand-green/20 text-brand-green flex items-center justify-center mx-auto mb-6">
+              <div className="w-16 h-16 rounded-2xl bg-famex-lime/20 text-brand-green flex items-center justify-center mx-auto mb-6">
                 <Package size={30} />
               </div>
               <h1 className="font-display text-white leading-[0.82] text-[clamp(3rem,11vw,9.5rem)]">

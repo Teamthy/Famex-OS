@@ -99,7 +99,7 @@ export default function ReceiptModal({ open, data, onClose }: Props) {
                 <X size={20} />
               </button>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-2xl bg-brand-green flex items-center justify-center">
+                <div className="w-12 h-12 rounded-2xl bg-famex-lime flex items-center justify-center">
                   <CheckCircle2 size={26} className="text-white" strokeWidth={2.5} />
                 </div>
                 <div>
@@ -196,7 +196,7 @@ export default function ReceiptModal({ open, data, onClose }: Props) {
                 {/* Download PDF */}
                 <button
                   onClick={handleDownload}
-                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-brand-green text-brand-navy font-medium text-xs hover:bg-brand-green-dark transition-all"
+                  className="flex flex-col items-center gap-1 py-3 rounded-xl bg-famex-lime text-brand-navy font-medium text-xs hover:bg-famex-lime-soft transition-all"
                 >
                   <Download size={18} />
                   Download

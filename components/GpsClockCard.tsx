@@ -131,7 +131,7 @@ export default function GpsClockCard({
           <div
             className={`rounded-xl p-2 ${
               inRange
-                ? "bg-brand-green/15 text-brand-green"
+                ? "bg-famex-lime/15 text-brand-green"
                 : gps.reading
                   ? "bg-brand-orange/15 text-brand-orange"
                   : "bg-[var(--surface-disabled)] text-[var(--text-muted)]"
@@ -209,7 +209,7 @@ export default function GpsClockCard({
       </div>
 
       {lastResult && (
-        <div className="mt-3 flex items-center gap-2 rounded-xl bg-brand-green/10 px-4 py-2 text-xs text-brand-green">
+        <div className="mt-3 flex items-center gap-2 rounded-xl bg-famex-lime/10 px-4 py-2 text-xs text-brand-green">
           <CheckCircle2 size={14} />
           {lastResult.action === "CHECK_IN" ? "Checked in" : "Checked out"} at{" "}
           {new Date(lastResult.at).toLocaleTimeString()}
@@ -225,7 +225,7 @@ export default function GpsClockCard({
           type="button"
           disabled={busy || !gps.reading || !inRange || !readingFresh || currentStatus === "IN"}
           onClick={() => void clock("CHECK_IN")}
-          className="inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-5 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-40"
         >
           {busy ? <LoaderCircle className="animate-spin" size={16} /> : <LogIn size={16} />}
           GPS Check in

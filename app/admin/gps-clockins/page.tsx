@@ -105,7 +105,7 @@ export default function AdminGpsClockinsPage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
-            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <MapPin size={11} /> GPS attendance
             </span>
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
@@ -224,7 +224,7 @@ export default function AdminGpsClockinsPage() {
                             className={`flex h-10 w-10 items-center justify-center rounded-xl ${
                               r.kind === "staff"
                                 ? "bg-blue-500/15 text-blue-500"
-                                : "bg-brand-green/15 text-brand-green"
+                                : "bg-famex-lime/15 text-brand-green"
                             }`}
                           >
                             {r.eventType === "CHECK_IN" ? (
@@ -242,7 +242,7 @@ export default function AdminGpsClockinsPage() {
                                 className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest ${
                                   r.kind === "staff"
                                     ? "bg-blue-500/15 text-blue-500"
-                                    : "bg-brand-green/15 text-brand-green"
+                                    : "bg-famex-lime/15 text-brand-green"
                                 }`}
                               >
                                 {r.kind}
@@ -306,7 +306,7 @@ function Stat({
           : "text-[var(--text-muted)]";
   const bg =
     tone === "green"
-      ? "bg-brand-green/10"
+      ? "bg-famex-lime/10"
       : tone === "orange"
         ? "bg-brand-orange/10"
         : tone === "red"

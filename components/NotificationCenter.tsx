@@ -30,11 +30,11 @@ export default function NotificationCenter({
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const typeConfig: Record<string, { icon: typeof BellRing; color: string; bg: string }> = {
-    welcome: { icon: UserPlus, color: "text-brand-green", bg: "bg-brand-green/10" },
+    welcome: { icon: UserPlus, color: "text-brand-green", bg: "bg-famex-lime/10" },
     absence: { icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10" },
-    fee_receipt: { icon: CheckCircle2, color: "text-brand-green", bg: "bg-brand-green/10" },
+    fee_receipt: { icon: CheckCircle2, color: "text-brand-green", bg: "bg-famex-lime/10" },
     fee_reminder: { icon: CreditCard, color: "text-brand-orange", bg: "bg-brand-orange/10" },
-    report_card: { icon: FileText, color: "text-brand-green-dark", bg: "bg-brand-green-dark/10" },
+    report_card: { icon: FileText, color: "text-famex-forest-mid", bg: "bg-famex-lime-soft/10" },
     broadcast: { icon: Send, color: "text-brand-orange", bg: "bg-brand-orange/10" },
   };
 
@@ -43,7 +43,7 @@ export default function NotificationCenter({
       <div className="flex items-center justify-between mb-6">
         <h3 className="font-display text-lg tracking-[2px] text-[var(--text-primary)]">{title}</h3>
         {unreadCount > 0 && (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-brand-green/10 text-brand-green text-[10px] font-bold">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-famex-lime/10 text-brand-green text-[10px] font-bold">
             {unreadCount} unread
           </span>
         )}
@@ -58,7 +58,7 @@ export default function NotificationCenter({
               className={`rounded-xl px-5 py-4 border transition-colors ${
                 n.read
                   ? "bg-[var(--surface-disabled)] border-[var(--border-subtle)]"
-                  : "bg-brand-green/5 border-brand-green/20"
+                  : "bg-famex-lime/5 border-brand-green/20"
               }`}
             >
               <div className="flex items-start gap-3">
@@ -76,7 +76,7 @@ export default function NotificationCenter({
                     >
                       {n.title}
                     </h4>
-                    {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-brand-green" />}
+                    {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-famex-lime" />}
                   </div>
                   <p className="font-body text-xs text-[var(--text-muted)] leading-relaxed">
                     {n.message}
@@ -86,7 +86,7 @@ export default function NotificationCenter({
                     {n.action && (
                       <a
                         href="#"
-                        className="font-body text-[10px] font-bold text-brand-green hover:text-brand-green-dark uppercase tracking-wide"
+                        className="font-body text-[10px] font-bold text-brand-green hover:text-famex-forest-mid uppercase tracking-wide"
                       >
                         {n.action}
                       </a>

@@ -645,7 +645,7 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
           <p className="mt-3 text-sm text-white/60">{pendingReason}</p>
           <button
             onClick={() => router.replace("/student/exams")}
-            className="mt-6 rounded-full bg-brand-green px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy"
+            className="mt-6 rounded-full bg-famex-lime px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy"
           >
             Back to my exams
           </button>
@@ -663,7 +663,7 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
           <p className="mt-3 text-sm text-white/60">{error || "Something went wrong."}</p>
           <button
             onClick={() => router.replace("/student/exams")}
-            className="mt-6 rounded-full bg-brand-green px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy"
+            className="mt-6 rounded-full bg-famex-lime px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy"
           >
             Back to my exams
           </button>
@@ -696,7 +696,7 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
                 <LoaderCircle size={11} className="animate-spin" /> Saving
               </span>
             ) : saveState === "SAVED" ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/20 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+              <span className="inline-flex items-center gap-1 rounded-full bg-famex-lime/20 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-green">
                 <CheckCircle2 size={11} /> Saved
               </span>
             ) : (
@@ -709,7 +709,7 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
             </span>
             <span
               className={`inline-flex items-center gap-2 rounded-full px-4 py-2 font-display text-lg ${
-                secondsLeft < 120 ? "bg-red-500 text-white" : "bg-brand-green/20 text-brand-green"
+                secondsLeft < 120 ? "bg-red-500 text-white" : "bg-famex-lime/20 text-brand-green"
               }`}
             >
               <Clock size={16} /> {formatClock(secondsLeft)}
@@ -756,14 +756,14 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
                         onClick={() => setAnswer(question.id, option.key)}
                         className={`flex w-full items-center gap-3 rounded-2xl border px-5 py-4 text-left text-sm transition-all ${
                           answers[question.id] === option.key
-                            ? "border-brand-green bg-brand-green/10 font-bold text-[var(--text-primary)]"
+                            ? "border-brand-green bg-famex-lime/10 font-bold text-[var(--text-primary)]"
                             : "border-[var(--border-subtle)] bg-[var(--card-bg-subtle)] text-[var(--text-secondary)] hover:border-brand-green/40"
                         }`}
                       >
                         <span
                           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                             answers[question.id] === option.key
-                              ? "bg-brand-green text-white"
+                              ? "bg-famex-lime text-white"
                               : "bg-[var(--surface-disabled)] text-[var(--text-muted)]"
                           }`}
                         >
@@ -808,7 +808,7 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
               <button
                 onClick={() => setConfirmSubmit(true)}
                 disabled={submitting}
-                className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg hover:bg-brand-green-dark disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-8 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg hover:bg-famex-lime-soft disabled:opacity-50"
               >
                 {submitting ? (
                   <LoaderCircle size={14} className="animate-spin" />
@@ -820,7 +820,7 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
             ) : (
               <button
                 onClick={() => setIndex(Math.min(data.questions.length - 1, index + 1))}
-                className="inline-flex items-center gap-2 rounded-full bg-brand-green px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg hover:bg-brand-green-dark"
+                className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg hover:bg-famex-lime-soft"
               >
                 Next <ChevronRight size={14} />
               </button>
@@ -844,7 +844,7 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
                     entryIndex === index
                       ? "bg-brand-navy text-white ring-2 ring-brand-green"
                       : isAnswered
-                        ? "bg-brand-green/15 text-brand-green"
+                        ? "bg-famex-lime/15 text-brand-green"
                         : "bg-[var(--surface-disabled)] text-[var(--text-muted)]"
                   }`}
                 >
@@ -858,7 +858,7 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
           </div>
           <div className="mt-5 space-y-2 text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
             <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded bg-brand-green/40" /> Answered ({answered})
+              <span className="h-3 w-3 rounded bg-famex-lime/40" /> Answered ({answered})
             </div>
             <div className="flex items-center gap-2">
               <span className="h-3 w-3 rounded bg-brand-orange" /> Flagged ({flagged.size})
@@ -884,7 +884,7 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
           <button
             onClick={() => setConfirmSubmit(true)}
             disabled={submitting}
-            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-green px-5 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg hover:bg-brand-green-dark disabled:opacity-50"
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-famex-lime px-5 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg hover:bg-famex-lime-soft disabled:opacity-50"
           >
             <CheckCircle2 size={13} /> Finish &amp; Submit
           </button>

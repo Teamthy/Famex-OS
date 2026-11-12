@@ -32,9 +32,9 @@ export default function ConfirmDialog({
       btn: "bg-brand-orange hover:bg-brand-orange-dark",
     },
     info: {
-      bg: "bg-brand-green/10",
+      bg: "bg-famex-lime/10",
       text: "text-brand-green",
-      btn: "bg-brand-green hover:bg-brand-green-dark",
+      btn: "bg-famex-lime hover:bg-famex-lime-soft",
     },
   }[variant];
 

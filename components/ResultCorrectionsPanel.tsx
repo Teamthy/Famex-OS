@@ -40,7 +40,7 @@ const inputClass =
   "w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--input-bg)] px-3 py-2 text-sm text-[var(--text-primary)]";
 
 function chip(status: Correction["status"]) {
-  if (status === "APPLIED") return "bg-brand-green/10 text-brand-green";
+  if (status === "APPLIED") return "bg-famex-lime/10 text-brand-green";
   if (status === "REJECTED") return "bg-red-500/10 text-red-500";
   return "bg-brand-orange/10 text-brand-orange";
 }
@@ -189,7 +189,7 @@ export default function ResultCorrectionsPanel() {
           type="button"
           disabled={requesting || !entryId.trim() || reason.trim().length < 4}
           onClick={() => void submitRequest()}
-          className="mt-3 rounded-full bg-brand-green px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
+          className="mt-3 rounded-full bg-famex-lime px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
         >
           {requesting ? "Requesting…" : "Request correction"}
         </button>
@@ -253,7 +253,7 @@ export default function ResultCorrectionsPanel() {
                     type="button"
                     disabled={deciding === c.id}
                     onClick={() => void decide(c, true)}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-famex-lime px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white disabled:opacity-50"
                   >
                     <CheckCircle2 size={12} /> Approve &amp; apply
                   </button>

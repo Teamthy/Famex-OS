@@ -46,7 +46,7 @@ export default async function VerifyReportPage({
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-3xl text-center">
-            <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <ShieldCheck size={11} /> Document Verification
             </span>
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
@@ -59,7 +59,7 @@ export default async function VerifyReportPage({
           <div className="mx-auto max-w-2xl">
             {report ? (
               <div className="rounded-[2rem] border border-brand-green/30 bg-[var(--surface-card)] p-10 text-center shadow-[var(--card-shadow)]">
-                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-brand-green text-brand-navy">
+                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-famex-lime text-brand-navy">
                   <BadgeCheck size={40} />
                 </div>
                 <h2 className="font-display text-3xl text-[var(--text-accent)]">

@@ -279,7 +279,7 @@ export default function ExamCenterPage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <ClipboardList size={11} /> Assessments
             </span>
             <h1 className="mt-3 font-display text-4xl tracking-widest text-white md:text-6xl">
@@ -343,7 +343,7 @@ export default function ExamCenterPage() {
                       teacher who had not created one yet could not find it.
                       It is in the sidebar now; this is the in-context route,
                       because this is where they are already standing. */}
-                  <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-brand-green/25 bg-brand-green/5 p-4">
+                  <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-brand-green/25 bg-famex-lime/5 p-4">
                     <Upload size={18} className="shrink-0 text-brand-green" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold text-[var(--text-primary)]">
@@ -356,7 +356,7 @@ export default function ExamCenterPage() {
                     </div>
                     <Link
                       href="/teacher/upload-questions"
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-green px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-famex-lime px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
                     >
                       <Upload size={13} /> Upload questions
                     </Link>
@@ -369,7 +369,7 @@ export default function ExamCenterPage() {
                         onClick={() => setTab(key)}
                         className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest transition-colors ${
                           tab === key
-                            ? "bg-brand-green text-white"
+                            ? "bg-famex-lime text-white"
                             : "bg-[var(--surface-card)] text-[var(--text-secondary)] hover:bg-[var(--surface-card-hover)]"
                         }`}
                       >
@@ -382,7 +382,7 @@ export default function ExamCenterPage() {
                     ))}
                     <button
                       onClick={() => setShowForm((v) => !v)}
-                      className="ml-auto inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
+                      className="ml-auto inline-flex items-center gap-2 rounded-full bg-famex-lime px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
                     >
                       <Plus size={13} /> New paper
                     </button>
@@ -533,7 +533,7 @@ export default function ExamCenterPage() {
                         <button
                           onClick={() => void create()}
                           disabled={creating || !form.title.trim() || !form.assignmentId}
-                          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-brand-green py-2.5 text-sm font-bold text-brand-navy disabled:opacity-60"
+                          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-famex-lime py-2.5 text-sm font-bold text-brand-navy disabled:opacity-60"
                         >
                           {creating ? (
                             <LoaderCircle size={15} className="animate-spin" />
@@ -568,7 +568,7 @@ export default function ExamCenterPage() {
                                   Draft
                                 </span>
                               ) : (
-                                <span className="rounded-full bg-brand-green/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+                                <span className="rounded-full bg-famex-lime/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-brand-green">
                                   {exam.statusLabel}
                                 </span>
                               )}
@@ -633,7 +633,7 @@ export default function ExamCenterPage() {
                               {exam.readiness === "UNPUBLISHED" && exam.questionCount > 0 ? (
                                 <button
                                   onClick={() => void publish(exam)}
-                                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-xs font-bold text-brand-navy"
+                                  className="inline-flex items-center gap-1.5 rounded-full bg-famex-lime px-4 py-2 text-xs font-bold text-brand-navy"
                                 >
                                   <Send size={12} /> Publish
                                 </button>
@@ -702,7 +702,7 @@ export default function ExamCenterPage() {
                       }
                       className={`flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-colors ${
                         picked
-                          ? "border-brand-green bg-brand-green/10 text-[var(--text-primary)]"
+                          ? "border-brand-green bg-famex-lime/10 text-[var(--text-primary)]"
                           : "border-[var(--border-subtle)] bg-[var(--card-bg-subtle)] text-[var(--text-secondary)]"
                       }`}
                     >

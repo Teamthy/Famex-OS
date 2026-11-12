@@ -65,7 +65,7 @@ export default function Activate() {
         </label>
         <button
           disabled={loading}
-          className="mt-6 w-full rounded-full bg-brand-green py-3 text-xs font-bold uppercase tracking-widest text-brand-navy"
+          className="mt-6 w-full rounded-full bg-famex-lime py-3 text-xs font-bold uppercase tracking-widest text-brand-navy"
         >
           {loading ? "Activating…" : "Activate account"}
         </button>

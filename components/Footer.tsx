@@ -80,14 +80,14 @@ export default function Footer({ contact = {} }: { contact?: FooterContact }) {
               <a
                 href="#"
                 aria-label={`${schoolName} on Facebook`}
-                className="w-9 h-9 rounded-full bg-white/5 hover:bg-brand-green text-brand-navy-dark flex items-center justify-center transition-colors"
+                className="w-9 h-9 rounded-full bg-white/5 hover:bg-famex-lime text-brand-navy-dark flex items-center justify-center transition-colors"
               >
                 <Facebook size={16} aria-hidden="true" />
               </a>
               <a
                 href="#"
                 aria-label={`${schoolName} on Instagram`}
-                className="w-9 h-9 rounded-full bg-white/5 hover:bg-brand-green text-brand-navy-dark flex items-center justify-center transition-colors"
+                className="w-9 h-9 rounded-full bg-white/5 hover:bg-famex-lime text-brand-navy-dark flex items-center justify-center transition-colors"
               >
                 <Instagram size={16} aria-hidden="true" />
               </a>

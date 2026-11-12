@@ -90,7 +90,7 @@ export default function ParentClockInsPage() {
       <main className="min-h-screen bg-[var(--bg-primary)]">
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
-            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <MapPin size={11} /> GPS verification
             </span>
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
@@ -125,7 +125,7 @@ export default function ParentClockInsPage() {
                         onClick={() => setSelectedChildId(c.id)}
                         className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest ${
                           c.id === selectedChild.id
-                            ? "bg-brand-green text-brand-navy"
+                            ? "bg-famex-lime text-brand-navy"
                             : "border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-secondary)]"
                         }`}
                       >
@@ -165,7 +165,7 @@ export default function ParentClockInsPage() {
                           <div
                             className={`flex h-10 w-10 items-center justify-center rounded-xl ${
                               e.eventType === "CHECK_IN"
-                                ? "bg-brand-green/15 text-brand-green"
+                                ? "bg-famex-lime/15 text-brand-green"
                                 : "bg-blue-500/15 text-blue-500"
                             }`}
                           >

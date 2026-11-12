@@ -105,7 +105,7 @@ export default function StudentsPage() {
             </p>
           </div>
           {notice && (
-            <div className="mt-5 rounded-2xl border border-brand-green/30 bg-brand-green/10 p-4 text-sm text-[var(--text-primary)]">
+            <div className="mt-5 rounded-2xl border border-brand-green/30 bg-famex-lime/10 p-4 text-sm text-[var(--text-primary)]">
               {notice}
             </div>
           )}
@@ -158,7 +158,7 @@ export default function StudentsPage() {
 
             <button
               onClick={() => setOpen(true)}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
+              className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
             >
               <UserPlus size={15} /> Enrol student
             </button>
@@ -190,7 +190,7 @@ export default function StudentsPage() {
                       <span
                         className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest ${
                           s.feeStatus === "PAID"
-                            ? "bg-brand-green/15 text-brand-green"
+                            ? "bg-famex-lime/15 text-brand-green"
                             : s.feeStatus === "OWING"
                               ? "bg-red-500/15 text-red-500"
                               : "bg-brand-orange/15 text-brand-orange"
@@ -289,7 +289,7 @@ export default function StudentsPage() {
               A new parent account receives a one-time temporary password. Existing parent accounts
               are linked without exposing or changing their password.
             </p>
-            <button className="mt-6 w-full rounded-full bg-brand-green py-3 text-xs font-bold uppercase tracking-widest text-brand-navy">
+            <button className="mt-6 w-full rounded-full bg-famex-lime py-3 text-xs font-bold uppercase tracking-widest text-brand-navy">
               Create student record
             </button>
           </form>

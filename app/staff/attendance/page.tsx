@@ -124,7 +124,7 @@ export default function StaffSelfAttendancePage() {
                     <span
                       className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${
                         data.today?.status === "IN"
-                          ? "bg-brand-green/15 text-brand-green"
+                          ? "bg-famex-lime/15 text-brand-green"
                           : data.today?.status === "OUT"
                             ? "bg-blue-500/15 text-blue-500"
                             : "bg-[var(--surface-disabled)] text-[var(--text-muted)]"
@@ -176,7 +176,7 @@ export default function StaffSelfAttendancePage() {
                 <button
                   disabled={busy || data.today?.status === "IN"}
                   onClick={() => void act("CHECK_IN")}
-                  className="inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-40"
+                  className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-5 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-40"
                 >
                   {busy ? <LoaderCircle className="animate-spin" size={16} /> : <LogIn size={16} />}
                   QR / Self Check in

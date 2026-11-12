@@ -68,7 +68,7 @@ export default function AddInstructionsPage() {
       <main className="bg-[var(--bg-primary)] min-h-screen theme-transition">
         <section className="pt-24 pb-10 bg-brand-navy px-6">
           <div className="mx-auto max-w-7xl">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-green/20 border border-brand-green/40 text-brand-green text-[10px] font-bold uppercase tracking-widest mb-3">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-famex-lime/20 border border-brand-green/40 text-brand-green text-[10px] font-bold uppercase tracking-widest mb-3">
               <FileText size={11} /> Custom Instructions
             </span>
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2 text-center">
@@ -201,7 +201,7 @@ export default function AddInstructionsPage() {
                       <div className="flex gap-3">
                         <button
                           onClick={addInstruction}
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-sm font-bold hover:bg-brand-green/10 hover:border-brand-green transition-all"
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-sm font-bold hover:bg-famex-lime/10 hover:border-brand-green transition-all"
                         >
                           <Plus size={14} /> Add More Instructions
                         </button>

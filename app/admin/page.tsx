@@ -130,7 +130,7 @@ export default function AdminDashboardPage() {
         <section className="pt-24 pb-12 bg-brand-navy px-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-1/3 h-full opacity-10 bg-gradient-to-l from-brand-green to-transparent" />
           <div className="mx-auto max-w-7xl relative z-10">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-brand-green/10 border border-brand-green/30 text-brand-green text-[10px] font-bold tracking-[0.2em] uppercase mb-4">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-famex-lime/10 border border-brand-green/30 text-brand-green text-[10px] font-bold tracking-[0.2em] uppercase mb-4">
               School Administration
             </span>
             <h1 className="font-display text-4xl md:text-6xl text-white tracking-widest">
@@ -334,7 +334,7 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-3 rounded-[2rem] border border-brand-green/25 bg-brand-green/5 p-6">
+                    <div className="flex items-center gap-3 rounded-[2rem] border border-brand-green/25 bg-famex-lime/5 p-6">
                       <CheckCircle2 size={22} className="text-brand-green" />
                       <p className="text-sm text-[var(--text-secondary)]">
                         All clear — no pending applications, corrections, draft reports, or open
@@ -359,7 +359,7 @@ export default function AdminDashboardPage() {
                               key={`${entry.at}-${index}`}
                               className="flex items-start gap-3 rounded-xl bg-[var(--surface-disabled)] px-4 py-3"
                             >
-                              <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-green" />
+                              <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-famex-lime" />
                               <div className="min-w-0 flex-1">
                                 <div className="text-sm text-[var(--text-primary)]">
                                   {actionLabel(entry.action)}
@@ -401,7 +401,7 @@ export default function AdminDashboardPage() {
                           className="group flex items-center justify-between rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] shadow-[var(--card-shadow)] px-5 py-4 hover:border-brand-green transition-all"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green group-hover:bg-brand-green group-hover:text-brand-navy transition-colors">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-famex-lime/10 text-brand-green group-hover:bg-famex-lime group-hover:text-brand-navy transition-colors">
                               <item.icon size={18} />
                             </div>
                             <span className="text-sm font-bold text-[var(--text-primary)]">

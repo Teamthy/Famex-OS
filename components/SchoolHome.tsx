@@ -47,10 +47,13 @@ export default function SchoolHome() {
   const { schoolName } = getSchoolBrandTokens();
 
   return (
-    <div className="min-h-screen antialiased" style={{ background: HOME_BG, color: HOME_INK }}>
+    <div
+      className="relative min-h-screen antialiased"
+      style={{ background: HOME_BG, color: HOME_INK }}
+    >
       <HomeHeader schoolName={schoolName} />
       <main>
-        <HeroCarousel slides={HERO_SLIDES} motto={motto} />
+        <HeroCarousel slides={HERO_SLIDES} motto={motto} schoolName={schoolName} />
         <IntroStatement />
         <TrioCards />
         <StageExplorer />

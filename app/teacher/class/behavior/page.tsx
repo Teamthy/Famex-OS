@@ -47,7 +47,7 @@ const TYPE_CONFIG: Record<
     label: "Commendation",
     icon: Award,
     color: "text-brand-green",
-    bg: "bg-brand-green/10",
+    bg: "bg-famex-lime/10",
     border: "border-brand-green/30",
   },
   WARNING: {

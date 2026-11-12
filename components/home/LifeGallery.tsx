@@ -38,16 +38,16 @@ export default function LifeGallery() {
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
           <h2 className={`${SERIF} text-4xl font-semibold tracking-tight sm:text-5xl`}>
-            Life on <em className="font-light italic text-[#5d8f4e]">campus</em>
+            Life on <em className="font-light italic text-[var(--famex-forest-mid)]">campus</em>
           </h2>
-          <p className="mt-3 max-w-md text-sm text-[#6b6459]">
+          <p className="mt-3 max-w-md text-sm text-[var(--famex-text-secondary)]">
             The hours between the bell and the gate — where most of the character formation actually
             happens.
           </p>
         </div>
         <a
           href="/gallery"
-          className="rounded-full border border-[#211d19]/15 bg-white/70 px-5 py-2.5 text-sm font-medium text-[#211d19] transition hover:border-[#211d19]/35"
+          className="rounded-full border border-[var(--famex-primary)]/15 bg-white/70 px-5 py-2.5 text-sm font-medium text-[var(--famex-primary)] transition hover:border-[var(--famex-primary)]/35"
         >
           Full gallery
         </a>
@@ -65,7 +65,7 @@ export default function LifeGallery() {
               decoding="async"
               className={`${tile.height} w-full object-cover transition duration-700 group-hover:scale-[1.04]`}
             />
-            <figcaption className="absolute bottom-3 left-3 rounded-full bg-[#fffdf8]/90 px-3 py-1 text-[11px] font-semibold text-[#211d19] backdrop-blur">
+            <figcaption className="absolute bottom-3 left-3 rounded-full bg-[var(--famex-white)]/90 px-3 py-1 text-[11px] font-semibold text-[var(--famex-primary)] backdrop-blur">
               {tile.caption}
             </figcaption>
           </figure>

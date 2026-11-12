@@ -105,7 +105,7 @@ export function generateMetadata(): Metadata {
 }
 
 export const viewport: Viewport = {
-  themeColor: DEFAULT_BRANDING.primaryColor,
+  themeColor: "#1D4A45",
   width: "device-width",
   initialScale: 1,
 };
@@ -117,10 +117,10 @@ import {
   isDatabaseInfrastructureError,
   resolveSchoolForRequestSafe,
 } from "@/lib/school-resolution";
-import { getTenantBranding, DEFAULT_BRANDING } from "@/lib/branding";
+import { getTenantBranding } from "@/lib/branding";
+import SetupIncompleteBanner from "@/components/SetupIncompleteBanner";
 import { PRODUCT_NAME, getSchoolBrandTokens } from "@/lib/brand";
 import { prisma } from "@/lib/prisma";
-import SetupIncompleteBanner from "@/components/SetupIncompleteBanner";
 
 const SCHOOL_IDENTITY_SELECT = {
   slug: true,
@@ -198,50 +198,30 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const schoolName = school?.name ?? tokens.schoolName;
   const siteUrl = tokens.siteUrl;
 
-  // Honest degraded state: "database" when the DB is unusable, "school" when
-  // the DB answers but no school record is configured (unseeded environment).
-  const setupIncomplete: "database" | "school" | null = databaseDegraded
-    ? "database"
-    : !session && schoolId === null
-      ? "school"
-      : null;
-
-  const primary = branding?.primaryColor ?? DEFAULT_BRANDING.primaryColor;
-  const secondary = branding?.secondaryColor ?? DEFAULT_BRANDING.secondaryColor;
-  const accent = branding?.accentColor ?? DEFAULT_BRANDING.accentColor;
   const faviconUrl = branding?.faviconUrl ?? "/logo.png";
 
   return (
     <html
       lang="en"
-      data-theme="dark"
+      data-theme="light"
       className={`${anton.variable} ${dmSans.variable}`}
       suppressHydrationWarning
     >
       <head>
         <link rel="icon" href={faviconUrl} type="image/png" />
         <link rel="apple-touch-icon" href={faviconUrl} />
-        {/* Inject the configured school's brand palette as CSS variable overrides.
-            Only navy / navy-light / green are driven by the school's saved branding so the
-            nuanced green-dark/light + full orange shades in globals.css are
-            preserved (gives the palette its proper depth, not a flat fill). */}
-        <style
-          dangerouslySetInnerHTML={{
-            __html: `:root{--color-brand-navy:${primary};--color-brand-navy-light:${secondary};--color-brand-green:${accent};}`,
-          }}
-        />
-        {/* ANTI-FLASH: force dark mode as default before hydration */}
+        {/* ANTI-FLASH: honor saved preference; otherwise use the botanical light default. */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
           (function() {
             try {
               var saved = localStorage.getItem('famex-theme');
-              // Default to dark unless user explicitly chose light
-              var resolved = (saved === 'light') ? 'light' : 'dark';
+              // Famex defaults to its clean botanical light workspace; retain an explicit choice.
+              var resolved = (saved === 'dark') ? 'dark' : 'light';
               document.documentElement.setAttribute('data-theme', resolved);
             } catch (e) {
-              document.documentElement.setAttribute('data-theme', 'dark');
+              document.documentElement.setAttribute('data-theme', 'light');
             }
           })();
         `,
@@ -292,7 +272,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   }}
                 >
                   <div className="relative z-10">
-                    {setupIncomplete ? <SetupIncompleteBanner reason={setupIncomplete} /> : null}
+                    {databaseDegraded ? <SetupIncompleteBanner /> : null}
                     {children}
                   </div>
                 </SchoolProfileProvider>

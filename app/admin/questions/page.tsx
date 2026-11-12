@@ -162,7 +162,7 @@ export default function AdminQuestionsPage() {
                     <tr key={q.id} className="border-t border-[var(--border-subtle)] align-top">
                       <td className="p-4 max-w-md">{q.questionText}</td>
                       <td className="p-4">
-                        <span className="rounded-full bg-brand-green/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-brand-green">
+                        <span className="rounded-full bg-famex-lime/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-brand-green">
                           {TYPE_LABEL[q.type] || q.type}
                         </span>
                       </td>

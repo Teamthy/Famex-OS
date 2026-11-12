@@ -116,7 +116,7 @@ function LoginForm() {
   };
 
   return (
-    <main className="grid min-h-screen place-items-center bg-brand-navy p-6">
+    <main className="grid min-h-screen place-items-center bg-[var(--famex-forest-dark)] p-6">
       <div className="mx-auto grid max-w-5xl overflow-hidden rounded-[2rem] border border-white/10 bg-white shadow-2xl md:grid-cols-2">
         <section className="relative hidden min-h-[520px] overflow-hidden text-white md:block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -125,20 +125,28 @@ function LoginForm() {
             alt="Students on campus"
             className="absolute inset-0 h-full w-full object-cover object-top"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-brand-navy via-brand-navy/85 to-brand-navy/45" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--famex-forest-dark)] via-[var(--famex-forest-dark)]/85 to-[var(--famex-forest-dark)]/45" />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-24 -top-24 z-[1] h-72 w-72 rounded-full border-[34px] border-[var(--famex-lime)]/20"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute right-10 top-[34%] z-[1] h-16 w-16 rotate-45 rounded-[24px] bg-[var(--famex-lime)]/20"
+          />
           <div className="relative z-10 flex h-full flex-col justify-between p-9 md:p-12">
             <Link
               href="/portal"
-              className="text-xs font-bold uppercase tracking-widest text-brand-green"
+              className="text-xs font-bold uppercase tracking-widest text-[var(--famex-lime)]"
             >
               ← All Portals
             </Link>
             <div>
-              <ContextIcon className="text-brand-green" size={42} />
+              <ContextIcon className="text-[var(--famex-lime)]" size={42} />
               <h1 className="mt-5 font-display text-4xl tracking-widest text-white">
                 FAMEX OS
                 <br />
-                <span className="text-brand-green">SECURE ACCESS</span>
+                <span className="text-[var(--famex-lime)]">SECURE ACCESS</span>
               </h1>
               <p className="mt-5 max-w-sm text-sm leading-7 text-white/85">
                 Sign in with the credentials issued to you by {schoolName}. For account help,
@@ -197,12 +205,12 @@ function LoginForm() {
                   autoFocus
                   value={mfaCode}
                   onChange={(event) => setMfaCode(event.target.value)}
-                  className="login-field mt-2 w-full rounded-xl px-4 py-3 text-sm tracking-[0.3em] outline-none focus:ring-2 focus:ring-brand-green/30"
+                  className="login-field mt-2 w-full rounded-xl px-4 py-3 text-sm tracking-[0.3em] outline-none focus:ring-2 focus:ring-[var(--famex-forest-mid)]/30"
                 />
               </label>
               <button
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-green px-5 py-4 text-sm font-bold uppercase tracking-widest text-brand-navy transition hover:bg-brand-green-dark disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--famex-lime)] px-5 py-4 text-sm font-bold uppercase tracking-widest text-[var(--famex-forest-dark)] transition hover:bg-[var(--famex-lime-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-forest-mid)] disabled:opacity-50"
               >
                 <ShieldCheck size={16} /> {loading ? "Verifying" : "Verify & sign in"}
               </button>
@@ -228,7 +236,7 @@ function LoginForm() {
                   autoComplete="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="login-field mt-2 w-full rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-brand-green/30"
+                  className="login-field mt-2 w-full rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[var(--famex-forest-mid)]/30"
                 />
               </label>
               <label className="block text-xs font-bold uppercase tracking-widest text-green-800">
@@ -239,12 +247,12 @@ function LoginForm() {
                   autoComplete="current-password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="login-field mt-2 w-full rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-brand-green/30"
+                  className="login-field mt-2 w-full rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[var(--famex-forest-mid)]/30"
                 />
               </label>
               <button
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-green px-5 py-4 text-sm font-bold uppercase tracking-widest text-brand-navy transition hover:bg-brand-green-dark disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--famex-lime)] px-5 py-4 text-sm font-bold uppercase tracking-widest text-[var(--famex-forest-dark)] transition hover:bg-[var(--famex-lime-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-forest-mid)] disabled:opacity-50"
               >
                 <LockKeyhole size={16} /> {loading ? "Signing in" : "Sign in"}
               </button>
@@ -270,7 +278,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<main className="min-h-screen bg-brand-navy" />}>
+    <Suspense fallback={<main className="min-h-screen bg-[var(--famex-forest-dark)]" />}>
       <LoginForm />
     </Suspense>
   );

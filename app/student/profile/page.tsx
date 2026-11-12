@@ -144,7 +144,7 @@ export default function StudentProfilePage() {
             <PortalSidebar portalName="Student" portalType="student" items={SIDEBAR_ITEMS} />
             <div className="flex-1 min-w-0 space-y-6">
               {msg && (
-                <div className="rounded-2xl border border-brand-green/30 bg-brand-green/10 p-4 text-sm">
+                <div className="rounded-2xl border border-brand-green/30 bg-famex-lime/10 p-4 text-sm">
                   {msg}
                 </div>
               )}
@@ -191,11 +191,11 @@ export default function StudentProfilePage() {
                         {(profile?.displayName || "STUDENT").toUpperCase()}
                       </h2>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-green/10 text-brand-green font-bold uppercase tracking-widest">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-famex-lime/10 text-brand-green font-bold uppercase tracking-widest">
                           Student
                         </span>
                         {profile?.className && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-green text-brand-navy font-bold uppercase tracking-widest">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-famex-lime text-brand-navy font-bold uppercase tracking-widest">
                             {profile.className}
                           </span>
                         )}

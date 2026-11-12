@@ -96,13 +96,13 @@ export default function StudentTimetablePage() {
                   key={group.day}
                   className={`rounded-2xl border p-5 ${
                     group.day === today.toUpperCase()
-                      ? "border-brand-green/40 bg-brand-green/5"
+                      ? "border-brand-green/40 bg-famex-lime/5"
                       : "border-[var(--border-subtle)] bg-[var(--surface-card)]"
                   }`}
                 >
                   <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest">
                     {group.day === today.toUpperCase() && (
-                      <span className="rounded-full bg-brand-green px-2 py-0.5 text-[9px] text-brand-navy">
+                      <span className="rounded-full bg-famex-lime px-2 py-0.5 text-[9px] text-brand-navy">
                         TODAY
                       </span>
                     )}

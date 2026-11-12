@@ -133,14 +133,14 @@ export default function GradeExamsPage() {
                             {"essayCount" in e && (e as any).essayCount > 0 && (
                               <Link
                                 href={`/teacher/exam-center/${e.id}/mark`}
-                                className="rounded-full border border-brand-green px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-green hover:bg-brand-green hover:text-brand-navy"
+                                className="rounded-full border border-brand-green px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-green hover:bg-famex-lime hover:text-brand-navy"
                               >
                                 Mark theory
                               </Link>
                             )}
                             <Link
                               href={`/teacher/test-results?exam=${e.id}`}
-                              className="rounded-full bg-brand-green px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-navy"
+                              className="rounded-full bg-famex-lime px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-navy"
                             >
                               Review {e.submittedCount}
                             </Link>

@@ -154,7 +154,7 @@ export default function MyRecordsPage() {
 
               {/* Export */}
               <div className="flex justify-end">
-                <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-brand-green/10 text-brand-green text-sm font-bold hover:bg-brand-green hover:text-brand-navy transition-all">
+                <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-famex-lime/10 text-brand-green text-sm font-bold hover:bg-famex-lime hover:text-brand-navy transition-all">
                   <Download size={14} /> Export Records
                 </button>
               </div>
@@ -169,7 +169,7 @@ export default function MyRecordsPage() {
                         key={i}
                         className="p-5 flex items-start gap-4 hover:bg-[var(--surface-disabled)] transition-colors"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-brand-green/10 text-brand-green flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-famex-lime/10 text-brand-green flex items-center justify-center shrink-0">
                           <Icon size={18} />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -187,7 +187,7 @@ export default function MyRecordsPage() {
                                 r.status === "Submitted" ||
                                 r.status === "Delivered" ||
                                 r.status === "Approved"
-                                  ? "bg-brand-green/10 text-brand-green"
+                                  ? "bg-famex-lime/10 text-brand-green"
                                   : r.status === "Saved" || r.status === "Scheduled"
                                     ? "bg-blue-500/10 text-blue-500"
                                     : "bg-brand-orange/10 text-brand-orange"
