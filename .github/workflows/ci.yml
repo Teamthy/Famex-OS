@@ -268,7 +268,18 @@ jobs:
         # Exercises the out-of-band CLI against migrated Postgres, including
         # the appended enum value, encrypted TOTP seed, one-time recovery-code
         # hashes, bootstrap audit and refusal to create a second operator.
-        run: npm run verify:super-admin
+        run: |
+          set +e
+          npm run verify:super-admin > /tmp/super-admin-bootstrap.log 2>&1
+          status=$?
+          cat /tmp/super-admin-bootstrap.log
+          if [ $status -ne 0 ]; then
+            echo "::error::Super Admin bootstrap verification failed (exit $status)"
+            grep -E "FAIL|Error|error:|verification failed" /tmp/super-admin-bootstrap.log | head -30 | while IFS= read -r line; do
+              echo "::error title=super-admin-bootstrap::$line"
+            done
+          fi
+          exit $status
         env:
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
 

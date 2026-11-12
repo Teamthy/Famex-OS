@@ -160,20 +160,33 @@ test.describe("Super Admin bootstrap, MFA and DevOps controls", () => {
     request,
   }) => {
     test.setTimeout(90_000);
-    const login = await request.post("/api/auth/login", {
-      data: { email, password },
-    });
+    await page.goto("/login");
+    const acceptCookies = page.getByRole("button", { name: "Accept All" });
+    if (await acceptCookies.isVisible().catch(() => false)) await acceptCookies.click();
+    await page.getByLabel("Email", { exact: true }).fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(password);
+
+    const [login] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/auth/login") && response.request().method() === "POST",
+      ),
+      page.getByRole("button", { name: "Sign in" }).click(),
+    ]);
     expect(login.status(), await login.text()).toBe(200);
     const challenge = await login.json();
     expect(challenge).toMatchObject({ mfaRequired: true, challenge: expect.any(String) });
     expect(login.headers()["set-cookie"] ?? "").not.toContain("fis_session=");
+    await expect(page.getByLabel("Verification code", { exact: true })).toBeVisible();
+    await page.getByLabel("Verification code", { exact: true }).fill(totpCode(totpSecretForTest));
 
-    const verify = await request.post("/api/auth/mfa/verify", {
-      data: {
-        challenge: challenge.challenge,
-        code: totpCode(totpSecretForTest),
-      },
-    });
+    const [verify] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/auth/mfa/verify") && response.request().method() === "POST",
+      ),
+      page.getByRole("button", { name: "Verify & sign in" }).click(),
+    ]);
     expect(verify.status(), await verify.text()).toBe(200);
     const cookie = /fis_session=([^;]+)/.exec(verify.headers()["set-cookie"] ?? "");
     expect(cookie, "MFA verification must issue the session cookie").toBeTruthy();
@@ -193,16 +206,6 @@ test.describe("Super Admin bootstrap, MFA and DevOps controls", () => {
     expect(overviewBody.failedJobs).toHaveLength(1);
     expect(JSON.stringify(overviewBody)).not.toContain(sensitiveSentinel);
 
-    // Exercise the real browser MFA form too; do not inject a forged session
-    // cookie into the page context after the API-only assertions above.
-    await page.goto("/login");
-    const acceptCookies = page.getByRole("button", { name: "Accept All" });
-    if (await acceptCookies.isVisible().catch(() => false)) await acceptCookies.click();
-    await page.getByLabel("Email", { exact: true }).fill(email);
-    await page.getByLabel("Password", { exact: true }).fill(password);
-    await page.getByRole("button", { name: "Sign in" }).click();
-    await page.getByLabel("Verification code").fill(totpCode(totpSecretForTest));
-    await page.getByRole("button", { name: "Verify & sign in" }).click();
     await page.waitForURL(/\/super-admin(?:$|[/?#])/);
     await expect(page.getByRole("heading", { name: /Super Admin · DevOps/i })).toBeVisible();
     await expect(page.getByRole("link", { name: "School admin" })).toHaveAttribute(
