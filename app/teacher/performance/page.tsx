@@ -136,7 +136,7 @@ export default function PerformancePage() {
       <main className="bg-[var(--bg-primary)] min-h-screen theme-transition">
         <section className="pt-24 pb-10 bg-brand-navy px-6">
           <div className="mx-auto max-w-7xl">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-green/20 border border-brand-green/40 text-brand-green text-[10px] font-bold uppercase tracking-widest mb-3">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-famex-lime/20 border border-brand-green/40 text-brand-green text-[10px] font-bold uppercase tracking-widest mb-3">
               <BookOpen size={11} /> Subject Teacher
             </span>
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
@@ -171,11 +171,11 @@ export default function PerformancePage() {
               <div className="flex flex-wrap items-center gap-3">
                 <Link
                   href="/teacher/performance/add"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-brand-green text-brand-navy text-sm font-bold hover:bg-brand-green-dark transition-all shadow-lg"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-famex-lime text-brand-navy text-sm font-bold hover:bg-famex-lime-soft transition-all shadow-lg"
                 >
                   <Plus size={14} /> Add Performance
                 </Link>
-                <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--surface-disabled)] text-[var(--text-primary)] text-sm font-bold hover:bg-brand-green hover:text-brand-navy transition-all">
+                <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--surface-disabled)] text-[var(--text-primary)] text-sm font-bold hover:bg-famex-lime hover:text-brand-navy transition-all">
                   <Download size={14} /> Export Excel
                 </button>
                 <select className="ml-auto px-4 py-2.5 rounded-full bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--input-text)] text-sm focus:outline-none focus:border-brand-green">
@@ -205,7 +205,7 @@ export default function PerformancePage() {
                         className="w-full p-6 flex items-center justify-between hover:bg-[var(--surface-disabled)] transition-colors"
                       >
                         <div className="flex items-center gap-4">
-                          <div className="w-11 h-11 rounded-xl bg-brand-green/10 text-brand-green flex items-center justify-center">
+                          <div className="w-11 h-11 rounded-xl bg-famex-lime/10 text-brand-green flex items-center justify-center">
                             <Users size={20} />
                           </div>
                           <div className="text-left">
@@ -227,14 +227,14 @@ export default function PerformancePage() {
                         <div className="border-t border-[var(--border-subtle)]">
                           <div className="p-6">
                             {/* Subject Header */}
-                            <div className="flex items-center justify-between mb-4 p-4 rounded-xl bg-brand-green/5">
+                            <div className="flex items-center justify-between mb-4 p-4 rounded-xl bg-famex-lime/5">
                               <div className="flex items-center gap-3">
                                 <BookOpen className="text-brand-green" size={18} />
                                 <span className="font-bold text-[var(--text-primary)]">
                                   {sa.subject}
                                 </span>
                               </div>
-                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-brand-green text-brand-navy font-bold uppercase tracking-widest">
+                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-famex-lime text-brand-navy font-bold uppercase tracking-widest">
                                 <Users size={9} className="inline mr-1" /> {scores.length} students
                               </span>
                             </div>
@@ -311,7 +311,7 @@ export default function PerformancePage() {
                                             s.total === null
                                               ? "bg-gray-500/10 text-gray-400"
                                               : s.total >= 70
-                                                ? "bg-brand-green/20 text-brand-green"
+                                                ? "bg-famex-lime/20 text-brand-green"
                                                 : s.total >= 50
                                                   ? "bg-brand-orange/20 text-brand-orange"
                                                   : "bg-red-500/20 text-red-500"
@@ -324,7 +324,7 @@ export default function PerformancePage() {
                                         {s.comment || "-"}
                                       </td>
                                       <td className="px-3 py-3">
-                                        <button className="p-1.5 rounded-lg bg-brand-green/10 text-brand-green hover:bg-brand-green hover:text-brand-navy transition-all">
+                                        <button className="p-1.5 rounded-lg bg-famex-lime/10 text-brand-green hover:bg-famex-lime hover:text-brand-navy transition-all">
                                           <Edit3 size={12} />
                                         </button>
                                       </td>

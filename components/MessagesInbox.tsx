@@ -201,7 +201,7 @@ export default function MessagesInbox({
         <div className="flex justify-end">
           <button
             onClick={() => setComposing((v) => !v)}
-            className="inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
+            className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
           >
             <Plus size={13} /> New message
           </button>
@@ -262,7 +262,7 @@ export default function MessagesInbox({
             <button
               onClick={() => void startThread()}
               disabled={sending || !form.subject.trim() || !form.body.trim()}
-              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-brand-green py-2.5 text-sm font-bold text-brand-navy disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-famex-lime py-2.5 text-sm font-bold text-brand-navy disabled:opacity-50"
             >
               {sending ? <LoaderCircle size={15} className="animate-spin" /> : <Send size={15} />}
               Send
@@ -306,7 +306,7 @@ export default function MessagesInbox({
                   key={message.id}
                   className={`max-w-[85%] rounded-2xl p-4 ${
                     message.mine
-                      ? "ml-auto bg-brand-green/10 border border-brand-green/25"
+                      ? "ml-auto bg-famex-lime/10 border border-brand-green/25"
                       : "bg-[var(--card-bg-subtle)] border border-[var(--border-subtle)]"
                   }`}
                 >
@@ -342,7 +342,7 @@ export default function MessagesInbox({
             <button
               onClick={() => void sendReply()}
               disabled={sending || !reply.trim()}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-green px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
             >
               {sending ? <LoaderCircle size={13} className="animate-spin" /> : <Send size={13} />}
               Send
@@ -359,7 +359,7 @@ export default function MessagesInbox({
               onClick={() => void openThread(thread.id)}
               className="flex w-full items-start gap-4 rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5 text-left transition hover:border-brand-green/40"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-green/10 text-brand-green">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-famex-lime/10 text-brand-green">
                 <MessageSquare size={16} />
               </div>
               <div className="min-w-0 flex-1">

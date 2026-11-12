@@ -154,7 +154,7 @@ export default function StudentAttendancePage() {
           <div className="mx-auto max-w-7xl rounded-[2rem] border border-white/5 bg-gradient-to-br from-brand-navy to-brand-navy-light p-8 shadow-xl md:p-12">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-green/20 text-brand-green">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-famex-lime/20 text-brand-green">
                   <User size={26} />
                 </div>
                 <div>
@@ -236,7 +236,7 @@ export default function StudentAttendancePage() {
                                 <span
                                   className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${
                                     clock.today?.status === "IN"
-                                      ? "bg-brand-green/15 text-brand-green"
+                                      ? "bg-famex-lime/15 text-brand-green"
                                       : clock.today?.status === "OUT"
                                         ? "bg-blue-500/15 text-blue-500"
                                         : "bg-[var(--surface-disabled)] text-[var(--text-muted)]"
@@ -337,7 +337,7 @@ export default function StudentAttendancePage() {
                         </div>
                       </div>
                       <div className="grid grid-cols-3 gap-3">
-                        <div className="rounded-xl bg-brand-green/10 p-4 text-center">
+                        <div className="rounded-xl bg-famex-lime/10 p-4 text-center">
                           <Check size={18} className="mx-auto mb-1 text-brand-green" />
                           <div className="font-display text-xl text-brand-green">
                             {data.summary.present}

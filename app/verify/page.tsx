@@ -77,7 +77,7 @@ export default function VerifyEntryPage() {
               <button
                 type="submit"
                 disabled={!reportNumber.trim()}
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-green px-5 py-3 text-sm font-bold text-[#04140a] transition hover:opacity-90 disabled:opacity-40"
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-famex-lime px-5 py-3 text-sm font-bold text-[#04140a] transition hover:opacity-90 disabled:opacity-40"
               >
                 Verify report <ArrowRight size={15} />
               </button>

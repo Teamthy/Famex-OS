@@ -134,8 +134,8 @@ export async function PUT(request: NextRequest) {
           create: {
             schoolId: user.schoolId,
             displayName: branding.displayName,
-            primaryColor: branding.primaryColor ?? "#0c1824",
-            accentColor: branding.accentColor ?? "#4ec54d",
+            primaryColor: branding.primaryColor ?? "#123a35",
+            accentColor: branding.accentColor ?? "#b6e618",
           },
         });
       }

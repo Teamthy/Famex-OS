@@ -138,7 +138,7 @@ function ComposeInner() {
               {!loading && student ? (
                 <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 shadow-[var(--card-shadow)]">
                   <div className="mb-6 flex items-center gap-3 border-b border-[var(--border-subtle)] pb-4">
-                    <span className="grid h-11 w-11 place-items-center rounded-full bg-brand-green/15 text-brand-green">
+                    <span className="grid h-11 w-11 place-items-center rounded-full bg-famex-lime/15 text-brand-green">
                       <User size={18} />
                     </span>
                     <div>
@@ -182,7 +182,7 @@ function ComposeInner() {
                   <button
                     onClick={() => void send()}
                     disabled={sending || !subject.trim() || !body.trim()}
-                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-brand-green py-3.5 font-bold text-brand-navy disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-famex-lime py-3.5 font-bold text-brand-navy disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {sending ? (
                       <LoaderCircle size={16} className="animate-spin" />

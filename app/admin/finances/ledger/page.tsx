@@ -157,7 +157,7 @@ export default function GeneralLedgerPage() {
               <div
                 className={`flex flex-wrap items-center gap-3 rounded-2xl border p-4 text-sm ${
                   data.trialBalance.balanced
-                    ? "border-brand-green/30 bg-brand-green/5"
+                    ? "border-brand-green/30 bg-famex-lime/5"
                     : "border-red-500/40 bg-red-500/10 text-red-600"
                 }`}
               >
@@ -525,7 +525,7 @@ function StageBPanel({ data, reload }: { data: LedgerResponse; reload: () => voi
   return (
     <div className="space-y-6">
       {notice && (
-        <div className="rounded-2xl bg-brand-green/10 p-4 text-sm text-brand-green">{notice}</div>
+        <div className="rounded-2xl bg-famex-lime/10 p-4 text-sm text-brand-green">{notice}</div>
       )}
       {formError && (
         <div className="rounded-2xl bg-red-500/10 p-4 text-sm text-red-600">{formError}</div>

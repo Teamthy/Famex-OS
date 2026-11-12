@@ -2,8 +2,7 @@ import { PRODUCT_NAME, getSchoolBrandTokens } from "@/lib/brand";
 
 /**
  * Honest degraded-state banner rendered by the root layout when this
- * environment's database is unusable (unreachable, unmigrated) or the school
- * record has not been configured yet.
+ * environment's database is unusable (unreachable or unmigrated).
  *
  * Why this exists: before it, an environment with a placeholder DATABASE_URL
  * (the documented staging state — docs/HOSTING-DECISION-2K-USERS.md §9)
@@ -16,12 +15,9 @@ import { PRODUCT_NAME, getSchoolBrandTokens } from "@/lib/brand";
  * Server component, zero client JS, zero data reads — it must render even
  * when nothing else can.
  */
-export default function SetupIncompleteBanner({ reason }: { reason: "database" | "school" }) {
+export default function SetupIncompleteBanner() {
   const { schoolName } = getSchoolBrandTokens();
-  const heading =
-    reason === "database"
-      ? "Setup incomplete — database not connected"
-      : "Setup incomplete — school not configured";
+  const heading = "Setup incomplete — database not connected";
 
   return (
     <div

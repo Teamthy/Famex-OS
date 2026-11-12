@@ -90,7 +90,7 @@ export default function AdminAttendanceCorrectionsPage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pb-10 pt-24">
           <div className="mx-auto max-w-7xl">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-brand-green/30 bg-brand-green/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-brand-green/30 bg-famex-lime/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <ShieldAlert size={12} /> Admin attendance workflow
             </div>
             <h1 className="font-display text-4xl tracking-widest text-white md:text-5xl">
@@ -109,7 +109,7 @@ export default function AdminAttendanceCorrectionsPage() {
 
             <div className="flex-1 min-w-0 space-y-6">
               {message ? (
-                <div className="rounded-2xl border border-brand-green/20 bg-brand-green/5 p-4 text-sm text-[var(--text-secondary)]">
+                <div className="rounded-2xl border border-brand-green/20 bg-famex-lime/5 p-4 text-sm text-[var(--text-secondary)]">
                   {message}
                 </div>
               ) : null}
@@ -153,7 +153,7 @@ export default function AdminAttendanceCorrectionsPage() {
                             </td>
                             <td className="px-6 py-4">
                               <span
-                                className={`inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${request.status === "PENDING" ? "bg-brand-orange/15 text-brand-orange" : request.status === "APPROVED" ? "bg-brand-green/15 text-brand-green" : "bg-red-500/15 text-red-500"}`}
+                                className={`inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${request.status === "PENDING" ? "bg-brand-orange/15 text-brand-orange" : request.status === "APPROVED" ? "bg-famex-lime/15 text-brand-green" : "bg-red-500/15 text-red-500"}`}
                               >
                                 {request.status}
                               </span>
@@ -259,7 +259,7 @@ export default function AdminAttendanceCorrectionsPage() {
               <button
                 onClick={() => void submitDecision()}
                 disabled={saving}
-                className="flex-1 rounded-full bg-brand-green px-5 py-3 text-sm font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
+                className="flex-1 rounded-full bg-famex-lime px-5 py-3 text-sm font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
               >
                 {saving ? (
                   <span className="inline-flex items-center gap-2">

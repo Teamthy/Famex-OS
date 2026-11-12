@@ -30,7 +30,7 @@ export default function QuickStats({ stats }: { stats: StatItem[] }) {
           className="p-5 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] shadow-[var(--card-shadow)]"
         >
           <div
-            className={`w-10 h-10 rounded-xl bg-brand-green/10 flex items-center justify-center mb-3 ${s.color || "text-brand-green"}`}
+            className={`w-10 h-10 rounded-xl bg-famex-lime/10 flex items-center justify-center mb-3 ${s.color || "text-brand-green"}`}
           >
             <s.icon size={18} />
           </div>

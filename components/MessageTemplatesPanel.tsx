@@ -217,7 +217,7 @@ export default function MessageTemplatesPanel() {
               <li
                 key={template.id}
                 className={`rounded-2xl p-3 text-sm ${
-                  selectedId === template.id ? "bg-brand-green/10" : "bg-[var(--surface-disabled)]"
+                  selectedId === template.id ? "bg-famex-lime/10" : "bg-[var(--surface-disabled)]"
                 }`}
               >
                 <button type="button" className="w-full text-left" onClick={() => select(template)}>
@@ -306,7 +306,7 @@ export default function MessageTemplatesPanel() {
               type="button"
               disabled={saving || !key.trim() || !subject.trim() || !body.trim()}
               onClick={() => void save()}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-brand-green px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-famex-lime px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
             >
               <Save size={14} />{" "}
               {saving ? "Saving…" : editingExisting ? "Save new version" : "Create template"}
@@ -328,7 +328,7 @@ export default function MessageTemplatesPanel() {
             <span
               key={`${row.channel}-${row.kind}-${row.optedIn}`}
               className={`rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest ${
-                row.optedIn ? "bg-brand-green/10 text-brand-green" : "bg-red-500/10 text-red-500"
+                row.optedIn ? "bg-famex-lime/10 text-brand-green" : "bg-red-500/10 text-red-500"
               }`}
             >
               {row.channel} · {row.kind} · {row.optedIn ? "opted in" : "opted out"}: {row.count}

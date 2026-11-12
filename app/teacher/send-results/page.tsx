@@ -191,7 +191,7 @@ export default function SendResultsPage() {
       <main className="bg-[var(--bg-primary)] min-h-screen theme-transition">
         <section className="pt-24 pb-10 bg-brand-navy px-6">
           <div className="mx-auto max-w-7xl">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-green/20 border border-brand-green/40 text-brand-green text-[10px] font-bold uppercase tracking-widest mb-3">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-famex-lime/20 border border-brand-green/40 text-brand-green text-[10px] font-bold uppercase tracking-widest mb-3">
               <MessageSquare size={11} /> Send Results
             </span>
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
@@ -221,9 +221,9 @@ export default function SendResultsPage() {
                       <div
                         className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
                           step > s.num
-                            ? "bg-brand-green text-white"
+                            ? "bg-famex-lime text-white"
                             : step === s.num
-                              ? "bg-brand-green text-white ring-4 ring-brand-green/30"
+                              ? "bg-famex-lime text-white ring-4 ring-brand-green/30"
                               : "bg-[var(--surface-disabled)] text-[var(--text-muted)]"
                         }`}
                       >
@@ -235,7 +235,7 @@ export default function SendResultsPage() {
                     </div>
                     {i < 3 && (
                       <div
-                        className={`flex-1 h-0.5 ${step > s.num ? "bg-brand-green" : "bg-[var(--border-subtle)]"}`}
+                        className={`flex-1 h-0.5 ${step > s.num ? "bg-famex-lime" : "bg-[var(--border-subtle)]"}`}
                       />
                     )}
                   </div>
@@ -315,7 +315,7 @@ export default function SendResultsPage() {
                           <button
                             key={a}
                             onClick={() => setAssessment(a)}
-                            className={`p-3 rounded-xl text-xs font-bold transition-all ${assessment === a ? "bg-brand-green text-white shadow-md" : "bg-[var(--surface-disabled)] text-[var(--text-muted)] hover:bg-brand-green/10"}`}
+                            className={`p-3 rounded-xl text-xs font-bold transition-all ${assessment === a ? "bg-famex-lime text-white shadow-md" : "bg-[var(--surface-disabled)] text-[var(--text-muted)] hover:bg-famex-lime/10"}`}
                           >
                             {a}
                           </button>
@@ -328,7 +328,7 @@ export default function SendResultsPage() {
                     <button
                       onClick={() => setStep(2)}
                       disabled={!subject || !className || !assessment}
-                      className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-brand-green text-brand-navy font-bold text-sm uppercase tracking-widest hover:bg-brand-green-dark transition-all shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-famex-lime text-brand-navy font-bold text-sm uppercase tracking-widest hover:bg-famex-lime-soft transition-all shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Next: Select Recipients <ChevronRight size={14} />
                     </button>
@@ -353,7 +353,7 @@ export default function SendResultsPage() {
                     </div>
                     <button
                       onClick={selectAll}
-                      className="text-xs px-4 py-2 rounded-full bg-brand-green/10 text-brand-green font-bold hover:bg-brand-green hover:text-brand-navy transition-all"
+                      className="text-xs px-4 py-2 rounded-full bg-famex-lime/10 text-brand-green font-bold hover:bg-famex-lime hover:text-brand-navy transition-all"
                     >
                       {filtered.every((r) => r.selected) ? "Deselect All" : "Select All"}
                     </button>
@@ -392,7 +392,7 @@ export default function SendResultsPage() {
                     {filtered.map((r: any) => (
                       <label
                         key={r.studentId}
-                        className={`flex items-center gap-4 p-4 cursor-pointer border-b border-[var(--border-subtle)] last:border-0 transition-colors ${r.selected ? "bg-brand-green/5" : "hover:bg-[var(--surface-disabled)]"}`}
+                        className={`flex items-center gap-4 p-4 cursor-pointer border-b border-[var(--border-subtle)] last:border-0 transition-colors ${r.selected ? "bg-famex-lime/5" : "hover:bg-[var(--surface-disabled)]"}`}
                       >
                         <input
                           type="checkbox"
@@ -417,7 +417,7 @@ export default function SendResultsPage() {
                           </div>
                           <div className="flex items-center gap-2 justify-end">
                             <span
-                              className={`text-xs font-bold px-2 py-0.5 rounded-full ${r.score >= 70 ? "bg-brand-green/10 text-brand-green" : r.score >= 50 ? "bg-brand-orange/10 text-brand-orange" : "bg-red-500/10 text-red-500"}`}
+                              className={`text-xs font-bold px-2 py-0.5 rounded-full ${r.score >= 70 ? "bg-famex-lime/10 text-brand-green" : r.score >= 50 ? "bg-brand-orange/10 text-brand-orange" : "bg-red-500/10 text-red-500"}`}
                             >
                               {r.score}% · {r.grade}
                             </span>
@@ -437,7 +437,7 @@ export default function SendResultsPage() {
                     <button
                       onClick={() => setStep(3)}
                       disabled={selectedRecipients.length === 0}
-                      className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-brand-green text-brand-navy font-bold text-sm uppercase tracking-widest hover:bg-brand-green-dark transition-all shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-famex-lime text-brand-navy font-bold text-sm uppercase tracking-widest hover:bg-famex-lime-soft transition-all shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Next: Compose Message <ChevronRight size={14} />
                     </button>
@@ -492,7 +492,7 @@ export default function SendResultsPage() {
                             onClick={() => toggleChannel(c.key)}
                             className={`p-5 rounded-2xl border-2 text-left transition-all ${
                               channels.includes(c.key)
-                                ? "border-brand-green bg-brand-green/10"
+                                ? "border-brand-green bg-famex-lime/10"
                                 : "border-[var(--border-subtle)] hover:border-brand-green/30"
                             }`}
                           >
@@ -543,7 +543,7 @@ export default function SendResultsPage() {
                           <button
                             key={v}
                             onClick={() => setCustomMessage(customMessage + " " + v)}
-                            className="text-[10px] px-2 py-0.5 rounded bg-brand-green/10 text-brand-green font-mono hover:bg-brand-green hover:text-brand-navy transition-all"
+                            className="text-[10px] px-2 py-0.5 rounded bg-famex-lime/10 text-brand-green font-mono hover:bg-famex-lime hover:text-brand-navy transition-all"
                           >
                             {v}
                           </button>
@@ -605,7 +605,7 @@ export default function SendResultsPage() {
                         </div>
                         <div className="w-full h-2 rounded-full bg-[var(--surface-disabled)] overflow-hidden">
                           <div
-                            className="h-full bg-brand-green transition-all"
+                            className="h-full bg-famex-lime transition-all"
                             style={{ width: `${(sentCount / selectedRecipients.length) * 100}%` }}
                           />
                         </div>
@@ -614,7 +614,7 @@ export default function SendResultsPage() {
                   ) : (
                     <div>
                       <div className="text-center py-8">
-                        <div className="w-20 h-20 rounded-full bg-brand-green/20 flex items-center justify-center mx-auto mb-4">
+                        <div className="w-20 h-20 rounded-full bg-famex-lime/20 flex items-center justify-center mx-auto mb-4">
                           <CheckCircle2 className="text-brand-green" size={40} />
                         </div>
                         <h2 className="font-display text-3xl text-[var(--text-primary)] mb-2">
@@ -627,7 +627,7 @@ export default function SendResultsPage() {
 
                       <div className="grid grid-cols-3 gap-4 mb-8">
                         {channels.includes("sms") && (
-                          <div className="p-4 rounded-xl bg-brand-green/10 border border-brand-green/30 text-center">
+                          <div className="p-4 rounded-xl bg-famex-lime/10 border border-brand-green/30 text-center">
                             <Phone className="mx-auto text-brand-green mb-2" size={18} />
                             <div className="font-display text-2xl text-brand-green">
                               {selectedRecipients.length}
@@ -669,7 +669,7 @@ export default function SendResultsPage() {
                             className="flex items-center gap-3 p-3 border-b border-[var(--border-subtle)] last:border-0"
                           >
                             <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center ${r.status === "delivered" ? "bg-brand-green/20 text-brand-green" : "bg-brand-orange/20 text-brand-orange"}`}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center ${r.status === "delivered" ? "bg-famex-lime/20 text-brand-green" : "bg-brand-orange/20 text-brand-orange"}`}
                             >
                               {r.status === "delivered" ? (
                                 <CheckCircle2 size={14} />
@@ -686,7 +686,7 @@ export default function SendResultsPage() {
                               </div>
                             </div>
                             <span
-                              className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest ${r.status === "delivered" ? "bg-brand-green/20 text-brand-green" : "bg-brand-orange/20 text-brand-orange"}`}
+                              className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest ${r.status === "delivered" ? "bg-famex-lime/20 text-brand-green" : "bg-brand-orange/20 text-brand-orange"}`}
                             >
                               {r.status || "pending"}
                             </span>
@@ -701,7 +701,7 @@ export default function SendResultsPage() {
                             setRecipients(INITIAL_RECIPIENTS);
                             setSentCount(0);
                           }}
-                          className="px-6 py-3 rounded-full bg-brand-green text-brand-navy font-bold text-sm hover:bg-brand-green-dark transition-all"
+                          className="px-6 py-3 rounded-full bg-famex-lime text-brand-navy font-bold text-sm hover:bg-famex-lime-soft transition-all"
                         >
                           Send Another
                         </button>

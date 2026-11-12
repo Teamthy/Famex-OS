@@ -171,7 +171,7 @@ export default function TestCoursesPage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <ListChecks size={11} /> Assessments
             </span>
             <h1 className="mt-3 font-display text-4xl tracking-widest text-white md:text-5xl">
@@ -219,7 +219,7 @@ export default function TestCoursesPage() {
                       onClick={() => setClassFilter(name)}
                       className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest transition-colors ${
                         classFilter === name
-                          ? "bg-brand-green text-white"
+                          ? "bg-famex-lime text-white"
                           : "bg-[var(--surface-card)] text-[var(--text-secondary)]"
                       }`}
                     >
@@ -381,7 +381,7 @@ export default function TestCoursesPage() {
                             <button
                               onClick={() => void save(exam)}
                               disabled={saving === exam.id}
-                              className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-brand-green py-2.5 text-sm font-bold text-brand-navy disabled:opacity-50"
+                              className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-famex-lime py-2.5 text-sm font-bold text-brand-navy disabled:opacity-50"
                             >
                               {saving === exam.id ? (
                                 <LoaderCircle size={15} className="animate-spin" />
@@ -405,7 +405,7 @@ export default function TestCoursesPage() {
                   </p>
                   <Link
                     href="/teacher/exam-center"
-                    className="mt-4 inline-flex rounded-full bg-brand-green px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
+                    className="mt-4 inline-flex rounded-full bg-famex-lime px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
                   >
                     Go to Exam Centre
                   </Link>

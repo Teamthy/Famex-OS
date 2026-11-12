@@ -17,9 +17,9 @@ type StatusResult = {
 };
 
 const tones = {
-  info: "border-brand-green/30 bg-brand-green/5 text-brand-green",
+  info: "border-brand-green/30 bg-famex-lime/5 text-brand-green",
   warning: "border-brand-orange/30 bg-brand-orange/5 text-brand-orange",
-  success: "border-brand-green/30 bg-brand-green/5 text-brand-green",
+  success: "border-brand-green/30 bg-famex-lime/5 text-brand-green",
   error:
     "border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-text)]",
 };

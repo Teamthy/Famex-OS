@@ -100,7 +100,7 @@ export default function AdminCbtImportPage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
-            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <FileUp size={11} /> CBT bank
             </span>
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
@@ -145,7 +145,7 @@ export default function AdminCbtImportPage() {
                   onDrop={onDrop}
                   className={`mt-6 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-10 text-center transition ${
                     dragOver
-                      ? "border-brand-green bg-brand-green/5"
+                      ? "border-brand-green bg-famex-lime/5"
                       : "border-[var(--border-subtle)] bg-[var(--surface-disabled)]"
                   }`}
                 >
@@ -190,7 +190,7 @@ export default function AdminCbtImportPage() {
                   type="button"
                   onClick={upload}
                   disabled={uploading || !csv.trim()}
-                  className="mt-5 inline-flex items-center gap-2 rounded-full bg-brand-green px-6 py-3 text-sm font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
+                  className="mt-5 inline-flex items-center gap-2 rounded-full bg-famex-lime px-6 py-3 text-sm font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
                 >
                   {uploading ? (
                     <LoaderCircle className="animate-spin" size={16} />
@@ -201,7 +201,7 @@ export default function AdminCbtImportPage() {
                 </button>
 
                 {result && (
-                  <div className="mt-6 rounded-2xl border border-brand-green/30 bg-brand-green/5 p-5">
+                  <div className="mt-6 rounded-2xl border border-brand-green/30 bg-famex-lime/5 p-5">
                     <div className="flex items-center gap-2 text-brand-green">
                       <CheckCircle2 size={18} />
                       <span className="text-sm font-bold">Import complete</span>

@@ -67,7 +67,7 @@ export default async function NewsPage() {
                     className="flex flex-col rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-brand-green/40"
                   >
                     <div className="mb-3 flex items-center justify-between gap-3">
-                      <span className="rounded-full bg-brand-green/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+                      <span className="rounded-full bg-famex-lime/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
                         {post.category}
                       </span>
                       <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-muted)]">

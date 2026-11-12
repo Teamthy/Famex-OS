@@ -100,7 +100,7 @@ export default function FinanceDashboardPage() {
           <div className="flex flex-wrap gap-2">
             <Link
               href="/admin/fees"
-              className="rounded-full bg-brand-green px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-navy"
+              className="rounded-full bg-famex-lime px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-navy"
             >
               Fees
             </Link>
@@ -188,7 +188,7 @@ export default function FinanceDashboardPage() {
                   <div
                     className={`rounded-2xl border p-4 text-sm ${
                       data.ledger.balanced
-                        ? "border-brand-green/30 bg-brand-green/5"
+                        ? "border-brand-green/30 bg-famex-lime/5"
                         : "border-red-500/40 bg-red-500/10 text-red-600"
                     }`}
                   >

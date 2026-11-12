@@ -169,7 +169,7 @@ export default function AdminAttendanceAnalyticsPage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pb-10 pt-24">
           <div className="mx-auto max-w-7xl">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-brand-green/30 bg-brand-green/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-brand-green/30 bg-famex-lime/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <BarChart3 size={12} /> Phase 3C · Attendance Analytics
             </div>
             <h1 className="font-display text-4xl tracking-widest text-white md:text-5xl">
@@ -266,14 +266,14 @@ export default function AdminAttendanceAnalyticsPage() {
                         value: data.summary.sessionsTracked,
                         icon: Calendar,
                         color: "text-brand-green",
-                        bg: "bg-brand-green/10",
+                        bg: "bg-famex-lime/10",
                       },
                       {
                         label: "Attendance rate",
                         value: `${data.summary.attendanceRate}%`,
                         icon: CheckCircle2,
                         color: "text-brand-green",
-                        bg: "bg-brand-green/10",
+                        bg: "bg-famex-lime/10",
                       },
                       {
                         label: "Absent marks",
@@ -485,7 +485,7 @@ export default function AdminAttendanceAnalyticsPage() {
                               >
                                 <div className="flex items-center justify-between gap-3">
                                   <span
-                                    className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest ${item.status === "PENDING" ? "bg-brand-orange/15 text-brand-orange" : item.status === "APPROVED" ? "bg-brand-green/15 text-brand-green" : "bg-red-500/15 text-red-500"}`}
+                                    className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest ${item.status === "PENDING" ? "bg-brand-orange/15 text-brand-orange" : item.status === "APPROVED" ? "bg-famex-lime/15 text-brand-green" : "bg-red-500/15 text-red-500"}`}
                                   >
                                     {item.status}
                                   </span>
@@ -656,7 +656,7 @@ export default function AdminAttendanceAnalyticsPage() {
                           >
                             <div className="flex items-center justify-between gap-3">
                               <span
-                                className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest ${item.isLocked ? "bg-brand-green/15 text-brand-green" : "bg-brand-orange/15 text-brand-orange"}`}
+                                className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest ${item.isLocked ? "bg-famex-lime/15 text-brand-green" : "bg-brand-orange/15 text-brand-orange"}`}
                               >
                                 {item.isLocked ? "Locked" : "Draft"}
                               </span>

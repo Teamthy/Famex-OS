@@ -76,7 +76,7 @@ type Payload = {
 const naira = (n: number) => "₦" + Number(n || 0).toLocaleString();
 
 const FEE_STYLE: Record<string, string> = {
-  PAID: "bg-brand-green/15 text-brand-green",
+  PAID: "bg-famex-lime/15 text-brand-green",
   OWING: "bg-red-500/15 text-red-500",
   NOT_BILLED: "bg-brand-orange/15 text-brand-orange",
 };
@@ -185,7 +185,7 @@ export default function AdminStudentDetailPage({ params }: { params: Promise<{ i
                 <span
                   className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest ${
                     student.isActive
-                      ? "bg-brand-green/20 text-brand-green"
+                      ? "bg-famex-lime/20 text-brand-green"
                       : "bg-white/10 text-white/60"
                   }`}
                 >
@@ -292,7 +292,7 @@ export default function AdminStudentDetailPage({ params }: { params: Promise<{ i
                         <button
                           onClick={() => void manageLogin("create")}
                           disabled={loginBusy}
-                          className="inline-flex items-center gap-2 rounded-xl bg-brand-green px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-brand-navy hover:bg-brand-green-dark disabled:opacity-40"
+                          className="inline-flex items-center gap-2 rounded-xl bg-famex-lime px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-brand-navy hover:bg-famex-lime-soft disabled:opacity-40"
                         >
                           {loginBusy ? (
                             <LoaderCircle size={12} className="animate-spin" />
@@ -400,7 +400,7 @@ export default function AdminStudentDetailPage({ params }: { params: Promise<{ i
                             key={subject.id}
                             className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
                               subject.category === "COMPULSORY"
-                                ? "bg-brand-green/10 text-brand-green"
+                                ? "bg-famex-lime/10 text-brand-green"
                                 : "bg-[var(--surface-disabled)] text-[var(--text-secondary)]"
                             }`}
                           >

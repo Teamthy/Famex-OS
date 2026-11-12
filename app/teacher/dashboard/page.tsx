@@ -219,7 +219,7 @@ export default function TeacherDashboard() {
                 {data.teacher.isSubjectTeacher && (
                   <Link
                     href="/teacher/gradebook"
-                    className="inline-flex items-center justify-between rounded-2xl bg-brand-green px-4 py-3 text-sm font-bold text-brand-navy"
+                    className="inline-flex items-center justify-between rounded-2xl bg-famex-lime px-4 py-3 text-sm font-bold text-brand-navy"
                   >
                     Open gradebook <BookOpen size={16} />
                   </Link>

@@ -104,7 +104,7 @@ export default function TeacherProfilePage() {
                         className="w-32 h-32 rounded-3xl object-cover border-4 border-[var(--bg-primary)] shadow-2xl"
                       />
                       {editing && (
-                        <button className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-brand-green text-brand-navy flex items-center justify-center shadow-lg hover:bg-brand-green-dark">
+                        <button className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-famex-lime text-brand-navy flex items-center justify-center shadow-lg hover:bg-famex-lime-soft">
                           <Camera size={14} />
                         </button>
                       )}
@@ -129,7 +129,7 @@ export default function TeacherProfilePage() {
                         <button
                           onClick={() => void handleSave()}
                           disabled={saving}
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-green text-brand-navy text-xs font-bold hover:bg-brand-green-dark"
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-famex-lime text-brand-navy text-xs font-bold hover:bg-famex-lime-soft"
                         >
                           <Save size={12} /> Save Changes
                         </button>
@@ -261,7 +261,7 @@ export default function TeacherProfilePage() {
                         {sa.classes.map((cls: any) => (
                           <span
                             key={cls}
-                            className="text-[10px] px-2 py-0.5 rounded bg-brand-green/10 text-brand-green font-bold"
+                            className="text-[10px] px-2 py-0.5 rounded bg-famex-lime/10 text-brand-green font-bold"
                           >
                             {cls}
                           </span>
@@ -281,7 +281,7 @@ export default function TeacherProfilePage() {
                   <Shield className="text-brand-green" size={20} />
                   <h3 className="font-display text-lg text-[var(--text-primary)]">Security</h3>
                 </div>
-                <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-brand-green/10 text-brand-green text-sm font-bold hover:bg-brand-green hover:text-brand-navy transition-all">
+                <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-famex-lime/10 text-brand-green text-sm font-bold hover:bg-famex-lime hover:text-brand-navy transition-all">
                   <Lock size={14} /> Change Password
                 </button>
               </div>

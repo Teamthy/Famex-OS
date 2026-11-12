@@ -31,19 +31,20 @@ export default async function NewsEvents() {
     <section id="news" className="home-below-fold mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <h2 className={`${SERIF} text-4xl font-semibold tracking-tight sm:text-5xl`}>
-          The school <em className="font-light italic text-[#5d8f4e]">journal</em>
+          The school <em className="font-light italic text-[var(--famex-forest-mid)]">journal</em>
         </h2>
         <a
           href="/news-events"
-          className="rounded-full border border-[#211d19]/15 bg-white/70 px-5 py-2.5 text-sm font-medium text-[#211d19] transition hover:border-[#211d19]/35"
+          className="rounded-full border border-[var(--famex-primary)]/15 bg-white/70 px-5 py-2.5 text-sm font-medium text-[var(--famex-primary)] transition hover:border-[var(--famex-primary)]/35"
         >
           All news &amp; events
         </a>
       </div>
 
       {calendar.session ? (
-        <p className="mt-4 text-sm text-[#6b6459]">
-          Current session: <span className="font-semibold text-[#211d19]">{calendar.session}</span>
+        <p className="mt-4 text-sm text-[var(--famex-text-secondary)]">
+          Current session:{" "}
+          <span className="font-semibold text-[var(--famex-primary)]">{calendar.session}</span>
           {(calendar.terms ?? []).length > 0 && (
             <> · {(calendar.terms ?? []).map((term) => term.name).join(" · ")}</>
           )}
@@ -56,13 +57,15 @@ export default async function NewsEvents() {
             <a
               key={event.id}
               href={`/news-events/${event.slug}`}
-              className="rounded-3xl bg-[#fffdf8] p-6 shadow-[0_10px_40px_rgba(33,29,25,0.07)] transition duration-300 hover:-translate-y-1"
+              className="rounded-3xl bg-[var(--famex-white)] p-6 shadow-[0_10px_40px_rgba(33,29,25,0.07)] transition duration-300 hover:-translate-y-1"
             >
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#8a8175]">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--famex-text-muted)]">
                 {event.category}
               </p>
-              <h3 className="mt-2 text-base font-semibold text-[#211d19]">{event.title}</h3>
-              <p className="mt-2 text-xs text-[#6b6459]">
+              <h3 className="mt-2 text-base font-semibold text-[var(--famex-primary)]">
+                {event.title}
+              </h3>
+              <p className="mt-2 text-xs text-[var(--famex-text-secondary)]">
                 {new Date(event.publishedAt).toLocaleDateString("en-NG", {
                   day: "numeric",
                   month: "long",
@@ -73,7 +76,7 @@ export default async function NewsEvents() {
           ))}
         </div>
       ) : (
-        <p className="mt-8 rounded-3xl border border-dashed border-[#211d19]/20 bg-white/50 p-8 text-center text-sm text-[#6b6459]">
+        <p className="mt-8 rounded-3xl border border-dashed border-[var(--famex-primary)]/20 bg-white/50 p-8 text-center text-sm text-[var(--famex-text-secondary)]">
           The session calendar and journal publish here as soon as the academic session is
           configured in the admin area. Nothing is hidden — it simply has not been written yet.
         </p>

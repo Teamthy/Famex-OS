@@ -262,14 +262,14 @@ function Inner() {
                               }}
                               className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-colors ${
                                 on
-                                  ? "border-brand-green/50 bg-brand-green/10"
+                                  ? "border-brand-green/50 bg-famex-lime/10"
                                   : "border-[var(--border-subtle)] bg-[var(--surface-card)] hover:bg-[var(--surface-card-hover)]"
                               }`}
                             >
                               <span
                                 className={`grid h-5 w-5 shrink-0 place-items-center rounded border-2 ${
                                   on
-                                    ? "border-brand-green bg-brand-green"
+                                    ? "border-brand-green bg-famex-lime"
                                     : "border-[var(--border-strong)]"
                                 }`}
                               >
@@ -316,7 +316,7 @@ function Inner() {
                             <button
                               onClick={() => void commitElectives()}
                               disabled={saving}
-                              className="rounded-full bg-brand-green px-5 py-2 text-xs font-bold text-brand-navy disabled:opacity-60"
+                              className="rounded-full bg-famex-lime px-5 py-2 text-xs font-bold text-brand-navy disabled:opacity-60"
                             >
                               {saving ? "Saving…" : "Confirm elective changes"}
                             </button>
@@ -337,7 +337,7 @@ function Inner() {
                       <button
                         onClick={() => void save()}
                         disabled={saving || Boolean(pendingPlan)}
-                        className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-brand-green py-3.5 font-bold text-brand-navy disabled:opacity-60"
+                        className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-famex-lime py-3.5 font-bold text-brand-navy disabled:opacity-60"
                       >
                         {saving ? (
                           <LoaderCircle size={16} className="animate-spin" />

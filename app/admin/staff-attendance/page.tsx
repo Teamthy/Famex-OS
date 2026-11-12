@@ -251,7 +251,7 @@ export default function AdminStaffAttendancePage() {
               </select>
               <button
                 disabled={scanning || !scanValue.trim()}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-famex-lime px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
               >
                 {scanning ? (
                   <LoaderCircle className="animate-spin" size={16} />
@@ -349,7 +349,7 @@ export default function AdminStaffAttendancePage() {
                       onClick={() => setFilter(f)}
                       className={`rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest ${
                         filter === f
-                          ? "bg-brand-green text-white"
+                          ? "bg-famex-lime text-white"
                           : "border border-[var(--border-default)] text-[var(--text-muted)]"
                       }`}
                     >
@@ -393,7 +393,7 @@ export default function AdminStaffAttendancePage() {
                           <span
                             className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-widest ${
                               r.status === "IN"
-                                ? "bg-brand-green/15 text-brand-green"
+                                ? "bg-famex-lime/15 text-brand-green"
                                 : r.status === "OUT"
                                   ? "bg-blue-500/15 text-blue-500"
                                   : "bg-[var(--surface-disabled)] text-[var(--text-muted)]"

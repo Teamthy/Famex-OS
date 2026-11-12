@@ -95,7 +95,7 @@ export default function ClassReportCardsPage() {
             <div className="flex-1 min-w-0 space-y-6">
               {/* Stats */}
               <div className="grid grid-cols-3 gap-4">
-                <div className="p-5 rounded-2xl bg-brand-green/10 border border-brand-green/30">
+                <div className="p-5 rounded-2xl bg-famex-lime/10 border border-brand-green/30">
                   <CheckCircle2 className="text-brand-green mb-2" size={22} />
                   <div className="font-display text-3xl text-brand-green">{approved}</div>
                   <div className="text-xs uppercase tracking-widest text-brand-green">Approved</div>
@@ -144,7 +144,7 @@ export default function ClassReportCardsPage() {
                           <span
                             className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest ${
                               s.reportStatus === "Approved"
-                                ? "bg-brand-green/20 text-brand-green"
+                                ? "bg-famex-lime/20 text-brand-green"
                                 : s.reportStatus === "Pending Review"
                                   ? "bg-brand-orange/20 text-brand-orange"
                                   : "bg-[var(--border-subtle)] text-[var(--text-muted)]"
@@ -172,7 +172,7 @@ export default function ClassReportCardsPage() {
                           <Edit3 size={14} />
                         </button>
                         <button
-                          className="p-2 rounded-lg bg-brand-green/10 text-brand-green hover:bg-brand-green hover:text-brand-navy transition-all"
+                          className="p-2 rounded-lg bg-famex-lime/10 text-brand-green hover:bg-famex-lime hover:text-brand-navy transition-all"
                           title="Preview"
                         >
                           <Eye size={14} />

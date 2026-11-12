@@ -102,7 +102,7 @@ export default function ResetPassword() {
             aria-live="polite"
             className={`mt-5 flex items-start gap-2.5 rounded-xl border p-3 text-sm ${
               ok
-                ? "border-brand-green/30 bg-brand-green/10 text-brand-green"
+                ? "border-brand-green/30 bg-famex-lime/10 text-brand-green"
                 : "border-[var(--border-error)]/30 bg-red-500/10 text-red-400"
             }`}
           >
@@ -156,7 +156,7 @@ export default function ResetPassword() {
         <button
           type="submit"
           disabled={busy || (ok && Boolean(token))}
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-brand-green py-3 font-bold text-brand-navy transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-famex-lime py-3 font-bold text-brand-navy transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {busy ? (
             <>

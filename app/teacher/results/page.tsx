@@ -181,7 +181,7 @@ export default function TeacherResultsPage() {
             </div>
           ) : null}
           {notice ? (
-            <div className="rounded-2xl border border-brand-green/30 bg-brand-green/10 p-4 text-sm text-brand-green">
+            <div className="rounded-2xl border border-brand-green/30 bg-famex-lime/10 p-4 text-sm text-brand-green">
               {notice}
             </div>
           ) : null}
@@ -249,7 +249,7 @@ export default function TeacherResultsPage() {
                           : "Subject teacher"}
                     </span>
                     {grid.locked ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/15 px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-brand-green">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-famex-lime/15 px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-brand-green">
                         <Lock size={10} /> Released
                       </span>
                     ) : grid.status === "COMPILED" ? (
@@ -269,7 +269,7 @@ export default function TeacherResultsPage() {
                   </div>
 
                   {grid.locked ? (
-                    <p className="border-b border-[var(--border-subtle)] bg-brand-green/5 px-5 py-3 text-[11px] text-[var(--text-secondary)]">
+                    <p className="border-b border-[var(--border-subtle)] bg-famex-lime/5 px-5 py-3 text-[11px] text-[var(--text-secondary)]">
                       These results have been released to students, so marks are locked. Ask an
                       administrator to withdraw the term if a mark must be corrected.
                     </p>
@@ -422,7 +422,7 @@ export default function TeacherResultsPage() {
                                             classTeacherRemark: remarkDraft.trim() || null,
                                           })
                                         }
-                                        className="inline-flex items-center gap-1 rounded-full bg-brand-green px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-brand-navy disabled:opacity-40"
+                                        className="inline-flex items-center gap-1 rounded-full bg-famex-lime px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-brand-navy disabled:opacity-40"
                                       >
                                         <Check size={10} /> Save
                                       </button>
@@ -575,7 +575,7 @@ export default function TeacherResultsPage() {
                     reason: editing.reason.trim(),
                   })
                 }
-                className="inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-navy disabled:opacity-40"
+                className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-navy disabled:opacity-40"
               >
                 {saving ? <LoaderCircle className="animate-spin" size={12} /> : <Check size={12} />}
                 Save correction

@@ -184,14 +184,14 @@ export default function AttendanceHistoryPage() {
                         value: history.totals.sessions,
                         icon: Calendar,
                         color: "text-brand-green",
-                        bg: "bg-brand-green/10",
+                        bg: "bg-famex-lime/10",
                       },
                       {
                         label: "Present",
                         value: history.totals.present,
                         icon: Check,
                         color: "text-brand-green",
-                        bg: "bg-brand-green/10",
+                        bg: "bg-famex-lime/10",
                       },
                       {
                         label: "Absent",
@@ -241,7 +241,7 @@ export default function AttendanceHistoryPage() {
                       {history.selectedClassId ? (
                         <Link
                           href={`/teacher/class/attendance?classId=${encodeURIComponent(history.selectedClassId)}`}
-                          className="inline-flex items-center justify-center rounded-full bg-brand-green px-5 py-3 text-sm font-bold uppercase tracking-widest text-brand-navy shadow-lg transition-all hover:bg-brand-green-dark"
+                          className="inline-flex items-center justify-center rounded-full bg-famex-lime px-5 py-3 text-sm font-bold uppercase tracking-widest text-brand-navy shadow-lg transition-all hover:bg-famex-lime-soft"
                         >
                           Open live register
                         </Link>
@@ -291,7 +291,7 @@ export default function AttendanceHistoryPage() {
                                 <span
                                   className={`inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${
                                     record.isLocked
-                                      ? "bg-brand-green/15 text-brand-green"
+                                      ? "bg-famex-lime/15 text-brand-green"
                                       : "bg-brand-orange/15 text-brand-orange"
                                   }`}
                                 >

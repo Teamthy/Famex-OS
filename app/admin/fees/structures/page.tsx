@@ -141,7 +141,7 @@ export default function FeeStructuresPage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <Wallet size={11} /> Bursary
             </span>
             <h1 className="mt-3 font-display text-4xl tracking-widest text-white md:text-6xl">
@@ -231,7 +231,7 @@ export default function FeeStructuresPage() {
                               {structure.title}
                             </p>
                           </div>
-                          <span className="rounded-full bg-brand-green/15 px-2.5 py-1 text-xs font-bold text-brand-green">
+                          <span className="rounded-full bg-famex-lime/15 px-2.5 py-1 text-xs font-bold text-brand-green">
                             {naira(structure.total)}
                           </span>
                         </div>
@@ -361,7 +361,7 @@ export default function FeeStructuresPage() {
                           <button
                             onClick={() => void save()}
                             disabled={saving || total <= 0}
-                            className="flex items-center gap-2 rounded-full bg-brand-green px-6 py-2.5 text-sm font-bold text-brand-navy disabled:opacity-60"
+                            className="flex items-center gap-2 rounded-full bg-famex-lime px-6 py-2.5 text-sm font-bold text-brand-navy disabled:opacity-60"
                           >
                             {saving ? (
                               <LoaderCircle size={15} className="animate-spin" />

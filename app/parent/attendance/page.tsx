@@ -181,7 +181,7 @@ export default function ParentAttendancePage() {
                           onClick={() => setSelectedStudentId(child.id)}
                           className={`rounded-xl border px-5 py-4 text-left transition-all ${
                             data.selectedChild?.id === child.id
-                              ? "border-brand-green/30 bg-brand-green/5"
+                              ? "border-brand-green/30 bg-famex-lime/5"
                               : "border-[var(--border-subtle)] bg-[var(--surface-disabled)] hover:border-brand-green/20"
                           }`}
                         >
@@ -222,7 +222,7 @@ export default function ParentAttendancePage() {
                           </div>
                         </div>
                         <div className="grid grid-cols-3 gap-3">
-                          <div className="rounded-xl bg-brand-green/10 p-4 text-center">
+                          <div className="rounded-xl bg-famex-lime/10 p-4 text-center">
                             <div className="font-display text-xl text-brand-green">
                               {data.summary.present}
                             </div>

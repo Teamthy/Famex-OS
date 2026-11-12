@@ -222,7 +222,7 @@ export default function TeacherStudentsPage() {
           </div>
 
           {notice && (
-            <div className="break-all rounded-2xl border border-brand-green/30 bg-brand-green/10 p-4 text-sm">
+            <div className="break-all rounded-2xl border border-brand-green/30 bg-famex-lime/10 p-4 text-sm">
               {notice}
             </div>
           )}
@@ -264,7 +264,7 @@ export default function TeacherStudentsPage() {
                 onClick={() => setScope(sc)}
                 className={`rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-widest ${
                   scope === sc
-                    ? "bg-brand-green text-white"
+                    ? "bg-famex-lime text-white"
                     : "border border-[var(--input-border)] text-[var(--text-muted)]"
                 }`}
               >
@@ -304,7 +304,7 @@ export default function TeacherStudentsPage() {
             {teacher.isFormTeacher && (
               <button
                 onClick={() => setOpen(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-famex-lime px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
               >
                 <UserPlus size={15} /> Enrol into my class
               </button>
@@ -377,7 +377,7 @@ export default function TeacherStudentsPage() {
                               className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
                                 grade.criticalMissing > 0
                                   ? "bg-amber-500/15 text-amber-600"
-                                  : "bg-brand-green/15 text-brand-green"
+                                  : "bg-famex-lime/15 text-brand-green"
                               }`}
                               title={
                                 grade.missing.length
@@ -400,7 +400,7 @@ export default function TeacherStudentsPage() {
                         <span
                           className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
                             s.canManage
-                              ? "bg-brand-green/15 text-brand-green"
+                              ? "bg-famex-lime/15 text-brand-green"
                               : "bg-[var(--surface-disabled)] text-[var(--text-muted)]"
                           }`}
                         >
@@ -519,7 +519,7 @@ export default function TeacherStudentsPage() {
               Requests are idempotent. A new parent account receives a one-time temporary password
               shown once.
             </p>
-            <button className="mt-6 w-full rounded-full bg-brand-green py-3 text-xs font-bold uppercase tracking-widest text-brand-navy">
+            <button className="mt-6 w-full rounded-full bg-famex-lime py-3 text-xs font-bold uppercase tracking-widest text-brand-navy">
               Create student in my class
             </button>
           </form>

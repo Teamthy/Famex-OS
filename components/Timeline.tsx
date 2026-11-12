@@ -38,7 +38,7 @@ const MILESTONES = [
 export default function Timeline() {
   return (
     <div className="relative">
-      <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-0.5 bg-brand-green/20 md:-translate-x-1/2" />
+      <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-0.5 bg-famex-lime/20 md:-translate-x-1/2" />
       <div className="space-y-12">
         {MILESTONES.map((milestone, i) => (
           <m.div
@@ -49,7 +49,7 @@ export default function Timeline() {
             transition={{ delay: i * 0.1 }}
             className={`relative flex items-start gap-6 md:gap-12 ${i % 2 === 1 ? "md:flex-row-reverse" : ""}`}
           >
-            <div className="absolute left-8 md:left-1/2 w-4 h-4 rounded-full bg-brand-green border-4 border-[var(--bg-primary)] md:-translate-x-1/2 mt-2" />
+            <div className="absolute left-8 md:left-1/2 w-4 h-4 rounded-full bg-famex-lime border-4 border-[var(--bg-primary)] md:-translate-x-1/2 mt-2" />
             <div
               className="pl-20 md:pl-0 md:w-1/2 md:pr-12 md:text-right"
               style={{ display: i % 2 === 0 ? "block" : "none" }}

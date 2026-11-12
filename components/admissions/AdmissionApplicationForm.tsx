@@ -437,7 +437,7 @@ export default function AdmissionApplicationForm() {
     return (
       <section className="mx-auto max-w-3xl px-6 pb-24">
         <div className="rounded-[2rem] border border-brand-green/30 bg-[var(--surface-card)] p-8 text-center shadow-[var(--card-shadow-hover)] md:p-12">
-          <div className="mx-auto mb-6 grid size-16 place-items-center rounded-3xl bg-brand-green/10 text-brand-green">
+          <div className="mx-auto mb-6 grid size-16 place-items-center rounded-3xl bg-famex-lime/10 text-brand-green">
             <CheckCircle2 size={36} />
           </div>
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--text-accent)]">
@@ -492,10 +492,10 @@ export default function AdmissionApplicationForm() {
                   <button
                     type="button"
                     onClick={() => itemStep < step && setStep(itemStep)}
-                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${active ? "bg-brand-green/10 text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${active ? "bg-famex-lime/10 text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}
                   >
                     <span
-                      className={`grid size-7 place-items-center rounded-full text-xs font-bold ${complete ? "bg-brand-green text-white" : active ? "border-2 border-brand-green text-brand-green" : "bg-[var(--surface-disabled)]"}`}
+                      className={`grid size-7 place-items-center rounded-full text-xs font-bold ${complete ? "bg-famex-lime text-white" : active ? "border-2 border-brand-green text-brand-green" : "bg-[var(--surface-disabled)]"}`}
                     >
                       {complete ? <Check size={14} strokeWidth={3} /> : itemStep}
                     </span>
@@ -528,7 +528,7 @@ export default function AdmissionApplicationForm() {
                 {stepLabels[step - 1].toUpperCase()} DETAILS
               </h2>
             </div>
-            <div className="hidden rounded-xl bg-brand-green/10 p-3 text-brand-green sm:block">
+            <div className="hidden rounded-xl bg-famex-lime/10 p-3 text-brand-green sm:block">
               <GraduationCap size={22} />
             </div>
           </div>
@@ -867,7 +867,7 @@ function ParentStep({
           {(["MOTHER", "FATHER", "GUARDIAN"] as const).map((value) => (
             <label
               key={value}
-              className={`cursor-pointer rounded-xl border px-4 py-3 text-center text-sm font-semibold transition ${data.primaryContact === value ? "border-brand-green bg-brand-green/10 text-brand-green" : "border-[var(--input-border)] text-[var(--text-secondary)] hover:border-brand-green/50"}`}
+              className={`cursor-pointer rounded-xl border px-4 py-3 text-center text-sm font-semibold transition ${data.primaryContact === value ? "border-brand-green bg-famex-lime/10 text-brand-green" : "border-[var(--input-border)] text-[var(--text-secondary)] hover:border-brand-green/50"}`}
             >
               <input
                 className="sr-only"
@@ -1031,7 +1031,7 @@ function DocumentStep({
 }) {
   return (
     <div>
-      <div className="mb-6 rounded-2xl border border-brand-green/20 bg-brand-green/5 p-4 text-sm leading-6 text-[var(--text-secondary)]">
+      <div className="mb-6 rounded-2xl border border-brand-green/20 bg-famex-lime/5 p-4 text-sm leading-6 text-[var(--text-secondary)]">
         <div className="flex gap-3">
           <ShieldCheck className="mt-0.5 shrink-0 text-brand-green" size={18} />
           <p>
@@ -1048,12 +1048,12 @@ function DocumentStep({
           return (
             <div
               key={documentType}
-              className={`rounded-2xl border p-4 transition ${document ? "border-brand-green/40 bg-brand-green/5" : "border-[var(--border-subtle)] bg-[var(--surface-card)]"}`}
+              className={`rounded-2xl border p-4 transition ${document ? "border-brand-green/40 bg-famex-lime/5" : "border-[var(--border-subtle)] bg-[var(--surface-card)]"}`}
             >
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 gap-3">
                   <div
-                    className={`grid size-10 shrink-0 place-items-center rounded-xl ${document ? "bg-brand-green text-white" : "bg-[var(--surface-disabled)] text-[var(--text-muted)]"}`}
+                    className={`grid size-10 shrink-0 place-items-center rounded-xl ${document ? "bg-famex-lime text-white" : "bg-[var(--surface-disabled)] text-[var(--text-muted)]"}`}
                   >
                     {document ? <Check size={20} strokeWidth={3} /> : <FileText size={20} />}
                   </div>
@@ -1070,7 +1070,7 @@ function DocumentStep({
                   </div>
                 </div>
                 <label
-                  className={`inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition ${uploading ? "bg-[var(--surface-disabled)] text-[var(--text-muted)]" : "bg-[var(--surface-disabled)] text-[var(--text-primary)] hover:bg-brand-green hover:text-white"}`}
+                  className={`inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition ${uploading ? "bg-[var(--surface-disabled)] text-[var(--text-muted)]" : "bg-[var(--surface-disabled)] text-[var(--text-primary)] hover:bg-famex-lime hover:text-white"}`}
                 >
                   <input
                     type="file"
@@ -1128,7 +1128,7 @@ function PaymentStep({
         </div>
       </div>
       {paymentReference ? (
-        <div className="flex gap-3 rounded-2xl border border-brand-green/30 bg-brand-green/5 p-5">
+        <div className="flex gap-3 rounded-2xl border border-brand-green/30 bg-famex-lime/5 p-5">
           <CheckCircle2 className="mt-0.5 shrink-0 text-brand-green" />
           <div>
             <p className="font-semibold text-[var(--text-primary)]">Payment received</p>
@@ -1212,7 +1212,7 @@ function ReviewStep({
   ];
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-brand-green/20 bg-brand-green/5 p-4 text-sm text-[var(--text-secondary)]">
+      <div className="rounded-2xl border border-brand-green/20 bg-famex-lime/5 p-4 text-sm text-[var(--text-secondary)]">
         <div className="flex gap-3">
           <CircleHelp className="mt-0.5 shrink-0 text-brand-green" size={18} />
           <p>
@@ -1268,7 +1268,7 @@ function ReviewStep({
         </div>
       </div>
       <div
-        className={`rounded-2xl border p-5 ${paymentReference ? "border-brand-green/30 bg-brand-green/5" : "border-brand-orange/30 bg-brand-orange/5"}`}
+        className={`rounded-2xl border p-5 ${paymentReference ? "border-brand-green/30 bg-famex-lime/5" : "border-brand-orange/30 bg-brand-orange/5"}`}
       >
         <div className="flex items-center gap-3">
           {paymentReference ? (

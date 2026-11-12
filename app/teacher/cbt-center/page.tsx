@@ -230,7 +230,7 @@ export default function TeacherCbtCenterPage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
-            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <ClipboardCheck size={11} /> CBT Center
             </span>
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
@@ -267,7 +267,7 @@ export default function TeacherCbtCenterPage() {
                 <>
                   <button
                     onClick={() => setShowCreate(!showCreate)}
-                    className="inline-flex items-center gap-2 rounded-full bg-brand-green px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg transition-all hover:bg-brand-green-dark"
+                    className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg transition-all hover:bg-famex-lime-soft"
                   >
                     <PlusCircle size={15} /> {showCreate ? "Hide Form" : "Create New Exam"}
                   </button>
@@ -375,7 +375,7 @@ export default function TeacherCbtCenterPage() {
                       <button
                         onClick={() => void createExam()}
                         disabled={busy}
-                        className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg hover:bg-brand-green-dark disabled:opacity-50"
+                        className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-8 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg hover:bg-famex-lime-soft disabled:opacity-50"
                       >
                         {busy ? (
                           <LoaderCircle size={14} className="animate-spin" />
@@ -403,7 +403,7 @@ export default function TeacherCbtCenterPage() {
                               <span
                                 className={`rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest ${
                                   exam.status === "PUBLISHED"
-                                    ? "bg-brand-green/10 text-brand-green"
+                                    ? "bg-famex-lime/10 text-brand-green"
                                     : exam.status === "CLOSED"
                                       ? "bg-red-500/10 text-red-500"
                                       : "bg-brand-orange/10 text-brand-orange"
@@ -412,7 +412,7 @@ export default function TeacherCbtCenterPage() {
                                 {exam.statusLabel}
                               </span>
                               {exam.resultsReleased ? (
-                                <span className="rounded-full bg-brand-green/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-brand-green">
+                                <span className="rounded-full bg-famex-lime/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-brand-green">
                                   Results Out
                                 </span>
                               ) : null}
@@ -438,7 +438,7 @@ export default function TeacherCbtCenterPage() {
                               <button
                                 onClick={() => void act(exam, "PUBLISH")}
                                 disabled={busy}
-                                className="inline-flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-navy hover:bg-brand-green-dark disabled:opacity-50"
+                                className="inline-flex items-center gap-1.5 rounded-full bg-famex-lime px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-navy hover:bg-famex-lime-soft disabled:opacity-50"
                               >
                                 <Send size={12} /> Publish
                               </button>
@@ -468,7 +468,7 @@ export default function TeacherCbtCenterPage() {
                             <button
                               onClick={() => void openResults(exam.id)}
                               disabled={resultsLoading}
-                              className="inline-flex items-center gap-1.5 rounded-full bg-brand-green/10 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-green hover:bg-brand-green hover:text-brand-navy disabled:opacity-50"
+                              className="inline-flex items-center gap-1.5 rounded-full bg-famex-lime/10 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-green hover:bg-famex-lime hover:text-brand-navy disabled:opacity-50"
                             >
                               <Eye size={12} /> Results
                             </button>
@@ -574,7 +574,7 @@ export default function TeacherCbtCenterPage() {
                                           );
                                         }}
                                         disabled={busy}
-                                        className="rounded-full bg-brand-green px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-navy hover:bg-brand-green-dark disabled:opacity-50"
+                                        className="rounded-full bg-famex-lime px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-navy hover:bg-famex-lime-soft disabled:opacity-50"
                                       >
                                         Save Score
                                       </button>

@@ -14,19 +14,19 @@ export default function PrivacyPolicyPage() {
           <section className="pt-32 pb-10 md:pt-40 md:pb-16">
             <div className="mx-auto max-w-4xl px-6">
               <div className="rounded-[2rem] bg-gradient-to-br from-brand-navy via-brand-navy-light to-green-900 p-8 md:p-12 shadow-xl relative overflow-hidden">
-                <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-brand-green/20 blur-3xl" />
+                <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-famex-lime/20 blur-3xl" />
                 <div className="absolute -bottom-16 -left-16 w-60 h-60 rounded-full bg-brand-orange/20 blur-3xl" />
 
                 <div className="relative z-10">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-6">
-                    <Shield size={14} className="text-brand-green-light" />
+                    <Shield size={14} className="text-famex-forest-mid" />
                     <span className="font-body text-[10px] font-bold tracking-[0.2em] uppercase text-white">
                       NDPR Compliant
                     </span>
                   </div>
                   <h1 className="font-display tracking-[-0.01em] text-white mb-3 text-[clamp(3rem,11vw,9.5rem)]">
                     <AnimatedText heavy stagger={0.034} text="PRIVACY" delay={0.0} />
-                    <span className="text-brand-green-light">
+                    <span className="text-famex-forest-mid">
                       <AnimatedText heavy stagger={0.034} text="POLICY" delay={0.175} />
                     </span>
                   </h1>
@@ -90,7 +90,7 @@ export default function PrivacyPolicyPage() {
                       key={i}
                       className="flex items-start gap-3 font-body text-sm text-[var(--text-secondary)]"
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-brand-green mt-1.5 shrink-0" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-famex-lime mt-1.5 shrink-0" />
                       <span>{item}</span>
                     </li>
                   ))}
@@ -133,7 +133,7 @@ export default function PrivacyPolicyPage() {
 
               {/* Cookie Consent — dark accent card */}
               <div className="rounded-[2rem] bg-gradient-to-br from-brand-navy via-brand-navy-light to-green-900 p-8 md:p-10 shadow-xl relative overflow-hidden">
-                <div className="absolute -top-16 -right-16 w-60 h-60 rounded-full bg-brand-green/20 blur-3xl" />
+                <div className="absolute -top-16 -right-16 w-60 h-60 rounded-full bg-famex-lime/20 blur-3xl" />
                 <div className="relative z-10">
                   <AnimatedText
                     as="h2"
@@ -146,7 +146,7 @@ export default function PrivacyPolicyPage() {
                     consent to our use of cookies in accordance with this policy.
                   </p>
                   <div className="flex flex-wrap gap-3">
-                    <span className="px-3 py-1.5 rounded-full bg-brand-green/20 border border-brand-green/40 text-brand-green-light text-[10px] font-bold tracking-[0.15em] uppercase">
+                    <span className="px-3 py-1.5 rounded-full bg-famex-lime/20 border border-brand-green/40 text-famex-forest-mid text-[10px] font-bold tracking-[0.15em] uppercase">
                       Essential
                     </span>
                     <span className="px-3 py-1.5 rounded-full bg-brand-orange/20 border border-brand-orange/40 text-brand-orange-light text-[10px] font-bold tracking-[0.15em] uppercase">

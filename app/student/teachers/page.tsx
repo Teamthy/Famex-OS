@@ -65,7 +65,7 @@ function TeacherCard({ t, form }: { t: Teacher; form?: boolean }) {
           </div>
           {t.subject && (
             <span
-              className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded font-bold ${form ? "bg-brand-orange/10 text-brand-orange" : "bg-brand-green/10 text-brand-green"}`}
+              className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded font-bold ${form ? "bg-brand-orange/10 text-brand-orange" : "bg-famex-lime/10 text-brand-green"}`}
             >
               <BookOpen size={11} /> {t.subject}
             </span>

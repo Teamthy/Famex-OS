@@ -105,7 +105,7 @@ export default function ClassRosterPage() {
                     Total
                   </div>
                 </div>
-                <div className="rounded-2xl bg-brand-green/10 border border-brand-green/30 p-4">
+                <div className="rounded-2xl bg-famex-lime/10 border border-brand-green/30 p-4">
                   <Award className="text-brand-green mb-2" size={18} />
                   <div className="font-display text-2xl text-brand-green">{excellent}</div>
                   <div className="text-[10px] uppercase tracking-widest text-brand-green">
@@ -183,7 +183,7 @@ export default function ClassRosterPage() {
                           <span
                             className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest shrink-0 ${
                               s.status === "Excellent"
-                                ? "bg-brand-green/20 text-brand-green"
+                                ? "bg-famex-lime/20 text-brand-green"
                                 : s.status === "Good"
                                   ? "bg-blue-500/20 text-blue-500"
                                   : "bg-red-500/20 text-red-500"
@@ -242,7 +242,7 @@ export default function ClassRosterPage() {
                             <a
                               href={`tel:${s.parentContact.replace(/\s+/g, "")}`}
                               title={`Call ${s.guardianName || "parent"} on ${s.parentContact}`}
-                              className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-brand-green/10 text-brand-green text-[10px] font-bold hover:bg-brand-green hover:text-brand-navy transition-all"
+                              className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-famex-lime/10 text-brand-green text-[10px] font-bold hover:bg-famex-lime hover:text-brand-navy transition-all"
                             >
                               <Phone size={10} /> Call Parent
                             </a>

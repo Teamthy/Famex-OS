@@ -27,12 +27,12 @@ interface NotificationItem {
 }
 
 const KIND_CONFIG: Record<string, { icon: typeof Bell; color: string; bg: string }> = {
-  ATTENDANCE_ALERT: { icon: CheckCircle2, color: "text-brand-green", bg: "bg-brand-green/10" },
+  ATTENDANCE_ALERT: { icon: CheckCircle2, color: "text-brand-green", bg: "bg-famex-lime/10" },
   FEE_REMINDER: { icon: CreditCard, color: "text-brand-orange", bg: "bg-brand-orange/10" },
   REPORT_RELEASED: { icon: FileText, color: "text-blue-500", bg: "bg-blue-500/10" },
   BROADCAST: { icon: Megaphone, color: "text-brand-orange", bg: "bg-brand-orange/10" },
   ADMISSION_UPDATE: { icon: MessageSquare, color: "text-purple-500", bg: "bg-purple-500/10" },
-  SYSTEM: { icon: Bell, color: "text-brand-green", bg: "bg-brand-green/10" },
+  SYSTEM: { icon: Bell, color: "text-brand-green", bg: "bg-famex-lime/10" },
 };
 
 function timeAgo(iso: string) {
@@ -193,7 +193,7 @@ export default function NotificationBell() {
                         {item.title}
                       </div>
                       {!item.read && (
-                        <div className="w-2 h-2 rounded-full bg-brand-green shrink-0 mt-1.5" />
+                        <div className="w-2 h-2 rounded-full bg-famex-lime shrink-0 mt-1.5" />
                       )}
                     </div>
                     <div className="text-xs text-white/50 mt-0.5 line-clamp-2">{item.body}</div>

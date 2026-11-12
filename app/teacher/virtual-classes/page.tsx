@@ -238,7 +238,7 @@ export default function TeacherVirtualClassesPage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-12">
           <div className="mx-auto max-w-7xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <MonitorPlay size={11} /> Virtual classroom
             </span>
             <h1 className="mt-3 font-display text-4xl tracking-widest text-white md:text-5xl">
@@ -390,7 +390,7 @@ export default function TeacherVirtualClassesPage() {
                       type="submit"
                       data-testid="schedule-virtual-class"
                       disabled={saving || !data.classSubjects.length}
-                      className="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-green px-5 py-3 text-sm font-bold text-brand-navy disabled:opacity-60"
+                      className="mt-5 inline-flex items-center gap-2 rounded-xl bg-famex-lime px-5 py-3 text-sm font-bold text-brand-navy disabled:opacity-60"
                     >
                       {saving ? (
                         <LoaderCircle className="animate-spin" size={16} />
@@ -434,7 +434,7 @@ export default function TeacherVirtualClassesPage() {
                                 {session.joinCount === 1 ? "" : "es"} recorded
                               </p>
                             </div>
-                            <span className="rounded-full bg-brand-green/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-brand-green">
+                            <span className="rounded-full bg-famex-lime/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-brand-green">
                               {phaseLabel(session)}
                             </span>
                           </div>
@@ -450,7 +450,7 @@ export default function TeacherVirtualClassesPage() {
                               href={session.meetingUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 rounded-lg bg-brand-green px-3 py-2 text-xs font-bold text-brand-navy"
+                              className="inline-flex items-center gap-1 rounded-lg bg-famex-lime px-3 py-2 text-xs font-bold text-brand-navy"
                             >
                               Open room <ExternalLink size={13} />
                             </a>
@@ -515,7 +515,7 @@ export default function TeacherVirtualClassesPage() {
                               <span
                                 className={`rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest ${
                                   student.joinedAt
-                                    ? "bg-brand-green/10 text-brand-green"
+                                    ? "bg-famex-lime/10 text-brand-green"
                                     : "bg-[var(--surface-disabled)] text-[var(--text-muted)]"
                                 }`}
                               >

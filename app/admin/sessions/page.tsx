@@ -138,7 +138,7 @@ export default function SessionsPage() {
       <main className="bg-[var(--bg-primary)] min-h-screen theme-transition">
         <section className="pt-24 pb-10 bg-brand-navy px-6">
           <div className="mx-auto max-w-7xl">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-green/20 border border-brand-green/40 text-brand-green text-[10px] font-bold uppercase tracking-widest mb-3">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-famex-lime/20 border border-brand-green/40 text-brand-green text-[10px] font-bold uppercase tracking-widest mb-3">
               <CalendarDays size={11} /> Academic Calendar
             </span>
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
@@ -171,7 +171,7 @@ export default function SessionsPage() {
               {loading ? (
                 <div className="h-40 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] animate-pulse" />
               ) : current && currentTerm ? (
-                <div className="rounded-2xl border border-brand-green/30 bg-brand-green/5 p-6">
+                <div className="rounded-2xl border border-brand-green/30 bg-famex-lime/5 p-6">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <div className="text-[10px] font-bold uppercase tracking-widest text-brand-green">
@@ -211,7 +211,7 @@ export default function SessionsPage() {
                             ? "Final term — use end-of-session promotion to roll over"
                             : undefined
                         }
-                        className="rounded-xl bg-brand-green px-4 py-2.5 text-xs font-bold text-brand-navy hover:bg-brand-green-dark disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="rounded-xl bg-famex-lime px-4 py-2.5 text-xs font-bold text-brand-navy hover:bg-famex-lime-soft disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         Advance term <ArrowRight size={13} className="inline ml-1" />
                       </button>
@@ -245,7 +245,7 @@ export default function SessionsPage() {
 
               <button
                 onClick={openCreate}
-                className="w-full py-4 rounded-2xl border-2 border-dashed border-brand-green/40 text-brand-green font-bold hover:bg-brand-green/5 transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-2xl border-2 border-dashed border-brand-green/40 text-brand-green font-bold hover:bg-famex-lime/5 transition-all flex items-center justify-center gap-2"
               >
                 <Plus size={18} /> New Academic Session
               </button>
@@ -267,7 +267,7 @@ export default function SessionsPage() {
                       key={s.id}
                       className={`rounded-2xl border p-5 ${
                         s.isCurrent
-                          ? "border-brand-green/40 bg-brand-green/5"
+                          ? "border-brand-green/40 bg-famex-lime/5"
                           : "border-[var(--border-subtle)] bg-[var(--surface-card)]"
                       }`}
                     >
@@ -278,7 +278,7 @@ export default function SessionsPage() {
                               {s.label}
                             </span>
                             {s.isCurrent ? (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest bg-brand-green/15 text-brand-green">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest bg-famex-lime/15 text-brand-green">
                                 Current
                               </span>
                             ) : null}
@@ -302,7 +302,7 @@ export default function SessionsPage() {
                             }
                             className={`text-left rounded-xl border p-3 transition-colors ${
                               t.isCurrent
-                                ? "border-brand-green bg-brand-green/10 cursor-default"
+                                ? "border-brand-green bg-famex-lime/10 cursor-default"
                                 : "border-[var(--border-subtle)] hover:border-brand-green/50 hover:bg-[var(--surface-disabled)]"
                             } disabled:cursor-default`}
                           >
@@ -435,7 +435,7 @@ export default function SessionsPage() {
               <button
                 onClick={create}
                 disabled={busy}
-                className="w-full py-3 rounded-full bg-brand-green text-brand-navy font-bold text-sm hover:bg-brand-green-dark transition-all disabled:opacity-60"
+                className="w-full py-3 rounded-full bg-famex-lime text-brand-navy font-bold text-sm hover:bg-famex-lime-soft transition-all disabled:opacity-60"
               >
                 {busy ? "Creating…" : "Create Session"}
               </button>

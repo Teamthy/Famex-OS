@@ -196,7 +196,7 @@ export default function TeacherGradebookPage() {
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
             <div className="mb-3 flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
                 <BookOpen size={11} /> Live gradebook
               </span>
               {data?.gradebook ? (
@@ -278,7 +278,7 @@ export default function TeacherGradebookPage() {
                             ? "bg-red-500/15 text-red-500"
                             : data.gradebook.status === "SUBMITTED"
                               ? "bg-brand-orange/15 text-brand-orange"
-                              : "bg-brand-green/15 text-brand-green"
+                              : "bg-famex-lime/15 text-brand-green"
                         }`}
                       >
                         {data.gradebook.status === "OPEN" ? (
@@ -325,7 +325,7 @@ export default function TeacherGradebookPage() {
                         <button
                           onClick={() => void persist("SAVE")}
                           disabled={!isEditable || saving || !dirty}
-                          className="inline-flex items-center gap-2 rounded-full bg-brand-green px-6 py-2.5 text-xs font-bold text-brand-navy shadow-lg transition-all hover:bg-brand-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-6 py-2.5 text-xs font-bold text-brand-navy shadow-lg transition-all hover:bg-famex-lime-soft disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {saving ? (
                             <LoaderCircle size={14} className="animate-spin" />
@@ -414,7 +414,7 @@ export default function TeacherGradebookPage() {
                                   <span
                                     className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest ${
                                       row.total >= 70
-                                        ? "bg-brand-green/15 text-brand-green"
+                                        ? "bg-famex-lime/15 text-brand-green"
                                         : row.total >= 45
                                           ? "bg-brand-orange/15 text-brand-orange"
                                           : "bg-red-500/15 text-red-500"

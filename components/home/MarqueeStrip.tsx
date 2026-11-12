@@ -5,7 +5,7 @@ export default function MarqueeStrip() {
   return (
     <section
       aria-label="School rhythm"
-      className="home-below-fold border-y border-[#211d19]/10 bg-[#efe7d8] py-4"
+      className="home-below-fold border-y border-[var(--famex-primary)]/10 bg-[var(--famex-lime-pale)] py-4"
     >
       <Marquee
         items={[
@@ -16,8 +16,8 @@ export default function MarqueeStrip() {
           "CHARACTER FORMATION",
           "WAEC · BECE PREPARATION",
         ]}
-        className="text-[#4a443c]"
-        itemClassName="font-[family-name:var(--font-fraunces)] text-[clamp(0.95rem,2vw,1.6rem)] italic tracking-[-0.01em] text-[#4a443c]"
+        className="text-[var(--famex-text-secondary)]"
+        itemClassName="font-[family-name:var(--font-fraunces)] text-[clamp(0.95rem,2vw,1.6rem)] italic tracking-[-0.01em] text-[var(--famex-text-secondary)]"
         duration={36}
       />
     </section>

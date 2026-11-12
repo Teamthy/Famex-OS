@@ -200,7 +200,7 @@ export default function TeacherMarkingPage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">{data.exam.title}</h1>
             <div className="mt-4 h-2 w-full max-w-md overflow-hidden rounded-full bg-white/10">
               <div
-                className="h-full bg-brand-green transition-all"
+                className="h-full bg-famex-lime transition-all"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
@@ -224,7 +224,7 @@ export default function TeacherMarkingPage() {
                     onClick={() => setActiveQ(i)}
                     className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-widest transition ${
                       active
-                        ? "bg-brand-green text-brand-navy"
+                        ? "bg-famex-lime text-brand-navy"
                         : done
                           ? "text-emerald-500 hover:bg-emerald-50"
                           : "text-[var(--text-muted)] hover:bg-[var(--bg-primary)]"

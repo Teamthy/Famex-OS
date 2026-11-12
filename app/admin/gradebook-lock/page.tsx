@@ -150,7 +150,7 @@ export default function AdminGradebookLockPage() {
       ? "bg-red-500/10 text-red-500"
       : status === "SUBMITTED"
         ? "bg-brand-orange/10 text-brand-orange"
-        : "bg-brand-green/10 text-brand-green";
+        : "bg-famex-lime/10 text-brand-green";
 
   return (
     <>
@@ -159,7 +159,7 @@ export default function AdminGradebookLockPage() {
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
             <div className="mb-3 flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
                 <ShieldCheck size={11} /> Results governance
               </span>
               {generation ? (
@@ -327,7 +327,7 @@ export default function AdminGradebookLockPage() {
                                   <button
                                     onClick={() => setPendingAction({ gradebook, action: "LOCK" })}
                                     disabled={busy}
-                                    className="inline-flex items-center gap-1.5 rounded-full bg-brand-green/10 px-4 py-1.5 text-[10px] font-bold text-brand-green transition-all hover:bg-brand-green hover:text-brand-navy disabled:opacity-50"
+                                    className="inline-flex items-center gap-1.5 rounded-full bg-famex-lime/10 px-4 py-1.5 text-[10px] font-bold text-brand-green transition-all hover:bg-famex-lime hover:text-brand-navy disabled:opacity-50"
                                   >
                                     <Lock size={12} /> Lock Scores
                                   </button>
@@ -383,7 +383,7 @@ export default function AdminGradebookLockPage() {
                             </p>
                           </div>
                           {schoolClass.readyToGenerate ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-famex-lime/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
                               <CheckCircle2 size={10} /> Ready
                             </span>
                           ) : (
@@ -399,7 +399,7 @@ export default function AdminGradebookLockPage() {
                                 key={subject.subjectName}
                                 className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${
                                   subject.status === "LOCKED"
-                                    ? "bg-brand-green/10 text-brand-green"
+                                    ? "bg-famex-lime/10 text-brand-green"
                                     : "bg-[var(--surface-disabled)] text-[var(--text-muted)]"
                                 }`}
                               >
@@ -415,7 +415,7 @@ export default function AdminGradebookLockPage() {
                         <button
                           onClick={() => setPendingGenerate(schoolClass)}
                           disabled={!schoolClass.readyToGenerate || busy}
-                          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-green px-5 py-3 text-xs font-bold text-brand-navy shadow-lg transition-all hover:bg-brand-green-dark disabled:cursor-not-allowed disabled:opacity-40"
+                          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-famex-lime px-5 py-3 text-xs font-bold text-brand-navy shadow-lg transition-all hover:bg-famex-lime-soft disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           <FileText size={14} /> Generate Draft Report Cards
                         </button>

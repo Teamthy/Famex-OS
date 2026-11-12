@@ -155,7 +155,7 @@ export default function AdminReportCardsPage() {
 
             <div className="flex-1 min-w-0 space-y-6">
               {message ? (
-                <div className="rounded-2xl border border-brand-green/20 bg-brand-green/5 p-4 text-sm text-[var(--text-secondary)]">
+                <div className="rounded-2xl border border-brand-green/20 bg-famex-lime/5 p-4 text-sm text-[var(--text-secondary)]">
                   {message}
                 </div>
               ) : null}
@@ -174,7 +174,7 @@ export default function AdminReportCardsPage() {
                     <button
                       onClick={() => void releaseAll()}
                       disabled={saving || !data.summary.draftReports}
-                      className="inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
                     >
                       <CheckCircle2 size={15} /> Release all drafts ({data.summary.draftReports})
                     </button>
@@ -262,7 +262,7 @@ export default function AdminReportCardsPage() {
                               </td>
                               <td className="px-4 py-4">
                                 <span
-                                  className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${report.status === "RELEASED" ? "bg-brand-green/10 text-brand-green" : "bg-brand-orange/10 text-brand-orange"}`}
+                                  className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${report.status === "RELEASED" ? "bg-famex-lime/10 text-brand-green" : "bg-brand-orange/10 text-brand-orange"}`}
                                 >
                                   {report.status}
                                 </span>
@@ -273,7 +273,7 @@ export default function AdminReportCardsPage() {
                               <td className="px-4 py-4 flex gap-2">
                                 <button
                                   onClick={() => setSelectedReportId(report.id)}
-                                  className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-3 py-1.5 text-[10px] font-bold text-brand-green hover:bg-brand-green hover:text-brand-navy"
+                                  className="inline-flex items-center gap-1 rounded-full bg-famex-lime/10 px-3 py-1.5 text-[10px] font-bold text-brand-green hover:bg-famex-lime hover:text-brand-navy"
                                 >
                                   View
                                 </button>
@@ -294,7 +294,7 @@ export default function AdminReportCardsPage() {
                                     )
                                   }
                                   disabled={saving}
-                                  className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-disabled)] px-3 py-1.5 text-[10px] font-bold text-[var(--text-secondary)] hover:bg-brand-green hover:text-brand-navy disabled:opacity-50"
+                                  className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-disabled)] px-3 py-1.5 text-[10px] font-bold text-[var(--text-secondary)] hover:bg-famex-lime hover:text-brand-navy disabled:opacity-50"
                                 >
                                   {report.status === "RELEASED" ? "Set Draft" : "Release"}
                                 </button>

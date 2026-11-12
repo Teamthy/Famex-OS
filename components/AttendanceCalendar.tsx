@@ -29,7 +29,7 @@ export default function AttendanceCalendar({
   const statusColor = (status: string) => {
     switch (status) {
       case "Present":
-        return "bg-brand-green text-brand-navy-dark";
+        return "bg-famex-lime text-brand-navy-dark";
       case "Absent":
         return "bg-red-500 text-white";
       case "Late":
@@ -70,7 +70,7 @@ export default function AttendanceCalendar({
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-green/10 text-brand-green text-[10px] font-bold">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-famex-lime/10 text-brand-green text-[10px] font-bold">
             <Check size={8} strokeWidth={3} /> Present: {presentCount}
           </span>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-red-500 text-[10px] font-bold">
@@ -124,8 +124,8 @@ export default function AttendanceCalendar({
               key={day}
               className={`relative rounded-xl px-2 py-3 text-center transition-all duration-200 hover:scale-[1.08] ${
                 isToday
-                  ? "ring-2 ring-brand-green/40 bg-brand-green/10"
-                  : "bg-[var(--surface-disabled)] hover:bg-brand-green/5"
+                  ? "ring-2 ring-brand-green/40 bg-famex-lime/10"
+                  : "bg-[var(--surface-disabled)] hover:bg-famex-lime/5"
               }`}
             >
               <div
@@ -163,7 +163,7 @@ export default function AttendanceCalendar({
       {/* Legend */}
       <div className="flex flex-wrap items-center justify-center gap-6 mt-6 pt-5 border-t border-[var(--border-subtle)]">
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-brand-green" />
+          <span className="w-2.5 h-2.5 rounded-full bg-famex-lime" />
           <span className="font-body text-[10px] text-[var(--text-muted)]">Present</span>
         </div>
         <div className="flex items-center gap-1.5">

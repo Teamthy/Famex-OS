@@ -61,10 +61,10 @@ function NavBlock({
             <Link
               key={item.href}
               href={item.href}
-              className={`flex w-full items-center gap-3 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all ${
+              className={`flex w-full items-center gap-3 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-lime)] ${
                 active
-                  ? "border-brand-green/20 bg-brand-green/10 text-brand-green"
-                  : "border-transparent text-[var(--text-muted)] hover:bg-[var(--surface-disabled)] hover:text-[var(--text-primary)]"
+                  ? "border-[var(--famex-lime)]/30 bg-[var(--famex-lime)] text-[var(--famex-forest-dark)]"
+                  : "border-transparent text-white/75 hover:bg-white/10 hover:text-white"
               }`}
             >
               <item.icon size={16} />
@@ -185,10 +185,10 @@ export default function TeacherSidebar() {
   ];
 
   return (
-    <aside className="hidden w-[280px] shrink-0 lg:block">
+    <aside className="hidden w-[280px] shrink-0 rounded-2xl bg-[var(--famex-forest-dark)] p-3 text-white lg:block">
       <div className="sticky top-24 max-h-[calc(100vh-6rem)] space-y-4 overflow-y-auto pb-4">
-        <div className="rounded-2xl border border-white/10 bg-brand-navy p-4">
-          <div className="text-[9px] font-bold uppercase tracking-widest text-brand-green">
+        <div className="rounded-2xl border border-white/10 bg-[var(--famex-primary)] p-4">
+          <div className="text-[9px] font-bold uppercase tracking-widest text-[var(--famex-lime)]">
             Teaching workspace
           </div>
           <div className="mt-1 font-display text-sm tracking-[1px] text-white">
@@ -196,7 +196,7 @@ export default function TeacherSidebar() {
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {isSubject && (
-              <span className="rounded-full bg-brand-green/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-brand-green">
+              <span className="rounded-full bg-famex-lime/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[var(--famex-lime)]">
                 Subject
               </span>
             )}
@@ -209,21 +209,16 @@ export default function TeacherSidebar() {
         </div>
 
         {loading ? (
-          <div className="flex items-center gap-2 px-4 text-xs text-[var(--text-muted)]">
+          <div className="flex items-center gap-2 px-4 text-xs text-white/65">
             <LoaderCircle className="animate-spin" size={14} /> Syncing assignments…
           </div>
         ) : null}
 
-        <NavBlock
-          title="General"
-          color="text-[var(--text-muted)]"
-          items={general}
-          pathname={pathname}
-        />
+        <NavBlock title="General" color="text-white/60" items={general} pathname={pathname} />
         {isSubject ? (
           <NavBlock
             title="Subject teaching"
-            color="text-brand-green"
+            color="text-[var(--famex-lime)]"
             items={subject}
             pathname={pathname}
           />
@@ -242,7 +237,7 @@ export default function TeacherSidebar() {
 
         <button
           onClick={logout}
-          className="flex w-full items-center gap-2 rounded-lg px-4 py-2 text-xs text-[var(--text-muted)] hover:text-red-500"
+          className="flex min-h-11 w-full items-center gap-2 rounded-xl px-4 py-2 text-xs text-white/70 transition hover:bg-red-500/15 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-lime)]"
         >
           <LogOut size={14} /> Sign out
         </button>

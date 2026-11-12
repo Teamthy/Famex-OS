@@ -226,7 +226,7 @@ export default function ParentReportCardsPage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <button
                             onClick={() => downloadSelected(selected, data.selectedChild)}
-                            className="inline-flex items-center gap-2 rounded-full bg-brand-green px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg hover:bg-brand-green-dark"
+                            className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy shadow-lg hover:bg-famex-lime-soft"
                           >
                             <Download size={14} /> Download PDF
                           </button>
@@ -246,7 +246,7 @@ export default function ParentReportCardsPage() {
                           <button
                             key={child.id}
                             onClick={() => void loadReports(child.id)}
-                            className={`rounded-xl border px-5 py-4 text-left transition-all ${data.selectedChild?.id === child.id ? "border-brand-green/30 bg-brand-green/5" : "border-[var(--border-subtle)] bg-[var(--surface-disabled)] hover:border-brand-green/20"}`}
+                            className={`rounded-xl border px-5 py-4 text-left transition-all ${data.selectedChild?.id === child.id ? "border-brand-green/30 bg-famex-lime/5" : "border-[var(--border-subtle)] bg-[var(--surface-disabled)] hover:border-brand-green/20"}`}
                           >
                             <div className="font-display text-base tracking-[2px] text-[var(--text-primary)]">
                               {child.displayName}
@@ -292,7 +292,7 @@ export default function ParentReportCardsPage() {
                               </td>
                               <td className="px-4 py-4">
                                 <span
-                                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${report.status === "RELEASED" ? "bg-brand-green/10 text-brand-green" : "bg-brand-orange/10 text-brand-orange"}`}
+                                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${report.status === "RELEASED" ? "bg-famex-lime/10 text-brand-green" : "bg-brand-orange/10 text-brand-orange"}`}
                                 >
                                   <Award size={9} /> {report.statusLabel}
                                 </span>
@@ -300,7 +300,7 @@ export default function ParentReportCardsPage() {
                               <td className="px-4 py-4 flex gap-2">
                                 <button
                                   onClick={() => setSelectedReportId(report.id)}
-                                  className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-3 py-1.5 text-[10px] font-bold text-brand-green transition-all hover:bg-brand-green hover:text-brand-navy"
+                                  className="inline-flex items-center gap-1 rounded-full bg-famex-lime/10 px-3 py-1.5 text-[10px] font-bold text-brand-green transition-all hover:bg-famex-lime hover:text-brand-navy"
                                 >
                                   <Eye size={10} /> View
                                 </button>

@@ -257,7 +257,7 @@ export default function PromotionPage() {
               ) : null}
 
               {done ? (
-                <div className="rounded-2xl border border-brand-green/40 bg-brand-green/10 p-6">
+                <div className="rounded-2xl border border-brand-green/40 bg-famex-lime/10 p-6">
                   <CheckCircle2 size={26} className="text-brand-green mb-3" />
                   <h2 className="font-display text-2xl text-[var(--text-primary)]">
                     Session rolled over
@@ -300,7 +300,7 @@ export default function PromotionPage() {
                   ) : null}
                   <a
                     href="/admin/sessions"
-                    className="inline-block mt-5 rounded-xl bg-brand-green px-5 py-2.5 text-xs font-bold text-brand-navy hover:bg-brand-green-dark"
+                    className="inline-block mt-5 rounded-xl bg-famex-lime px-5 py-2.5 text-xs font-bold text-brand-navy hover:bg-famex-lime-soft"
                   >
                     Go to Sessions
                   </a>

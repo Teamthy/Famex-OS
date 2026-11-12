@@ -82,7 +82,7 @@ export default function AcademicsPage() {
                   key={item.title}
                   className="flex h-full flex-col rounded-[1.75rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 shadow-sm transition hover:-translate-y-1 hover:border-brand-green/40 hover:shadow-xl"
                 >
-                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green">
+                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-famex-lime/10 text-brand-green">
                     <item.icon size={22} />
                   </div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-brand-orange">
@@ -110,7 +110,7 @@ export default function AcademicsPage() {
             <div className="mt-10 flex flex-wrap gap-3">
               <Link
                 href="/admissions"
-                className="inline-flex items-center gap-2 rounded-full bg-brand-green px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy"
+                className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy"
               >
                 Apply for admission <ArrowRight size={14} />
               </Link>

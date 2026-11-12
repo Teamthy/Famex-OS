@@ -155,7 +155,7 @@ export default function StaffQrScanner({
               !gps.reading
                 ? "bg-[var(--surface-disabled)] text-[var(--text-muted)]"
                 : inRange
-                  ? "bg-brand-green/15 text-brand-green"
+                  ? "bg-famex-lime/15 text-brand-green"
                   : "bg-red-100 text-red-600"
             }`}
           >
@@ -178,7 +178,7 @@ export default function StaffQrScanner({
             type="button"
             onClick={() => void start()}
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-full bg-brand-green px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
           >
             {busy ? <LoaderCircle className="animate-spin" size={16} /> : <Camera size={16} />}
             Start camera

@@ -292,7 +292,7 @@ export default function AdminFeesPage() {
                 </div>
                 <button
                   disabled={cashBusy}
-                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
+                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-famex-lime px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
                 >
                   <CreditCard size={14} /> {cashBusy ? "Saving…" : "Post cash payment"}
                 </button>
@@ -347,7 +347,7 @@ export default function AdminFeesPage() {
                           <div className="text-xs text-[var(--text-muted)]">{inv.termLabel}</div>
                         </td>
                         <td className="p-4">
-                          <span className="rounded-full bg-brand-green/10 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+                          <span className="rounded-full bg-famex-lime/10 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
                             {inv.status}
                           </span>
                         </td>

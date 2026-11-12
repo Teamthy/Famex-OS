@@ -56,7 +56,7 @@ const TABS = [
 const CHANNEL_ICON = { EMAIL: Mail, SMS: Smartphone, WHATSAPP: MessageSquare };
 
 function statusChip(status: Job["status"]) {
-  if (status === "SENT" || status === "DELIVERED") return "bg-brand-green/10 text-brand-green";
+  if (status === "SENT" || status === "DELIVERED") return "bg-famex-lime/10 text-brand-green";
   if (status === "PENDING") return "bg-brand-orange/10 text-brand-orange";
   if (status === "FAILED") return "bg-red-500/10 text-red-500";
   return "bg-[var(--surface-disabled)] text-[var(--text-muted)]";
@@ -150,7 +150,7 @@ export default function AdminNotificationsPage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
-            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <BellRing size={11} /> Delivery Center
             </span>
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
@@ -224,7 +224,7 @@ export default function AdminNotificationsPage() {
                 <button
                   onClick={() => void dispatchNow()}
                   disabled={dispatching}
-                  className="flex flex-col items-center justify-center gap-2 rounded-[2rem] bg-brand-green p-5 text-brand-navy shadow-[var(--btn-primary-shadow)] transition-all hover:bg-brand-green-dark disabled:opacity-50"
+                  className="flex flex-col items-center justify-center gap-2 rounded-[2rem] bg-famex-lime p-5 text-brand-navy shadow-[var(--btn-primary-shadow)] transition-all hover:bg-famex-lime-soft disabled:opacity-50"
                 >
                   {dispatching ? (
                     <LoaderCircle size={22} className="animate-spin" />
@@ -257,7 +257,7 @@ export default function AdminNotificationsPage() {
                     onClick={() => setTab(item.key)}
                     className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
                       tab === item.key
-                        ? "bg-brand-green text-white shadow"
+                        ? "bg-famex-lime text-white shadow"
                         : "bg-[var(--surface-card)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                     }`}
                   >
@@ -287,7 +287,7 @@ export default function AdminNotificationsPage() {
                       >
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="flex min-w-0 items-start gap-4">
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-famex-lime/10 text-brand-green">
                               <ChannelIcon size={19} />
                             </div>
                             <div className="min-w-0">
@@ -337,7 +337,7 @@ export default function AdminNotificationsPage() {
                               <button
                                 onClick={() => void act(job, "RETRY")}
                                 disabled={busy}
-                                className="inline-flex items-center gap-1.5 rounded-full bg-brand-green/10 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-green transition-all hover:bg-brand-green hover:text-brand-navy disabled:opacity-50"
+                                className="inline-flex items-center gap-1.5 rounded-full bg-famex-lime/10 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-green transition-all hover:bg-famex-lime hover:text-brand-navy disabled:opacity-50"
                               >
                                 <RefreshCcw size={12} /> Retry
                               </button>

@@ -152,7 +152,7 @@ export default function SchoolProfilePage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
-            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <MapPin size={11} /> School profile
             </span>
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
@@ -342,7 +342,7 @@ export default function SchoolProfilePage() {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="inline-flex items-center gap-2 rounded-full bg-brand-green px-6 py-3 text-sm font-bold uppercase tracking-widest text-brand-navy disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-6 py-3 text-sm font-bold uppercase tracking-widest text-brand-navy disabled:opacity-60"
                   >
                     {saving ? (
                       <LoaderCircle className="animate-spin" size={16} />

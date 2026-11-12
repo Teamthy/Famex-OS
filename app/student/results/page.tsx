@@ -133,7 +133,7 @@ export default function StudentResultsPage() {
                   href={item.href}
                   className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium transition ${
                     active
-                      ? "bg-brand-green/15 text-brand-green"
+                      ? "bg-famex-lime/15 text-brand-green"
                       : "text-[var(--text-secondary)] hover:bg-[var(--surface-disabled)]"
                   }`}
                 >

@@ -10,15 +10,15 @@
 
 /**
  * Default branding/palette used when a tenant hasn't configured their own.
- * Must match the palette in app/globals.css so the theming injection is a
- * visual no-op for a school that has not customised anything.
+ * Keep these fallback values aligned with the Famex design tokens in
+ * app/globals.css; the operational UI uses the fixed product palette.
  */
 export const DEFAULT_BRANDING = {
   logoUrl: null as string | null,
   faviconUrl: null as string | null,
-  primaryColor: "#0c1824", // brand navy
-  secondaryColor: "#1a2e4d", // brand navy-light
-  accentColor: "#4ec54d", // brand green
+  primaryColor: "#123a35", // forest dark
+  secondaryColor: "#1d4a45", // forest dark-light
+  accentColor: "#b6e618", // electric lime
   fontDisplay: null as string | null,
   fontBody: null as string | null,
   heroImageUrl: null as string | null,

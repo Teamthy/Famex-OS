@@ -145,7 +145,7 @@ export default function SSArtsPage() {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/admissions"
-                className="inline-flex items-center gap-2 rounded-full bg-brand-green px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy"
+                className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy"
               >
                 Apply for admission <ArrowRight size={14} />
               </Link>

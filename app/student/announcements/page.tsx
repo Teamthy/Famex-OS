@@ -27,7 +27,7 @@ const SIDEBAR_ITEMS = [
 ];
 
 const typeConfig = {
-  success: { icon: CheckCircle2, color: "text-brand-green", bg: "bg-brand-green/10" },
+  success: { icon: CheckCircle2, color: "text-brand-green", bg: "bg-famex-lime/10" },
   info: { icon: Info, color: "text-brand-orange", bg: "bg-brand-orange/10" },
   warning: { icon: AlertCircle, color: "text-red-500", bg: "bg-red-500/10" },
 };

@@ -236,7 +236,7 @@ export default function ParentFeesPage() {
           </div>
 
           {verifyBusy && (
-            <div className="flex items-center gap-2 rounded-2xl border border-brand-green/30 bg-brand-green/10 p-4 text-sm">
+            <div className="flex items-center gap-2 rounded-2xl border border-brand-green/30 bg-famex-lime/10 p-4 text-sm">
               <LoaderCircle className="animate-spin" size={16} /> Confirming Paystack payment…
             </div>
           )}
@@ -311,7 +311,7 @@ export default function ParentFeesPage() {
                           {data.selectedInvoice.invoiceNumber} · {data.selectedInvoice.termLabel}
                         </p>
                       </div>
-                      <span className="rounded-full bg-brand-green/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+                      <span className="rounded-full bg-famex-lime/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
                         {data.selectedInvoice.status.replaceAll("_", " ")}
                       </span>
                     </div>
@@ -349,7 +349,7 @@ export default function ParentFeesPage() {
                       <button
                         onClick={() => void startPaystack()}
                         disabled={initBusy}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-green py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-famex-lime py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
                       >
                         {initBusy ? (
                           <LoaderCircle className="animate-spin" size={16} />

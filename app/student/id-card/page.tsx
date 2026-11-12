@@ -162,7 +162,7 @@ export default function IDCardPage() {
                   </div>
 
                   {schoolContact ? (
-                    <div className="bg-brand-green p-3 text-center">
+                    <div className="bg-famex-lime p-3 text-center">
                       <div className="text-white text-[10px] font-bold">{schoolContact}</div>
                     </div>
                   ) : null}
@@ -172,13 +172,13 @@ export default function IDCardPage() {
               <div className="flex gap-3">
                 <button
                   onClick={handleDownload}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-brand-green text-brand-navy font-bold text-sm hover:bg-brand-green-dark transition-all shadow-lg"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-famex-lime text-brand-navy font-bold text-sm hover:bg-famex-lime-soft transition-all shadow-lg"
                 >
                   <Download size={14} /> Download PDF
                 </button>
                 <button
                   onClick={handlePrint}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[var(--surface-disabled)] text-[var(--text-primary)] font-bold text-sm hover:bg-brand-green hover:text-brand-navy transition-all"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[var(--surface-disabled)] text-[var(--text-primary)] font-bold text-sm hover:bg-famex-lime hover:text-brand-navy transition-all"
                 >
                   <Printer size={14} /> Print
                 </button>

@@ -311,7 +311,7 @@ export default function TeacherAssignmentsPage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-12">
           <div className="mx-auto max-w-7xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <BookOpenCheck size={11} /> Class assignments
             </span>
             <h1 className="mt-3 font-display text-4xl tracking-widest text-white md:text-5xl">
@@ -443,7 +443,7 @@ export default function TeacherAssignmentsPage() {
                       type="submit"
                       data-testid="create-assignment"
                       disabled={saving || !data.classSubjects.length}
-                      className="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-green px-5 py-3 text-sm font-bold text-brand-navy disabled:opacity-60"
+                      className="mt-5 inline-flex items-center gap-2 rounded-xl bg-famex-lime px-5 py-3 text-sm font-bold text-brand-navy disabled:opacity-60"
                     >
                       {saving ? (
                         <LoaderCircle className="animate-spin" size={16} />
@@ -488,7 +488,7 @@ export default function TeacherAssignmentsPage() {
                                 {assignment.maxScore}
                               </p>
                             </div>
-                            <span className="rounded-full bg-brand-green/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-brand-green">
+                            <span className="rounded-full bg-famex-lime/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-brand-green">
                               {assignment.status}
                             </span>
                           </div>
@@ -527,7 +527,7 @@ export default function TeacherAssignmentsPage() {
                                 <button
                                   type="button"
                                   onClick={() => void changeStatus(assignment, "PUBLISH")}
-                                  className="rounded-lg bg-brand-green px-3 py-2 text-xs font-bold text-brand-navy"
+                                  className="rounded-lg bg-famex-lime px-3 py-2 text-xs font-bold text-brand-navy"
                                 >
                                   Publish
                                 </button>
@@ -602,7 +602,7 @@ export default function TeacherAssignmentsPage() {
                                       {entry.studentId}
                                     </div>
                                   </div>
-                                  <span className="rounded-full bg-brand-green/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-brand-green">
+                                  <span className="rounded-full bg-famex-lime/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-brand-green">
                                     {submission ? submission.status : "MISSING"}
                                     {submission?.isLate ? " · LATE" : ""}
                                   </span>
@@ -689,7 +689,7 @@ export default function TeacherAssignmentsPage() {
                                           type="button"
                                           data-testid="grade-submission"
                                           onClick={() => void gradeSubmission(submission, "GRADE")}
-                                          className="inline-flex items-center gap-1 rounded-lg bg-brand-green px-3 py-2 text-xs font-bold text-brand-navy"
+                                          className="inline-flex items-center gap-1 rounded-lg bg-famex-lime px-3 py-2 text-xs font-bold text-brand-navy"
                                         >
                                           <CheckCircle2 size={14} /> Grade submission
                                         </button>

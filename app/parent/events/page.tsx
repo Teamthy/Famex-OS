@@ -26,7 +26,7 @@ const SIDEBAR_ITEMS = [
 ];
 
 const typeConfig = {
-  meeting: { color: "text-brand-green", bg: "bg-brand-green/10" },
+  meeting: { color: "text-brand-green", bg: "bg-famex-lime/10" },
   event: { color: "text-brand-orange", bg: "bg-brand-orange/10" },
   exam: { color: "text-red-500", bg: "bg-red-500/10" },
   holiday: { color: "text-blue-500", bg: "bg-blue-500/10" },
@@ -122,8 +122,8 @@ export default function ParentEventsPage() {
                             }
                             className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
                               hasRsvp
-                                ? "bg-brand-green text-white"
-                                : "bg-[var(--surface-disabled)] text-[var(--text-primary)] hover:bg-brand-green hover:text-white"
+                                ? "bg-famex-lime text-white"
+                                : "bg-[var(--surface-disabled)] text-[var(--text-primary)] hover:bg-famex-lime hover:text-white"
                             }`}
                           >
                             {hasRsvp && <CheckCircle2 size={14} />}

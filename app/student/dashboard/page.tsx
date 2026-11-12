@@ -228,11 +228,11 @@ export default function StudentDashboardPage() {
                   {data.latestReport ? (
                     <Link
                       href="/student/report-cards"
-                      className="group block rounded-[2rem] border border-brand-green/25 bg-brand-green/5 p-6 transition-all hover:border-brand-green hover:shadow-[var(--card-shadow-hover)]"
+                      className="group block rounded-[2rem] border border-brand-green/25 bg-famex-lime/5 p-6 transition-all hover:border-brand-green hover:shadow-[var(--card-shadow-hover)]"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
-                          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-green text-brand-navy">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-famex-lime text-brand-navy">
                             <Award size={26} />
                           </div>
                           <div>
@@ -302,7 +302,7 @@ export default function StudentDashboardPage() {
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-brand-navy via-brand-navy/80 to-brand-navy/25" />
                         <div className="relative z-10 flex h-full flex-col justify-end p-5 text-white">
-                          <div className="mb-3 grid size-10 place-items-center rounded-full bg-brand-green text-brand-navy">
+                          <div className="mb-3 grid size-10 place-items-center rounded-full bg-famex-lime text-brand-navy">
                             <card.icon size={18} />
                           </div>
                           <h3 className="font-display text-xl tracking-wide">{card.title}</h3>
@@ -346,7 +346,7 @@ export default function StudentDashboardPage() {
                               <span
                                 className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest ${
                                   entry.status === "PRESENT"
-                                    ? "bg-brand-green/10 text-brand-green"
+                                    ? "bg-famex-lime/10 text-brand-green"
                                     : entry.status === "LATE"
                                       ? "bg-brand-orange/10 text-brand-orange"
                                       : "bg-red-500/10 text-red-500"
@@ -383,7 +383,7 @@ export default function StudentDashboardPage() {
                         <div className="space-y-3">
                           {data.activity.map((entry, index) => (
                             <div key={`${entry.at}-${index}`} className="flex items-start gap-3">
-                              <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-green" />
+                              <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-famex-lime" />
                               <div className="min-w-0">
                                 <div className="text-sm text-[var(--text-primary)]">
                                   {actionLabel(entry.action)}
@@ -437,7 +437,7 @@ export default function StudentDashboardPage() {
                         className="group p-5 rounded-2xl bg-[var(--surface-card)] border border-[var(--border-subtle)] shadow-[var(--card-shadow)] hover:border-brand-green/40 hover:-translate-y-1 hover:shadow-[var(--card-shadow-hover)] transition-all"
                       >
                         <div
-                          className={`w-12 h-12 rounded-2xl bg-[var(--surface-disabled)] flex items-center justify-center mb-4 group-hover:bg-brand-green/10 transition-colors ${item.color}`}
+                          className={`w-12 h-12 rounded-2xl bg-[var(--surface-disabled)] flex items-center justify-center mb-4 group-hover:bg-famex-lime/10 transition-colors ${item.color}`}
                         >
                           <item.icon size={22} />
                         </div>

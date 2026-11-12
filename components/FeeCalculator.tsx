@@ -24,7 +24,7 @@ export default function FeeCalculator() {
   return (
     <div className="rounded-[2rem] bg-[var(--surface-card)] border border-[var(--border-subtle)] p-8 shadow-[var(--card-shadow)]">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-11 h-11 rounded-xl bg-brand-green/10 text-brand-green flex items-center justify-center">
+        <div className="w-11 h-11 rounded-xl bg-famex-lime/10 text-brand-green flex items-center justify-center">
           <Calculator size={22} />
         </div>
         <div>
@@ -45,8 +45,8 @@ export default function FeeCalculator() {
                 onClick={() => setSelectedClass(cls)}
                 className={`p-3 rounded-xl text-sm font-bold transition-all ${
                   selectedClass === cls
-                    ? "bg-brand-green text-brand-navy-dark shadow-md"
-                    : "bg-[var(--surface-disabled)] text-[var(--text-secondary)] hover:bg-brand-green/10"
+                    ? "bg-famex-lime text-brand-navy-dark shadow-md"
+                    : "bg-[var(--surface-disabled)] text-[var(--text-secondary)] hover:bg-famex-lime/10"
                 }`}
               >
                 {cls}
@@ -55,7 +55,7 @@ export default function FeeCalculator() {
           </div>
         </div>
 
-        <label className="flex items-center gap-3 p-4 rounded-xl bg-[var(--surface-disabled)] cursor-pointer hover:bg-brand-green/5 transition-colors">
+        <label className="flex items-center gap-3 p-4 rounded-xl bg-[var(--surface-disabled)] cursor-pointer hover:bg-famex-lime/5 transition-colors">
           <input
             type="checkbox"
             checked={isNew}

@@ -208,7 +208,7 @@ export default function AcademicSettingsPage() {
                         }
                         className={`rounded-lg px-3 py-2 text-[11px] font-bold uppercase tracking-widest disabled:opacity-50 ${
                           stage.isOffered
-                            ? "bg-brand-green/15 text-brand-green"
+                            ? "bg-famex-lime/15 text-brand-green"
                             : "border border-[var(--border-subtle)] text-[var(--text-muted)]"
                         }`}
                       >
@@ -256,7 +256,7 @@ export default function AcademicSettingsPage() {
                 <button
                   type="submit"
                   disabled={busy === "academic"}
-                  className="rounded-xl bg-brand-green px-5 py-3 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
+                  className="rounded-xl bg-famex-lime px-5 py-3 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
                 >
                   {busy === "academic" ? "Saving…" : "Save academic year"}
                 </button>

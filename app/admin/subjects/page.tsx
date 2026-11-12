@@ -131,7 +131,7 @@ export default function AdminSubjectsPage() {
       <main className="min-h-screen bg-[var(--bg-primary)] theme-transition">
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-brand-green/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
               <BookOpen size={11} /> Curriculum
             </span>
             <h1 className="mt-3 font-display text-4xl tracking-widest text-white md:text-6xl">
@@ -207,7 +207,7 @@ export default function AdminSubjectsPage() {
                       onClick={() => void runAction("SYNC_COMPULSORY")}
                       disabled={busy || !compulsory.length}
                       title="Enrol every student at this level into its compulsory subjects. Safe to re-run."
-                      className="inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-5 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-60"
                     >
                       <Users size={13} /> Enrol students
                     </button>
@@ -245,7 +245,7 @@ export default function AdminSubjectsPage() {
                       <button
                         onClick={() => void addSubject()}
                         disabled={busy || !name.trim()}
-                        className="inline-flex items-center gap-2 rounded-full bg-brand-green px-6 py-3 text-sm font-bold text-brand-navy disabled:opacity-60"
+                        className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-6 py-3 text-sm font-bold text-brand-navy disabled:opacity-60"
                       >
                         <Plus size={15} /> Add
                       </button>

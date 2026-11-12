@@ -15,20 +15,26 @@ const STATS = [
 export default function OutcomesBand() {
   return (
     <section className="home-below-fold mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24">
-      <div className="rounded-[28px] bg-[#20261f] px-8 py-12 sm:px-12">
+      <div className="rounded-[28px] bg-[var(--famex-primary)] px-8 py-12 sm:px-12">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {STATS.map((stat) => (
             <div key={stat.label}>
-              <p className={`${SERIF} text-5xl font-semibold text-[#f6f1e8]`}>
+              <p className={`${SERIF} text-5xl font-semibold text-[var(--famex-page-bg)]`}>
                 {stat.value}
-                <span className="ml-2 text-lg font-light italic text-[#7fb069]">{stat.label}</span>
+                <span className="ml-2 text-lg font-light italic text-[var(--famex-lime)]">
+                  {stat.label}
+                </span>
               </p>
-              <p className="mt-2 text-xs leading-relaxed text-[#f6f1e8]/60">{stat.note}</p>
+              <p className="mt-2 text-xs leading-relaxed text-[var(--famex-page-bg)]/60">
+                {stat.note}
+              </p>
             </div>
           ))}
         </div>
-        <div className="mt-10 h-px w-full bg-[#f6f1e8]/15" />
-        <p className={`${SERIF} mt-6 max-w-2xl text-lg italic leading-relaxed text-[#f6f1e8]/80`}>
+        <div className="mt-10 h-px w-full bg-[var(--famex-page-bg)]/15" />
+        <p
+          className={`${SERIF} mt-6 max-w-2xl text-lg italic leading-relaxed text-[var(--famex-page-bg)]/80`}
+        >
           “A school is not a preparation for life — at this age, school is a large part of life. We
           treat it with that seriousness, and with joy.”
         </p>

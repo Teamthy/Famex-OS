@@ -116,7 +116,7 @@ export default function ContactPage() {
                 {sentTo ? (
                   <div
                     role="status"
-                    className="rounded-2xl border border-brand-green/40 bg-brand-green/10 p-6"
+                    className="rounded-2xl border border-brand-green/40 bg-famex-lime/10 p-6"
                   >
                     <p className="font-bold text-[var(--text-primary)]">Thank you, {sentTo}.</p>
                     <p className="mt-2 text-sm text-[var(--text-secondary)]">{CONTACT_THANKS}</p>

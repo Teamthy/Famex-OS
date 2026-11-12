@@ -12,13 +12,12 @@ import {
 } from "@/components/settings/SettingsShell";
 
 /**
- * School Settings (F0-18, W2) — identity, branding and the school-wide
- * defaults that used to live in environment variables and scattered forms.
+ * School Settings (F0-18, W2) — identity and school-wide defaults that used
+ * to live in environment variables and scattered forms.
  *
  * Everything here is written through /api/admin/settings (ADMIN/DIRECTOR):
- * this screen asks, the server decides (Rule 3). School name and colours are
- * brand tokens (F0-21) — they drive the chrome, the report cards and the PWA
- * manifest, never a literal in a component.
+ * this screen asks, the server decides (Rule 3). Famex's product palette is
+ * shared and standardized; school-specific details remain data-driven.
  */
 
 type SchoolSettingsPayload = {
@@ -31,8 +30,6 @@ type SchoolSettingsPayload = {
     motto: string;
     status: string | null;
     displayName: string | null;
-    primaryColor: string | null;
-    accentColor: string | null;
   };
   settings: {
     academic: { termsPerSession: number; weekStartsOn: "MONDAY" | "SUNDAY" };
@@ -105,8 +102,6 @@ export default function SchoolSettingsPage() {
             email: asString("email"),
             motto: asString("motto"),
             displayName: asString("displayName"),
-            primaryColor: asString("primaryColor"),
-            accentColor: asString("accentColor"),
           },
         }),
       });
@@ -115,7 +110,7 @@ export default function SchoolSettingsPage() {
         setError(body.error ?? "Could not save. Please try again.");
         return;
       }
-      setSaved("Saved. The portal, report cards and PWA icons now use these details.");
+      setSaved("School profile saved.");
       await load();
     } catch {
       setError("Could not reach the server. Your changes were not saved.");
@@ -129,7 +124,7 @@ export default function SchoolSettingsPage() {
       title="School"
       accent="settings"
       badge="Settings · F0-18"
-      description="Who the school is: name, contacts and colours. These are brand tokens — they drive the portal, report cards and the installable app, never a hard-coded literal."
+      description="Manage the school identity and contact details. Famex’s forest-and-lime palette is standardized across the workspace."
       tabs={SETTINGS_TABS}
     >
       {error ? <SettingsNotice kind="error">{error}</SettingsNotice> : null}
@@ -182,21 +177,28 @@ export default function SchoolSettingsPage() {
               <Field label="Motto / tagline">
                 <input name="motto" defaultValue={data.school.motto} className={inputClass} />
               </Field>
-              <Field label="Brand colour (dark)">
-                <input
-                  name="primaryColor"
-                  type="color"
-                  defaultValue={data.school.primaryColor ?? "#0c1824"}
-                  className="mt-1.5 h-11 w-full cursor-pointer rounded-xl border border-[var(--border-subtle)]"
-                />
-              </Field>
-              <Field label="Accent colour">
-                <input
-                  name="accentColor"
-                  type="color"
-                  defaultValue={data.school.accentColor ?? "#4ec54d"}
-                  className="mt-1.5 h-11 w-full cursor-pointer rounded-xl border border-[var(--border-subtle)]"
-                />
+              <Field
+                label="Famex brand palette"
+                hint="The forest, lime and white palette is shared across the school workspace."
+              >
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-xl bg-[var(--famex-forest-dark)] p-3 text-xs font-semibold text-white">
+                    Forest
+                    <span className="mt-1 block font-mono text-[10px] text-white/75">#123A35</span>
+                  </div>
+                  <div className="rounded-xl bg-[var(--famex-lime)] p-3 text-xs font-semibold text-[var(--famex-forest-dark)]">
+                    Electric lime
+                    <span className="mt-1 block font-mono text-[10px] text-[var(--famex-forest-dark)]/75">
+                      #B6E618
+                    </span>
+                  </div>
+                  <div className="rounded-xl border border-[var(--famex-border)] bg-white p-3 text-xs font-semibold text-[var(--famex-ink)]">
+                    Surface
+                    <span className="mt-1 block font-mono text-[10px] text-[var(--famex-text-muted)]">
+                      #FFFFFF
+                    </span>
+                  </div>
+                </div>
               </Field>
             </div>
           </SettingsCard>
@@ -286,7 +288,7 @@ export default function SchoolSettingsPage() {
             <button
               type="submit"
               disabled={saving}
-              className="rounded-xl bg-brand-green px-5 py-3 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
+              className="rounded-xl bg-famex-lime px-5 py-3 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save settings"}
             </button>

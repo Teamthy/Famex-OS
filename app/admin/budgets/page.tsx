@@ -113,7 +113,7 @@ export default function AdminBudgetsPage() {
           <div className="flex justify-end">
             <button
               onClick={() => setOpen(true)}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
+              className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
             >
               <Plus size={15} /> Set / update budget
             </button>
@@ -148,7 +148,7 @@ export default function AdminBudgetsPage() {
                       className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-widest ${
                         b.overBudget
                           ? "bg-red-500/15 text-red-600"
-                          : "bg-brand-green/15 text-brand-green"
+                          : "bg-famex-lime/15 text-brand-green"
                       }`}
                     >
                       {b.utilizationPct}% used
@@ -156,7 +156,7 @@ export default function AdminBudgetsPage() {
                   </div>
                   <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--surface-disabled)]">
                     <div
-                      className={`h-full rounded-full ${b.overBudget ? "bg-red-500" : "bg-brand-green"}`}
+                      className={`h-full rounded-full ${b.overBudget ? "bg-red-500" : "bg-famex-lime"}`}
                       style={{ width: `${Math.min(100, b.utilizationPct)}%` }}
                     />
                   </div>
@@ -239,7 +239,7 @@ export default function AdminBudgetsPage() {
               </button>
               <button
                 disabled={busy}
-                className="flex-1 rounded-full bg-brand-green py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
+                className="flex-1 rounded-full bg-famex-lime py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
               >
                 Save
               </button>

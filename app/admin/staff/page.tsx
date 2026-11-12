@@ -167,7 +167,7 @@ export default function StaffPage() {
             </button>
             <button
               onClick={() => setMode("invite")}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
+              className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
             >
               <UserPlus size={15} /> Invite staff
             </button>
@@ -181,7 +181,7 @@ export default function StaffPage() {
               {staff.map((s) => (
                 <div className="border-b border-[var(--border-subtle)] p-4" key={s.id}>
                   <b>{s.name}</b>
-                  <span className="float-right rounded-full bg-brand-green/10 px-2 py-1 text-[9px] font-bold text-brand-green">
+                  <span className="float-right rounded-full bg-famex-lime/10 px-2 py-1 text-[9px] font-bold text-brand-green">
                     {s.role.replaceAll("_", " ")}
                   </span>
                   <small className="mt-1 block text-[var(--text-muted)]">
@@ -300,7 +300,7 @@ export default function StaffPage() {
                 ? "The activation token is displayed once and expires after seven days."
                 : "A strong temporary password is shown once. The staff member must change it on first login."}
             </p>
-            <button className="mt-6 w-full rounded-full bg-brand-green py-3 text-xs font-bold uppercase tracking-widest text-brand-navy">
+            <button className="mt-6 w-full rounded-full bg-famex-lime py-3 text-xs font-bold uppercase tracking-widest text-brand-navy">
               {mode === "invite" ? "Create secure invitation" : "Create account now"}
             </button>
           </form>

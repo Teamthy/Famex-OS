@@ -58,7 +58,7 @@ export default function PortalPage() {
         <Reveal>
           <section className="pt-32 pb-16 bg-brand-navy px-6">
             <div className="mx-auto max-w-7xl text-center">
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-green/10 border border-brand-green/30 text-brand-green text-[10px] font-bold tracking-[0.2em] uppercase mb-6">
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-famex-lime/10 border border-brand-green/30 text-brand-green text-[10px] font-bold tracking-[0.2em] uppercase mb-6">
                 <LockKeyhole size={12} /> Secure Access
               </span>
               <h1 className="font-display text-white leading-[0.82] text-[clamp(3rem,11vw,9.5rem)]">
@@ -85,7 +85,7 @@ export default function PortalPage() {
                     key={portal.label}
                     className="group relative flex flex-col p-8 rounded-[2rem] bg-[var(--surface-card)] border border-[var(--border-subtle)] shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)] hover:-translate-y-1 hover:border-brand-green transition-all duration-300 overflow-hidden"
                   >
-                    <div className="w-14 h-14 rounded-2xl bg-brand-green/10 flex items-center justify-center text-brand-green group-hover:bg-brand-green group-hover:text-brand-navy transition-colors mb-6">
+                    <div className="w-14 h-14 rounded-2xl bg-famex-lime/10 flex items-center justify-center text-brand-green group-hover:bg-famex-lime group-hover:text-brand-navy transition-colors mb-6">
                       <portal.icon size={26} strokeWidth={1.75} />
                     </div>
 
@@ -112,7 +112,7 @@ export default function PortalPage() {
 
                     <Link
                       href={portal.href}
-                      className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-xs font-bold uppercase tracking-widest transition-all bg-brand-green text-brand-navy hover:bg-brand-green-dark shadow-[var(--btn-primary-shadow)]"
+                      className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-xs font-bold uppercase tracking-widest transition-all bg-famex-lime text-brand-navy hover:bg-famex-lime-soft shadow-[var(--btn-primary-shadow)]"
                     >
                       {portal.cta} <ArrowRight size={14} />
                     </Link>

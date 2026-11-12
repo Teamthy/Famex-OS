@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
 
@@ -14,9 +14,9 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // DEFAULT TO DARK MODE
-  const [theme, setThemeState] = useState<Theme>("dark");
-  const [resolvedTheme, setResolvedTheme] = useState<Theme>("dark");
+  // Famex's botanical light palette is the default; dark remains an explicit preference.
+  const [theme, setThemeState] = useState<Theme>("light");
+  const [resolvedTheme, setResolvedTheme] = useState<Theme>("light");
 
   useEffect(() => {
     try {
@@ -25,11 +25,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       if (saved === "light" || saved === "dark") {
         setThemeState(saved as Theme);
       } else {
-        // Default to dark
-        setThemeState("dark");
+        // Default to the botanical light workspace.
+        setThemeState("light");
       }
     } catch {
-      setThemeState("dark");
+      setThemeState("light");
     }
   }, []);
 
