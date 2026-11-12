@@ -45,7 +45,7 @@ Read in this order before any work:
 
 | WS | Scope (short) | Status |
 |---|---|---|
-| **REM** | Audit remediation (§4h roadmap: Phases 0–8) | 🟡 **IN PROGRESS — supersedes W-workstreams until Phase 3 is green.** PR #16 (`5ba9a16`) landed the audit package; PR #17 (`b4415d0`) closed fixable-now launch blockers; PR #18 (`75caee3`) closed B-01; PR #19 (`c0a2fd9`) closed B-09/B-18 code-ables + mobile CI. Phase 2 B-06 merged (PR #40); Phase 3 B-04 merged (PR #41) and B-16 finance lifecycle merged as PR #42 (`f347f55`). **B-17 academic lifecycle is in progress on `arena/50d27962-famex-os`**; local gates pass, real-Postgres verifier awaits CI. |
+| **REM** | Audit remediation (§4h roadmap: Phases 0–8) | 🟡 **IN PROGRESS — supersedes W-workstreams until Phase 3 is green.** PR #16 (`5ba9a16`) landed the audit package; PR #17 (`b4415d0`) closed fixable-now launch blockers; PR #18 (`75caee3`) closed B-01; PR #19 (`c0a2fd9`) closed B-09/B-18 code-ables + mobile CI. Phase 2 B-06 merged (PR #40); Phase 3 B-04 merged (PR #41) and B-16 finance lifecycle merged as PR #42 (`f347f55`). **B-17 academic lifecycle is implemented on `arena/50d27962-famex-os`, PR #43 open**; real-Postgres verifier passed in CI run `43156704166` and all 9 PR checks are green. |
 | **W1** | Strip EDUos platform + Ykay arms; single-school boot; brand tokens; Licence & Usage; re-cut audit | ✅ **MERGED into main** — PR #1, 2026-10-14 (commits `a9451cd`, `ccaab0b` + this handoff commit). Gates green at merge; DB gates environment-blocked and stated in the PR. |
 | **W2** | Module registry drives nav/routes/entitlements; settings framework; first-run wizard; `check:modules` | ✅ **merged** — PR #2, merge commit `74f236c` (branch `arena/9abf8aef-famex-os`, 2026-10-14). All CI jobs green except the pre-existing red `Lighthouse budgets` workflow (also red on the W1 merge). |
 | **W3** | Double-entry ledger → Fees & Billing; bursar dashboard; gateway reconciliation | ✅ **stage A MERGED** (PR #4, `e96217a`) and **stage B MERGED** (PR #5, `193ff93`, 2026-10-15): discounts (F5-12), refunds (F5-13), credits (F5-11), transfers (F5-14), gateway settlement (F5-16), ageing + statements (F5-17/18), bursar queues (F5-19), receipts re-brand (F5-04/22) + `verify:ledger` extended to 12 steps. Instalment plans (F5-10) delivered 2026-10-21 (§4e). **Close-out still owed** (§9): real-DB ledger backfill/opening balances, manual adjustments screen (F5-20), cashbook polish (F5-15/F5-23/F5-25), per-reference settlement matching |
@@ -265,7 +265,7 @@ Closed **B-01** (the audit's critical dependency-gate failure) by upgrading to p
   2. **Browser E2E red**: one chromium crash in `02-attendance-camera` restarted the Playwright worker, wiping the in-memory E2E session cache while the server-side login limiter (10/15min/IP, deliberately not weakened for tests) kept its count — every later spec signed in afresh and hit a 429 wall (11 misleading failures from one flake). Fixed at the root: the cache now **persists to disk** under `test-results/` (wiped per run, restored at module load, written after every login) so a worker restart costs zero login attempts; the limiter-burning spec was renamed `99-` → `zz-rate-limit.spec.ts` because `axe-smoke` sorted after `99-` ("deliberately last" was luck); and `tests/lib/e2e-login-budget.test.ts` (3 static guards) keeps persistence, budget < limit, and last-position from regressing. The crash itself was an unreproducible runner flake — retries now cost nothing.
 - CI on this PR: Lint & Type Check, Build, Schema Drift, Load test, Lighthouse, Vercel all **pass**. Mobile (Expo) `expo-doctor` still fails — pre-existing on `main` since at least #16, untouched here (local: typecheck exit 0, expo-doctor 16/18 with the 2 failures being network-dependent checks that can't run in this sandbox). Docker Publish failing in ~9s on `main` is B-18/Phase-1 release-path work for the next slice.
 
-**Register state after this session**: B-01 ✅, B-02 ✅, B-15-web ✅; B-03/B-05/B-07/B-08 partial; B-06 ✅ merged (PR #40); B-04 ✅ merged (PR #41); **B-16 ✅ merged (PR #42, main `f347f55`)**; **B-17 🟡 implemented on `arena/50d27962-famex-os`, pending CI real-Postgres evidence and PR**; open P0s: B-12 (DB least-privilege/RLS fail-open), B-13 (JSON stores → Postgres), B-14 (privacy/retention); B-09/B-18 code-ables are complete (§4k), infrastructure follow-ups remain owner-bound. B-10/B-11/B-19 remain infra-blocked. After B-17, start the requested cross-role backend-source-of-truth sweep as its own feature slice.
+**Register state after this session**: B-01 ✅, B-02 ✅, B-15-web ✅; B-03/B-05/B-07/B-08 partial; B-06 ✅ merged (PR #40); B-04 ✅ merged (PR #41); **B-16 ✅ merged (PR #42, main `f347f55`)**; **B-17 ✅ implemented, real-Postgres verified in CI, PR #43 open on `arena/50d27962-famex-os`**; open P0s: B-12 (DB least-privilege/RLS fail-open), B-13 (JSON stores → Postgres), B-14 (privacy/retention); B-09/B-18 code-ables are complete (§4k), infrastructure follow-ups remain owner-bound. B-10/B-11/B-19 remain infra-blocked. After B-17, start the requested cross-role backend-source-of-truth sweep as its own feature slice.
 
 ## 4k. Phase 1 remainder — release path: B-09 fixed, B-18 code-ables done, mobile CI unblocked (2026-11-08, branch `arena/e697eea8-famex-os`)
 
@@ -425,7 +425,7 @@ rendering, and the journal's honest empty state.
 
 ## 5. Gates: commands + latest evidence + blockers
 
-Run from repo root. The latest B-17 local evidence is summarized in §4r. B-17's real-Postgres loop is pending CI; historical CI outcomes below remain accurate for their named PRs. Older delivery-gate evidence (2026-10-21, §§4f–4g), the 2026-10-23 audit recheck (§4h), the B-01 session (§4j) and the Vercel-degradation session (§4l) are superseded by it.
+Run from repo root. The latest B-17 local and CI evidence is summarized in §4r. Historical CI outcomes below remain accurate for their named PRs. Older delivery-gate evidence (2026-10-21, §§4f–4g), the 2026-10-23 audit recheck (§4h), the B-01 session (§4j) and the Vercel-degradation session (§4l) are superseded by it.
 
 | Gate | Command | Result (actual output) |
 |---|---|---|
@@ -447,7 +447,7 @@ Run from repo root. The latest B-17 local evidence is summarized in §4r. B-17's
 | ledger loop | `npm run verify:ledger` (`scripts/verify-ledger-loop.ts`) | **Blocked locally** (no Postgres). Runs in CI's `schema-drift` job on Postgres 17 — it is the only place the deferred balance trigger and the kobo reconciliation are proved for real |
 | fee-payment replay loop (B-04) | `npm run verify:fee-replay` (`scripts/verify-fee-payment-replay.ts`) | **Blocked locally** (no Postgres). Runs in CI's `schema-drift` job on Postgres 17 (§4p): concurrent duplicate completions, binding-conflict matrix, attempt state machine, offline review lifecycle, provider reversals + providerEventId dedupe, ledger-to-document reconciliation to the kobo — driving the REAL service, not a mirror |
 | finance lifecycle loop (B-16) | `npm run verify:finance` (`scripts/verify-finance-lifecycle.ts`) | Historical PR #42 CI verified against Postgres 17; see §4q and PR record comment `issuecomment-6777912198` |
-| academic lifecycle loop (B-17) | `npm run verify:student-lifecycle` (`scripts/verify-student-lifecycle.ts`) | Local real Prisma/Postgres unavailable (native engine download host blocked); configured in Schema Drift CI on real Postgres. Result pending; do not merge until green |
+| academic lifecycle loop (B-17) | `npm run verify:student-lifecycle` (`scripts/verify-student-lifecycle.ts`) | **PASS in GitHub CI run `43156704166`, Schema Drift job `130978206447`, against Postgres 17**; includes transfer, prior-session immutability, capacity, withdrawal/re-entry, promotion/repeat from compiled results, elective change and audit rows |
 | DB gates + Browser E2E | `check:drift`, migration apply, `verify:rls` + `verify:rls:coverage`, `verify:admissions`, `verify:ledger`, `db:seed*`, `npx playwright test` | **Passed in GitHub CI on PR #14 (`8704113`) and again on merged `main` (`c586c4a`)**: Schema Drift applied `20261021120000_assignments_virtual_classes` to clean Postgres 17 with no drift and verified RLS/admissions/ledger; Browser E2E seeded FIS and passed the full CBT sit→submit→marked, JSS1A attendance lock, assignment create→submit→grade, and live-class join/launch journeys. Local sandbox still has no Postgres, but the Next production build compiled locally. `check:readiness` still needs a seeded school and has no CI step; run it on staging after migration/seed. |
 | Lighthouse budgets | GitHub `Lighthouse budgets` workflow | Green since PR #12 (`4422fe9`, 2026-10-20): home performance 0.88, LCP 3845ms, TBT 53ms, accessibility 0.96 (medians). The §4n home redesign regressed home LCP to 7950ms on first submit; §4n.1 records the forensics and the fixes at this branch's head. Variance-prone — judge the exact PR head, never a single run. |
 
@@ -790,9 +790,9 @@ as `verify:ledger` / `verify:fee-replay`).
 
 Implements F7-09 lifecycle reliability without claiming the wider catalogue feature is complete. `lib/student-lifecycle.ts` provides dry-run/commit operations, locked capacity checks, audit rows, lifecycle exception reporting, class transfer, withdrawal, re-entry, elective changes and guardian-contact synchronization. Promotion/repeat remain on the academic promotion service, now guarded for cohort capacity, class drift, per-student decision audit and caller idempotency. Legacy direct class/status mutations are rejected; direct elective writes were removed. Admin class-manager and teacher elective screens review plans before committing; writes require idempotency keys.
 
-**Real-Postgres verification** (`scripts/verify-student-lifecycle.ts`, `npm run verify:student-lifecycle`, added to Schema Drift CI): fixtures span `2025/2026`, `2026/2027` and the next promotion target session; checks transfer without rewriting prior-session history, capacity overflow/refusal, withdrawal and re-entry with login-token revocation, promotion vs repeat decisions from compiled annual results, elective dry-run/commit, and decision/audit records. Script is destructive only to its uniquely named synthetic school and self-cleans. It has NOT run locally against Prisma/Postgres because this sandbox cannot fetch Prisma's native engine from `binaries.prisma.sh`; the CI Postgres result is required before merge.
+**Real-Postgres verification** (`scripts/verify-student-lifecycle.ts`, `npm run verify:student-lifecycle`, added to Schema Drift CI): fixtures span `2025/2026`, `2026/2027` and the next promotion target session; checks transfer without rewriting prior-session history, capacity overflow/refusal, withdrawal and re-entry with login-token revocation, promotion vs repeat decisions from compiled annual results, elective dry-run/commit, and decision/audit records. Script is destructive only to its uniquely named synthetic school and self-cleans. The local sandbox cannot fetch Prisma's native engine from `binaries.prisma.sh`; **the verifier passed against CI's real Postgres 17 service** in run `43156704166` (Schema Drift job `130978206447`).
 
-**Local gates at this handoff edit:** typecheck 0; Vitest **116 files / 1,597 tests passed** (including two mobile suites after `npm ci --ignore-scripts --prefix mobile`); lint passes; Prettier clean; `check:modules` passes (23 declared/used modules; 32 owned admin API dirs, 82 guards); boundary/features/orphans/dead-ui/tenant coverage pass; brand audit remains at baseline **71 / 37**; project audit has zero blockers and 16 existing warnings; production build exits 0 with a stubbed Prisma engine (initialization warnings are expected; this is not runtime DB proof). Real lifecycle integration and all GitHub PR CI checks remain pending.
+**Local gates at this handoff edit:** typecheck 0; Vitest **116 files / 1,597 tests passed** (including two mobile suites after `npm ci --ignore-scripts --prefix mobile`); lint passes; Prettier clean; `check:modules` passes (23 declared/used modules; 32 owned admin API dirs, 82 guards); boundary/features/orphans/dead-ui/tenant coverage pass; brand audit remains at baseline **71 / 37**; project audit has zero blockers and 16 existing warnings; production build exits 0 with a stubbed Prisma engine (initialization warnings are expected; this is not runtime DB proof). Real lifecycle integration passed in CI; all 9 PR #43 checks passed: Lint & Type Check, Schema Drift, Mobile (Expo), Browser E2E, Build, Load test, Lighthouse CI, Vercel and Vercel Preview Comments. Run `43156704166` also ran all legacy DB verifiers green; Lighthouse run `43156704146` passed (home LCP median 3964ms, admissions 3617ms).
 
 **Founder follow-up request (not completed by B-17):** audit and close the cross-role source-of-truth/UI-feedback gaps. Acceptance: admin, tutor, student progress, marks/scores, exam duration/questions/attempt scoring and report cards read/write only through authenticated, role-ordered server APIs; teacher-uploaded exam questions reach the correct students and scoring is server-authoritative; duration and question sets are server-derived; report-card displays use stored/released backend data; every mutation provides loading/disabled states and contextual success/error toasts. Preserve offline-first marks/exams and the existing E2E contracts. This is a separate, broad feature sweep — do not claim it is completed merely because routes exist or static UI audits pass. Current `check:tenant-coverage` reports the established 14-route uncovered baseline; review those routes during that sweep. Existing targeted foundations include F4-04/F4-12 question lifecycle, F6-01/F6-02 scoring, F7-01..F7-04 results/report cards, and `lib/exams.ts` duration rules.
 
@@ -946,9 +946,9 @@ Implements F7-09 lifecycle reliability without claiming the wider catalogue feat
 
 ---
 
-## 9. Next session: B-17 CI evidence, then backend-source-of-truth + UX sweep
+## 9. Next session: backend-source-of-truth + UX sweep (B-17 complete)
 
-**Current stop-point (2026-11-12, branch `arena/50d27962-famex-os`, base `f347f55`):** finish B-17 by getting the schema-drift/real-Postgres verifier green in CI, fixing any surfaced issues, rerunning required gates, then updating this handoff and opening a PR from this branch. Do not merge while any check is red. B-17 is not deployed. Once complete, scope the requested admin/tutor/student/exam/report-card backend synchronization as a separate feature slice; acceptance is recorded in §4r. The following older deployment notes remain operational context, not the current workstream.
+**Current stop-point (2026-11-12, branch `arena/50d27962-famex-os`, base `f347f55`):** B-17 is committed (`46d7e2e`), pushed, PR #43 is open, and all 9 required PR checks are green. The real-Postgres verifier passed in CI; no deployment or merge has occurred. Next, continue with the founder-requested admin/tutor/student/exam/report-card backend synchronization and toast UX as a separate feature slice; acceptance is recorded in §4r. Preserve the current green PR record and do not merge without owner direction. The following older deployment notes remain operational context, not the current workstream.
 
 **Historical Vercel degradation stop-point (2026-11-09, branch `arena/a6b381c5-famex-os`, base `c0a2fd9`):**
 The founder's "UI not showing on Vercel" report had TWO stacked walls, both now fixed in code:
@@ -973,11 +973,11 @@ pages (about, academics, admissions…) keep the existing shell until then. Sinc
 B-06 (role×page×API entitlement matrix) MERGED (PR #40, `e56c9a6`, §4o, Vercel production
 READY), and Phase 3 finance integrity opened: **B-04** (fee-payment replay binding + offline
 review lifecycle + provider reversals) MERGED as PR #41 → main `9eb558a` (Vercel production
-READY/PROMOTED, `dpl_wsH3AAcwzc2TweMTmrQuw8sccLQf`), and **B-16** (finance lifecycle controls —
+READY/PROMOTED, `dpl_wsH3AAcwzc2TweMTmrQuw8sccLQf`), and B-16 (finance lifecycle controls —
 DocumentSequence numbering, expense maker-checker, per-reference settlement claims, refund
-payout proof, admin receipts, due-date fee locks) is recorded in §4q on branch
-`arena/7a059201-famex-os`. The next engineering slice is **B-17 — academic lifecycle
-transitions** (single audited promotion/transfer service with dry-run + exception reports).
+payout proof, admin receipts, due-date fee locks) is merged in PR #42 at `f347f55`. B-17
+academic lifecycle transitions are implemented and verified on the current branch; PR #43 is
+open. The broad backend-source-of-truth and toast UX sweep follows as a separate slice.
 
 **Owner actions — the ACTUAL Vercel fix (agent cannot and must not do these):**
 
@@ -1018,14 +1018,14 @@ transitions** (single audited promotion/transfer service with dry-run + exceptio
    #41 → `9eb558a`): attempt-first state machine, exact-binding replay, guarded atomic
    transitions, offline review completion/rejection, provider refund/chargeback reversals
    with `providerEventId` idempotency, `verify:fee-replay` CI gate. B-16 finance lifecycle
-   ✅ DONE (§4q, this branch's PR): DocumentSequence numbering, zero-total guards, cash
+   ✅ MERGED (§4q, PR #42 → `f347f55`): DocumentSequence numbering, zero-total guards, cash
    reference rules, expense maker-checker, mandatory + replay-guarded credit transfers,
    per-reference settlement claims, refund payout proof, admin receipt issuance, due-date
-   fee locks, `verify:finance` CI gate. **Next: B-17 academic lifecycle transitions**
-   (promotion/subject rollover gaps, transfers not updating enrolments/subjects/capacity —
-   required fix: single audited lifecycle service with dry-run + exception reports;
-   evidence: promotion/repeat/transfer/withdrawal/re-entry/elective-change/capacity-
-   overflow integration tests across two sessions).
+   fee locks, `verify:finance` CI gate. **B-17 academic lifecycle transitions are complete
+   in PR #43** (audited service, dry-runs, capacity enforcement, promotion/repeat,
+   transfer/withdrawal/re-entry/electives, real-Postgres CI verifier across sessions).
+   Next: founder-requested backend-source-of-truth + toast UX sweep (§4r), scoped as a
+   separate feature slice.
 3. **Owner reminders (not agent work, listed in `docs/RELEASE-GOVERNANCE.md` §2):** protect
    `main` (7 named required checks), enable Dependabot alerts + code/secret scanning, create
    the `production` environment (then a one-line PR wires it into docker-publish), B-12 DB
