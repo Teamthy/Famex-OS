@@ -157,7 +157,6 @@ test.describe("Super Admin bootstrap, MFA and DevOps controls", () => {
 
   test("password login requires MFA and the dashboard safely retries one audited failure", async ({
     page,
-    context,
     request,
   }) => {
     test.setTimeout(90_000);
@@ -194,18 +193,17 @@ test.describe("Super Admin bootstrap, MFA and DevOps controls", () => {
     expect(overviewBody.failedJobs).toHaveLength(1);
     expect(JSON.stringify(overviewBody)).not.toContain(sensitiveSentinel);
 
-    const origin = new URL(process.env.E2E_BASE_URL || "http://127.0.0.1:3100").origin;
-    await context.addCookies([
-      {
-        name: "fis_session",
-        value: cookie![1],
-        url: origin,
-        path: "/",
-        httpOnly: true,
-        sameSite: "Lax",
-      },
-    ]);
-    await page.goto("/super-admin");
+    // Exercise the real browser MFA form too; do not inject a forged session
+    // cookie into the page context after the API-only assertions above.
+    await page.goto("/login");
+    const acceptCookies = page.getByRole("button", { name: "Accept All" });
+    if (await acceptCookies.isVisible().catch(() => false)) await acceptCookies.click();
+    await page.getByLabel("Email", { exact: true }).fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(password);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.getByLabel("Verification code").fill(totpCode(totpSecretForTest));
+    await page.getByRole("button", { name: "Verify & sign in" }).click();
+    await page.waitForURL(/\/super-admin(?:$|[/?#])/);
     await expect(page.getByRole("heading", { name: /Super Admin · DevOps/i })).toBeVisible();
     await expect(page.getByRole("link", { name: "School admin" })).toHaveAttribute(
       "href",

@@ -112,7 +112,14 @@ export async function POST(request: NextRequest) {
     examId: input.examId,
     type: typeMap[q.type],
     questionText: q.questionText,
-    options: q.options ? (q.options as Prisma.InputJsonValue) : Prisma.JsonNull,
+    options: q.options
+      ? (q.options as Prisma.InputJsonValue)
+      : q.type === "TRUE_FALSE"
+        ? ([
+            { key: "TRUE", text: "True" },
+            { key: "FALSE", text: "False" },
+          ] as Prisma.InputJsonValue)
+        : Prisma.JsonNull,
     correctKey: q.correctKey ?? null,
     correctText: q.correctText ?? null,
     marks: q.marks,

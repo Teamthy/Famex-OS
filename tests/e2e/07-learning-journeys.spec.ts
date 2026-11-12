@@ -170,6 +170,10 @@ test.describe("learning journeys", () => {
       await expect(studentCard).toContainText(/submitted/i);
 
       await page.reload();
+      // The persistent consent panel is fixed over the bottom of the viewport;
+      // acknowledge it in the test browser before interacting with row actions.
+      const acceptCookies = page.getByRole("button", { name: "Accept All" });
+      if (await acceptCookies.isVisible().catch(() => false)) await acceptCookies.click();
       const teacherCard = page.getByTestId("teacher-assignment-card").filter({ hasText: title });
       await teacherCard.getByRole("button", { name: /view submissions/i }).click();
       const submissionRow = page

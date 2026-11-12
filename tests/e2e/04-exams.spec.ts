@@ -187,6 +187,10 @@ test.describe("exams", () => {
     const examPackage = await (await packageResponsePromise).json();
     expect(examPackage.exam.durationMinutes).toBe(13);
     expect(examPackage.questions).toHaveLength(2);
+    expect(examPackage.questions[1].options).toEqual([
+      { key: "TRUE", text: "True" },
+      { key: "FALSE", text: "False" },
+    ]);
     expect(
       examPackage.questions.every(
         (question: Record<string, unknown>) => !("correctKey" in question),

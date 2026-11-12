@@ -17,6 +17,11 @@ const slug = `verify-super-admin-${stamp}`;
 const email = `super-admin-${stamp}@example.test`;
 const outputPath = join("/tmp", `${slug}.json`);
 const retryOutputPath = join("/tmp", `${slug}-retry.json`);
+// The verifier decrypts the bootstrap-created seed in this parent process as
+// well as its child CLI. Give both processes the same disposable key; this is
+// synthetic CI-only material and never a deployment secret.
+const TEST_MFA_ENCRYPTION_KEY = "ci-super-admin-mfa-encryption-key-32chars";
+process.env.MFA_ENCRYPTION_KEY = TEST_MFA_ENCRYPTION_KEY;
 let schoolId: string | null = null;
 
 function check(condition: boolean, message: string) {
@@ -35,7 +40,7 @@ function runBootstrap(output: string) {
       SUPER_ADMIN_NAME: "CI Super Admin",
       SUPER_ADMIN_BOOTSTRAP_CONFIRM: "CREATE_INITIAL_FAMEX_SUPER_ADMIN",
       SUPER_ADMIN_BOOTSTRAP_OUTPUT: output,
-      MFA_ENCRYPTION_KEY: "ci-super-admin-mfa-encryption-key-32chars",
+      MFA_ENCRYPTION_KEY: TEST_MFA_ENCRYPTION_KEY,
     },
   });
 }
