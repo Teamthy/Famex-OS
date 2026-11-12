@@ -57,7 +57,9 @@ export default function HomeFooter() {
               <p className="mt-1 text-xs font-semibold text-[#52645f]">Welcome to</p>
             </div>
           </div>
-          <h2 className={`${SERIF} mt-5 max-w-xl text-[clamp(2.3rem,4vw,3.8rem)] uppercase leading-[.92] text-[#123a35]`}>
+          <h2
+            className={`${SERIF} mt-5 max-w-xl text-[clamp(2.3rem,4vw,3.8rem)] uppercase leading-[.92] text-[#123a35]`}
+          >
             {schoolName}
           </h2>
           <p className="mt-4 max-w-md text-sm leading-6 text-[#52645f]">
@@ -104,7 +106,9 @@ export default function HomeFooter() {
 
       <div className="bg-[#123a35] text-white">
         <div className="mx-auto flex max-w-[1320px] flex-col gap-2 px-5 py-5 text-xs sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-12">
-          <p className="font-semibold">© {year} {schoolName}. All rights reserved.</p>
+          <p className="font-semibold">
+            © {year} {schoolName}. All rights reserved.
+          </p>
           <p className="text-white/90">Powered by {PRODUCT_NAME}.</p>
         </div>
       </div>

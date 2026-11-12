@@ -17,7 +17,9 @@ export default function OutcomesBand() {
             <p className="text-[10px] font-bold uppercase tracking-[.2em] text-[#28645b]">
               The school journey
             </p>
-            <h2 className={`${SERIF} mt-2 text-[clamp(2.2rem,4.3vw,3.7rem)] uppercase leading-[.92] text-[#123a35]`}>
+            <h2
+              className={`${SERIF} mt-2 text-[clamp(2.2rem,4.3vw,3.7rem)] uppercase leading-[.92] text-[#123a35]`}
+            >
               A clear path, <span className="text-[#28645b]">every step.</span>
             </h2>
           </div>
@@ -33,7 +35,9 @@ export default function OutcomesBand() {
               key={fact.label}
               className={`flex min-h-[190px] flex-col rounded-[22px] p-5 shadow-[0_8px_28px_rgba(8,45,32,.06)] sm:min-h-[215px] sm:p-7 ${index === 1 ? "bg-[#e9f0dc]" : "bg-white"}`}
             >
-              <p className={`${SERIF} text-[clamp(2rem,4vw,3.1rem)] uppercase leading-none text-[#123a35]`}>
+              <p
+                className={`${SERIF} text-[clamp(2rem,4vw,3.1rem)] uppercase leading-none text-[#123a35]`}
+              >
                 {fact.value}
               </p>
               <p className="mt-4 text-[10px] font-bold uppercase tracking-[.14em] text-[#123a35] sm:text-xs">
