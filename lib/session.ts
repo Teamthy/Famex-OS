@@ -4,6 +4,7 @@ import type { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { NextResponse } from "next/server";
+import { MFA_REQUIRED_ROLES, roleIn, roleMatches } from "@/lib/roles";
 
 export const SESSION_COOKIE = "fis_session";
 
@@ -137,11 +138,23 @@ export async function getRawSession() {
 }
 
 async function verifyCurrentSession(user: SessionUser): Promise<SessionUser | null> {
-  let dbUser: { tokenVersion: number; isActive: boolean; isSuspended: boolean } | null;
+  let dbUser: {
+    tokenVersion: number;
+    isActive: boolean;
+    isSuspended: boolean;
+    mfaEnabled: boolean;
+    mfaSecretEncrypted: string | null;
+  } | null;
   try {
     dbUser = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { tokenVersion: true, isActive: true, isSuspended: true },
+      select: {
+        tokenVersion: true,
+        isActive: true,
+        isSuspended: true,
+        mfaEnabled: true,
+        mfaSecretEncrypted: true,
+      },
     });
   } catch (error) {
     logger.error("Identity state lookup failed — denying request", {
@@ -153,6 +166,11 @@ async function verifyCurrentSession(user: SessionUser): Promise<SessionUser | nu
   if (!dbUser) return null;
   if (!dbUser.isActive || dbUser.isSuspended) return null;
   if (dbUser.tokenVersion > (user.tokenVersion ?? 0)) return null;
+  // Defence in depth: a legacy/stale token cannot keep using a Super Admin
+  // workspace after MFA is removed or misconfigured in the database.
+  if (roleIn(user.role, MFA_REQUIRED_ROLES) && (!dbUser.mfaEnabled || !dbUser.mfaSecretEncrypted)) {
+    return null;
+  }
   return user;
 }
 
@@ -234,7 +252,7 @@ export async function checkRole(allowed: UserRole[]): Promise<SessionCheck> {
   // past its token expiry (or an invalid/revoked signature).
   if (!user) return { ok: false, reason: "BAD_SIGNATURE_OR_EXPIRED" };
 
-  if (!allowed.includes(user.role)) return { ok: false, reason: "WRONG_ROLE", role: user.role };
+  if (!roleMatches(user.role, allowed)) return { ok: false, reason: "WRONG_ROLE", role: user.role };
 
   try {
     const dbUser = await prisma.user.findUnique({
@@ -326,7 +344,7 @@ export class IdentityCheckUnavailableError extends Error {
  */
 export async function requireRole(allowed: UserRole[]) {
   const user = await getSession();
-  if (!user || !allowed.includes(user.role)) return null;
+  if (!user || !roleMatches(user.role, allowed)) return null;
   return user;
 }
 

@@ -45,7 +45,7 @@ Read in this order before any work:
 
 | WS | Scope (short) | Status |
 |---|---|---|
-| **REM** | Audit remediation (§4h roadmap: Phases 0–8) | 🟡 **IN PROGRESS — supersedes W-workstreams until Phase 3 is green.** PR #16 (`5ba9a16`) landed the audit package; PR #17 (`b4415d0`) closed the fixable-now launch blockers; PR #18 (`75caee3`) closed **B-01** (dependency gate) + the E2E 429-cascade fix. Phase 1 remainder (§4k): B-09 sidecar fix, B-18 code-ables (dual-scope audit gate, dependabot, digest pinning, migration single-flight), mobile CI unblock. Phase 2 identity/RBAC (**B-06**) merged in §4o (PR #40, `e56c9a6`, deployed READY). Phase 3 finance integrity: **B-04** merged (PR #41, main `9eb558a`, §4p, Vercel production READY); **B-16** finance lifecycle done in §4q (branch `arena/7a059201-famex-os`, PR pending); next: **B-17** academic lifecycle transitions. |
+| **REM** | Audit remediation (§4h roadmap: Phases 0–8) | 🟡 **IN PROGRESS — supersedes W-workstreams until Phase 3 is green.** PR #16 (`5ba9a16`) landed the audit package; PR #17 (`b4415d0`) closed fixable-now launch blockers; PR #18 (`75caee3`) closed B-01; PR #19 (`c0a2fd9`) closed B-09/B-18 code-ables + mobile CI. Phase 2 B-06 merged (PR #40); Phase 3 B-04 merged (PR #41) and B-16 finance lifecycle merged as PR #42 (`f347f55`). **B-17 academic lifecycle is implemented on `arena/50d27962-famex-os`, PR #43 open**; real-Postgres verifier passed in CI run `43156704166` and all 9 PR checks are green. |
 | **W1** | Strip EDUos platform + Ykay arms; single-school boot; brand tokens; Licence & Usage; re-cut audit | ✅ **MERGED into main** — PR #1, 2026-10-14 (commits `a9451cd`, `ccaab0b` + this handoff commit). Gates green at merge; DB gates environment-blocked and stated in the PR. |
 | **W2** | Module registry drives nav/routes/entitlements; settings framework; first-run wizard; `check:modules` | ✅ **merged** — PR #2, merge commit `74f236c` (branch `arena/9abf8aef-famex-os`, 2026-10-14). All CI jobs green except the pre-existing red `Lighthouse budgets` workflow (also red on the W1 merge). |
 | **W3** | Double-entry ledger → Fees & Billing; bursar dashboard; gateway reconciliation | ✅ **stage A MERGED** (PR #4, `e96217a`) and **stage B MERGED** (PR #5, `193ff93`, 2026-10-15): discounts (F5-12), refunds (F5-13), credits (F5-11), transfers (F5-14), gateway settlement (F5-16), ageing + statements (F5-17/18), bursar queues (F5-19), receipts re-brand (F5-04/22) + `verify:ledger` extended to 12 steps. Instalment plans (F5-10) delivered 2026-10-21 (§4e). **Close-out still owed** (§9): real-DB ledger backfill/opening balances, manual adjustments screen (F5-20), cashbook polish (F5-15/F5-23/F5-25), per-reference settlement matching |
@@ -265,7 +265,7 @@ Closed **B-01** (the audit's critical dependency-gate failure) by upgrading to p
   2. **Browser E2E red**: one chromium crash in `02-attendance-camera` restarted the Playwright worker, wiping the in-memory E2E session cache while the server-side login limiter (10/15min/IP, deliberately not weakened for tests) kept its count — every later spec signed in afresh and hit a 429 wall (11 misleading failures from one flake). Fixed at the root: the cache now **persists to disk** under `test-results/` (wiped per run, restored at module load, written after every login) so a worker restart costs zero login attempts; the limiter-burning spec was renamed `99-` → `zz-rate-limit.spec.ts` because `axe-smoke` sorted after `99-` ("deliberately last" was luck); and `tests/lib/e2e-login-budget.test.ts` (3 static guards) keeps persistence, budget < limit, and last-position from regressing. The crash itself was an unreproducible runner flake — retries now cost nothing.
 - CI on this PR: Lint & Type Check, Build, Schema Drift, Load test, Lighthouse, Vercel all **pass**. Mobile (Expo) `expo-doctor` still fails — pre-existing on `main` since at least #16, untouched here (local: typecheck exit 0, expo-doctor 16/18 with the 2 failures being network-dependent checks that can't run in this sandbox). Docker Publish failing in ~9s on `main` is B-18/Phase-1 release-path work for the next slice.
 
-**Register state after this session**: B-01 ✅, B-02 ✅, B-15-web ✅; B-03/B-05/B-07/B-08 partial; **B-06 ✅ merged (PR #40, §4o)**; **B-04 ✅ merged (PR #41, main `9eb558a`, §4p)**; **B-16 ✅ fixed (§4q — numbering sequences, maker-checker, per-reference settlements, payout proof, receipts, due-date fee locks; PR pending from branch `arena/7a059201-famex-os`)**; open P0s: B-09 (OCI sidecar), B-12 (DB least-privilege/RLS fail-open), B-13 (JSON stores → Postgres), B-14 (privacy/retention); P1: B-17 (promotion/transfer lifecycle service — next), B-18 (release hygiene); B-10/B-11/B-19 blocked on infra. Roadmap order: Phase 3 continues with B-17, then remaining Phase 1 items.
+**Register state after this session**: B-01 ✅, B-02 ✅, B-15-web ✅; B-03/B-05/B-07/B-08 partial; B-06 ✅ merged (PR #40); B-04 ✅ merged (PR #41); **B-16 ✅ merged (PR #42, main `f347f55`)**; **B-17 ✅ implemented, real-Postgres verified in CI, PR #43 open on `arena/50d27962-famex-os`**; open P0s: B-12 (DB least-privilege/RLS fail-open), B-13 (JSON stores → Postgres), B-14 (privacy/retention); B-09/B-18 code-ables are complete (§4k), infrastructure follow-ups remain owner-bound. B-10/B-11/B-19 remain infra-blocked. After B-17, start the requested cross-role backend-source-of-truth sweep as its own feature slice.
 
 ## 4k. Phase 1 remainder — release path: B-09 fixed, B-18 code-ables done, mobile CI unblocked (2026-11-08, branch `arena/e697eea8-famex-os`)
 
@@ -425,12 +425,12 @@ rendering, and the journal's honest empty state.
 
 ## 5. Gates: commands + latest evidence + blockers
 
-Run from repo root. The table below is the **latest actual evidence** from the B-16 finance-lifecycle session (2026-11-10, branch `arena/7a059201-famex-os`, base `9eb558a`, §4q); rows not re-listed there were re-run unchanged. Older delivery-gate evidence (2026-10-21, §§4f–4g), the 2026-10-23 audit recheck (§4h), the B-01 session (§4j) and the Vercel-degradation session (§4l) are superseded by it.
+Run from repo root. The latest B-17 local and CI evidence is summarized in §4r. Historical CI outcomes below remain accurate for their named PRs. Older delivery-gate evidence (2026-10-21, §§4f–4g), the 2026-10-23 audit recheck (§4h), the B-01 session (§4j) and the Vercel-degradation session (§4l) are superseded by it.
 
 | Gate | Command | Result (actual output) |
 |---|---|---|
 | typecheck | `npx tsc --noEmit` | exit 0 — no errors (on zod 4.6.7 / next 16.4.5 / sentry 10.78.0) |
-| unit/integration | `npx vitest run` | `Test Files 115 passed (115)` / `Tests 1587 passed (1587)` — includes the 2 mobile files (install `mobile/` deps first, §6), the 101 RBAC-entitlement guards (§4o), the rewritten 59-test fee-payment-service suite (§4p) and the 30-test B-16 lifecycle suite (§4q) |
+| unit/integration | `npx vitest run` | B-17 latest local run: `Test Files 116 passed (116)` / `Tests 1597 passed (1597)`; includes mobile suites, RBAC guards, and lifecycle/promotion suites |
 | lint | `npm run lint` | `✖ 119 problems (0 errors, 119 warnings)` — no errors |
 | formatting | `npx prettier --check .` | `All matched files use Prettier code style!` |
 | dep audit | `npm run audit:deps` | **PASS, dual scope (§4k):** `[root] 0 high, 0 critical, 14 moderate, 4 low` (EXCLUSIONS empty) + `[mobile] 3 high` all excluded via the dated `decode-uri-component` chain entry → `Dependency audit passed (root + mobile)`, exit 0. Closes B-01; adds the mobile gate |
@@ -439,14 +439,15 @@ Run from repo root. The table below is the **latest actual evidence** from the B
 | feature IDs | `npm run check:features` | OK — `Catalogue: 331 features parsed` / `§25 declares TOTAL 331 — matches.` |
 | orphans | `npm run check:orphans` | `All 94 portal pages are reachable.` |
 | dead UI | `npm run check:dead-ui` | `Checked 102 portal pages.` / `No dead UI found.` (student results page ALLOWED: "Assign" is a column header, not a button) |
-| modules | `npm run check:modules` | `Admin API directories: 31 owned, 81 guard calls.` / `Modules, nav and routes agree.` |
+| modules | `npm run check:modules` | `Modules: 23 declared, 23 used by nav/API. Admin API directories: 32 owned, 82 guard calls. Modules, nav and routes agree.` |
 | client boundary | `npm run check:boundary` | `Checking 173 client component(s)…` / `No client component reaches a server-only module.` |
 | prisma schema | `npx prisma validate` | `The schema at prisma/schema.prisma is valid 🚀` (needs a dummy `DATABASE_URL`) |
 | production build | `npm run build` (with §6 stub-engine env) | exit 0 — compiles on next 16.4.5 / sentry 10.78.0 / zod 4.6.7 |
 | school-scope coverage (legacy script name) | `npm run check:tenant-coverage` | 14 UNCOVERED = CI baseline (`--max-uncovered 14`), all pre-existing; the WhatsApp webhook is a reviewed provider-global exemption printed on every run (Meta callbacks carry a provider message id, not a school context). This is a `schoolId` integrity ratchet, not evidence of a multi-tenant product surface |
 | ledger loop | `npm run verify:ledger` (`scripts/verify-ledger-loop.ts`) | **Blocked locally** (no Postgres). Runs in CI's `schema-drift` job on Postgres 17 — it is the only place the deferred balance trigger and the kobo reconciliation are proved for real |
 | fee-payment replay loop (B-04) | `npm run verify:fee-replay` (`scripts/verify-fee-payment-replay.ts`) | **Blocked locally** (no Postgres). Runs in CI's `schema-drift` job on Postgres 17 (§4p): concurrent duplicate completions, binding-conflict matrix, attempt state machine, offline review lifecycle, provider reversals + providerEventId dedupe, ledger-to-document reconciliation to the kobo — driving the REAL service, not a mirror |
-| finance lifecycle loop (B-16) | `npm run verify:finance` (`scripts/verify-finance-lifecycle.ts`) | **Blocked locally** (no Postgres). Runs in CI's `schema-drift` job on Postgres 17 (§4q): 40 racing DocumentSequence draws, 12 racing accrual postings, due-date fee-lock schedules, settlement claim/re-claim/over-gross fixtures, refund proof refusal, racing expense approvers, transferId replay, whole-ledger zero-kobo reconciliation — driving the REAL services, not mirrors |
+| finance lifecycle loop (B-16) | `npm run verify:finance` (`scripts/verify-finance-lifecycle.ts`) | Historical PR #42 CI verified against Postgres 17; see §4q and PR record comment `issuecomment-6777912198` |
+| academic lifecycle loop (B-17) | `npm run verify:student-lifecycle` (`scripts/verify-student-lifecycle.ts`) | **PASS in GitHub CI run `43156704166`, Schema Drift job `130978206447`, against Postgres 17**; includes transfer, prior-session immutability, capacity, withdrawal/re-entry, promotion/repeat from compiled results, elective change and audit rows |
 | DB gates + Browser E2E | `check:drift`, migration apply, `verify:rls` + `verify:rls:coverage`, `verify:admissions`, `verify:ledger`, `db:seed*`, `npx playwright test` | **Passed in GitHub CI on PR #14 (`8704113`) and again on merged `main` (`c586c4a`)**: Schema Drift applied `20261021120000_assignments_virtual_classes` to clean Postgres 17 with no drift and verified RLS/admissions/ledger; Browser E2E seeded FIS and passed the full CBT sit→submit→marked, JSS1A attendance lock, assignment create→submit→grade, and live-class join/launch journeys. Local sandbox still has no Postgres, but the Next production build compiled locally. `check:readiness` still needs a seeded school and has no CI step; run it on staging after migration/seed. |
 | Lighthouse budgets | GitHub `Lighthouse budgets` workflow | Green since PR #12 (`4422fe9`, 2026-10-20): home performance 0.88, LCP 3845ms, TBT 53ms, accessibility 0.96 (medians). The §4n home redesign regressed home LCP to 7950ms on first submit; §4n.1 records the forensics and the fixes at this branch's head. Variance-prone — judge the exact PR head, never a single run. |
 
@@ -783,6 +784,18 @@ OK (32 cited ids resolve) · `check:orphans` 94 pages reachable ·
 `check:drift` + migration apply run in CI (no local Postgres — same standing
 as `verify:ledger` / `verify:fee-replay`).
 
+
+
+### 4r. B-17 — audited academic lifecycle transitions (2026-11-12, branch `arena/50d27962-famex-os`, base `f347f55`)
+
+Implements F7-09 lifecycle reliability without claiming the wider catalogue feature is complete. `lib/student-lifecycle.ts` provides dry-run/commit operations, locked capacity checks, audit rows, lifecycle exception reporting, class transfer, withdrawal, re-entry, elective changes and guardian-contact synchronization. Promotion/repeat remain on the academic promotion service, now guarded for cohort capacity, class drift, per-student decision audit and caller idempotency. Legacy direct class/status mutations are rejected; direct elective writes were removed. Admin class-manager and teacher elective screens review plans before committing; writes require idempotency keys.
+
+**Real-Postgres verification** (`scripts/verify-student-lifecycle.ts`, `npm run verify:student-lifecycle`, added to Schema Drift CI): fixtures span `2025/2026`, `2026/2027` and the next promotion target session; checks transfer without rewriting prior-session history, capacity overflow/refusal, withdrawal and re-entry with login-token revocation, promotion vs repeat decisions from compiled annual results, elective dry-run/commit, and decision/audit records. Script is destructive only to its uniquely named synthetic school and self-cleans. The local sandbox cannot fetch Prisma's native engine from `binaries.prisma.sh`; **the verifier passed against CI's real Postgres 17 service** in run `43156704166` (Schema Drift job `130978206447`).
+
+**Local gates at this handoff edit:** typecheck 0; Vitest **116 files / 1,597 tests passed** (including two mobile suites after `npm ci --ignore-scripts --prefix mobile`); lint passes; Prettier clean; `check:modules` passes (23 declared/used modules; 32 owned admin API dirs, 82 guards); boundary/features/orphans/dead-ui/tenant coverage pass; brand audit remains at baseline **71 / 37**; project audit has zero blockers and 16 existing warnings; production build exits 0 with a stubbed Prisma engine (initialization warnings are expected; this is not runtime DB proof). Real lifecycle integration passed in CI; all 9 PR #43 checks passed: Lint & Type Check, Schema Drift, Mobile (Expo), Browser E2E, Build, Load test, Lighthouse CI, Vercel and Vercel Preview Comments. Run `43156704166` also ran all legacy DB verifiers green; Lighthouse run `43156704146` passed (home LCP median 3964ms, admissions 3617ms).
+
+**Founder follow-up request (not completed by B-17):** audit and close the cross-role source-of-truth/UI-feedback gaps. Acceptance: admin, tutor, student progress, marks/scores, exam duration/questions/attempt scoring and report cards read/write only through authenticated, role-ordered server APIs; teacher-uploaded exam questions reach the correct students and scoring is server-authoritative; duration and question sets are server-derived; report-card displays use stored/released backend data; every mutation provides loading/disabled states and contextual success/error toasts. Preserve offline-first marks/exams and the existing E2E contracts. This is a separate, broad feature sweep — do not claim it is completed merely because routes exist or static UI audits pass. Current `check:tenant-coverage` reports the established 14-route uncovered baseline; review those routes during that sweep. Existing targeted foundations include F4-04/F4-12 question lifecycle, F6-01/F6-02 scoring, F7-01..F7-04 results/report cards, and `lib/exams.ts` duration rules.
+
 ---
 
 ## 6. Environment recipes (sandbox quirks — do not rediscover)
@@ -804,7 +817,7 @@ as `verify:ledger` / `verify:fee-replay`).
 
 ## 7. Locked decisions (do not re-litigate)
 
-- Impersonation stripped entirely (F0-27). No cross-school console.
+- User impersonation remains stripped. Founder direction supersedes the F0-27 console strip: Super Admin is a distinct DevOps role for this single-school Famex deployment, with the same in-school ADMIN access as Director plus a separate operational dashboard. No EDUos surface, school switching, cross-school operations, or impersonation.
 - Boot does NOT require an admin user; first ADMIN via `db:seed`, then W2 wizard (F0-22). `/onboarding` wizard kept.
 - Brand burn-down is a **ratchet**, not zero: redis prefix (`ykay:`), cookie `ykay_session`, demo seed emails (`@ykaycollege.com`), marketing copy (about/careers/privacy), OG image, `lib/receipt.ts` receipt PDF, `lib/email.ts` sender, mobile app branding, docker-compose names all **stay in the brand baseline** and are de-branded in their owning workstream (receipts→W3, comms/email→W4, website→W12/W18, mobile→mobile WS).
 - Receipt PDFs are money documents → re-branded with the W3 ledger rework, not W1.
@@ -933,9 +946,11 @@ as `verify:ledger` / `verify:fee-replay`).
 
 ---
 
-## 9. Next session: Vercel staging is owner-blocked on its database; then Phase 2 identity/RBAC (exact stop-point)
+## 9. Next session: backend-source-of-truth + UX sweep (B-17 complete)
 
-**Where this session stopped (2026-11-09, branch `arena/a6b381c5-famex-os`, base `c0a2fd9`):**
+**Current stop-point (2026-11-12, branch `arena/50d27962-famex-os`, base `f347f55`):** B-17 is committed (`46d7e2e`), pushed, PR #43 is open, and all 9 required PR checks are green. The real-Postgres verifier passed in CI; no deployment or merge has occurred. Next, continue with the founder-requested admin/tutor/student/exam/report-card backend synchronization and toast UX as a separate feature slice; acceptance is recorded in §4r. Preserve the current green PR record and do not merge without owner direction. The following older deployment notes remain operational context, not the current workstream.
+
+**Historical Vercel degradation stop-point (2026-11-09, branch `arena/a6b381c5-famex-os`, base `c0a2fd9`):**
 The founder's "UI not showing on Vercel" report had TWO stacked walls, both now fixed in code:
 (§4l) the root layout crashed every route on the placeholder `DATABASE_URL` — fixed with honest
 degraded rendering + banner; and (§4m) the server never even started, because boot-time env
@@ -958,11 +973,11 @@ pages (about, academics, admissions…) keep the existing shell until then. Sinc
 B-06 (role×page×API entitlement matrix) MERGED (PR #40, `e56c9a6`, §4o, Vercel production
 READY), and Phase 3 finance integrity opened: **B-04** (fee-payment replay binding + offline
 review lifecycle + provider reversals) MERGED as PR #41 → main `9eb558a` (Vercel production
-READY/PROMOTED, `dpl_wsH3AAcwzc2TweMTmrQuw8sccLQf`), and **B-16** (finance lifecycle controls —
+READY/PROMOTED, `dpl_wsH3AAcwzc2TweMTmrQuw8sccLQf`), and B-16 (finance lifecycle controls —
 DocumentSequence numbering, expense maker-checker, per-reference settlement claims, refund
-payout proof, admin receipts, due-date fee locks) is recorded in §4q on branch
-`arena/7a059201-famex-os`. The next engineering slice is **B-17 — academic lifecycle
-transitions** (single audited promotion/transfer service with dry-run + exception reports).
+payout proof, admin receipts, due-date fee locks) is merged in PR #42 at `f347f55`. B-17
+academic lifecycle transitions are implemented and verified on the current branch; PR #43 is
+open. The broad backend-source-of-truth and toast UX sweep follows as a separate slice.
 
 **Owner actions — the ACTUAL Vercel fix (agent cannot and must not do these):**
 
@@ -1003,14 +1018,14 @@ transitions** (single audited promotion/transfer service with dry-run + exceptio
    #41 → `9eb558a`): attempt-first state machine, exact-binding replay, guarded atomic
    transitions, offline review completion/rejection, provider refund/chargeback reversals
    with `providerEventId` idempotency, `verify:fee-replay` CI gate. B-16 finance lifecycle
-   ✅ DONE (§4q, this branch's PR): DocumentSequence numbering, zero-total guards, cash
+   ✅ MERGED (§4q, PR #42 → `f347f55`): DocumentSequence numbering, zero-total guards, cash
    reference rules, expense maker-checker, mandatory + replay-guarded credit transfers,
    per-reference settlement claims, refund payout proof, admin receipt issuance, due-date
-   fee locks, `verify:finance` CI gate. **Next: B-17 academic lifecycle transitions**
-   (promotion/subject rollover gaps, transfers not updating enrolments/subjects/capacity —
-   required fix: single audited lifecycle service with dry-run + exception reports;
-   evidence: promotion/repeat/transfer/withdrawal/re-entry/elective-change/capacity-
-   overflow integration tests across two sessions).
+   fee locks, `verify:finance` CI gate. **B-17 academic lifecycle transitions are complete
+   in PR #43** (audited service, dry-runs, capacity enforcement, promotion/repeat,
+   transfer/withdrawal/re-entry/electives, real-Postgres CI verifier across sessions).
+   Next: founder-requested backend-source-of-truth + toast UX sweep (§4r), scoped as a
+   separate feature slice.
 3. **Owner reminders (not agent work, listed in `docs/RELEASE-GOVERNANCE.md` §2):** protect
    `main` (7 named required checks), enable Dependabot alerts + code/secret scanning, create
    the `production` environment (then a one-line PR wires it into docker-publish), B-12 DB
@@ -1067,6 +1082,18 @@ Full grouped nav table, de-AI labels, virtual-class system, pre-school→SS3 bre
 
 ---
 
-## 11. Rules pointer
+## 11. Founder direction — Super Admin for single-school Famex (F0-03/F0-27)
+
+The founder clarifies that Famex remains a **single-school deployment**; EDUos and multi-tenant school management are not part of the product. Director receives the complete ADMIN permission set within that school. Super Admin is a higher operator for the same school, with full in-school ADMIN access plus the separate DevOps workspace. Super Admin must never be available through school staff provisioning; MFA is expected. Both roles remain subject to module entitlements and existing financial/result controls. Do not add school switching, cross-tenant access, or impersonation.
+
+Current tranche: the append-only `SUPER_ADMIN` enum migration, role/navigation entitlement, Director/Super Admin→ADMIN role matching, and single-school aggregate DevOps overview are implemented. Password-only Super Admin login is refused; bootstrap creates the first account out of band with an immediate TOTP enrollment, encrypted seed, one-time recovery-code hashes and forced password rotation. MFA cannot be disabled in the web settings for this role. The dashboard exposes only redacted operational metadata and offers a single-school failed-notification retry: it requires a reason, transitions only FAILED→PENDING with an optimistic concurrency guard, and records the action in AuditLog in the same transaction. This is not a general deployment-control plane; expand operations only with explicit threat review, server-side guards and audit coverage.
+
+Full procedure and threat boundaries: [`SUPER-ADMIN-OPERATIONS.md`](SUPER-ADMIN-OPERATIONS.md).
+
+**Bootstrap ceremony:** after applying migrations, an operator with secured database access runs `npm run db:bootstrap-super-admin` once with `SUPER_ADMIN_BOOTSTRAP_CONFIRM=CREATE_INITIAL_FAMEX_SUPER_ADMIN`, `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_NAME`, `SUPER_ADMIN_BOOTSTRAP_OUTPUT` (absolute path outside the repository), and a dedicated `MFA_ENCRYPTION_KEY` (32+ chars). The command refuses an unknown/inactive school, an existing Super Admin, and a duplicate account email; an advisory lock makes concurrent runs single-winner. It writes a one-time setup bundle with mode 0600 containing a random temporary password, TOTP enrollment secret/URI and recovery codes. Transfer it securely, have the operator replace the password on first login, store recovery codes offline, then delete the bundle. Never run this against a real deployment from CI or auto-run it at boot; CI invokes the same CLI only against its isolated disposable Postgres fixture. If the bootstrap does not complete, keep the output file private and inspect the CLI result before retrying; the transaction rolls back user, recovery-code and audit writes together. If a completed bundle is lost after account creation, do not rerun bootstrap or delete audit history: suspend the account and revoke its sessions through a separately reviewed operator recovery procedure. Do not expose a public bootstrap endpoint.
+
+**Validation added:** unit tests cover the MFA-required login boundary and audited single-use retry transition; the Postgres CI job applies the enum migration, runs `verify:grading`, and runs `verify:super-admin` (which invokes the CLI and verifies the stored enum, encrypted TOTP seed, recovery hashes, audit, and one-time refusal). Browser E2E exercises password→TOTP→session, inability to disable MFA, privacy-redacted dashboard data, retry feedback/audit persistence, an offline CBT attempt/replay through server grading, and report-card API/print reads from stored data. Latest local evidence: `npx vitest run --exclude='tests/mobile/**'` passed **115 files / 1591 tests**; typecheck, feature/module/tenant-coverage/brand gates, Prettier and lint (0 errors, 119 warnings) passed. Refreshed CI `43285719993` on `27adec4` passed schema/migration, RLS, admissions, ledger, B-04/B-16/B-17 lifecycle, grading, lint/typecheck/tests, mobile, build and load, but the new Super Admin verifier failed. Follow-up CI `43287582954` on `62b0ce0` also failed that verifier; a synthetic MFA key was added to the verifier parent and the next patch wraps failures with GitHub annotations so the underlying Postgres diagnostic is visible. Its browser job ran 58 passing and exposed a missing default True/False option set in bulk-uploaded questions plus Super Admin login/consent interactions; the unrelated assignment journey was flaky under a cookie-consent overlay. The code now supplies True/False options, performs one real-browser password→MFA login (avoiding an extra rate-limited login), and accepts the consent prompt before privileged actions; the assignment E2E also acknowledges consent. Third refreshed CI `43288965907` on `5a54c12` passed lint/typecheck/tests, mobile, build, load and Lighthouse, but the Super Admin bootstrap child still failed. Browser E2E reached **60 passing**; the final auth test now reads the browser cookie jar, and the next CI run confirms its Super Admin browser journey passes. On `6c31388`, real-Postgres Schema Drift/bootstrap passed, as did lint/typecheck/tests, mobile, build, and load. Browser E2E's only failure was the delayed cookie-consent overlay intercepting the retry control (60 other tests passed); the Super Admin test now sets consent in its browser init script to avoid the timer race. Await fresh Browser E2E and check status before claiming completion. This sandbox cannot run database/browser checks because its native Prisma engine is absent.
+
+## 12. Rules pointer
 
 The 17 rules + banned moves + per-screen acceptance + DoD are in `09-master-build-prompt-go.md` §4/§7/§6/§10. They are non-negotiable. This handoff never overrides them.

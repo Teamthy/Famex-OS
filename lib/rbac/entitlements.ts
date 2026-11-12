@@ -31,9 +31,11 @@
 import { ALL_ROLES, type Role } from "@/lib/roles";
 
 /** The protected top-level workspaces (mirrors middleware's prefixes). */
-export type PortalArea = "admin" | "admin-admissions" | "teacher" | "parent" | "student" | "staff";
+export type PortalArea =
+  "admin" | "admin-admissions" | "teacher" | "parent" | "student" | "staff" | "super-admin";
 
 export const PORTAL_AREAS: readonly PortalArea[] = [
+  "super-admin",
   "admin",
   "admin-admissions",
   "teacher",
@@ -74,6 +76,11 @@ export type RoleEntitlement = {
  *     login page already promised.
  */
 export const ROLE_ENTITLEMENTS: Record<Role, RoleEntitlement> = {
+  SUPER_ADMIN: {
+    home: "/super-admin",
+    areas: ["super-admin", "admin", "admin-admissions", "teacher", "staff"],
+    adminNav: true,
+  },
   ADMIN: {
     home: "/admin",
     areas: ["admin", "admin-admissions", "teacher", "staff"],

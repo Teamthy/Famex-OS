@@ -7,6 +7,7 @@ import { mustCompletePasswordChange, PASSWORD_CHANGE_REQUIRED } from "@/lib/pass
 import { canRoleEnterPath, homeFor } from "@/lib/rbac/entitlements";
 
 const protectedPrefixes = [
+  "/super-admin",
   "/admin",
   "/admin-admissions",
   "/teacher",

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PEOPLE_ADMIN_ROLES } from "@/lib/people";
 import { requireModule } from "@/lib/module-guard";
 import { getClientIp } from "@/lib/requests";
+import { syncGuardianContact } from "@/lib/student-lifecycle";
 
 export const dynamic = "force-dynamic";
 
@@ -113,41 +114,73 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
   });
   if (!existing) return NextResponse.json({ error: "Student not found." }, { status: 404 });
   if (input.currentClassId && input.currentClassId !== existing.currentClassId) {
-    const cls = await prisma.schoolClass.findFirst({
-      where: { id: input.currentClassId, schoolId: user.schoolId, isActive: true },
-    });
-    if (!cls) return NextResponse.json({ error: "Class not found." }, { status: 404 });
+    return NextResponse.json(
+      {
+        error:
+          "Class changes must use the student lifecycle dry-run in Class Manager. This keeps enrolment, class capacity and subjects in sync.",
+        code: "USE_LIFECYCLE_CLASS_CHANGE",
+      },
+      { status: 409 },
+    );
+  }
+  if (input.isActive !== undefined && input.isActive !== existing.isActive) {
+    return NextResponse.json(
+      {
+        error:
+          "Active-roll changes must use the student lifecycle dry-run in Class Manager. This closes or reopens enrolment and account state together.",
+        code: "USE_LIFECYCLE_STATUS_CHANGE",
+      },
+      { status: 409 },
+    );
   }
   const firstName = input.firstName ?? existing.firstName;
   const lastName = input.lastName ?? existing.lastName;
   const otherNames =
     input.otherNames !== undefined ? input.otherNames.trim() || null : existing.otherNames;
   const displayName = [firstName, otherNames, lastName].filter(Boolean).join(" ");
-  const updated = await prisma.studentProfile.update({
-    where: { id },
-    data: {
-      ...(input.firstName !== undefined ? { firstName } : {}),
-      ...(input.lastName !== undefined ? { lastName } : {}),
-      otherNames,
-      displayName,
-      ...(input.gender !== undefined ? { gender: input.gender.trim() || null } : {}),
+  const result = await prisma.$transaction(async (tx) => {
+    const updated = await tx.studentProfile.update({
+      where: { id },
+      data: {
+        ...(input.firstName !== undefined ? { firstName } : {}),
+        ...(input.lastName !== undefined ? { lastName } : {}),
+        otherNames,
+        displayName,
+        ...(input.gender !== undefined ? { gender: input.gender.trim() || null } : {}),
+        ...(input.guardianName !== undefined ? { guardianName: input.guardianName } : {}),
+        ...(input.guardianPhone !== undefined ? { guardianPhone: input.guardianPhone } : {}),
+        ...(input.guardianEmail !== undefined
+          ? { guardianEmail: input.guardianEmail ?? null }
+          : {}),
+      },
+    });
+    const guardian = await syncGuardianContact({
+      tx,
+      schoolId: user.schoolId,
+      studentProfileId: id,
       ...(input.guardianName !== undefined ? { guardianName: input.guardianName } : {}),
       ...(input.guardianPhone !== undefined ? { guardianPhone: input.guardianPhone } : {}),
       ...(input.guardianEmail !== undefined ? { guardianEmail: input.guardianEmail ?? null } : {}),
-      ...(input.currentClassId !== undefined ? { currentClassId: input.currentClassId } : {}),
-      ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
-    },
+    });
+    await tx.auditLog.create({
+      data: {
+        schoolId: user.schoolId,
+        actorUserId: user.id,
+        action: "STUDENT_UPDATED",
+        entityType: "StudentProfile",
+        entityId: id,
+        ipAddress: getClientIp(request),
+        metadata: {
+          studentId: existing.studentId,
+          fields: Object.keys(input),
+          guardianSyncWarnings: guardian.warnings.length,
+        } as never,
+      },
+    });
+    return { updated, guardianWarnings: guardian.warnings };
   });
-  await prisma.auditLog.create({
-    data: {
-      schoolId: user.schoolId,
-      actorUserId: user.id,
-      action: "STUDENT_UPDATED",
-      entityType: "StudentProfile",
-      entityId: id,
-      ipAddress: getClientIp(request),
-      metadata: { studentId: existing.studentId, fields: Object.keys(input) } as never,
-    },
+  return NextResponse.json({
+    student: { id: result.updated.id, displayName: result.updated.displayName },
+    guardianWarnings: result.guardianWarnings,
   });
-  return NextResponse.json({ student: { id: updated.id, displayName: updated.displayName } });
 }

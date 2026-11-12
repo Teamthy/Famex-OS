@@ -8,7 +8,11 @@ import { getClientIp } from "@/lib/requests";
 export const dynamic = "force-dynamic";
 
 const STAFF_EXAM_ROLES = new Set<UserRole>([UserRole.TEACHER, UserRole.HOD]);
-const OVERSIGHT_ROLES = new Set<UserRole>([UserRole.ADMIN, UserRole.DIRECTOR]);
+const OVERSIGHT_ROLES = new Set<UserRole>([
+  UserRole.ADMIN,
+  UserRole.DIRECTOR,
+  UserRole.SUPER_ADMIN,
+]);
 
 async function resolveExamAndTeacher(user: SessionUser, examId: string) {
   const exam = await prisma.exam.findFirst({

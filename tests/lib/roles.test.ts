@@ -9,9 +9,12 @@ import {
   isRole,
   LEADERSHIP_ROLES,
   MFA_EXPECTED_ROLES,
+  MFA_REQUIRED_ROLES,
   OPERATIONS_ROLES,
   ROLE_LABELS,
   roleIn,
+  roleMatches,
+  PROVISIONABLE_STAFF_ROLES,
 } from "@/lib/roles";
 
 /**
@@ -53,10 +56,22 @@ describe("role vocabulary", () => {
     expect(roleIn("NURSE", FINANCE_ROLES)).toBe(false);
   });
 
-  it("expects MFA from money movers without making the bursar leadership", () => {
+  it("expects MFA from money movers and platform operators without making the bursar leadership", () => {
+    expect(roleIn("SUPER_ADMIN", MFA_EXPECTED_ROLES)).toBe(true);
+    expect(roleIn("SUPER_ADMIN", MFA_REQUIRED_ROLES)).toBe(true);
+    expect(roleIn("ADMIN", MFA_REQUIRED_ROLES)).toBe(false);
     expect(roleIn("BURSAR", MFA_EXPECTED_ROLES)).toBe(true);
     expect(roleIn("BURSAR", LEADERSHIP_ROLES)).toBe(false);
     expect([...FINANCE_APPROVER_ROLES]).toEqual([...LEADERSHIP_ROLES]);
+  });
+
+  it("grants school ADMIN access to Director and Super Admin while keeping platform role distinct", () => {
+    expect(roleMatches("DIRECTOR", ["ADMIN"])).toBe(true);
+    expect(roleMatches("DIRECTOR", ["SUPER_ADMIN"])).toBe(false);
+    expect(roleMatches("SUPER_ADMIN", ["ADMIN"])).toBe(true);
+    expect(roleMatches("SUPER_ADMIN", ["DIRECTOR"])).toBe(true);
+    expect(roleMatches("SUPER_ADMIN", ["SUPER_ADMIN"])).toBe(true);
+    expect(PROVISIONABLE_STAFF_ROLES).not.toContain("SUPER_ADMIN");
   });
 
   it("recognises roles and rejects strangers", () => {

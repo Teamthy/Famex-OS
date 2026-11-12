@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import PortalTopbar from "@/components/PortalTopbar";
 import AdminSidebar from "@/components/AdminSidebar";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -83,6 +83,7 @@ export default function PromotionPage() {
   const [auditWarning, setAuditWarning] = useState<string | null>(null);
   /** Anything the rollover could not resolve, e.g. a level with no subjects. */
   const [rolloverWarnings, setRolloverWarnings] = useState<string[]>([]);
+  const idempotencyRef = useRef<{ fingerprint: string; key: string } | null>(null);
 
   // Seed the overrides from the proposal once it arrives.
   useEffect(() => {
@@ -181,14 +182,22 @@ export default function PromotionPage() {
         };
       });
 
+      const requestBody = {
+        fromSessionId: data!.fromSession.id,
+        toSessionId,
+        decisions: payload,
+      };
+      const fingerprint = JSON.stringify(requestBody);
+      if (idempotencyRef.current?.fingerprint !== fingerprint) {
+        idempotencyRef.current = { fingerprint, key: crypto.randomUUID() };
+      }
       const res = await fetch("/api/admin/promotion", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fromSessionId: data!.fromSession.id,
-          toSessionId,
-          decisions: payload,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyRef.current.key,
+        },
+        body: JSON.stringify(requestBody),
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || "Promotion failed.");

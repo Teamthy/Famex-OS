@@ -34,7 +34,12 @@ const FROM = "sess_2025";
 const TO = "sess_2026";
 
 function request(body: unknown) {
-  return { json: async () => body } as never;
+  return {
+    method: "POST",
+    nextUrl: { pathname: "/api/admin/promotion" },
+    headers: { get: () => "promotion-test-idempotency-key" },
+    json: async () => body,
+  } as never;
 }
 
 type Outcome = "PROMOTED" | "REPEATED" | "GRADUATED" | "WITHDRAWN" | "TRANSFERRED";
@@ -108,9 +113,14 @@ function planReturns(rows: unknown[]) {
       };
     });
   });
-  mockPrisma.schoolClass.findMany.mockResolvedValue([
-    { id: "c_jss2a", displayName: "JSS 2A", level: "JSS2", arm: "A" },
-  ]);
+  mockPrisma.schoolClass.findMany.mockImplementation(async (args: unknown) => {
+    const ids = (args as { where?: { id?: { in?: string[] } } }).where?.id?.in;
+    const rows = [
+      { id: "c_jss1a", displayName: "JSS 1A", level: "JSS1", arm: "A" },
+      { id: "c_jss2a", displayName: "JSS 2A", level: "JSS2", arm: "A" },
+    ];
+    return ids ? rows.filter((row) => ids.includes(row.id)) : rows;
+  });
   mockPrisma.termResult.findMany.mockResolvedValue(
     rows.map((r) => {
       const row = r as ReturnType<typeof planRow>;
@@ -273,7 +283,12 @@ describe("POST /api/admin/promotion", () => {
     vi.clearAllMocks();
     mockPrisma.stageConfig.findMany.mockResolvedValue([]);
     mockPrisma.promotionRecord.upsert.mockResolvedValue({});
+    mockPrisma.idempotencyRecord.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.academicSession.count.mockResolvedValue(2);
+    mockPrisma.academicSession.findMany.mockResolvedValue([
+      { id: FROM, label: "2025/2026" },
+      { id: TO, label: "2026/2027" },
+    ]);
     // Both destination classes exist and belong to this school.
     mockPrisma.schoolClass.count.mockResolvedValue(2);
     mockPrisma.academicSession.findFirst.mockImplementation(async (args: unknown) => {
@@ -283,6 +298,7 @@ describe("POST /api/admin/promotion", () => {
     mockPrisma.studentEnrolment.count.mockResolvedValue(0);
     mockPrisma.studentEnrolment.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.studentEnrolment.create.mockResolvedValue({});
+    mockPrisma.studentProfile.findFirst.mockResolvedValue({ currentClassId: "c_jss1a" });
     // The subject rollover that now runs with each class move.
     mockPrisma.studentEnrolment.findFirst.mockResolvedValue({ classId: "c_jss1a" });
     mockPrisma.schoolClass.findFirst.mockImplementation(async (args: unknown) => {
@@ -331,11 +347,11 @@ describe("POST /api/admin/promotion", () => {
     expect(s2.overrideReason).toBe("Failed both terms after illness");
   });
 
-  it("still succeeds when the audit write fails, and says so", async () => {
+  it("refuses the promotion when its per-student audit write fails", async () => {
     mockPrisma.schoolClass.count.mockResolvedValue(1);
-    // A rolled-over session must not be reported as a failure just because the
-    // history row could not be written. Re-running the promotion to retry an
-    // audit row would move every student a second time.
+    // The lifecycle write and its per-student decision evidence now share one
+    // transaction. If the audit row cannot be written, the whole operation is
+    // refused rather than reporting a partial success.
     planReturns([planRow("s1")]);
     mockPrisma.promotionRecord.upsert.mockRejectedValue(new Error("write conflict"));
 
@@ -348,13 +364,12 @@ describe("POST /api/admin/promotion", () => {
       }) as never,
     );
 
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { ok: boolean; auditRecorded: boolean; recordError: string };
-    expect(body.ok).toBe(true);
-    expect(body.auditRecorded).toBe(false);
-    expect(body.recordError).toMatch(/write conflict/);
-    // The promotion itself did happen.
-    expect(mockPrisma.studentEnrolment.create).toHaveBeenCalled();
+    expect(res.status).toBe(409);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toMatch(/write conflict/);
+    expect(mockPrisma.idempotencyRecord.updateMany).not.toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: "COMPLETED" }) }),
+    );
   });
 
   it("rejects an override reason that is too short to mean anything", async () => {

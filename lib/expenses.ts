@@ -1,6 +1,7 @@
 import { ExpenseApprovalStatus } from "@prisma/client";
 import { postExpenseSpend } from "@/lib/ledger-postings";
 import { prisma } from "@/lib/prisma";
+import { roleMatches } from "@/lib/roles";
 
 /**
  * Expenses with segregation of duties (B-16).
@@ -27,7 +28,7 @@ import { prisma } from "@/lib/prisma";
 /** Whole naira. ₦100,000 and above needs a second actor. */
 export const EXPENSE_APPROVAL_THRESHOLD_NAIRA = 100_000;
 
-const APPROVER_ROLES = new Set<string>(["ADMIN", "DIRECTOR", "PROPRIETOR", "PRINCIPAL"]);
+const APPROVER_ROLES = ["ADMIN", "DIRECTOR", "PROPRIETOR", "PRINCIPAL"] as const;
 
 export type ExpenseActor = { userId: string; role: string };
 
@@ -116,7 +117,7 @@ export async function approveExpense(input: {
   note?: string | null;
   ipAddress?: string | null;
 }): Promise<{ expense: unknown; posted: boolean; replay: boolean }> {
-  if (!APPROVER_ROLES.has(input.actor.role)) {
+  if (!roleMatches(input.actor.role, APPROVER_ROLES)) {
     throw new Error("Only an admin, director, proprietor or principal can approve expenses.");
   }
 

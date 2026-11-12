@@ -1,5 +1,6 @@
 import { TeacherAssignmentRole, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { roleMatches } from "@/lib/roles";
 
 /**
  * Parent ↔ teacher messaging — access rules and thread mutations.
@@ -75,7 +76,7 @@ export async function reachableStudentIds(user: MessagingActor): Promise<string[
     return student ? [student.id] : [];
   }
 
-  if (OVERSIGHT_ROLES.includes(user.role)) {
+  if (roleMatches(user.role, OVERSIGHT_ROLES)) {
     const students = await prisma.studentProfile.findMany({
       where: { schoolId: user.schoolId, isActive: true },
       select: { id: true },

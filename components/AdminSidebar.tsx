@@ -205,6 +205,14 @@ export default function AdminSidebar() {
           <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
             {role?.replaceAll("_", " ")}
           </div>
+          {user.role === "SUPER_ADMIN" && (
+            <Link
+              href="/super-admin"
+              className="mt-2 inline-flex text-xs font-semibold text-brand-green underline-offset-2 hover:underline"
+            >
+              DevOps dashboard
+            </Link>
+          )}
         </div>
       )}
     </>

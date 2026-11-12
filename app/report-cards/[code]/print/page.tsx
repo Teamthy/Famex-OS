@@ -7,6 +7,7 @@ import PrintToolbar from "@/components/PrintToolbar";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { letterheadFromSchool, sheetFromStoredCard } from "@/lib/report-card-sheet";
+import { roleMatches } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -62,9 +63,11 @@ export default async function PrintableReportCardPage({
   // A missing card and a card for another school are the same answer: nothing.
   if (!card) notFound();
 
-  const isStaff = (
-    [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR] as UserRole[]
-  ).includes(session.role);
+  const isStaff = roleMatches(session.role, [
+    UserRole.ADMIN,
+    UserRole.DIRECTOR,
+    UserRole.COORDINATOR,
+  ]);
 
   const isStudent = session.role === UserRole.STUDENT && card.studentProfile.userId === session.id;
 

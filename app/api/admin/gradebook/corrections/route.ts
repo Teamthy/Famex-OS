@@ -2,6 +2,7 @@ import { ResultCorrectionStatus, UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { GRADEBOOK_ADMIN_ROLES } from "@/lib/gradebook";
+import { roleMatches } from "@/lib/roles";
 import { requireModule } from "@/lib/module-guard";
 import { prisma } from "@/lib/prisma";
 import {
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
       ? ResultCorrectionStatus[statusParam as keyof typeof ResultCorrectionStatus]
       : undefined;
 
-  const isAdmin = (GRADEBOOK_ADMIN_ROLES as UserRole[]).includes(user.role);
+  const isAdmin = roleMatches(user.role, GRADEBOOK_ADMIN_ROLES as UserRole[]);
   const corrections = await prisma.resultCorrectionRequest.findMany({
     where: {
       schoolId: user.schoolId,

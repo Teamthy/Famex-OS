@@ -24,7 +24,7 @@ Counts at the end (§25). Scope boundary (Ykay College, *not* EDUos) —
 |---|---|---|---|
 | F0-01 | Email + password login with timing-safe comparison | ✅ | lib/session.ts |
 | F0-02 | JWT sessions in httpOnly cookies (web) + Bearer tokens (mobile/API) | ✅ | one session, two transports |
-| F0-03 | Role-based access control across 6 roles + sub-roles | ✅ | ADMIN, DIRECTOR, COORDINATOR, BURSAR, TEACHER, HOD, STUDENT, PARENT, IT |
+| F0-03 | Role-based access control with school leadership hierarchy and platform Super Admin | 🔧 | Director inherits full in-school ADMIN access; Super Admin is a separate global platform role with MFA and a dedicated DevOps workspace |
 | F0-04 | Password reset by email token, single-use, expiring | ✅ | PasswordResetToken |
 | F0-05 | Forced password change on first login | ✅ | mustChangePassword |
 | F0-06 | Rate limiting on auth and money endpoints | ✅ | fails closed |
@@ -48,7 +48,7 @@ Counts at the end (§25). Scope boundary (Ykay College, *not* EDUos) —
 | F0-24 | Brand-asset registry (logo, favicon, PWA icons, report-card crest) | 🆕 | upload once, used by web, mobile, PDF, email |
 | F0-25 | Feature switches per school surfaced in Licence & Usage | 🆕 | what the school has paid for, visible and enforced |
 | F0-26 | Platform landing page + PLATFORM_MODE branch | ✂️ | **EDUos artefact** — components/PlatformLanding.tsx, app/page.tsx |
-| F0-27 | Super-admin console (app/super-admin/**, 10 API routes) | ✂️ | **EDUos artefact** — schools, impersonation, cross-tenant forensics |
+| F0-27 | Super Admin DevOps workspace for the single-school Famex deployment | 🔧 | Higher than Director; has full in-school ADMIN access plus deployment/service diagnostics and audited operations; no EDUos, multi-tenant or school-side role provisioning |
 | F0-28 | Self-serve signup + plan seeding (Plan, PlanTier, Subscription) | ✂️ | **EDUos artefact** — app/signup/**, prisma/seed-plans.ts |
 | F0-29 | Tenant resolution by hostname / subdomain | ✂️ | **EDUos artefact** — one school, one domain |
 | F0-30 | Row-level-security enforcement + policy migrations | ✂️ | **EDUos artefact** — app-level filtering stays, RLS work is frozen |
@@ -480,7 +480,7 @@ Counts at the end (§25). Scope boundary (Ykay College, *not* EDUos) —
 
 | Group | Total | ✅ In base | 🔧 Extend | 🆕 New | ✂️ Strip | ⏸ Deferred |
 |---|---|---|---|---|---|---|
-| Foundations — the platform underneath everything | 30 | 16 | 4 | 5 | 5 | 0 |
+| Foundations — the platform underneath everything | 30 | 15 | 6 | 5 | 4 | 0 |
 | Home | 6 | 2 | 3 | 1 | 0 | 0 |
 | AI Learning Hub | 10 | 1 | 1 | 8 | 0 | 0 |
 | AI Studio | 16 | 0 | 0 | 16 | 0 | 0 |
@@ -505,21 +505,21 @@ Counts at the end (§25). Scope boundary (Ykay College, *not* EDUos) —
 | Cross-cutting technical capabilities | 21 | 4 | 2 | 4 | 0 | 11 |
 | Operations & compliance (deliverables, not screens) | 12 | 1 | 3 | 8 | 0 | 0 |
 | Cost model & quotation | 3 | 2 | 0 | 1 | 0 | 0 |
-| **TOTAL** | **331** | **98** | **48** | **164** | **7** | **14** |
+| **TOTAL** | **331** | **97** | **50** | **164** | **6** | **14** |
 
 *(Counted by primary tag: a few rows carry two tags — e.g. ✂️→🔧 or ✅/🆕 —
 and are counted once. The table is generated from the rows above and verified by
 `npm run check:features`, so it cannot drift.)*
 
-**Read it like this:** **98 features already work** in the base and mostly
-need rebranding and wiring; **48 need real extension** (money, results,
-attendance, users, communication); **164 are genuinely new**. The new work
+**Read it like this:** **97 features already work** in the base and mostly
+need rebranding and wiring; **50 need real extension** (including the role
+hierarchy and restored platform operations); **164 are genuinely new**. The new work
 concentrates in the AI layer (26), CBT depth and the offline exam centre, the
 teaching/learning stack, Front Desk, HR, Parent PRM, Help Desk and the Documents
 suite. 14 items are deliberately deferred.
 
-The seven ✂️ items are the EDUos platform layer plus Ykay-specific arms
-(`09-master-build-prompt-go.md` §2) — removing them is workstream W1.
+The six ✂️ items are the EDUos product surfaces that remain stripped plus Ykay-specific arms
+(`09-master-build-prompt-go.md` §2); the separate Super Admin DevOps workspace is F0-27.
 
 *(⏸ items in F22 are listed but not counted as deliverables; a handful of rows
 carry two tags and are counted once, by primary intent.)*

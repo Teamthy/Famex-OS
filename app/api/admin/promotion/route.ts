@@ -3,12 +3,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireModule } from "@/lib/module-guard";
+import { buildPlan, commitPromotion, summarisePlan } from "@/lib/promotion";
 import {
-  buildPlan,
-  commitPromotion,
-  recordPromotionDecisions,
-  summarisePlan,
-} from "@/lib/promotion";
+  completeReservedIdempotency,
+  idempotencyRequestHash,
+  releaseReservedIdempotency,
+  requestMethodForIdempotency,
+  requestPathForIdempotency,
+  reserveIdempotency,
+} from "@/lib/idempotency";
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +101,6 @@ const commitSchema = z.object({
 export async function POST(request: NextRequest) {
   const guard = await requireModule("report_cards", PROMOTION_ROLES);
   if (!guard.ok) return guard.response;
-  // Rule 13: auth → role → module. A module this school switched off is a 403.
   const user = guard.user;
 
   let input: z.infer<typeof commitSchema>;
@@ -107,114 +109,147 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Invalid promotion payload." }, { status: 400 });
   }
+  if (
+    new Set(input.decisions.map((decision) => decision.studentProfileId)).size !==
+    input.decisions.length
+  ) {
+    return NextResponse.json(
+      { error: "A student may have only one lifecycle decision per run." },
+      { status: 400 },
+    );
+  }
 
   // Both sessions must belong to THIS school — otherwise a crafted request
   // could promote one tenant's students into another tenant's session.
-  const owned = await prisma.academicSession.count({
-    where: { schoolId: user.schoolId, id: { in: [input.fromSessionId, input.toSessionId] } },
-  });
+  const [owned, sessions, plan] = await Promise.all([
+    prisma.academicSession.count({
+      where: { schoolId: user.schoolId, id: { in: [input.fromSessionId, input.toSessionId] } },
+    }),
+    prisma.academicSession.findMany({
+      where: { schoolId: user.schoolId, id: { in: [input.fromSessionId, input.toSessionId] } },
+      select: { id: true, label: true },
+    }),
+    buildPlan(user.schoolId, input.fromSessionId),
+  ]);
   if (owned !== 2) {
     return NextResponse.json({ error: "Session not found." }, { status: 404 });
   }
 
-  // Same for every destination class named in the payload.
-  const classIds = [
-    ...new Set(input.decisions.map((d) => d.targetClassId).filter((v): v is string => !!v)),
-  ];
-  if (classIds.length > 0) {
-    const validClasses = await prisma.schoolClass.count({
-      where: { schoolId: user.schoolId, id: { in: classIds } },
-    });
-    if (validClasses !== classIds.length) {
-      return NextResponse.json({ error: "One or more classes were not found." }, { status: 400 });
-    }
+  // Promotion is a whole-cohort operation. Do not allow a crafted request to
+  // silently skip a student or move someone who is not enrolled in the source
+  // session; the plan rows are the dry-run reviewed by the caller.
+  const byStudent = new Map(plan.map((row) => [row.studentProfileId, row]));
+  if (
+    input.decisions.length !== plan.length ||
+    input.decisions.some((decision) => !byStudent.has(decision.studentProfileId))
+  ) {
+    return NextResponse.json(
+      { error: "The decision list no longer matches the source-session plan. Reload the dry-run." },
+      { status: 409 },
+    );
   }
 
-  let result: Awaited<ReturnType<typeof commitPromotion>>;
+  // Same tenant check for every destination class named in the payload.
+  const classIds = [
+    ...new Set(
+      input.decisions.map((decision) => decision.targetClassId).filter((id): id is string => !!id),
+    ),
+  ];
+  const targetClasses = classIds.length
+    ? await prisma.schoolClass.findMany({
+        where: { schoolId: user.schoolId, id: { in: classIds }, isActive: true },
+        select: { id: true, displayName: true },
+      })
+    : [];
+  if (targetClasses.length !== classIds.length) {
+    return NextResponse.json(
+      { error: "One or more destination classes were not found." },
+      { status: 400 },
+    );
+  }
+
+  const fromSession = sessions.find((session) => session.id === input.fromSessionId);
+  const toSession = sessions.find((session) => session.id === input.toSessionId);
+  const classNameById = new Map(
+    targetClasses.map((classroom) => [classroom.id, classroom.displayName]),
+  );
+  const reasonByStudent = new Map(
+    input.decisions.map((decision) => [decision.studentProfileId, decision.overrideReason ?? null]),
+  );
+  const auditPlan = input.decisions.map((decision) => {
+    const planned = byStudent.get(decision.studentProfileId)!;
+    const targetClassId = decision.targetClassId ?? null;
+    return {
+      ...planned,
+      proposedOutcome: decision.outcome,
+      targetClassId,
+      targetClassName: targetClassId ? (classNameById.get(targetClassId) ?? null) : null,
+      overrideReason: reasonByStudent.get(decision.studentProfileId) ?? null,
+    };
+  });
+
+  const key = request.headers.get("idempotency-key")?.trim();
+  if (!key || key.length < 16) {
+    return NextResponse.json(
+      { error: "An Idempotency-Key header (min. 16 chars) is required." },
+      { status: 400 },
+    );
+  }
+  const reservation = await reserveIdempotency({
+    schoolId: user.schoolId,
+    scope: "ACADEMIC_PROMOTION",
+    key,
+    requestHash: idempotencyRequestHash({
+      method: requestMethodForIdempotency(request),
+      path: requestPathForIdempotency(request, "/api/admin/promotion"),
+      actorId: user.id,
+      scope: "ACADEMIC_PROMOTION",
+      body: input,
+    }),
+  });
+  if (reservation.outcome !== "reserved") {
+    return NextResponse.json(reservation.body, {
+      status: reservation.status,
+      ...(reservation.outcome === "in-progress"
+        ? { headers: { "Retry-After": String(reservation.retryAfterSeconds) } }
+        : {}),
+    });
+  }
+
   try {
-    result = await commitPromotion({
+    const result = await commitPromotion({
       schoolId: user.schoolId,
       fromSessionId: input.fromSessionId,
       toSessionId: input.toSessionId,
       decisions: input.decisions,
       actorUserId: user.id,
+      promotionAudit: {
+        plan: auditPlan,
+        fromSessionLabel: fromSession?.label ?? "",
+        toSessionLabel: toSession?.label ?? null,
+      },
+      onCommit: async (tx, committed) => {
+        await completeReservedIdempotency(tx, {
+          schoolId: user.schoolId,
+          scope: "ACADEMIC_PROMOTION",
+          key,
+          lockedUntil: reservation.lockedUntil,
+          response: { ok: true, result: committed, auditRecorded: true, recordError: null },
+          statusCode: 200,
+        });
+      },
     });
-  } catch (e) {
+    return NextResponse.json({ ok: true, result, auditRecorded: true, recordError: null });
+  } catch (error) {
+    await releaseReservedIdempotency({
+      schoolId: user.schoolId,
+      scope: "ACADEMIC_PROMOTION",
+      key,
+      lockedUntil: reservation.lockedUntil,
+    });
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Promotion failed." },
+      { error: error instanceof Error ? error.message : "Promotion failed." },
       { status: 409 },
     );
   }
-
-  // The enrolments are written. Now write down what was decided and on what
-  // evidence, which is the part a parent or an auditor asks about a year later.
-  //
-  // Deliberately AFTER the commit and deliberately non-fatal: if this write
-  // fails, the school has still rolled over correctly and the failure is
-  // reported alongside a success, rather than a half-rolled-over session.
-  // Re-running the whole promotion to retry an audit row would be far worse.
-  let auditRecorded = true;
-  let recordError: string | null = null;
-  try {
-    const [fromSession, toSession, plan] = await Promise.all([
-      prisma.academicSession.findFirst({
-        where: { id: input.fromSessionId, schoolId: user.schoolId },
-        select: { label: true },
-      }),
-      prisma.academicSession.findFirst({
-        where: { id: input.toSessionId, schoolId: user.schoolId },
-        select: { label: true },
-      }),
-      buildPlan(user.schoolId, input.fromSessionId),
-    ]);
-
-    const byStudent = new Map(plan.map((r) => [r.studentProfileId, r]));
-    const reasonFor = new Map(
-      input.decisions.map((d) => [d.studentProfileId, d.overrideReason ?? null]),
-    );
-
-    // A decision that buildPlan no longer proposes is still recorded — the
-    // admin made it, and dropping it would leave a gap in the history. The
-    // row simply carries no evidence and is flagged as such.
-    const rows = input.decisions.map((d) => {
-      const planned = byStudent.get(d.studentProfileId);
-      return {
-        ...(planned ?? {
-          studentProfileId: d.studentProfileId,
-          displayName: "",
-          studentId: "",
-          currentClassId: "",
-          currentClassName: "",
-          currentLevel: "",
-          arm: "",
-          targetClassId: null,
-          targetClassName: null,
-          blocker: null,
-          yearAverage: null,
-          yearGrade: null,
-          termsCounted: 0,
-          academicProposal: "UNKNOWN" as const,
-          academicNote: null,
-        }),
-        proposedOutcome: d.outcome,
-        targetClassId: d.targetClassId ?? planned?.targetClassId ?? null,
-        overrideReason: reasonFor.get(d.studentProfileId) ?? null,
-      };
-    });
-
-    await recordPromotionDecisions({
-      schoolId: user.schoolId,
-      fromSessionId: input.fromSessionId,
-      toSessionId: input.toSessionId,
-      actorUserId: user.id,
-      plan: rows,
-      fromSessionLabel: fromSession?.label ?? "",
-      toSessionLabel: toSession?.label ?? null,
-    });
-  } catch (e) {
-    auditRecorded = false;
-    recordError = e instanceof Error ? e.message : "Could not record the decisions.";
-  }
-
-  return NextResponse.json({ ok: true, result, auditRecorded, recordError });
 }
