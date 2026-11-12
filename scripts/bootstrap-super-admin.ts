@@ -110,7 +110,9 @@ async function main() {
       // Serialize two concurrent invocations; only one may ever create the
       // first platform operator. The lock is transaction-scoped and contains
       // no customer-controlled input.
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(7382419, 27)`;
+      // PostgreSQL advisory lock returns void; executeRaw avoids Prisma trying
+      // to deserialize that unsupported result column.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(7382419, 27)`;
       const existing = await tx.user.count({ where: { role: UserRole.SUPER_ADMIN } });
       if (existing > 0)
         throw new Error("A Super Admin already exists; bootstrap is one-time only.");
