@@ -3,6 +3,7 @@ import { z } from "zod";
 import { confirmMfaEnrolment, disableMfa, startMfaEnrolment } from "@/lib/mfa";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { MFA_REQUIRED_ROLES, roleIn } from "@/lib/roles";
 
 export const runtime = "nodejs";
 
@@ -48,6 +49,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = postSchema.parse(await request.json());
+    if (body.action === "DISABLE" && roleIn(session.role, MFA_REQUIRED_ROLES)) {
+      return NextResponse.json(
+        { error: "MFA cannot be disabled for a Super Admin account." },
+        { status: 403 },
+      );
+    }
 
     if (body.action === "START") {
       const school = await prisma.school.findUnique({

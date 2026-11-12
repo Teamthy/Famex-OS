@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
 import { UserRole } from "@prisma/client";
+import { roleMatches } from "@/lib/roles";
 import {
   COMPLETENESS_FIELDS,
   GRADE_LABELS,
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
    * teach. Without this, any teacher account could enumerate every child in the
    * school and learn which ones have no reachable guardian.
    */
-  const isAdminView = user.role === UserRole.ADMIN || user.role === UserRole.DIRECTOR;
+  const isAdminView = roleMatches(user.role, [UserRole.ADMIN, UserRole.DIRECTOR]);
   let allowedClassIds: string[] | null = null;
   if (!isAdminView) {
     const profile = await prisma.teacherProfile.findFirst({

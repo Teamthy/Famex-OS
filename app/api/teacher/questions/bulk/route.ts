@@ -5,6 +5,7 @@ import { requireRole, type SessionUser } from "@/lib/session";
 import { UserRole, ExamQuestionType, ExamStatus, Prisma } from "@prisma/client";
 
 import { logger } from "@/lib/logger";
+import { getClientIp } from "@/lib/requests";
 
 export const dynamic = "force-dynamic";
 
@@ -134,6 +135,25 @@ export async function POST(request: NextRequest) {
         where: { id: input.examId },
         data: { totalMarks },
       });
+      await tx.auditLog.create({
+        data: {
+          schoolId: user.schoolId,
+          actorUserId: user.id,
+          action: "EXAM_QUESTIONS_UPLOADED",
+          entityType: "Exam",
+          entityId: input.examId,
+          ipAddress: getClientIp(request),
+          metadata: {
+            added: created.length,
+            totalQuestions: aggregate._count._all,
+            totalMarks,
+            types: input.questions.reduce<Record<string, number>>((counts, question) => {
+              counts[question.type] = (counts[question.type] ?? 0) + 1;
+              return counts;
+            }, {}),
+          },
+        },
+      });
       return { created, totalQuestions: aggregate._count._all, totalMarks };
     });
 
@@ -246,6 +266,23 @@ export async function DELETE(request: NextRequest) {
     });
     const totalMarks = aggregate._sum.marks ?? 0;
     await tx.exam.update({ where: { id: question.exam.id }, data: { totalMarks } });
+    await tx.auditLog.create({
+      data: {
+        schoolId: user.schoolId,
+        actorUserId: user.id,
+        action: "EXAM_QUESTION_REMOVED",
+        entityType: "Exam",
+        entityId: question.exam.id,
+        ipAddress: getClientIp(request),
+        metadata: {
+          questionId: question.id,
+          questionType: question.type,
+          marksRemoved: question.marks,
+          totalQuestions: aggregate._count._all,
+          totalMarks,
+        },
+      },
+    });
     return { totalMarks, totalQuestions: aggregate._count._all };
   });
 

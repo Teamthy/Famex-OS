@@ -817,7 +817,7 @@ Implements F7-09 lifecycle reliability without claiming the wider catalogue feat
 
 ## 7. Locked decisions (do not re-litigate)
 
-- Impersonation stripped entirely (F0-27). No cross-school console.
+- User impersonation remains stripped. Founder direction supersedes the F0-27 console strip: Super Admin is a distinct DevOps role for this single-school Famex deployment, with the same in-school ADMIN access as Director plus a separate operational dashboard. No EDUos surface, school switching, cross-school operations, or impersonation.
 - Boot does NOT require an admin user; first ADMIN via `db:seed`, then W2 wizard (F0-22). `/onboarding` wizard kept.
 - Brand burn-down is a **ratchet**, not zero: redis prefix (`ykay:`), cookie `ykay_session`, demo seed emails (`@ykaycollege.com`), marketing copy (about/careers/privacy), OG image, `lib/receipt.ts` receipt PDF, `lib/email.ts` sender, mobile app branding, docker-compose names all **stay in the brand baseline** and are de-branded in their owning workstream (receipts→W3, comms/email→W4, website→W12/W18, mobile→mobile WS).
 - Receipt PDFs are money documents → re-branded with the W3 ledger rework, not W1.
@@ -1082,6 +1082,18 @@ Full grouped nav table, de-AI labels, virtual-class system, pre-school→SS3 bre
 
 ---
 
-## 11. Rules pointer
+## 11. Founder direction — Super Admin for single-school Famex (F0-03/F0-27)
+
+The founder clarifies that Famex remains a **single-school deployment**; EDUos and multi-tenant school management are not part of the product. Director receives the complete ADMIN permission set within that school. Super Admin is a higher operator for the same school, with full in-school ADMIN access plus the separate DevOps workspace. Super Admin must never be available through school staff provisioning; MFA is expected. Both roles remain subject to module entitlements and existing financial/result controls. Do not add school switching, cross-tenant access, or impersonation.
+
+Current tranche: the append-only `SUPER_ADMIN` enum migration, role/navigation entitlement, Director/Super Admin→ADMIN role matching, and single-school aggregate DevOps overview are implemented. Password-only Super Admin login is refused; bootstrap creates the first account out of band with an immediate TOTP enrollment, encrypted seed, one-time recovery-code hashes and forced password rotation. MFA cannot be disabled in the web settings for this role. The dashboard exposes only redacted operational metadata and offers a single-school failed-notification retry: it requires a reason, transitions only FAILED→PENDING with an optimistic concurrency guard, and records the action in AuditLog in the same transaction. This is not a general deployment-control plane; expand operations only with explicit threat review, server-side guards and audit coverage.
+
+Full procedure and threat boundaries: [`SUPER-ADMIN-OPERATIONS.md`](SUPER-ADMIN-OPERATIONS.md).
+
+**Bootstrap ceremony:** after applying migrations, an operator with secured database access runs `npm run db:bootstrap-super-admin` once with `SUPER_ADMIN_BOOTSTRAP_CONFIRM=CREATE_INITIAL_FAMEX_SUPER_ADMIN`, `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_NAME`, `SUPER_ADMIN_BOOTSTRAP_OUTPUT` (absolute path outside the repository), and a dedicated `MFA_ENCRYPTION_KEY` (32+ chars). The command refuses an unknown/inactive school, an existing Super Admin, and a duplicate account email; an advisory lock makes concurrent runs single-winner. It writes a one-time setup bundle with mode 0600 containing a random temporary password, TOTP enrollment secret/URI and recovery codes. Transfer it securely, have the operator replace the password on first login, store recovery codes offline, then delete the bundle. Never run this against a real deployment from CI or auto-run it at boot; CI invokes the same CLI only against its isolated disposable Postgres fixture. If the bootstrap does not complete, keep the output file private and inspect the CLI result before retrying; the transaction rolls back user, recovery-code and audit writes together. If a completed bundle is lost after account creation, do not rerun bootstrap or delete audit history: suspend the account and revoke its sessions through a separately reviewed operator recovery procedure. Do not expose a public bootstrap endpoint.
+
+**Validation added:** unit tests cover the MFA-required login boundary and audited single-use retry transition; the Postgres CI job applies the enum migration, runs `verify:grading`, and runs `verify:super-admin` (which invokes the CLI and verifies the stored enum, encrypted TOTP seed, recovery hashes, audit, and one-time refusal). Browser E2E exercises password→TOTP→session, inability to disable MFA, privacy-redacted dashboard data, retry feedback/audit persistence, an offline CBT attempt/replay through server grading, and report-card API/print reads from stored data. Latest local evidence: `npx vitest run --exclude='tests/mobile/**'` passed **115 files / 1591 tests**; typecheck, feature/module/tenant-coverage/brand gates and lint (0 errors, 119 warnings) passed. Full Prettier and the updated CI/browser journeys are being rerun against this exact diff. This sandbox has no usable PostgreSQL/Docker or native Prisma engine, so real-DB/browser verification must come from the refreshed PR checks. Do not claim the broader exam/results/report-card workflows are complete until those checks pass.
+
+## 12. Rules pointer
 
 The 17 rules + banned moves + per-screen acceptance + DoD are in `09-master-build-prompt-go.md` §4/§7/§6/§10. They are non-negotiable. This handoff never overrides them.

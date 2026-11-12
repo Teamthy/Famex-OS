@@ -2,7 +2,7 @@ import { GradebookStatus, ResultCorrectionStatus } from "@prisma/client";
 import type { AdjustmentActor } from "@/lib/fee-adjustments";
 import { computeEntryTotals, SCORE_LIMITS, type ScoreField } from "@/lib/gradebook";
 import { prisma } from "@/lib/prisma";
-import { ACADEMIC_ADMIN_ROLES } from "@/lib/roles";
+import { ACADEMIC_ADMIN_ROLES, roleMatches } from "@/lib/roles";
 
 /**
  * Post-lock result corrections (H, W6 close-out).
@@ -44,8 +44,6 @@ export type CorrectionField = (typeof CORRECTION_FIELDS)[number];
 export function isCorrectionField(value: string): value is CorrectionField {
   return (CORRECTION_FIELDS as readonly string[]).includes(value);
 }
-
-const APPROVER_ROLES = new Set<string>(ACADEMIC_ADMIN_ROLES);
 
 /**
  * Validate a proposed new value for a field. Returns the canonical stored
@@ -179,7 +177,7 @@ export async function decideResultCorrection(input: {
   decisionNote?: string;
   actor: AdjustmentActor;
 }) {
-  if (!APPROVER_ROLES.has(input.actor.role)) {
+  if (!roleMatches(input.actor.role, ACADEMIC_ADMIN_ROLES)) {
     throw new Error("Only academic leadership can decide result corrections.");
   }
 

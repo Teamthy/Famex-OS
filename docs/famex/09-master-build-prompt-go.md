@@ -57,7 +57,7 @@ The base repository contains **two products**. We rebuild the school system.
 | Artefact | Action | Why |
 |---|---|---|
 | `components/PlatformLanding.tsx`, `PLATFORM_MODE` branch in `app/page.tsx` | **Strip** | EDUos platform marketing page |
-| `app/super-admin/**` + `app/api/super-admin/**` (10 routes) | **Strip** | cross-tenant console: schools, impersonation, forensics |
+| Legacy `app/super-admin/**` + `app/api/super-admin/**` | **Replace (founder direction, F0-03/F0-27)** | Super Admin DevOps workspace for this single-school Famex deployment only; no EDUos product, multi-tenant school management, user impersonation, or blanket cross-school API |
 | `app/signup/**`, `app/api/platform/signup/route.ts`, `prisma/seed-plans.ts`, `Plan`/`PlanTier`/`Subscription` | **Strip** | self-serve tenant signup and SaaS plans |
 | Host/subdomain school resolution (formerly `lib/tenant.ts`) | **Removed 2026-10-21** | one personalised FIS school only; `lib/school-resolution.ts` resolves the configured school and hostnames never switch schools |
 | RLS enforcement migrations + `lib/db-rls.ts` policy work | **Freeze** | keep `schoolId` columns and the coverage check as hygiene; add no new policy work |

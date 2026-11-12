@@ -61,13 +61,13 @@ function delegateName(model: string): string {
 }
 
 /**
- * Routes that legitimately CANNOT scope by schoolId because the caller is an
- * external provider with no tenant context. Each entry needs a reason a
- * reviewer can challenge — this list is the reviewed exception, not a bin
- * for routes that merely forgot to filter. Exempt routes are printed on
- * every run so they stay visible.
+ * Routes that legitimately operate without a single schoolId filter: verified
+ * external-provider callbacks and role-gated, aggregate-only platform
+ * operations. Each entry needs a reason a reviewer can challenge — this is a
+ * reviewed exception, not a bin for routes that forgot to filter. Exempt
+ * routes are printed on every run so they stay visible.
  */
-const PROVIDER_GLOBAL_ROUTES: Record<string, string> = {
+const GLOBAL_ROUTE_EXCEPTIONS: Record<string, string> = {
   "app/api/webhooks/whatsapp/route.ts":
     "Meta delivery callbacks carry no tenant context; matching is by providerMessageId (a globally unique wamid) under x-hub-signature-256 HMAC verification, so a callback can only touch the single job Meta issued that id for.",
 };
@@ -78,7 +78,7 @@ const routes = listRouteFiles(API_DIR);
 let rlsScoped = 0;
 let appFiltered = 0;
 const uncovered: string[] = [];
-const providerGlobal: string[] = [];
+const globalExceptions: string[] = [];
 
 const delegateCall = (model: string) =>
   new RegExp(
@@ -92,9 +92,9 @@ for (const route of routes) {
   const touched = [...models].filter((model) => delegateCall(model).test(source));
   if (touched.length === 0) continue;
 
-  const exemption = PROVIDER_GLOBAL_ROUTES[relative(ROOT, route)];
+  const exemption = GLOBAL_ROUTE_EXCEPTIONS[relative(ROOT, route)];
   if (exemption) {
-    providerGlobal.push(`${relative(ROOT, route)} — ${exemption}`);
+    globalExceptions.push(`${relative(ROOT, route)} — ${exemption}`);
     continue;
   }
 
@@ -112,12 +112,12 @@ for (const route of routes) {
 }
 
 console.log(
-  `Tenant-model routes: ${rlsScoped + appFiltered + uncovered.length + providerGlobal.length}`,
+  `Tenant-model routes: ${rlsScoped + appFiltered + uncovered.length + globalExceptions.length}`,
 );
 console.log(`  RLS-scoped (withSchool): ${rlsScoped}`);
 console.log(`  App-level schoolId filter present: ${appFiltered}`);
-console.log(`  Provider-global (reviewed exemption, no tenant context): ${providerGlobal.length}`);
-for (const line of providerGlobal) console.log(`    - ${line}`);
+console.log(`  Global exceptions (reviewed, no single-tenant scope): ${globalExceptions.length}`);
+for (const line of globalExceptions) console.log(`    - ${line}`);
 console.log(`  UNCOVERED (no withSchool, no schoolId mention): ${uncovered.length}`);
 if (uncovered.length) {
   console.log("\nUNCOVERED routes (go verify each — imported helpers may filter internally):");

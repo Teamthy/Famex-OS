@@ -28,6 +28,8 @@ enum UserRole {
   VICE_PRINCIPAL
   LIBRARIAN
   NURSE
+  // Appended by 20261112160000_super_admin_role; platform-only, never school-provisioned.
+  SUPER_ADMIN
 }
 
 enum ApplicationStatus {

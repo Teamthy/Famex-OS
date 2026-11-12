@@ -37,6 +37,7 @@ import {
   INVENTORY_ROLES,
   LIBRARY_ROLES,
   PEOPLE_ADMIN_ROLE_NAMES,
+  roleMatches,
   type Role,
 } from "@/lib/roles";
 
@@ -488,11 +489,11 @@ function roleAllowed(
   // than flashing an incomplete sidebar, and let the route itself refuse.
   if (!role) return true;
   const groupRoles = group.roles;
-  if (groupRoles && groupRoles.length > 0 && !groupRoles.includes(role as AdminNavRole)) {
+  if (groupRoles && groupRoles.length > 0 && !roleMatches(role, groupRoles)) {
     return false;
   }
   if (!item.roles || item.roles.length === 0) return true;
-  return item.roles.includes(role as AdminNavRole);
+  return roleMatches(role, item.roles);
 }
 
 /**

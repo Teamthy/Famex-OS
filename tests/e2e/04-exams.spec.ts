@@ -107,27 +107,53 @@ test.describe("exams", () => {
         assignmentId: assignment!.id,
         title,
         examType: "CA",
-        durationMinutes: 10,
+        durationMinutes: 13,
         passMark: 50,
         instructions: "Answer both questions.",
         shuffleQuestions: false,
-        bulkQuestions: [
-          "Q: What is 2 + 2?",
-          "A. 3",
-          "B. 4",
-          "C. 5",
-          "Answer: B",
-          "Marks: 1",
-          "",
-          "Q: Abuja is the capital of Nigeria.",
-          "Answer: TRUE",
-          "Marks: 1",
-        ].join("\n"),
       },
     });
     expect(create.status(), await create.text()).toBe(200);
     const { examId } = (await create.json()) as { examId: string };
     expect(examId).toBeTruthy();
+
+    // Exercise the same authenticated upload/sync endpoint used by the
+    // teacher's question-bank import flow, rather than the create-time parser.
+    const upload = await request.post("/api/teacher/questions/bulk", {
+      headers: { cookie: teacherCookie },
+      data: {
+        examId,
+        questions: [
+          {
+            type: "MCQ",
+            questionText: "What is 2 + 2?",
+            options: [
+              { key: "A", text: "3" },
+              { key: "B", text: "4" },
+              { key: "C", text: "5" },
+            ],
+            correctKey: "B",
+            marks: 1,
+          },
+          {
+            type: "TRUE_FALSE",
+            questionText: "Abuja is the capital of Nigeria.",
+            correctKey: "TRUE",
+            marks: 1,
+          },
+        ],
+      },
+    });
+    expect(upload.status(), await upload.text()).toBe(200);
+    expect(await upload.json()).toMatchObject({ created: 2, totalQuestions: 2, totalMarks: 2 });
+
+    const refreshedTeacherList = await request.get("/api/teacher/exams", {
+      headers: { cookie: teacherCookie },
+    });
+    const teacherExam = (
+      (await refreshedTeacherList.json()).exams as Array<Record<string, unknown>>
+    ).find((exam) => exam.id === examId);
+    expect(teacherExam).toMatchObject({ durationMinutes: 13, questionCount: 2, totalMarks: 2 });
 
     const publish = await request.patch("/api/teacher/exams", {
       headers: { cookie: teacherCookie },
@@ -135,13 +161,42 @@ test.describe("exams", () => {
     });
     expect(publish.status(), await publish.text()).toBe(200);
 
+    const studentCookie = await apiLogin(request, "student");
+    const studentExams = await request.get("/api/student/exams", {
+      headers: { cookie: studentCookie },
+    });
+    expect(studentExams.status()).toBe(200);
+    const studentExam = ((await studentExams.json()).exams as Array<Record<string, unknown>>).find(
+      (exam) => exam.id === examId,
+    );
+    expect(studentExam).toMatchObject({ durationMinutes: 13, questionCount: 2, totalMarks: 2 });
+
     await useSession(context, page, "student");
     await page.goto("/student/exams");
     await page.getByPlaceholder(/search by subject or paper title/i).fill(title);
     const examCard = page.getByTestId("student-exam-card").filter({ hasText: title });
     await expect(examCard).toContainText("2 questions");
+    await expect(examCard).toContainText("13 min");
+    const packageResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/student/exams/${examId}/offline-package`) &&
+        response.request().method() === "GET" &&
+        response.ok(),
+    );
     await page.getByRole("link", { name: /start exam/i }).click();
+    const examPackage = await (await packageResponsePromise).json();
+    expect(examPackage.exam.durationMinutes).toBe(13);
+    expect(examPackage.questions).toHaveLength(2);
+    expect(
+      examPackage.questions.every(
+        (question: Record<string, unknown>) => !("correctKey" in question),
+      ),
+    ).toBe(true);
 
+    // Sit the paper offline after the authenticated download. The local-first
+    // answer/submission queue must survive; grading still happens only after
+    // the signed packet is replayed to the server.
+    await context.setOffline(true);
     await expect(page.getByText("What is 2 + 2?")).toBeVisible();
     await page.getByRole("button", { name: /B\s*4/ }).click();
     await page.getByRole("button", { name: /^next$/i }).click();
@@ -157,7 +212,22 @@ test.describe("exams", () => {
       .last()
       .click();
 
-    await page.waitForURL(/\/student\/exams$/, { timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: /paper saved on this device/i })).toBeVisible();
+    await expect(page.locator("body")).toContainText(
+      /saved on this device and will be sent automatically.*back online/i,
+    );
+
+    const replayPromise = page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/student/exams/${examId}/attempt/offline-replay`) &&
+        response.request().method() === "POST",
+      { timeout: 20_000 },
+    );
+    await context.setOffline(false);
+    const replay = await replayPromise;
+    expect(replay.status(), await replay.text()).toBe(200);
+
+    await page.goto("/student/exams");
     await expect(page.locator("body")).toContainText(title);
     await expect(page.locator("body")).toContainText(/submitted — awaiting results/i);
 
@@ -173,7 +243,6 @@ test.describe("exams", () => {
     await expect(resultCard).toContainText("100%");
     await expect(resultCard).toContainText("2/2 marks");
 
-    const studentCookie = await apiLogin(request, "student");
     const studentList = await request.get("/api/student/exams", {
       headers: { cookie: studentCookie },
     });

@@ -12,6 +12,7 @@ import {
   recomputeSubjectRanking,
 } from "@/lib/results";
 import { requireRole } from "@/lib/session";
+import { roleMatches } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +99,7 @@ const patchSchema = z.discriminatedUnion("action", [editSchema, retakeSchema, re
  * in this class" without a second round of queries per write.
  */
 async function resolveTeacherScopes(user: { id: string; schoolId: string; role: UserRole }) {
-  const oversight = ADMIN_ROLES.includes(user.role);
+  const oversight = roleMatches(user.role, ADMIN_ROLES);
   const profile = await prisma.teacherProfile.findFirst({
     where: { schoolId: user.schoolId, userId: user.id, isActive: true },
     select: {

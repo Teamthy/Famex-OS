@@ -19,6 +19,7 @@
  */
 
 export type Role =
+  | "SUPER_ADMIN"
   | "ADMIN"
   | "DIRECTOR"
   | "BURSAR"
@@ -34,6 +35,7 @@ export type Role =
   | "NURSE";
 
 export const ALL_ROLES: readonly Role[] = [
+  "SUPER_ADMIN",
   "ADMIN",
   "DIRECTOR",
   "BURSAR",
@@ -51,6 +53,7 @@ export const ALL_ROLES: readonly Role[] = [
 
 /** Human label for staff screens — the enum is never shown raw to a user. */
 export const ROLE_LABELS: Record<Role, string> = {
+  SUPER_ADMIN: "Super Administrator",
   ADMIN: "Administrator",
   DIRECTOR: "Director",
   PROPRIETOR: "Proprietor",
@@ -172,7 +175,7 @@ export const PEOPLE_ADMIN_ROLE_NAMES: readonly Role[] = ["ADMIN", "DIRECTOR", "C
  * this union and lib/people.ts's Prisma-typed STAFF_ROLES stay in step.
  */
 export const PROVISIONABLE_STAFF_ROLES: readonly Role[] = ALL_ROLES.filter(
-  (role) => role !== "PARENT" && role !== "STUDENT",
+  (role) => role !== "SUPER_ADMIN" && role !== "PARENT" && role !== "STUDENT",
 );
 
 /**
@@ -182,6 +185,7 @@ export const PROVISIONABLE_STAFF_ROLES: readonly Role[] = ALL_ROLES.filter(
  * user has enrolled, and leadership accounts are expected to enrol first.
  */
 export const MFA_EXPECTED_ROLES: readonly Role[] = [
+  "SUPER_ADMIN",
   "ADMIN",
   "DIRECTOR",
   "PROPRIETOR",
@@ -189,10 +193,26 @@ export const MFA_EXPECTED_ROLES: readonly Role[] = [
   "BURSAR",
 ];
 
+/** Roles that must not receive a full session until MFA is enrolled. */
+export const MFA_REQUIRED_ROLES: readonly Role[] = ["SUPER_ADMIN"];
+
+/**
+ * F0-03 in-school hierarchy: DIRECTOR inherits ADMIN permissions wherever an API
+ * explicitly admits ADMIN. SUPER_ADMIN also inherits school ADMIN access for
+ * this single-school install, plus its separate platform DevOps workspace.
+ */
+export function roleMatches(role: string, allowed: readonly string[]): boolean {
+  return (
+    allowed.includes(role) ||
+    (role === "DIRECTOR" && allowed.includes("ADMIN")) ||
+    (role === "SUPER_ADMIN" && (allowed.includes("ADMIN") || allowed.includes("DIRECTOR")))
+  );
+}
+
 export function isRole(value: string): value is Role {
   return (ALL_ROLES as readonly string[]).includes(value);
 }
 
 export function roleIn(role: Role | string, group: readonly Role[]): boolean {
-  return (group as readonly string[]).includes(role);
+  return roleMatches(role, group);
 }

@@ -73,6 +73,8 @@ const mockPrisma = {
     upsert: vi.fn(),
   },
   notificationJob: {
+    count: vi.fn(),
+    findFirst: vi.fn(),
     findUnique: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn(),
@@ -419,6 +421,7 @@ const mockPrisma = {
     updateMany: vi.fn(),
     upsert: vi.fn(),
     count: vi.fn(),
+    groupBy: vi.fn(),
   },
   stageConfig: {
     findUnique: vi.fn(),

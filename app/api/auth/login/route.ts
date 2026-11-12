@@ -8,6 +8,7 @@ import { resolveSchoolForRequest } from "@/lib/school-resolution";
 import { recordSecurityEvent, getUserAgent } from "@/lib/forensics";
 import { enforceRateLimit, checkRateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
+import { MFA_REQUIRED_ROLES, roleIn } from "@/lib/roles";
 
 const schema = z.object({
   email: z.string().trim().toLowerCase().email(),
@@ -125,6 +126,28 @@ export async function POST(request: NextRequest) {
         reason: "Incorrect password.",
       });
       return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
+    }
+
+    // Super Admin is a platform-level operator: unlike roles for whom MFA is
+    // currently an expectation, this role must never receive a full session
+    // without an enrolled second factor. Provision it through the one-time
+    // database bootstrap ceremony; never permit self-service password-only
+    // access if the account is misconfigured.
+    if (roleIn(user.role, MFA_REQUIRED_ROLES) && (!user.mfaEnabled || !user.mfaSecretEncrypted)) {
+      await prisma.auditLog.create({
+        data: {
+          schoolId: user.schoolId,
+          actorUserId: user.id,
+          action: "SUPER_ADMIN_LOGIN_BLOCKED_MFA_MISSING",
+          entityType: "User",
+          entityId: user.id,
+          ipAddress: ip,
+        },
+      });
+      return NextResponse.json(
+        { error: "This Super Admin account is not MFA-ready. Contact the deployment operator." },
+        { status: 403 },
+      );
     }
 
     // ── Second factor (B) ─────────────────────────────────────

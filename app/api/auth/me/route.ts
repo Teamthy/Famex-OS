@@ -9,7 +9,13 @@ export const dynamic = "force-dynamic";
  * Roles that work inside the admin workspace. Only they pay for the extra
  * modules lookup — a parent or student session has no use for it.
  */
-const ADMIN_WORKSPACE_ROLES = new Set(["ADMIN", "DIRECTOR", "BURSAR", "COORDINATOR"]);
+const ADMIN_WORKSPACE_ROLES = new Set([
+  "SUPER_ADMIN",
+  "ADMIN",
+  "DIRECTOR",
+  "BURSAR",
+  "COORDINATOR",
+]);
 
 /**
  * GET /api/auth/me — who am I, and what is this school licensed to use?

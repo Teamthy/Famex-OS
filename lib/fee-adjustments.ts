@@ -9,6 +9,7 @@ import {
 import { computeInvoiceStatus } from "@/lib/finance";
 import { postFeeDiscount, postFeeRefund, postFeeTransfer } from "@/lib/ledger-postings";
 import { prisma } from "@/lib/prisma";
+import { roleMatches } from "@/lib/roles";
 
 /**
  * The stage-B money documents (F5-11…F5-14): discounts, refunds, credit
@@ -32,7 +33,7 @@ export type AdjustmentActor = {
 };
 
 // Leadership approves money movements (lib/roles.ts LEADERSHIP_ROLES).
-const APPROVER_ROLES = new Set(["ADMIN", "DIRECTOR", "PROPRIETOR", "PRINCIPAL"]);
+const APPROVER_ROLES = ["ADMIN", "DIRECTOR", "PROPRIETOR", "PRINCIPAL"] as const;
 
 function assertIntegerNaira(value: number, label: string) {
   if (!Number.isInteger(value) || value <= 0) {
@@ -116,7 +117,7 @@ export async function decideDiscount(input: {
   approve: boolean;
   actor: AdjustmentActor;
 }) {
-  if (input.approve && !APPROVER_ROLES.has(input.actor.role)) {
+  if (input.approve && !roleMatches(input.actor.role, APPROVER_ROLES)) {
     throw new Error("Only an admin or director can approve a discount.");
   }
 
@@ -304,7 +305,7 @@ export async function decideRefund(input: {
   proofReference?: string | null;
   actor: AdjustmentActor;
 }) {
-  if (input.approve && !APPROVER_ROLES.has(input.actor.role)) {
+  if (input.approve && !roleMatches(input.actor.role, APPROVER_ROLES)) {
     throw new Error("Only an admin or director can approve a refund.");
   }
   const proof = (input.proofReference ?? "").trim();

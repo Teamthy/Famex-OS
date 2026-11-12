@@ -256,6 +256,22 @@ jobs:
         env:
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
 
+      - name: Verify server-authoritative CBT grading
+        # Run the production grading finalizer on real Postgres with mixed
+        # marks/correctness, manual essays and a 60-question batch. This
+        # checks the stored score and answer marks, not a client calculation.
+        run: npm run verify:grading
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
+      - name: Verify Super Admin bootstrap and MFA persistence
+        # Exercises the out-of-band CLI against migrated Postgres, including
+        # the appended enum value, encrypted TOTP seed, one-time recovery-code
+        # hashes, bootstrap audit and refusal to create a second operator.
+        run: npm run verify:super-admin
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
   e2e:
     name: Browser E2E
     runs-on: ubuntu-latest

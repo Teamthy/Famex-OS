@@ -38,6 +38,7 @@ import {
 
 /** Independent copy of "which workspaces may this role enter" (B-06 table). */
 const EXPECTED_AREAS: Record<Role, string[]> = {
+  SUPER_ADMIN: ["super-admin", "admin", "admin-admissions", "teacher", "staff"],
   ADMIN: ["admin", "admin-admissions", "teacher", "staff"],
   DIRECTOR: ["admin", "admin-admissions", "teacher", "staff"],
   PROPRIETOR: ["admin", "admin-admissions", "staff"],
@@ -55,6 +56,7 @@ const EXPECTED_AREAS: Record<Role, string[]> = {
 
 /** Independent copy of where login must land each role (B-06 table). */
 const EXPECTED_HOME: Record<Role, string> = {
+  SUPER_ADMIN: "/super-admin",
   ADMIN: "/admin",
   DIRECTOR: "/admin",
   PROPRIETOR: "/admin",
@@ -71,6 +73,7 @@ const EXPECTED_HOME: Record<Role, string> = {
 };
 
 const SAMPLE_PATH: Record<string, string> = {
+  "super-admin": "/super-admin",
   admin: "/admin/fees",
   "admin-admissions": "/admin-admissions",
   teacher: "/teacher/dashboard",
@@ -165,7 +168,9 @@ describe("role groups behind the APIs (Rule 13)", () => {
 
   it("provisions every staff role and only staff roles", () => {
     expect([...PROVISIONABLE_STAFF_ROLES].sort()).toEqual(
-      ALL_ROLES.filter((role) => role !== "PARENT" && role !== "STUDENT").sort(),
+      ALL_ROLES.filter(
+        (role) => role !== "SUPER_ADMIN" && role !== "PARENT" && role !== "STUDENT",
+      ).sort(),
     );
     // lib/people.ts's Prisma-typed STAFF_ROLES must stay in step.
     return import("@/lib/people").then(({ STAFF_ROLES }) => {
