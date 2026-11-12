@@ -820,6 +820,12 @@ Follow-up to §4s. The founder asked to remove the navbar border, stop the heade
 - **Evidence:** typecheck, `npm run lint -- --quiet`, Vitest **118 files / 1,613 tests**, `check:dead-ui`, `check:orphans`, `check:modules`, `audit:brand` (65 findings vs the existing 71 ratchet), Prettier and `git diff --check` pass. `npm run build` compiles successfully with the documented stub Prisma engine; expected initialization warnings mean this is build/type proof, not DB/runtime proof. HTTP smoke: `/`, `/gallery`, `/careers`, `/contact` → 200. Playwright browser/visual review could not run: Chromium is not installed in this sandbox. The public home E2E contract now also asserts no theme-switch button and nav/hero non-overlap; that spec has not been executed here.
 
 
+### 4u. Editorial homepage hero redesign (current follow-up on `arena/85a98e76-famex-os`)
+
+Replaced the tall full-bleed hero treatment with a responsive split composition: editorial copy, school/stage labels and admissions/campus links on a warm-paper panel; rotating campus photography and accessible controls on a contrasting media panel. Kept Famex's school content and existing `/admissions` and `#campus` destinations. Preserved eager loading for the lead campus photo, lazy loading for subsequent slides, pause-on-hover/focus behavior and reduced-motion handling. Added a narrow-mobile E2E assertion for heading/CTA visibility and horizontal overflow; browser execution is still pending because Chromium is unavailable in the sandbox.
+
+**Follow-up validation:** typecheck, lint, all 1,613 unit tests, dead-UI/orphan/module checks, brand audit, formatting and whitespace checks pass after this edit. Production build compiles and generates 192 static pages using the documented stub Prisma engines; initialization warnings mean this is not DB/runtime proof. `/`, `/gallery`, `/careers` and `/contact` returned HTTP 200. Browser E2E and visual review remain unrun because Playwright Chromium is unavailable; do not claim visual review until it runs in CI or another browser-enabled environment.
+
 ---
 
 ## 6. Environment recipes (sandbox quirks — do not rediscover)

@@ -48,6 +48,17 @@ test.describe("college home", () => {
     expect(pageWidth).toBeLessThanOrEqual(375);
   });
 
+  test("the redesigned hero fits a narrow mobile viewport", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.goto("/");
+    await expect(
+      page.getByRole("heading", { name: /A bright start\. A bold future\./i }),
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: /Explore admissions/i })).toBeVisible();
+    const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(pageWidth).toBeLessThanOrEqual(360);
+  });
+
   test("hero uses a real campus photograph, not a remote placeholder", async ({ page }) => {
     await page.goto("/");
     // Served through the next/image optimizer, so match on the file name.
