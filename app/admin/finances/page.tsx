@@ -92,7 +92,7 @@ export default function FinanceDashboardPage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               FINANCE <span className="text-brand-green">DASHBOARD</span>
             </h1>
-            <p className="mt-3 text-sm text-white/65">
+            <p className="mt-3 text-sm text-white/85">
               Income, expenses, collection rates, and pending transfer workload.
             </p>
           </div>

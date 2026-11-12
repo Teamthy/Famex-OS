@@ -171,7 +171,7 @@ export default function AdminStudentDetailPage({ params }: { params: Promise<{ i
           <div className="mx-auto max-w-7xl">
             <Link
               href="/admin/students"
-              className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-white/60 hover:text-brand-green"
+              className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-white/85 hover:text-brand-green"
             >
               <ArrowLeft size={12} /> All students
             </Link>
@@ -179,14 +179,14 @@ export default function AdminStudentDetailPage({ params }: { params: Promise<{ i
               {student?.displayName || "STUDENT"}
             </h1>
             {student ? (
-              <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/60">
+              <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/85">
                 <span>{student.studentId}</span>
                 <span>{student.currentClass?.displayName || "No class"}</span>
                 <span
                   className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest ${
                     student.isActive
                       ? "bg-famex-lime/20 text-brand-green"
-                      : "bg-white/10 text-white/60"
+                      : "bg-white/10 text-white/85"
                   }`}
                 >
                   {student.isActive ? "Active" : "Inactive"}

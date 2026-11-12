@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import HomeHeader from "@/components/home/HomeHeader";
 import { getSchoolBrandTokens } from "@/lib/brand";
 import HeroCarousel from "@/components/home/HeroCarousel";
@@ -11,45 +12,45 @@ import PeopleSection from "@/components/home/PeopleSection";
 import LifeGallery from "@/components/home/LifeGallery";
 import AdmissionsSteps from "@/components/home/AdmissionsSteps";
 import NewsEvents from "@/components/home/NewsEvents";
+import HomeFaq from "@/components/home/HomeFaq";
 import VisitCta from "@/components/home/VisitCta";
 import HomeFooter from "@/components/home/HomeFooter";
 import { HOME_BG, HOME_INK } from "@/components/home/theme";
 
-/** The four banner photographs of the hero carousel (real campus images). */
 const HERO_SLIDES = [
   {
     src: "/home/hero-campus-750.webp",
-    alt: "The school campus at golden hour",
-    // AVIF twin of the LCP slide: ~42% of the WebP bytes at the same pixels,
-    // served via <picture> with the WebP as fallback (2026-11 LCP budget work).
+    alt: "Students and families moving through the school campus",
     avif: "/home/hero-campus-750.avif",
   },
-  { src: "/home/college-classroom.jpg", alt: "A lesson in progress in a bright classroom" },
-  { src: "/home/college-sports.jpg", alt: "Students competing on the sports field" },
-  { src: "/home/college-arts.jpg", alt: "Students at work in the arts studio" },
+  { src: "/home/college-classroom.jpg", alt: "Students learning together in a classroom" },
+  { src: "/home/college-sports.jpg", alt: "Students playing football on the school field" },
+  { src: "/home/college-arts.jpg", alt: "Students taking part in a creative arts lesson" },
 ];
 
-/**
- * The school's public home — twelve sections on the warm paper palette:
- *
- *  1 hero banner carousel (4 campus photographs)   7 outcomes band
- *  2 editorial statement                           8 people around your child
- *  3 three-card editorial grid                     9 campus-life mosaic
- *  4 explore-by-stage filter grid                 10 admissions steps
- *  5 marquee band                                 11 the school journal
- *  6 academic pillars                             12 visit & contact
- *
- * Data honesty: identity comes from brand tokens, the journal from the real
- * public calendar API, contacts from school env; no invented metrics anywhere.
- */
+/** Famex public school-home, using the warm editorial / forest / lime visual language. */
 export default function SchoolHome() {
   const motto = process.env.SCHOOL_MOTTO?.trim() || "Raising Role Models";
   const { schoolName } = getSchoolBrandTokens();
 
   return (
     <div
-      className="relative min-h-screen antialiased"
-      style={{ background: HOME_BG, color: HOME_INK }}
+      className="famex-home relative min-h-screen antialiased"
+      style={
+        {
+          background: HOME_BG,
+          color: HOME_INK,
+          "--home-paper": "#f6f4ea",
+          "--home-ink": "#10291f",
+          "--home-dark": "#082d20",
+          "--home-dark-soft": "#123e2f",
+          "--home-lime": "#c9ff45",
+          "--home-lime-soft": "#e0ff91",
+          "--home-card": "#ffffff",
+          "--home-muted": "#566258",
+          "--home-line": "rgba(8,45,32,.12)",
+        } as CSSProperties
+      }
     >
       <HomeHeader schoolName={schoolName} />
       <main>
@@ -64,6 +65,7 @@ export default function SchoolHome() {
         <LifeGallery />
         <AdmissionsSteps />
         <NewsEvents />
+        <HomeFaq />
         <VisitCta />
       </main>
       <HomeFooter />

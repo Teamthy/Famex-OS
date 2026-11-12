@@ -1,3 +1,4 @@
+import { ArrowUpRight } from "lucide-react";
 import { resolveSiteUrl } from "@/lib/site-url";
 import { SERIF } from "./theme";
 
@@ -18,54 +19,65 @@ async function fetchCalendar(): Promise<PublicCalendar> {
   }
 }
 
-/**
- * Section 11 — the Journal: the school's REAL published calendar and public
- * news posts, server-fetched and revalidated. An unconfigured session renders
- * an honest empty state instead of invented headlines.
- */
+/** Public journal and event cards, sourced only from published school calendar data. */
 export default async function NewsEvents() {
   const calendar = await fetchCalendar();
   const events = (calendar.events ?? []).slice(0, 4);
-
   return (
-    <section id="news" className="home-below-fold mx-auto max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24">
-      <div className="flex flex-wrap items-end justify-between gap-6">
-        <h2 className={`${SERIF} text-4xl font-semibold tracking-tight sm:text-5xl`}>
-          The school <em className="font-light italic text-[var(--famex-forest-mid)]">journal</em>
-        </h2>
+    <section
+      id="news"
+      className="home-below-fold mx-auto max-w-[1320px] px-5 pb-16 sm:px-8 sm:pb-24 lg:px-12"
+    >
+      <div className="flex flex-wrap items-end justify-between gap-5">
+        <div>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[.2em] text-[var(--home-dark-soft)]">
+            Notes from school
+          </p>
+          <h2
+            className={`${SERIF} text-[clamp(2.7rem,5vw,4.6rem)] uppercase leading-[.9] text-[var(--home-dark)]`}
+          >
+            The school journal
+          </h2>
+        </div>
         <a
           href="/news-events"
-          className="rounded-full border border-[var(--famex-primary)]/15 bg-white/70 px-5 py-2.5 text-sm font-medium text-[var(--famex-primary)] transition hover:border-[var(--famex-primary)]/35"
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--home-line)] bg-white px-5 py-3 text-xs font-bold text-[var(--home-dark)] transition hover:bg-[var(--home-dark)] hover:text-white"
         >
-          All news &amp; events
+          All news &amp; events <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
         </a>
       </div>
-
       {calendar.session ? (
-        <p className="mt-4 text-sm text-[var(--famex-text-secondary)]">
+        <p className="mt-4 text-xs text-[var(--home-muted)]">
           Current session:{" "}
-          <span className="font-semibold text-[var(--famex-primary)]">{calendar.session}</span>
+          <span className="font-bold text-[var(--home-dark)]">{calendar.session}</span>
           {(calendar.terms ?? []).length > 0 && (
             <> · {(calendar.terms ?? []).map((term) => term.name).join(" · ")}</>
           )}
         </p>
       ) : null}
-
-      {events.length > 0 ? (
-        <div className="mt-8 grid gap-5 sm:grid-cols-2">
-          {events.map((event) => (
+      {events.length ? (
+        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {events.map((event, i) => (
             <a
               key={event.id}
               href={`/news-events/${event.slug}`}
-              className="rounded-3xl bg-[var(--famex-white)] p-6 shadow-[0_10px_40px_rgba(33,29,25,0.07)] transition duration-300 hover:-translate-y-1"
+              className={`group flex min-h-[220px] flex-col rounded-[21px] p-5 transition hover:-translate-y-1 ${i === 1 ? "bg-[var(--home-lime)]" : "bg-white shadow-[0_8px_30px_rgba(8,45,32,.06)]"}`}
             >
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--famex-text-muted)]">
-                {event.category}
-              </p>
-              <h3 className="mt-2 text-base font-semibold text-[var(--famex-primary)]">
+              <div className="flex items-center justify-between">
+                <span className="rounded-full bg-[var(--home-dark)]/[.07] px-3 py-1.5 text-[9px] font-bold uppercase tracking-[.12em] text-[var(--home-dark)]">
+                  {event.category}
+                </span>
+                <ArrowUpRight
+                  className="h-4 w-4 text-[var(--home-dark)] transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                  aria-hidden="true"
+                />
+              </div>
+              <h3
+                className={`${SERIF} mt-6 text-[1.5rem] uppercase leading-[.98] text-[var(--home-dark)]`}
+              >
                 {event.title}
               </h3>
-              <p className="mt-2 text-xs text-[var(--famex-text-secondary)]">
+              <p className="mt-auto pt-5 text-[10px] font-semibold uppercase tracking-wider text-[var(--home-muted)]">
                 {new Date(event.publishedAt).toLocaleDateString("en-NG", {
                   day: "numeric",
                   month: "long",
@@ -76,9 +88,8 @@ export default async function NewsEvents() {
           ))}
         </div>
       ) : (
-        <p className="mt-8 rounded-3xl border border-dashed border-[var(--famex-primary)]/20 bg-white/50 p-8 text-center text-sm text-[var(--famex-text-secondary)]">
-          The session calendar and journal publish here as soon as the academic session is
-          configured in the admin area. Nothing is hidden — it simply has not been written yet.
+        <p className="mt-8 rounded-[21px] border border-dashed border-[var(--home-line)] bg-white/60 p-8 text-center text-sm leading-6 text-[var(--home-muted)]">
+          The school journal and session calendar will appear here when published by the school.
         </p>
       )}
     </section>

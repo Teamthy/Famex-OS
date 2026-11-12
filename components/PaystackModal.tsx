@@ -72,9 +72,9 @@ export default function PaystackModal({
                 </div>
                 <span className="text-lg font-bold">Paystack Checkout</span>
               </div>
-              <div className="text-xs text-white/70">{email}</div>
+              <div className="text-xs text-white/85">{email}</div>
               <div className="mt-4">
-                <div className="text-xs text-white/70">You are paying</div>
+                <div className="text-xs text-white/85">You are paying</div>
                 <div className="font-display text-3xl">₦{amount.toLocaleString()}</div>
               </div>
             </div>

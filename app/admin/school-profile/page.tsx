@@ -158,7 +158,7 @@ export default function SchoolProfilePage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
               SCHOOL <span className="text-brand-green">ADDRESS</span>
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               One address, used on receipts, report cards, ID cards and the public website. Until it
               is set, none of these print an address.
             </p>

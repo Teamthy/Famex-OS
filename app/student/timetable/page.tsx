@@ -66,7 +66,7 @@ export default function StudentTimetablePage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               MY <span className="text-brand-green">TIMETABLE</span>
             </h1>
-            <p className="mt-3 max-w-2xl text-sm text-white/65">
+            <p className="mt-3 max-w-2xl text-sm text-white/85">
               Your weekly class schedule. Today is{" "}
               <span className="font-bold text-brand-green">{today}</span>.
             </p>

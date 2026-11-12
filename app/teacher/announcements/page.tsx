@@ -145,7 +145,7 @@ export default function BulkAnnouncementPage() {
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
               CREATE <span className="text-brand-green">ANNOUNCEMENT</span>
             </h1>
-            <p className="text-white/60 text-sm">
+            <p className="text-white/85 text-sm">
               Send updates to students, parents, or entire classes via multiple channels.
             </p>
           </div>
@@ -458,7 +458,7 @@ export default function BulkAnnouncementPage() {
                     <div className="text-xs text-white/80 whitespace-pre-line">
                       {message || "Your message will appear here..."}
                     </div>
-                    <div className="mt-3 pt-3 border-t border-white/10 text-[10px] text-white/50">
+                    <div className="mt-3 pt-3 border-t border-white/10 text-[10px] text-white/85">
                       From {teacher.fullName} · Now
                     </div>
                   </div>

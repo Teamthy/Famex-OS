@@ -138,7 +138,7 @@ export default function GeneralLedgerPage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               GENERAL <span className="text-brand-green">LEDGER</span>
             </h1>
-            <p className="mt-3 text-sm text-white/65">
+            <p className="mt-3 text-sm text-white/85">
               Every naira the school collects or spends, posted twice — once debited, once credited.
               Invoices, balances and the dashboard are projections of this book.
             </p>

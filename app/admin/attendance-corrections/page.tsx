@@ -96,7 +96,7 @@ export default function AdminAttendanceCorrectionsPage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-5xl">
               ATTENDANCE <span className="text-brand-green">CORRECTIONS</span>
             </h1>
-            <p className="mt-2 max-w-3xl text-sm text-white/65">
+            <p className="mt-2 max-w-3xl text-sm text-white/85">
               Review teacher requests to unlock submitted attendance sessions for correction and
               resubmission.
             </p>

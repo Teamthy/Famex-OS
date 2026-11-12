@@ -65,7 +65,7 @@ export default function QuestionBankPage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               QUESTION <span className="text-brand-green">BANK</span>
             </h1>
-            <p className="mt-3 max-w-2xl text-sm text-white/65">
+            <p className="mt-3 max-w-2xl text-sm text-white/85">
               Every test and exam you own, with live question counts. Upload items from
               CSV/Excel/Word/JSON, preview, then publish.
             </p>

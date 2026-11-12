@@ -317,7 +317,7 @@ export default function TeacherAssignmentsPage() {
             <h1 className="mt-3 font-display text-4xl tracking-widest text-white md:text-5xl">
               ASSIGNMENTS
             </h1>
-            <p className="mt-3 max-w-3xl text-sm text-white/60">
+            <p className="mt-3 max-w-3xl text-sm text-white/85">
               Set work for a class you teach, receive each student's submission, then grade it or
               return it for revision. Drafts stay hidden until you publish.
             </p>

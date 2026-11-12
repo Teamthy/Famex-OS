@@ -229,7 +229,7 @@ export default function ParentFeesPage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               FEE <span className="text-brand-green">CENTRE</span>
             </h1>
-            <p className="mt-3 text-sm text-white/65">
+            <p className="mt-3 text-sm text-white/85">
               Live invoices with Paystack hosted checkout or bank-transfer claims reviewed by the
               bursar. Payments are verified server-side and never double-posted.
             </p>

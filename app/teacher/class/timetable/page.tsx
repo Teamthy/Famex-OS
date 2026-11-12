@@ -81,7 +81,7 @@ export default function ClassTimetablePage() {
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
               CLASS <span className="text-brand-orange">TIMETABLE</span>
             </h1>
-            <p className="text-white/60 text-sm">
+            <p className="text-white/85 text-sm">
               {className
                 ? `Weekly schedule for ${className}. Today: ${DAY_LABEL[today] ?? today}`
                 : "You are not assigned as a form teacher, so there is no class timetable to show."}

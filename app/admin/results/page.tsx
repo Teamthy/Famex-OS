@@ -231,7 +231,7 @@ export default function AdminResultsPage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
               TERM <span className="text-brand-green">RESULTS</span>
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               Compile a term to freeze every class&apos;s totals, averages, positions and year
               averages — then release them to students. Marks stay correctable until release.
             </p>

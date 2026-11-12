@@ -622,7 +622,7 @@ export default function UploadQuestionsPage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               UPLOAD <span className="text-brand-green">QUESTIONS</span>
             </h1>
-            <p className="mt-3 max-w-2xl text-sm text-white/65">
+            <p className="mt-3 max-w-2xl text-sm text-white/85">
               Upload questions in CSV, JSON, or Excel format. Supports MCQ, True/False,
               Fill-in-the-Blank, and Essay questions. Preview and validate before syncing to the
               exam.

@@ -57,7 +57,7 @@ export default function ParentEventsPage() {
             <h1 className="font-display text-[42px] md:text-[56px] tracking-[3px] text-white mb-4">
               SCHOOL <span className="text-brand-green">EVENTS</span>
             </h1>
-            <p className="text-white/60">
+            <p className="text-white/85">
               Stay engaged with upcoming events, meetings, and important dates.
             </p>
           </div>

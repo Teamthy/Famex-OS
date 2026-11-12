@@ -26,7 +26,7 @@ export default function NewsletterSignup() {
       <h3 className="font-display text-3xl mb-3">
         STAY <span className="text-brand-green">CONNECTED</span>
       </h3>
-      <p className="text-white/60 mb-6 max-w-md mx-auto text-sm">
+      <p className="text-white/85 mb-6 max-w-md mx-auto text-sm">
         Get admission updates, school news, and academic tips delivered to your inbox monthly.
       </p>
       {!subscribed ? (
@@ -37,7 +37,7 @@ export default function NewsletterSignup() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="your@email.com"
-            className="flex-1 px-5 py-3 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:border-brand-green"
+            className="flex-1 px-5 py-3 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/85 focus:outline-none focus:border-brand-green"
           />
           <button
             type="submit"

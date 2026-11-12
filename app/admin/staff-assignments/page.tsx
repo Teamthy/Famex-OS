@@ -71,7 +71,7 @@ export default function Assignments() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               STAFF <span className="text-brand-green">ASSIGNMENTS</span>
             </h1>
-            <p className="mt-3 text-sm text-white/65">
+            <p className="mt-3 text-sm text-white/85">
               Assign subject teachers to specific class arms. Assignments immediately govern roster,
               attendance and gradebook access.
             </p>

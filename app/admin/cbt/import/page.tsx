@@ -106,7 +106,7 @@ export default function AdminCbtImportPage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
               BULK <span className="text-brand-green">QUESTION IMPORT</span>
             </h1>
-            <p className="mt-3 max-w-2xl text-sm text-white/60">
+            <p className="mt-3 max-w-2xl text-sm text-white/85">
               Upload CSV question papers to add to the offline CBT bank. Questions auto-download to
               student devices so CBT tests can be taken completely without internet.
             </p>

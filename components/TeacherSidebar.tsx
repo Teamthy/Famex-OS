@@ -209,12 +209,12 @@ export default function TeacherSidebar() {
         </div>
 
         {loading ? (
-          <div className="flex items-center gap-2 px-4 text-xs text-white/65">
+          <div className="flex items-center gap-2 px-4 text-xs text-white/85">
             <LoaderCircle className="animate-spin" size={14} /> Syncing assignments…
           </div>
         ) : null}
 
-        <NavBlock title="General" color="text-white/60" items={general} pathname={pathname} />
+        <NavBlock title="General" color="text-white/85" items={general} pathname={pathname} />
         {isSubject ? (
           <NavBlock
             title="Subject teaching"
@@ -237,7 +237,7 @@ export default function TeacherSidebar() {
 
         <button
           onClick={logout}
-          className="flex min-h-11 w-full items-center gap-2 rounded-xl px-4 py-2 text-xs text-white/70 transition hover:bg-red-500/15 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-lime)]"
+          className="flex min-h-11 w-full items-center gap-2 rounded-xl px-4 py-2 text-xs text-white/85 transition hover:bg-red-500/15 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-lime)]"
         >
           <LogOut size={14} /> Sign out
         </button>

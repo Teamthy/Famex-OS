@@ -47,7 +47,7 @@ export default function ParentMessagesPage() {
             <h1 className="mt-3 font-display text-4xl tracking-widest text-white md:text-6xl">
               MESSAGES
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               Talk to your child&apos;s teachers and the school office. Replies appear here.
             </p>
           </div>

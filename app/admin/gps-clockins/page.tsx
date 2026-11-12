@@ -111,7 +111,7 @@ export default function AdminGpsClockinsPage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
               LIVE <span className="text-brand-green">CLOCK-INS</span>
             </h1>
-            <p className="mt-3 max-w-2xl text-sm text-white/60">
+            <p className="mt-3 max-w-2xl text-sm text-white/85">
               Real-time feed of GPS-verified check-ins by staff and students. Server-side geofencing
               means only people physically at school appear here.
             </p>

@@ -99,7 +99,7 @@ export default function GenerateInvoicesPage() {
                 <Receipt size={11} /> Bursary
               </span>
               {data ? (
-                <span className="text-xs text-white/45">
+                <span className="text-xs text-white/85">
                   {data.term.sessionLabel} · {data.term.label}
                 </span>
               ) : null}
@@ -107,7 +107,7 @@ export default function GenerateInvoicesPage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
               GENERATE <span className="text-brand-green">INVOICES</span>
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               Review who will be billed, then raise the invoices. Students who already have an
               invoice for this term are skipped, so this is safe to run again after admitting a new
               student.

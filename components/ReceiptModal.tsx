@@ -94,7 +94,7 @@ export default function ReceiptModal({ open, data, onClose }: Props) {
             <div className="bg-brand-navy p-6 text-white relative">
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 text-white/70 hover:text-white"
+                className="absolute top-4 right-4 text-white/85 hover:text-white"
               >
                 <X size={20} />
               </button>
@@ -103,7 +103,7 @@ export default function ReceiptModal({ open, data, onClose }: Props) {
                   <CheckCircle2 size={26} className="text-white" strokeWidth={2.5} />
                 </div>
                 <div>
-                  <div className="text-xs text-white/60 uppercase tracking-widest">
+                  <div className="text-xs text-white/85 uppercase tracking-widest">
                     Payment Successful
                   </div>
                   <div className="font-display text-xl">RECEIPT ISSUED</div>
@@ -112,7 +112,7 @@ export default function ReceiptModal({ open, data, onClose }: Props) {
               <div className="text-3xl font-display text-brand-green">
                 ₦{data.totalPaid.toLocaleString()}
               </div>
-              <div className="text-xs text-white/60 mt-1">{data.receiptNo}</div>
+              <div className="text-xs text-white/85 mt-1">{data.receiptNo}</div>
             </div>
 
             {/* Receipt Details */}

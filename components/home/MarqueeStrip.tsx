@@ -1,23 +1,23 @@
 import { Marquee } from "@/components/AnimatedText";
 
-/** Section 5 — the slow marquee band, restyled onto the paper palette. */
+/** A quiet, moving wordmark strip separating editorial sections. */
 export default function MarqueeStrip() {
   return (
     <section
       aria-label="School rhythm"
-      className="home-below-fold border-y border-[var(--famex-primary)]/10 bg-[var(--famex-lime-pale)] py-4"
+      className="home-below-fold overflow-hidden border-y border-white/10 bg-[var(--home-dark-soft)] py-4"
     >
       <Marquee
         items={[
           "PRE-SCHOOL — SS3",
           "NERDC CURRICULUM",
           "STEM & DIGITAL LITERACY",
-          "LEADERSHIP TRAINING",
+          "LEADERSHIP & SERVICE",
           "CHARACTER FORMATION",
-          "WAEC · BECE PREPARATION",
+          "BECE · WAEC PREPARATION",
         ]}
-        className="text-[var(--famex-text-secondary)]"
-        itemClassName="font-[family-name:var(--font-fraunces)] text-[clamp(0.95rem,2vw,1.6rem)] italic tracking-[-0.01em] text-[var(--famex-text-secondary)]"
+        className="text-[var(--home-lime)]"
+        itemClassName="font-display text-[clamp(1rem,2vw,1.55rem)] uppercase tracking-[.06em] text-[var(--home-lime)]"
         duration={36}
       />
     </section>

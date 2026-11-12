@@ -244,7 +244,7 @@ export default function TeacherVirtualClassesPage() {
             <h1 className="mt-3 font-display text-4xl tracking-widest text-white md:text-5xl">
               LIVE CLASSES
             </h1>
-            <p className="mt-3 max-w-3xl text-sm text-white/60">
+            <p className="mt-3 max-w-3xl text-sm text-white/85">
               Schedule a lesson with the school's meeting link. Students can launch it only during
               the joining window you set. FIS records the launch; the meeting provider remains the
               source of truth for time spent inside the call.

@@ -95,7 +95,7 @@ export default function AttendanceHistoryPage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-5xl">
               ATTENDANCE <span className="text-brand-orange">HISTORY</span>
             </h1>
-            <p className="mt-2 max-w-3xl text-sm text-white/65">
+            <p className="mt-2 max-w-3xl text-sm text-white/85">
               Review submitted attendance sessions by class and month, including present, absent,
               late, and attendance-rate summaries.
             </p>

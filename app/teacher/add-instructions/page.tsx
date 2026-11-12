@@ -74,7 +74,7 @@ export default function AddInstructionsPage() {
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2 text-center">
               ADD QUESTIONS & <span className="text-brand-green">INSTRUCTIONS</span>
             </h1>
-            <p className="text-white/60 text-sm text-center">
+            <p className="text-white/85 text-sm text-center">
               Set up custom instructions for specific question ranges
             </p>
           </div>

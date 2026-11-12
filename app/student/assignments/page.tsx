@@ -162,7 +162,7 @@ export default function StudentAssignmentsPage() {
             <h1 className="mt-3 font-display text-4xl tracking-widest text-white md:text-5xl">
               MY ASSIGNMENTS
             </h1>
-            <p className="mt-3 max-w-3xl text-sm text-white/60">
+            <p className="mt-3 max-w-3xl text-sm text-white/85">
               Read your teacher's instructions, write your answer, and submit. You can revise an
               ungraded or returned submission while the assignment remains open.
             </p>

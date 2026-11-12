@@ -1,12 +1,12 @@
 /* ============================================================
-   FAMEX INTERNATIONAL SCHOOLS — GLOBAL STYLES
-   Production build. Tailwind v4 with a light botanical default and dark opt-in.
+   FAMEX SCHOOLS — GLOBAL STYLES
+   Production build. Tailwind v4 with one fixed light botanical theme.
    ============================================================ */
 
 @import "tailwindcss";
 
 /* ------------------------------------------------------------
-   Enable dark mode via [data-theme="dark"] attribute
+   Legacy dark utilities are retained for explicit dark panels; the app theme is fixed to light.
    ------------------------------------------------------------ */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
@@ -146,6 +146,29 @@
   color: var(--famex-primary);
 }
 
+/* Legacy navy panels need the light lime accent, not forest text on forest. */
+:is(
+    [class~="bg-brand-navy"],
+    [class~="bg-brand-navy-dark"],
+    [class~="bg-brand-navy-light"],
+    [class~="from-brand-navy"],
+    [class~="from-brand-navy-dark"],
+    [class~="to-brand-navy"],
+    [class~="to-brand-navy-dark"]
+  )
+  :is(.text-brand-green, .hover\:text-brand-green:hover),
+:is(
+  [class~="bg-brand-navy"],
+  [class~="bg-brand-navy-dark"],
+  [class~="bg-brand-navy-light"],
+  [class~="from-brand-navy"],
+  [class~="from-brand-navy-dark"],
+  [class~="to-brand-navy"],
+  [class~="to-brand-navy-dark"]
+).text-brand-green {
+  color: var(--famex-lime-soft);
+}
+
 [data-theme="dark"] .text-brand-green,
 [data-theme="dark"] .hover\:text-brand-green:hover {
   color: var(--famex-lime);
@@ -158,9 +181,9 @@
 
 /* ============================================================
    THEME TOKENS
-   Root variables retain the dark palette; the default light workspace
-   overrides them under [data-theme="light"]. Components consume semantic
-   variables so both themes remain available without per-page overrides.
+   Root variables provide a stable forest palette; the fixed [data-theme="light"]
+   workspace defines the application surfaces and text. Dark utility variants are
+   retained only for explicitly styled panels, not as a selectable app theme.
    ============================================================ */
 :root {
   color-scheme: dark;
@@ -332,7 +355,7 @@
 
 /* ============================================================
    LIGHT THEME — complete token mirror
-   Activated by ThemeProvider via <html data-theme="light">.
+   Applied statically on the document as <html data-theme="light">.
    Surfaces flip to white/off-white, ink to navy; the footer stays
    deliberately dark (a common light-mode pattern) and status colors
    switch to dark-on-tint so text stays readable on light surfaces.

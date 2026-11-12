@@ -144,7 +144,7 @@ export default function SessionsPage() {
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
               SESSIONS &amp; <span className="text-brand-green">TERMS</span>
             </h1>
-            <p className="text-white/60 text-sm">
+            <p className="text-white/85 text-sm">
               The school&apos;s source of truth for which term is current.
             </p>
           </div>
@@ -358,7 +358,7 @@ export default function SessionsPage() {
               <h3 className="font-display text-xl text-white">New Academic Session</h3>
               <button
                 onClick={() => setShowCreate(false)}
-                className="text-white/60 hover:text-white"
+                className="text-white/85 hover:text-white"
               >
                 <X size={20} />
               </button>
@@ -370,7 +370,7 @@ export default function SessionsPage() {
                   value={label}
                   onChange={(e) => setLabel(e.target.value)}
                   placeholder="2027/2028"
-                  className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-brand-green"
+                  className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/85 focus:outline-none focus:border-brand-green"
                 />
               </Field>
 
@@ -393,7 +393,7 @@ export default function SessionsPage() {
                 </Field>
               </div>
 
-              <p className="text-[11px] text-white/50">
+              <p className="text-[11px] text-white/85">
                 Three terms are created automatically and split evenly across these dates. You can
                 adjust them afterwards.
               </p>
@@ -409,7 +409,7 @@ export default function SessionsPage() {
                   <div className="text-sm text-white font-medium">
                     Make this the current session
                   </div>
-                  <div className="text-[10px] text-white/50">
+                  <div className="text-[10px] text-white/85">
                     Starts it on First Term. Only do this when the year actually begins.
                   </div>
                 </div>
@@ -424,7 +424,7 @@ export default function SessionsPage() {
                 />
                 <div>
                   <div className="text-sm text-white font-medium">Enrol all active students</div>
-                  <div className="text-[10px] text-white/50">
+                  <div className="text-[10px] text-white/85">
                     Leave off if you are creating next year ahead of promotion.
                   </div>
                 </div>

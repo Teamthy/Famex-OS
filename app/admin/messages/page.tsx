@@ -31,7 +31,7 @@ export default function AdminMessagesPage() {
             <h1 className="mt-3 font-display text-4xl tracking-widest text-white md:text-6xl">
               MESSAGES
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               Every conversation in the school. Start one with any family, or step into an existing
               thread.
             </p>

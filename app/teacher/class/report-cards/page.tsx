@@ -82,7 +82,7 @@ export default function ClassReportCardsPage() {
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
               CLASS <span className="text-brand-orange">REPORT CARDS</span>
             </h1>
-            <p className="text-white/60 text-sm">
+            <p className="text-white/85 text-sm">
               Review and add remarks to report cards for your form class.
             </p>
           </div>
@@ -220,11 +220,11 @@ export default function ClassReportCardsPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="font-display text-xl text-white">Class Teacher's Remark</h3>
-                <p className="text-xs text-white/60">For {selectedStudent.name}</p>
+                <p className="text-xs text-white/85">For {selectedStudent.name}</p>
               </div>
               <button
                 onClick={() => setShowRemarkModal(false)}
-                className="text-white/60 hover:text-white"
+                className="text-white/85 hover:text-white"
               >
                 <X size={20} />
               </button>
@@ -238,7 +238,7 @@ export default function ClassReportCardsPage() {
               />
               <div>
                 <div className="text-sm font-bold text-white">{selectedStudent.name}</div>
-                <div className="text-[10px] text-white/50">
+                <div className="text-[10px] text-white/85">
                   {selectedStudent.studentId} · Grade {selectedStudent.overallGrade}
                 </div>
               </div>
@@ -249,7 +249,7 @@ export default function ClassReportCardsPage() {
               onChange={(e) => setRemark(e.target.value)}
               rows={5}
               placeholder="e.g., A hardworking student who has shown remarkable improvement this term. Keep up the excellent work!"
-              className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-brand-orange resize-none mb-4"
+              className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/85 focus:outline-none focus:border-brand-orange resize-none mb-4"
             />
 
             <button

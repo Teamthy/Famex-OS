@@ -285,7 +285,7 @@ export default function ExamCenterPage() {
             <h1 className="mt-3 font-display text-4xl tracking-widest text-white md:text-6xl">
               EXAM <span className="text-brand-green">CENTRE</span>
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               Midterm tests and final exams in one place. Set the sitting window, paste or upload
               questions, publish, then release results.
             </p>

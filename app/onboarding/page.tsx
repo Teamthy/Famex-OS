@@ -169,7 +169,7 @@ export default function OnboardingPage() {
       <div className="mx-auto w-full max-w-3xl">
         <div className="mb-6 text-center">
           <h1 className="font-display text-3xl tracking-widest text-white">SCHOOL SETUP</h1>
-          <p className="mt-2 text-sm text-white/60">
+          <p className="mt-2 text-sm text-white/85">
             Six short steps. You can stop at any point — the wizard remembers where you got to.
           </p>
         </div>
@@ -185,8 +185,8 @@ export default function OnboardingPage() {
                     active
                       ? "border-[var(--color-brand-green)] bg-[var(--color-brand-green)]/20 text-[var(--color-brand-green)]"
                       : done
-                        ? "border-white/20 text-white/70"
-                        : "border-white/10 text-white/40"
+                        ? "border-white/20 text-white/85"
+                        : "border-white/10 text-white/85"
                   }`}
                 >
                   {done ? <CheckCircle2 size={12} /> : <entry.icon size={12} />}
@@ -688,7 +688,7 @@ export default function OnboardingPage() {
           )}
         </div>
 
-        <p className="mt-6 text-center text-xs text-white/40">
+        <p className="mt-6 text-center text-xs text-white/85">
           <Circle size={10} className="mr-1 inline" /> Steps are saved as you go — closing this page
           loses nothing.
         </p>

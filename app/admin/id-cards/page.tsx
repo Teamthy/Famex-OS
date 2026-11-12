@@ -156,7 +156,7 @@ export default function AdminIDCardsPage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               ID <span className="text-brand-green">CARDS</span>
             </h1>
-            <p className="mt-3 text-sm text-white/65">
+            <p className="mt-3 text-sm text-white/85">
               Generate student identity cards from live records. Each card embeds a QR payload for
               gate verification.
             </p>
@@ -234,15 +234,15 @@ export default function AdminIDCardsPage() {
                     {schoolName}
                   </div>
                   <div className="mt-3 font-display text-xl tracking-wide">{s.displayName}</div>
-                  <div className="mt-1 font-mono text-xs text-white/70">{s.studentId}</div>
-                  <div className="mt-1 text-xs text-white/60">{s.className}</div>
+                  <div className="mt-1 font-mono text-xs text-white/85">{s.studentId}</div>
+                  <div className="mt-1 text-xs text-white/85">{s.className}</div>
                   <QrImage
                     value={qrPayload(s)}
                     size={140}
                     alt={`QR ${s.studentId}`}
                     className="absolute bottom-3 right-3 h-16 w-16 rounded-md bg-white p-1"
                   />
-                  <div className="mt-8 text-[9px] uppercase tracking-widest text-white/40">
+                  <div className="mt-8 text-[9px] uppercase tracking-widest text-white/85">
                     Student identity card
                   </div>
                 </div>

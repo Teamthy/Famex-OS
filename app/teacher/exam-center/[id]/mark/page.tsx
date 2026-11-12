@@ -204,7 +204,7 @@ export default function TeacherMarkingPage() {
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <p className="mt-2 text-sm text-white/65">
+            <p className="mt-2 text-sm text-white/85">
               {data.summary.totalMarked}/{data.summary.totalTheory} answers marked across{" "}
               {data.summary.totalStudents} scripts
               {" · "}

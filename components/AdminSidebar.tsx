@@ -132,7 +132,7 @@ export default function AdminSidebar() {
               type="button"
               onClick={() => setCollapsed((prev) => ({ ...prev, [group.key]: !folded }))}
               aria-expanded={!folded}
-              className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-white/85 transition-colors hover:bg-white/10 hover:text-white"
             >
               <Icon size={13} aria-hidden />
               <span className="flex-1 text-left">{group.label}</span>
@@ -152,7 +152,7 @@ export default function AdminSidebar() {
                         key={`${group.key}:${item.label}`}
                         aria-disabled="true"
                         title={item.note ?? `Arrives in ${item.release}`}
-                        className="flex cursor-not-allowed items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-sm text-white/40"
+                        className="flex cursor-not-allowed items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-sm text-white/85"
                       >
                         <AlertCircle size={14} aria-hidden />
                         <span className="flex-1 tracking-wide">{item.label}</span>
@@ -215,11 +215,11 @@ export default function AdminSidebar() {
 
       {user && (
         <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-white/60">
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-white/85">
             <LayoutDashboard size={12} aria-hidden /> Signed in
           </div>
           <div className="truncate text-sm font-bold text-white">{user.name}</div>
-          <div className="text-[10px] uppercase tracking-wider text-white/60">
+          <div className="text-[10px] uppercase tracking-wider text-white/85">
             {role?.replaceAll("_", " ")}
           </div>
           {user.role === "SUPER_ADMIN" && (
@@ -257,14 +257,14 @@ export default function AdminSidebar() {
           />
           <div className="absolute inset-y-0 left-0 flex w-[280px] max-w-[85vw] flex-col gap-4 overflow-y-auto bg-[var(--famex-forest-dark)] p-4 text-white shadow-2xl">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-white/60">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/85">
                 Admin menu
               </span>
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
                 aria-label="Close menu"
-                className="rounded-xl p-2 text-white/65 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-lime)]"
+                className="rounded-xl p-2 text-white/85 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-lime)]"
               >
                 <X size={16} aria-hidden />
               </button>
@@ -273,7 +273,7 @@ export default function AdminSidebar() {
             {nav}
             <button
               onClick={logout}
-              className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 py-2 text-xs text-white/70 transition hover:bg-red-500/15 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-lime)]"
+              className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 py-2 text-xs text-white/85 transition hover:bg-red-500/15 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-lime)]"
             >
               <LogOut size={14} aria-hidden /> Sign out
             </button>
@@ -287,7 +287,7 @@ export default function AdminSidebar() {
           <div className="max-h-[calc(100vh-22rem)] overflow-y-auto pr-1">{nav}</div>
           <button
             onClick={logout}
-            className="flex min-h-11 w-full items-center gap-2 rounded-xl px-4 py-2 text-xs text-white/70 transition hover:bg-red-500/15 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-lime)]"
+            className="flex min-h-11 w-full items-center gap-2 rounded-xl px-4 py-2 text-xs text-white/85 transition hover:bg-red-500/15 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-lime)]"
           >
             <LogOut size={14} aria-hidden /> Sign out
           </button>

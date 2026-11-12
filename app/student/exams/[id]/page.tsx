@@ -629,7 +629,7 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-brand-navy">
-        <div className="flex items-center gap-3 text-white/70">
+        <div className="flex items-center gap-3 text-white/85">
           <LoaderCircle className="animate-spin text-brand-green" size={22} /> Preparing your exam…
         </div>
       </main>
@@ -642,7 +642,7 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
         <div className="max-w-md rounded-[2rem] border border-white/10 bg-white/5 p-10 text-center">
           <CloudOff className="mx-auto mb-4 text-brand-green" size={36} />
           <h1 className="font-display text-2xl text-white">PAPER SAVED ON THIS DEVICE</h1>
-          <p className="mt-3 text-sm text-white/60">{pendingReason}</p>
+          <p className="mt-3 text-sm text-white/85">{pendingReason}</p>
           <button
             onClick={() => router.replace("/student/exams")}
             className="mt-6 rounded-full bg-famex-lime px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy"
@@ -660,7 +660,7 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
         <div className="max-w-md rounded-[2rem] border border-white/10 bg-white/5 p-10 text-center">
           <AlertTriangle className="mx-auto mb-4 text-brand-orange" size={36} />
           <h1 className="font-display text-2xl text-white">CANNOT START EXAM</h1>
-          <p className="mt-3 text-sm text-white/60">{error || "Something went wrong."}</p>
+          <p className="mt-3 text-sm text-white/85">{error || "Something went wrong."}</p>
           <button
             onClick={() => router.replace("/student/exams")}
             className="mt-6 rounded-full bg-famex-lime px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy"
@@ -682,7 +682,7 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
             <div className="truncate font-display text-lg tracking-widest text-white">
               {data.exam.title}
             </div>
-            <div className="text-[10px] uppercase tracking-widest text-white/50">
+            <div className="text-[10px] uppercase tracking-widest text-white/85">
               {data.exam.subjectName} · {answered}/{data.questions.length} answered
             </div>
           </div>
@@ -692,7 +692,7 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
                 <CloudOff size={11} /> Saved on device
               </span>
             ) : saveState === "SAVING" ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/70">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/85">
                 <LoaderCircle size={11} className="animate-spin" /> Saving
               </span>
             ) : saveState === "SAVED" ? (
@@ -700,11 +700,11 @@ export default function StudentExamRunnerPage({ params }: { params: Promise<{ id
                 <CheckCircle2 size={11} /> Saved
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/70">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/85">
                 <Wifi size={11} /> Ready
               </span>
             )}
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/70">
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/85">
               <Shield size={11} /> Monitored
             </span>
             <span

@@ -60,7 +60,7 @@ export default function AlumniPage() {
                   <AnimatedText heavy stagger={0.034} text="ALUMNI" delay={0.075} />
                 </span>
               </h1>
-              <p className="text-white/60 mt-6 max-w-2xl mx-auto">
+              <p className="text-white/85 mt-6 max-w-2xl mx-auto">
                 FIS graduates are making waves across Nigeria and the world. Meet a few of them.
               </p>
             </div>

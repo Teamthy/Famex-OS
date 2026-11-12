@@ -206,7 +206,7 @@ export default function BehaviorRecordsPage() {
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
               BEHAVIOR <span className="text-brand-orange">RECORDS</span>
             </h1>
-            <p className="text-white/60 text-sm">
+            <p className="text-white/85 text-sm">
               Log commendations, warnings, and notes for students in your classes.
             </p>
           </div>
@@ -425,7 +425,7 @@ export default function BehaviorRecordsPage() {
                   setShowModal(false);
                   resetForm();
                 }}
-                className="text-white/60 hover:text-white"
+                className="text-white/85 hover:text-white"
               >
                 <X size={20} />
               </button>
@@ -464,7 +464,7 @@ export default function BehaviorRecordsPage() {
                         className={`p-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                           form.type === t
                             ? `${config.bg} ${config.color} border-2 ${config.border}`
-                            : "bg-white/5 text-white/60 border-2 border-transparent hover:bg-white/10"
+                            : "bg-white/5 text-white/85 border-2 border-transparent hover:bg-white/10"
                         }`}
                       >
                         <config.icon size={12} /> {config.label}
@@ -486,7 +486,7 @@ export default function BehaviorRecordsPage() {
                       className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors ${
                         form.category === c
                           ? "bg-brand-orange text-white"
-                          : "bg-white/5 text-white/60 hover:bg-white/10"
+                          : "bg-white/5 text-white/85 hover:bg-white/10"
                       }`}
                     >
                       {c}
@@ -497,7 +497,7 @@ export default function BehaviorRecordsPage() {
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
                   placeholder="Or type your own…"
-                  className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-brand-orange"
+                  className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/85 focus:outline-none focus:border-brand-orange"
                 />
               </div>
 
@@ -510,7 +510,7 @@ export default function BehaviorRecordsPage() {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   rows={4}
                   placeholder="Keep it factual — a guardian may read this."
-                  className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-brand-orange resize-none"
+                  className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/85 focus:outline-none focus:border-brand-orange resize-none"
                 />
               </div>
 
@@ -523,7 +523,7 @@ export default function BehaviorRecordsPage() {
                 />
                 <div className="flex-1">
                   <div className="text-sm text-white font-medium">Notify guardian</div>
-                  <div className="text-[10px] text-white/50">
+                  <div className="text-[10px] text-white/85">
                     Sends this note to the linked parents in their portal
                   </div>
                 </div>

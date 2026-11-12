@@ -236,7 +236,7 @@ export default function TeacherCbtCenterPage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
               EXAM <span className="text-brand-green">MANAGEMENT</span>
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               Create computer-based tests, add questions in bulk, publish to your class, grade
               essays, release results, and grant retakes.
             </p>

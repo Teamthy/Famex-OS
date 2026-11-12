@@ -137,7 +137,7 @@ export default function ParentDashboardPage() {
             <h1 className="font-display text-[36px] tracking-[3px] text-white md:text-[56px]">
               PARENT <span className="text-brand-green">DASHBOARD</span>
             </h1>
-            <p className="mt-4 max-w-2xl text-base text-white/60 md:text-lg">
+            <p className="mt-4 max-w-2xl text-base text-white/85 md:text-lg">
               Live child monitoring for attendance visibility, fee balance, recent alerts, and
               parent-ready academic access points.
             </p>
@@ -361,7 +361,7 @@ export default function ParentDashboardPage() {
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-brand-green">
                                     {alert.channel}
                                   </span>
-                                  <span className="text-[10px] text-white/45">
+                                  <span className="text-[10px] text-white/85">
                                     {new Date(alert.createdAt).toLocaleDateString()}
                                   </span>
                                 </div>
@@ -371,7 +371,7 @@ export default function ParentDashboardPage() {
                               </div>
                             ))
                           ) : (
-                            <p className="text-xs text-white/45">
+                            <p className="text-xs text-white/85">
                               No attendance alerts have been queued for the linked child yet.
                             </p>
                           )}

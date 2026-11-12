@@ -111,7 +111,7 @@ export default function AdminNewsPage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
               NEWS <span className="text-brand-green">PUBLISHER</span>
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               Write, publish, and manage school news, events, and announcements.
             </p>
           </div>

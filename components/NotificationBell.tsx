@@ -165,7 +165,7 @@ export default function NotificationBell() {
 
           <div className="max-h-[380px] overflow-y-auto">
             {loading && !items.length ? (
-              <div className="flex items-center gap-2 p-6 text-sm text-white/50">
+              <div className="flex items-center gap-2 p-6 text-sm text-white/85">
                 <LoaderCircle size={16} className="animate-spin text-brand-green" /> Loading...
               </div>
             ) : null}
@@ -188,7 +188,7 @@ export default function NotificationBell() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div
-                        className={`text-sm ${item.read ? "text-white/70" : "text-white font-bold"}`}
+                        className={`text-sm ${item.read ? "text-white/85" : "text-white font-bold"}`}
                       >
                         {item.title}
                       </div>
@@ -196,8 +196,8 @@ export default function NotificationBell() {
                         <div className="w-2 h-2 rounded-full bg-famex-lime shrink-0 mt-1.5" />
                       )}
                     </div>
-                    <div className="text-xs text-white/50 mt-0.5 line-clamp-2">{item.body}</div>
-                    <div className="text-[10px] text-white/30 mt-1 flex items-center gap-1">
+                    <div className="text-xs text-white/85 mt-0.5 line-clamp-2">{item.body}</div>
+                    <div className="text-[10px] text-white/85 mt-1 flex items-center gap-1">
                       <Clock size={9} /> {timeAgo(item.createdAt)}
                     </div>
                   </div>
@@ -205,7 +205,7 @@ export default function NotificationBell() {
               );
             })}
             {!loading && !items.length ? (
-              <div className="p-8 text-center text-sm text-white/40">No notifications yet.</div>
+              <div className="p-8 text-center text-sm text-white/85">No notifications yet.</div>
             ) : null}
           </div>
         </div>

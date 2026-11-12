@@ -147,7 +147,7 @@ export default function FeeStructuresPage() {
             <h1 className="mt-3 font-display text-4xl tracking-widest text-white md:text-6xl">
               FEE <span className="text-brand-green">STRUCTURES</span>
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               Set what each level pays this term, then raise invoices from the Generate Invoices
               page. Editing a structure never changes invoices already issued.
             </p>

@@ -120,13 +120,13 @@ export default function ParentAttendancePage() {
                 <h1 className="font-display text-[42px] tracking-[3px] text-white md:text-[64px]">
                   ATTENDANCE <span className="text-brand-green">MONITOR</span>
                 </h1>
-                <p className="mt-3 max-w-2xl text-base text-white/60">
+                <p className="mt-3 max-w-2xl text-base text-white/85">
                   Your child&apos;s live attendance calendar, monthly trend, and queued parent alert
                   history.
                 </p>
               </div>
               <div className="rounded-2xl bg-white/5 px-4 py-3">
-                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-white/85">
                   Month
                 </label>
                 <input
@@ -261,7 +261,7 @@ export default function ParentAttendancePage() {
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-brand-green">
                                     {alert.channel}
                                   </span>
-                                  <span className="text-[10px] text-white/45">
+                                  <span className="text-[10px] text-white/85">
                                     {new Date(alert.createdAt).toLocaleDateString()}
                                   </span>
                                 </div>
@@ -271,7 +271,7 @@ export default function ParentAttendancePage() {
                               </div>
                             ))
                           ) : (
-                            <p className="text-xs text-white/45">
+                            <p className="text-xs text-white/85">
                               No attendance alert jobs recorded for this child yet.
                             </p>
                           )}

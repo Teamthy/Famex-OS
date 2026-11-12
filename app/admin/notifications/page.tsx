@@ -156,7 +156,7 @@ export default function AdminNotificationsPage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
               NOTIFICATION <span className="text-brand-green">DELIVERY</span>
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               Live queue of outbound messages — attendance alerts, report-card releases, fee
               reminders, and broadcasts — with delivery status, retries, and failure detail.
             </p>
