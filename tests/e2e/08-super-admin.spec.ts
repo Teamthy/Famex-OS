@@ -157,6 +157,7 @@ test.describe("Super Admin bootstrap, MFA and DevOps controls", () => {
 
   test("password login requires MFA and the dashboard safely retries one audited failure", async ({
     page,
+    context,
     request,
   }) => {
     test.setTimeout(90_000);
@@ -188,10 +189,10 @@ test.describe("Super Admin bootstrap, MFA and DevOps controls", () => {
       page.getByRole("button", { name: "Verify & sign in" }).click(),
     ]);
     expect(verify.status(), await verify.text()).toBe(200);
-    const cookie = /fis_session=([^;]+)/.exec(verify.headers()["set-cookie"] ?? "");
+    const cookie = (await context.cookies()).find((item) => item.name === "fis_session");
     expect(cookie, "MFA verification must issue the session cookie").toBeTruthy();
 
-    const sessionHeader = { cookie: `fis_session=${cookie![1]}` };
+    const sessionHeader = { cookie: `fis_session=${cookie!.value}` };
     const disableMfa = await request.post("/api/auth/mfa", {
       headers: sessionHeader,
       data: { action: "DISABLE", code: totpCode(totpSecretForTest) },

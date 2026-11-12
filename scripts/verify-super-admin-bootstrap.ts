@@ -63,7 +63,12 @@ async function main() {
     schoolId = school.id;
 
     const first = runBootstrap(outputPath);
-    check(first.status === 0, `bootstrap CLI succeeds (${first.stderr || first.stdout})`);
+    const firstOutput =
+      first.error?.message ||
+      first.stderr ||
+      first.stdout ||
+      `status=${first.status}; signal=${first.signal ?? "none"}`;
+    check(first.status === 0, `bootstrap CLI succeeds (${firstOutput})`);
     const bundle = JSON.parse(await readFile(outputPath, "utf8")) as {
       email: string;
       initialPassword: string;
