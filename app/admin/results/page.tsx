@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminSidebar from "@/components/AdminSidebar";
+import { useToast } from "@/components/Toast";
 import PortalTopbar from "@/components/PortalTopbar";
 import {
   AlertTriangle,
@@ -121,6 +122,7 @@ function formatDate(value: string | null) {
  * what each would affect before it is made.
  */
 export default function AdminResultsPage() {
+  const { toast } = useToast();
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -175,19 +177,22 @@ export default function AdminResultsPage() {
             payload.error || payload.message || "That action could not be completed.",
           );
         }
-        setNotice(payload.message || "Done.");
+        const successMessage = payload.message || "Done.";
+        setNotice(successMessage);
+        toast(successMessage, payload.failed?.length ? "warning" : "success");
         await load(termIndex === "" ? undefined : termIndex);
       } catch (actionError) {
-        setError(
+        const errorMessage =
           actionError instanceof Error
             ? actionError.message
-            : "That action could not be completed.",
-        );
+            : "That action could not be completed.";
+        setError(errorMessage);
+        toast(errorMessage, "error");
       } finally {
         setBusy(null);
       }
     },
-    [load, termIndex],
+    [load, termIndex, toast],
   );
 
   const toggle = (classId: string) => {

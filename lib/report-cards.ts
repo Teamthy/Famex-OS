@@ -1,9 +1,9 @@
 import { ReportCardStatus, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/session";
+import { requireRole, type SessionUser } from "@/lib/session";
 
-export async function getStudentReportCardContext() {
-  const user = await requireRole([UserRole.STUDENT]);
+export async function getStudentReportCardContext(authorizedUser?: SessionUser) {
+  const user = authorizedUser ?? (await requireRole([UserRole.STUDENT]));
   if (!user) return null;
 
   const studentProfile = await prisma.studentProfile.findFirst({
@@ -31,8 +31,8 @@ export async function getStudentReportCardContext() {
   return { user, studentProfile };
 }
 
-export async function getParentReportCardContext() {
-  const user = await requireRole([UserRole.PARENT]);
+export async function getParentReportCardContext(authorizedUser?: SessionUser) {
+  const user = authorizedUser ?? (await requireRole([UserRole.PARENT]));
   if (!user) return null;
 
   const parentProfile = await prisma.parentProfile.findFirst({

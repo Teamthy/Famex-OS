@@ -1,9 +1,10 @@
 "use client";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import AdminSidebar from "@/components/AdminSidebar";
 import PortalTopbar from "@/components/PortalTopbar";
 import { Search, UserPlus, X } from "lucide-react";
+import { useToast } from "@/components/Toast";
 type Class = { id: string; displayName: string; capacity: number | null };
 type Student = {
   id: string;
@@ -18,6 +19,10 @@ type Student = {
   feeStatus: "PAID" | "OWING" | "NOT_BILLED";
 };
 export default function StudentsPage() {
+  const { toast } = useToast();
+  const enrollmentIntent = useRef<{ body: string; key: string } | null>(null);
+  const submittingRef = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
   const [students, setStudents] = useState<Student[]>([]),
     [classes, setClasses] = useState<Class[]>([]),
     [open, setOpen] = useState(false),
@@ -35,43 +40,90 @@ export default function StudentsPage() {
     } else setError(j.error || "Could not load students.");
   }, []);
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    async function loadInitial() {
+      try {
+        const response = await fetch("/api/admin/students", { cache: "no-store" });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Could not load students.");
+        if (!cancelled) {
+          setStudents(body.students);
+          setClasses(body.classes);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : "Could not load students.");
+        }
+      }
+    }
+    void loadInitial();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
     setError("");
+    setNotice("");
     const form = new FormData(e.currentTarget);
-    const r = await fetch("/api/admin/students", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Idempotency-Key": crypto.randomUUID() + crypto.randomUUID(),
-      },
-      body: JSON.stringify(Object.fromEntries(form)),
-    });
-    const j = await r.json();
-    if (!r.ok) {
-      setError(j.error || "Enrollment failed.");
-      return;
+    const body = JSON.stringify(Object.fromEntries(form));
+    if (!enrollmentIntent.current || enrollmentIntent.current.body !== body) {
+      enrollmentIntent.current = { body, key: crypto.randomUUID() + crypto.randomUUID() };
     }
-    setOpen(false);
-    const assigned: number = j.subjects?.assigned ?? 0;
-    const warnings: string[] = j.subjects?.warnings ?? [];
-    // Say the subject count out loud. "Enrolled" with zero subjects is a
-    // student who cannot sit an exam, and the school needs to know at the
-    // moment of enrolment, not when the first CBT paper fails to appear.
-    const subjectLine =
-      assigned > 0
-        ? `${assigned} subject${assigned === 1 ? "" : "s"} assigned.`
-        : "No subjects were assigned.";
-    setNotice(
-      `${j.student.displayName} enrolled in ${j.student.className}. ${subjectLine} ${
-        j.parentAccount?.temporaryPassword
+    try {
+      const r = await fetch("/api/admin/students", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": enrollmentIntent.current.key,
+        },
+        body,
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Enrollment failed.");
+      enrollmentIntent.current = null;
+      setOpen(false);
+      const assigned: number = j.subjects?.assigned ?? 0;
+      const warnings: string[] = j.subjects?.warnings ?? [];
+      // Say the subject count out loud. "Enrolled" with zero subjects is a
+      // student who cannot sit an exam, and the school needs to know at the
+      // moment of enrolment, not when the first CBT paper fails to appear.
+      const subjectLine =
+        assigned > 0
+          ? `${assigned} subject${assigned === 1 ? "" : "s"} assigned.`
+          : "No subjects were assigned.";
+      const parentLine = !j.parentAccount
+        ? "No parent login account was created because no guardian email was provided."
+        : j.parentAccount.temporaryPassword
           ? `Temporary parent password (show once): ${j.parentAccount.temporaryPassword}`
-          : "Parent account is already linked; no new password was created."
-      }${warnings.length ? ` — ${warnings.join(" ")}` : ""}`,
-    );
-    await load();
+          : j.parentAccount.mustChangePassword
+            ? "The parent account was created, but its one-time password is not available in this retry; use the reviewed account-recovery process if it was not saved."
+            : "Parent account is already linked; no new password was created.";
+      setNotice(
+        `${j.student.displayName} enrolled in ${j.student.className}. ${subjectLine} ${parentLine}${warnings.length ? ` — ${warnings.join(" ")}` : ""}`,
+      );
+      toast(
+        warnings.length || assigned === 0
+          ? `${j.student.displayName} was enrolled with subject-assignment warnings.`
+          : `${j.student.displayName} enrolled in ${j.student.className}.`,
+        warnings.length || assigned === 0 ? "warning" : "success",
+      );
+      try {
+        await load();
+      } catch {
+        toast("Student enrolled, but the student list could not refresh.", "warning");
+      }
+    } catch (submitError) {
+      const message = submitError instanceof Error ? submitError.message : "Enrollment failed.";
+      setError(message);
+      toast(message, "error");
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
   }
   /**
    * Text search alone was the only filter, over every student in the school.
@@ -235,11 +287,11 @@ export default function StudentsPage() {
                 </p>
                 <h2 className="font-display text-3xl tracking-widest">NEW STUDENT</h2>
               </div>
-              <button type="button" onClick={() => setOpen(false)}>
+              <button type="button" onClick={() => setOpen(false)} disabled={submitting}>
                 <X />
               </button>
             </div>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <fieldset disabled={submitting} className="mt-6 grid gap-4 sm:grid-cols-2">
               {[
                 ["firstName", "First name", true],
                 ["otherNames", "Other names", false],
@@ -284,13 +336,16 @@ export default function StudentsPage() {
                   ))}
                 </select>
               </label>
-            </div>
+            </fieldset>
             <p className="mt-5 text-xs text-[var(--text-muted)]">
               A new parent account receives a one-time temporary password. Existing parent accounts
               are linked without exposing or changing their password.
             </p>
-            <button className="mt-6 w-full rounded-full bg-famex-lime py-3 text-xs font-bold uppercase tracking-widest text-brand-navy">
-              Create student record
+            <button
+              disabled={submitting}
+              className="mt-6 w-full rounded-full bg-famex-lime py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {submitting ? "Enrolling…" : "Create student record"}
             </button>
           </form>
         </div>

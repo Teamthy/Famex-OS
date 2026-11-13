@@ -1,7 +1,15 @@
-import { ExamAttemptStatus, ExamStatus } from "@prisma/client";
+import { ExamAttemptStatus, ExamStatus, Prisma } from "@prisma/client";
 import { NextResponse, type NextRequest } from "next/server";
-import { getStudentExamContext } from "@/lib/exams";
-import { fingerprintQuestions, signPacket, type OfflinePacketManifest } from "@/lib/offline-packet";
+import { requireStudentExamContext } from "@/lib/exams";
+import { getStudentFeeLock } from "@/lib/fee-lock";
+import {
+  fingerprintQuestions,
+  readOfflinePacketSnapshot,
+  signPacket,
+  verifyPacket,
+  type OfflinePacketManifest,
+  type OfflinePacketQuestionSnapshot,
+} from "@/lib/offline-packet";
 import { prisma } from "@/lib/prisma";
 import { examMinutes } from "@/lib/exams";
 import {
@@ -30,14 +38,13 @@ export const dynamic = "force-dynamic";
  *
  * ── Why the paper is fingerprinted AND signed
  *
- * The fingerprint (ids, types and marks) identifies the version. A teacher who
- * adds a question after the paper was handed out changes every score on it. The
- * HMAC makes the manifest unforgeable, so a modified device cannot claim to have
- * sat a paper with different marks.
+ * The fingerprint covers ordered ids, stems, options, types, marks, and answer
+ * keys. The HMAC authenticates that digest. The exact signed packet is also
+ * stored with the server attempt before it is returned, so an author edit or
+ * question deletion cannot rewrite the paper a student actually received.
  *
- * A mismatch is surfaced on replay rather than rejected: the sitting really
- * happened, and throwing it away would lose a student's work because a teacher
- * fixed a typo.
+ * A mismatch is retained for teacher review rather than silently graded against
+ * the edited paper or rejected in a way that would lose the student's work.
  *
  * ── Why the attempt is created here when online
  *
@@ -48,8 +55,9 @@ export const dynamic = "force-dynamic";
  * A package downloaded without an attempt (never started) creates it on replay.
  */
 export async function GET(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const studentContext = await getStudentExamContext();
-  if (!studentContext) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireStudentExamContext();
+  if (!guard.ok) return guard.response;
+  const studentContext = guard.context;
 
   const { id: examId } = await context.params;
 
@@ -70,9 +78,10 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
   });
   if (!exam) return NextResponse.json({ error: "Exam not found for your class." }, { status: 404 });
 
-  // An exam for a subject this student does not take is not theirs to download.
-  // A missing subjectId is legacy free-text and stays visible to the class.
-  if (exam.subjectId) {
+  // A new subject paper must match current enrolment; allow a server-known
+  // in-progress sitting to resume if enrolment was corrected mid-exam. A missing
+  // subjectId is legacy free-text and stays visible to the class.
+  if (exam.subjectId && exam.attempts[0]?.status !== ExamAttemptStatus.IN_PROGRESS) {
     const subjectIds = await studentSubjectIds(studentContext.studentProfile.id);
     if (!subjectIds.includes(exam.subjectId)) {
       return NextResponse.json(
@@ -82,14 +91,24 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
     }
   }
 
-  if (!exam.questions.length) {
+  const latestAttempt = exam.attempts[0] ?? null;
+  const latestSnapshotCandidate = readOfflinePacketSnapshot(latestAttempt?.metadata);
+  const latestPacketSnapshot =
+    latestSnapshotCandidate?.manifest.examId === exam.id &&
+    verifyPacket({
+      manifest: latestSnapshotCandidate.manifest,
+      signature: latestSnapshotCandidate.signature,
+      currentQuestions: latestSnapshotCandidate.questions,
+    }).ok
+      ? latestSnapshotCandidate
+      : null;
+  if (!exam.questions.length && !latestPacketSnapshot) {
     return NextResponse.json(
       { error: "This paper has no questions yet. Ask your teacher to publish it first." },
       { status: 409 },
     );
   }
 
-  const latestAttempt = exam.attempts[0] ?? null;
   const retake = exam.retakes[0] ?? null;
   const hasUnusedRetake = Boolean(retake && !retake.used);
   const hasSubmitted = Boolean(
@@ -126,6 +145,26 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
     hasRetake: hasUnusedRetake,
   });
 
+  // Match the online start gate: a fee lock blocks a NEW sitting, but must not
+  // strand an attempt that is already in progress and needs its paper to resume.
+  if (canStart && latestAttempt?.status !== ExamAttemptStatus.IN_PROGRESS) {
+    const feeLock = await getStudentFeeLock(
+      studentContext.user.schoolId,
+      studentContext.studentProfile.id,
+    );
+    if (feeLock) {
+      return NextResponse.json(
+        {
+          error: feeLock.message,
+          code: "FEE_LOCK",
+          totalOutstanding: feeLock.totalOutstanding,
+          invoices: feeLock.invoices,
+        },
+        { status: 402 },
+      );
+    }
+  }
+
   // Create (or reuse) the server attempt so the offline sitting has an identity
   // before it ever reaches the server. Same transaction + unique-constraint
   // discipline as the online start route: a double-tap cannot burn a retake
@@ -159,6 +198,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
               deadlineAt: attemptDeadline({
                 durationMinutes: examMinutes(exam),
                 availableUntil: exam.availableUntil,
+                hasRetake: hasUnusedRetake,
               }),
               deliveryMode: "OFFLINE",
               offlineStartedAt: new Date(),
@@ -193,57 +233,111 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
     }
   }
 
-  const fingerprint = fingerprintQuestions(
-    exam.questions.map((question) => ({
-      id: question.id,
-      type: question.type,
-      marks: question.marks,
-      sortOrder: question.sortOrder,
-    })),
-  );
-  const totalMarks = exam.questions.reduce((sum, question) => sum + question.marks, 0);
-
-  // Term provenance travels with the paper so a sitting in January compiles into
-  // Second Term even if it syncs in February.
-  let sessionLabel = exam.sessionLabel;
-  let termIndex = exam.termIndex;
-  if (sessionLabel === null || termIndex === null) {
-    const term = await prisma.term.findFirst({
-      where: {
-        schoolId: exam.schoolId,
-        startsOn: { lte: exam.createdAt },
-        endsOn: { gte: exam.createdAt },
-      },
-      select: { index: true, session: { select: { label: true } } },
+  let attemptMetadata: Prisma.JsonValue | null = latestAttempt?.metadata ?? null;
+  if (serverAttemptId) {
+    const currentAttempt = await prisma.examAttempt.findUnique({
+      where: { id: serverAttemptId },
+      select: { metadata: true },
     });
-    sessionLabel = sessionLabel ?? term?.session.label ?? null;
-    termIndex = termIndex ?? term?.index ?? null;
+    attemptMetadata = currentAttempt?.metadata ?? null;
   }
 
-  const manifest: OfflinePacketManifest = {
-    examId: exam.id,
-    packetId: "",
-    fingerprint,
-    questionCount: exam.questions.length,
-    totalMarks,
-    durationMinutes: examMinutes(exam),
-    sessionLabel,
-    termIndex,
-    downloadedAt: new Date().toISOString(),
-  };
+  const storedSnapshotCandidate = readOfflinePacketSnapshot(attemptMetadata);
+  const storedSnapshot =
+    storedSnapshotCandidate?.manifest.examId === exam.id &&
+    verifyPacket({
+      manifest: storedSnapshotCandidate.manifest,
+      signature: storedSnapshotCandidate.signature,
+      currentQuestions: storedSnapshotCandidate.questions,
+    }).ok
+      ? storedSnapshotCandidate
+      : exam.questions.length === 0
+        ? latestPacketSnapshot
+        : null;
+  const packetQuestions: OfflinePacketQuestionSnapshot[] = storedSnapshot
+    ? storedSnapshot.questions
+    : exam.questions.map((question) => ({
+        id: question.id,
+        type: question.type,
+        marks: question.marks,
+        sortOrder: question.sortOrder,
+        questionText: question.questionText,
+        options: question.options,
+        correctKey: question.correctKey,
+        correctText: question.correctText,
+      }));
+  const fingerprint = fingerprintQuestions(packetQuestions);
+  const totalMarks = packetQuestions.reduce((sum, question) => sum + question.marks, 0);
 
-  let signature = "";
-  try {
-    const signed = signPacket(manifest);
-    manifest.packetId = signed.packetId;
-    signature = signed.signature;
-  } catch {
-    // A server without a usable AUTH_SECRET cannot sign, and an unsigned packet
-    // would be rejected on replay after the student had already sat the paper.
-    return NextResponse.json(
-      { error: "Offline papers are not configured on this server.", code: "SIGNING_UNAVAILABLE" },
-      { status: 503 },
-    );
+  let manifest: OfflinePacketManifest;
+  let signature: string;
+  if (storedSnapshot) {
+    // A sitting is bound to its first server-issued packet. Redownloading after
+    // an author edits the exam returns the original question set and signature.
+    manifest = storedSnapshot.manifest;
+    signature = storedSnapshot.signature;
+  } else {
+    // Term provenance travels with the paper so a sitting in January compiles
+    // into Second Term even if it syncs in February.
+    let sessionLabel = exam.sessionLabel;
+    let termIndex = exam.termIndex;
+    if (sessionLabel === null || termIndex === null) {
+      const term = await prisma.term.findFirst({
+        where: {
+          schoolId: exam.schoolId,
+          startsOn: { lte: exam.createdAt },
+          endsOn: { gte: exam.createdAt },
+        },
+        select: { index: true, session: { select: { label: true } } },
+      });
+      sessionLabel = sessionLabel ?? term?.session.label ?? null;
+      termIndex = termIndex ?? term?.index ?? null;
+    }
+
+    manifest = {
+      examId: exam.id,
+      packetId: "",
+      fingerprint,
+      questionCount: packetQuestions.length,
+      totalMarks,
+      durationMinutes: examMinutes(exam),
+      sessionLabel,
+      termIndex,
+      downloadedAt: new Date().toISOString(),
+    };
+
+    try {
+      const signed = signPacket(manifest);
+      manifest.packetId = signed.packetId;
+      signature = signed.signature;
+    } catch {
+      // A server without a usable AUTH_SECRET cannot sign, and an unsigned
+      // packet would be rejected on replay after the student had sat the paper.
+      return NextResponse.json(
+        { error: "Offline papers are not configured on this server.", code: "SIGNING_UNAVAILABLE" },
+        { status: 503 },
+      );
+    }
+  }
+
+  if (serverAttemptId && !readOfflinePacketSnapshot(attemptMetadata)) {
+    const prior =
+      attemptMetadata && typeof attemptMetadata === "object" && !Array.isArray(attemptMetadata)
+        ? attemptMetadata
+        : {};
+    await prisma.examAttempt.update({
+      where: { id: serverAttemptId },
+      data: {
+        metadata: {
+          ...prior,
+          offlineQuestionSnapshot: {
+            manifest,
+            signature,
+            questions: packetQuestions,
+          },
+        } as Prisma.InputJsonObject,
+      },
+    });
   }
 
   const optionsShape = (options: unknown) => {
@@ -282,7 +376,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
         subjectName: exam.subjectName,
         examType: exam.examType,
         instructions: exam.instructions,
-        durationMinutes: examMinutes(exam),
+        durationMinutes: manifest.durationMinutes,
         passMark: exam.passMark,
         className: exam.classId,
         scheduledFor: exam.scheduledFor?.toISOString() ?? null,
@@ -291,7 +385,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
       manifest,
       signature,
       // No answer key, ever: the device is a recording device, not a marker.
-      questions: exam.questions.map((question) => ({
+      questions: packetQuestions.map((question) => ({
         id: question.id,
         type: question.type,
         questionText: question.questionText,

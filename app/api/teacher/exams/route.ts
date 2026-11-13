@@ -2,15 +2,16 @@ import { ExamAttemptStatus, ExamStatus, Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { resolveCurrentLabels } from "@/lib/academic-session";
-import { getExamTeacherContext, parseBulkQuestions, examStatusLabel } from "@/lib/exams";
+import { requireExamTeacherContext, parseBulkQuestions, examStatusLabel } from "@/lib/exams";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const context = await getExamTeacherContext();
-  if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireExamTeacherContext();
+  if (!guard.ok) return guard.response;
+  const context = guard.context;
 
   const exams = await prisma.exam.findMany({
     where: { teacherProfileId: context.teacherProfile.id },
@@ -91,8 +92,9 @@ const createSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const context = await getExamTeacherContext();
-  if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireExamTeacherContext();
+  if (!guard.ok) return guard.response;
+  const context = guard.context;
 
   let payload: z.infer<typeof createSchema>;
   try {
@@ -240,14 +242,14 @@ const updateSchema = z.object({
   durationMinutes: z.number().int().min(5).max(240).optional(),
   theoryMinutes: z.number().int().min(0).max(240).optional(),
   passMark: z.number().int().min(0).max(100).optional(),
-  totalMarks: z.number().int().min(0).max(1000).optional(),
   scheduledFor: z.string().datetime().nullable().optional(),
   availableUntil: z.string().datetime().nullable().optional(),
 });
 
 export async function PATCH(request: NextRequest) {
-  const context = await getExamTeacherContext();
-  if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireExamTeacherContext();
+  if (!guard.ok) return guard.response;
+  const context = guard.context;
 
   let payload: z.infer<typeof updateSchema>;
   try {
@@ -331,11 +333,14 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Duration is the student's clock. An attempt's deadlineAt is computed
-    // when it starts and never recalculated, so changing the duration while
-    // someone is sitting the paper would not extend them — it would just
-    // disagree with what they were given. Refuse instead.
-    if (payload.durationMinutes !== undefined && payload.durationMinutes !== exam.durationMinutes) {
+    // The student's clock combines objective and theory minutes. An attempt's
+    // deadlineAt is computed when it starts and never recalculated, so changing
+    // either component while someone is sitting would disagree with the time
+    // they were given. Refuse instead.
+    const sittingTimeChanged =
+      (payload.durationMinutes !== undefined && payload.durationMinutes !== exam.durationMinutes) ||
+      (payload.theoryMinutes !== undefined && payload.theoryMinutes !== (exam.theoryMinutes ?? 0));
+    if (sittingTimeChanged) {
       const live = await prisma.examAttempt.count({
         where: { examId: exam.id, status: ExamAttemptStatus.IN_PROGRESS },
       });
@@ -354,7 +359,6 @@ export async function PATCH(request: NextRequest) {
     if (payload.durationMinutes !== undefined) data.durationMinutes = payload.durationMinutes;
     if (payload.theoryMinutes !== undefined) data.theoryMinutes = payload.theoryMinutes;
     if (payload.passMark !== undefined) data.passMark = payload.passMark;
-    if (payload.totalMarks !== undefined) data.totalMarks = payload.totalMarks;
     if (payload.scheduledFor !== undefined) data.scheduledFor = opensAt;
     if (payload.availableUntil !== undefined) data.availableUntil = closesAt;
 

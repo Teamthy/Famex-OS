@@ -1,7 +1,8 @@
 import { ExamAttemptStatus, ExamStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { getStudentExamContext } from "@/lib/exams";
+import { requireStudentExamContext } from "@/lib/exams";
 import { prisma } from "@/lib/prisma";
+import { studentSubjectIds } from "@/lib/subjects";
 
 export const dynamic = "force-dynamic";
 
@@ -23,15 +24,20 @@ export const dynamic = "force-dynamic";
  * Both rules are enforced server-side in ./[id]/attempt.
  */
 export async function GET() {
-  const context = await getStudentExamContext();
-  if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireStudentExamContext();
+  if (!guard.ok) return guard.response;
+  const context = guard.context;
 
+  const subjectIds = await studentSubjectIds(context.studentProfile.id);
   const exams = await prisma.exam.findMany({
     where: {
       schoolId: context.user.schoolId,
       classId: context.studentProfile.currentClassId,
       examType: "PRACTICE",
       status: { in: [ExamStatus.PUBLISHED, ExamStatus.CLOSED] },
+      ...(subjectIds.length
+        ? { OR: [{ subjectId: null }, { subjectId: { in: subjectIds } }] }
+        : { subjectId: null }),
     },
     orderBy: [{ subjectName: "asc" }, { createdAt: "desc" }],
     take: 200,

@@ -72,11 +72,25 @@ export async function POST(request: NextRequest) {
   const offlineReference = `OFFLINE-${application.applicationId}-${input.reference.slice(0, 40)}`;
 
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.admissionApplication.update({
-        where: { id: application.id },
+    const recorded = await prisma.$transaction(async (tx) => {
+      // Compare-and-set the payment transition so concurrent retries or a
+      // Paystack webhook can win only once; the loser must not overwrite the
+      // trusted provider's reference or emit a second manual-payment audit.
+      const transition = await tx.admissionApplication.updateMany({
+        where: {
+          id: application.id,
+          schoolId: user.schoolId,
+          paymentStatus: { not: PaymentStatus.PAID },
+        },
         data: { paymentStatus: PaymentStatus.PAID, paymentReference: offlineReference },
       });
+      if (transition.count !== 1) {
+        const current = await tx.admissionApplication.findFirst({
+          where: { id: application.id, schoolId: user.schoolId },
+          select: { paymentStatus: true },
+        });
+        return current?.paymentStatus === PaymentStatus.PAID ? "already" : "conflict";
+      }
 
       const providerData = {
         method: input.method,
@@ -88,33 +102,28 @@ export async function POST(request: NextRequest) {
       const provider =
         input.method === "BANK_TRANSFER" ? PaymentProvider.BANK_TRANSFER : PaymentProvider.CASH;
 
-      // PaymentTransaction.applicationId is unique — an abandoned Paystack
-      // attempt may already hold the row, so update it rather than insert.
-      if (application.payment) {
-        await tx.paymentTransaction.update({
-          where: { id: application.payment.id },
-          data: {
-            provider,
-            reference: offlineReference,
-            amountKobo: APPLICATION_FEE_KOBO,
-            status: PaymentStatus.PAID,
-            paidAt: new Date(),
-            providerData,
-          },
-        });
-      } else {
-        await tx.paymentTransaction.create({
-          data: {
-            applicationId: application.id,
-            provider,
-            reference: offlineReference,
-            amountKobo: APPLICATION_FEE_KOBO,
-            status: PaymentStatus.PAID,
-            paidAt: new Date(),
-            providerData,
-          },
-        });
-      }
+      // The unique applicationId upsert preserves an abandoned Paystack row
+      // and is safe if a retry races the first manual confirmation.
+      await tx.paymentTransaction.upsert({
+        where: { applicationId: application.id },
+        create: {
+          applicationId: application.id,
+          provider,
+          reference: offlineReference,
+          amountKobo: APPLICATION_FEE_KOBO,
+          status: PaymentStatus.PAID,
+          paidAt: new Date(),
+          providerData,
+        },
+        update: {
+          provider,
+          reference: offlineReference,
+          amountKobo: APPLICATION_FEE_KOBO,
+          status: PaymentStatus.PAID,
+          paidAt: new Date(),
+          providerData,
+        },
+      });
 
       await tx.auditLog.create({
         data: {
@@ -132,7 +141,23 @@ export async function POST(request: NextRequest) {
           },
         },
       });
+      return "recorded" as const;
     });
+
+    if (recorded === "already") {
+      return NextResponse.json({
+        alreadyRecorded: true,
+        applicationId: application.applicationId,
+        paymentStatus: PaymentStatus.PAID,
+        message: "This application fee was already recorded as paid.",
+      });
+    }
+    if (recorded === "conflict") {
+      return NextResponse.json(
+        { error: "Payment state changed while recording. Refresh and check the application." },
+        { status: 409 },
+      );
+    }
 
     return NextResponse.json({
       applicationId: application.applicationId,

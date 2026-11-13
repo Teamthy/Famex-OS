@@ -33,7 +33,10 @@ const teacherContext = {
 
 vi.mock("@/lib/exams", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/exams")>();
-  return { ...actual, getExamTeacherContext: vi.fn(async () => teacherContext) };
+  return {
+    ...actual,
+    requireExamTeacherContext: vi.fn(async () => ({ ok: true, context: teacherContext })),
+  };
 });
 
 vi.mock("@/lib/requests", () => ({ getClientIp: vi.fn(() => "127.0.0.1") }));
@@ -68,6 +71,21 @@ describe("PATCH /api/teacher/exams — UPDATE_SETTINGS", () => {
     mockPrisma.exam.findFirst.mockResolvedValue(exam());
     mockPrisma.exam.update.mockResolvedValue({ id: "exam_1" });
     mockPrisma.auditLog.create.mockResolvedValue({ id: "al" });
+  });
+
+  it("does not accept a client-supplied totalMarks value", async () => {
+    const { PATCH } = await import("@/app/api/teacher/exams/route");
+    const response = await PATCH(
+      request({
+        examId: "exam_1",
+        action: "UPDATE_SETTINGS",
+        totalMarks: 999,
+        passMark: 50,
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockPrisma.exam.update.mock.calls[0][0].data).not.toHaveProperty("totalMarks");
   });
 
   it("updates duration, marks and the sitting window", async () => {
@@ -175,6 +193,19 @@ describe("PATCH /api/teacher/exams — UPDATE_SETTINGS", () => {
     const { PATCH } = await import("@/app/api/teacher/exams/route");
     const response = await PATCH(
       request({ examId: "exam_1", action: "UPDATE_SETTINGS", durationMinutes: 90 }),
+    );
+
+    expect(response.status).toBe(409);
+    expect(mockPrisma.exam.update).not.toHaveBeenCalled();
+  });
+
+  it("refuses to change theory time while an attempt is in progress", async () => {
+    mockPrisma.exam.findFirst.mockResolvedValue(exam({ status: "PUBLISHED" }));
+    mockPrisma.examAttempt.count.mockResolvedValue(1);
+
+    const { PATCH } = await import("@/app/api/teacher/exams/route");
+    const response = await PATCH(
+      request({ examId: "exam_1", action: "UPDATE_SETTINGS", theoryMinutes: 25 }),
     );
 
     expect(response.status).toBe(409);

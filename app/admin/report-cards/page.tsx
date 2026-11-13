@@ -5,6 +5,7 @@ import PortalTopbar from "@/components/PortalTopbar";
 import AdminSidebar from "@/components/AdminSidebar";
 import LiveReportCardPreview from "@/components/LiveReportCardPreview";
 import { CheckCircle2, Clock, FileText, LoaderCircle, Mail, Printer } from "lucide-react";
+import { useToast } from "@/components/Toast";
 
 type Report = {
   id: string;
@@ -57,6 +58,7 @@ type Response = {
 };
 
 export default function AdminReportCardsPage() {
+  const { toast } = useToast();
   const [data, setData] = useState<Response | null>(null);
   const [selectedReportId, setSelectedReportId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -99,14 +101,18 @@ export default function AdminReportCardsPage() {
       });
       const body = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(body.error || "Unable to update report card status.");
-      setMessage(
+      const successMessage =
         status === "RELEASED"
           ? "Report card released successfully."
-          : "Report card moved back to draft.",
-      );
+          : "Report card moved back to draft.";
+      setMessage(successMessage);
+      toast(successMessage, "success");
       await loadReports();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to update report card status.");
+      const errorMessage =
+        error instanceof Error ? error.message : "Unable to update report card status.";
+      setMessage(errorMessage);
+      toast(errorMessage, "error");
     } finally {
       setSaving(false);
     }
@@ -125,10 +131,14 @@ export default function AdminReportCardsPage() {
       });
       const body = (await response.json()) as { error?: string; message?: string };
       if (!response.ok) throw new Error(body.error || "Batch release failed.");
-      setMessage(body.message || "Report cards released.");
+      const successMessage = body.message || "Report cards released.";
+      setMessage(successMessage);
+      toast(successMessage, "success");
       await loadReports();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Batch release failed.");
+      const errorMessage = error instanceof Error ? error.message : "Batch release failed.";
+      setMessage(errorMessage);
+      toast(errorMessage, "error");
     } finally {
       setSaving(false);
     }

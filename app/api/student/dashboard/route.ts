@@ -86,6 +86,7 @@ export async function GET() {
       : null,
     stats: {
       attendanceRate,
+      attendanceSampleSize: totalMarked,
       averageScore: latestReport?.overallAverage ?? null,
       overallGrade: latestReport?.overallGrade ?? null,
       feeBalance,

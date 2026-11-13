@@ -1,11 +1,15 @@
+import { UserRole } from "@prisma/client";
 import { NextRequest } from "next/server";
+import { requireModule } from "@/lib/module-guard";
 import { jsonNoStore } from "@/lib/requests";
 import { getParentReportCardContext, mapReportCardCard } from "@/lib/report-cards";
 
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const context = await getParentReportCardContext();
+  const guard = await requireModule("report_cards", [UserRole.PARENT]);
+  if (!guard.ok) return guard.response;
+  const context = await getParentReportCardContext(guard.user);
   if (!context) {
     return jsonNoStore(
       { error: "No live parent report-card profile is linked to this account yet." },

@@ -215,6 +215,10 @@ export async function useSession(context: BrowserContext, page: Page, role: Role
     await apiLogin(context.request, role);
   }
 
+  // Keep the deferred public cookie banner from covering controls during
+  // authenticated journeys; consent UI is outside these journey contracts.
+  await page.addInitScript(() => localStorage.setItem("fis_cookie_consent", "rejected"));
+
   await context.addCookies([
     {
       name: "fis_session",

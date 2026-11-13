@@ -1,4 +1,5 @@
-import { AlertChannel, NotificationKind, ReportCardStatus, UserRole } from "@prisma/client";
+import { AlertChannel, NotificationKind, ReportCardStatus } from "@prisma/client";
+import { GRADEBOOK_ADMIN_ROLES } from "@/lib/gradebook";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -7,7 +8,7 @@ import { requireModule } from "@/lib/module-guard";
 import { PAGE_LIMITS, getPagination, paginatedResponse } from "@/lib/pagination";
 import { createInAppNotification, queueNotificationJob } from "@/lib/notifications";
 
-const allowedRoles = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR];
+const allowedRoles = GRADEBOOK_ADMIN_ROLES;
 const updateSchema = z.object({
   reportCardId: z.string().trim().min(1),
   status: z.nativeEnum(ReportCardStatus),
@@ -93,7 +94,7 @@ export async function GET(request: NextRequest) {
       student: {
         studentId: report.studentProfile.studentId,
         displayName: report.studentProfile.displayName,
-        className: report.studentProfile.currentClass.displayName,
+        className: report.classNameSnapshot,
       },
       subjects: report.subjects,
     })),

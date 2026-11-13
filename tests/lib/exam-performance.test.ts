@@ -32,7 +32,7 @@ vi.mock("@/lib/exams", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/exams")>();
   return {
     ...actual,
-    getStudentExamContext: vi.fn(async () => studentContext),
+    requireStudentExamContext: vi.fn(async () => ({ ok: true, context: studentContext })),
   };
 });
 
@@ -48,6 +48,7 @@ describe("finalizeAttempt — batched grading", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPrisma.examAnswer.updateMany.mockResolvedValue({ count: 0 });
+    mockPrisma.examAttempt.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.examAttempt.update.mockResolvedValue({ id: "att_1", status: "GRADED" });
   });
 
@@ -55,6 +56,7 @@ describe("finalizeAttempt — batched grading", () => {
   function bigAttempt(count = 60) {
     return {
       id: "att_1",
+      status: "IN_PROGRESS",
       essayScore: 0,
       exam: { id: "exam_1" },
       answers: Array.from({ length: count }, (_, index) => ({
@@ -111,6 +113,7 @@ describe("finalizeAttempt — batched grading", () => {
   it("keeps questions of different mark values in separate buckets", async () => {
     mockPrisma.examAttempt.findUnique.mockResolvedValue({
       id: "att_1",
+      status: "IN_PROGRESS",
       essayScore: 0,
       exam: { id: "exam_1" },
       answers: [
@@ -191,6 +194,7 @@ describe("finalizeAttempt — batched grading", () => {
   it("handles an attempt with no answers at all", async () => {
     mockPrisma.examAttempt.findUnique.mockResolvedValue({
       id: "att_1",
+      status: "IN_PROGRESS",
       essayScore: 0,
       exam: { id: "exam_1" },
       answers: [],

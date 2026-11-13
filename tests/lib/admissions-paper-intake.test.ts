@@ -283,8 +283,10 @@ describe("POST /api/admin/admissions/record-fee", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPrisma.admissionApplication.update.mockResolvedValue({});
+    mockPrisma.admissionApplication.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.paymentTransaction.create.mockResolvedValue({});
     mockPrisma.paymentTransaction.update.mockResolvedValue({});
+    mockPrisma.paymentTransaction.upsert.mockResolvedValue({});
     mockPrisma.auditLog.create.mockResolvedValue({});
   });
 
@@ -328,6 +330,32 @@ describe("POST /api/admin/admissions/record-fee", () => {
     expect(mockPrisma.admissionApplication.update).not.toHaveBeenCalled();
   });
 
+  it("treats a concurrent payment transition as an idempotent retry", async () => {
+    mockPrisma.admissionApplication.findFirst.mockResolvedValue({
+      id: "app_1",
+      applicationId: body.applicationId,
+      paymentStatus: "PENDING",
+      payment: null,
+    });
+    mockPrisma.admissionApplication.updateMany.mockResolvedValue({ count: 0 });
+    mockPrisma.admissionApplication.findFirst.mockResolvedValueOnce({
+      id: "app_1",
+      applicationId: body.applicationId,
+      paymentStatus: "PENDING",
+      payment: null,
+    });
+    mockPrisma.admissionApplication.findFirst.mockResolvedValueOnce({ paymentStatus: "PAID" });
+
+    const { POST } = await import("@/app/api/admin/admissions/record-fee/route");
+    const response = await POST(request(body));
+    const result = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(result.alreadyRecorded).toBe(true);
+    expect(mockPrisma.paymentTransaction.upsert).not.toHaveBeenCalled();
+    expect(mockPrisma.auditLog.create).not.toHaveBeenCalled();
+  });
+
   it("marks the application PAID so enrolment is unblocked", async () => {
     mockPrisma.admissionApplication.findFirst.mockResolvedValue({
       id: "app_1",
@@ -339,7 +367,11 @@ describe("POST /api/admin/admissions/record-fee", () => {
     const { POST } = await import("@/app/api/admin/admissions/record-fee/route");
     await POST(request(body));
 
-    expect(mockPrisma.admissionApplication.update.mock.calls[0][0].data.paymentStatus).toBe("PAID");
+    expect(mockPrisma.admissionApplication.updateMany.mock.calls[0][0]).toMatchObject({
+      where: { id: "app_1", paymentStatus: { not: "PAID" } },
+      data: { paymentStatus: "PAID" },
+    });
+    expect(mockPrisma.paymentTransaction.upsert).toHaveBeenCalled();
   });
 
   it("updates an abandoned Paystack row rather than inserting a duplicate", async () => {
@@ -354,7 +386,12 @@ describe("POST /api/admin/admissions/record-fee", () => {
     const { POST } = await import("@/app/api/admin/admissions/record-fee/route");
     await POST(request(body));
 
-    expect(mockPrisma.paymentTransaction.update).toHaveBeenCalled();
+    expect(mockPrisma.paymentTransaction.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { applicationId: "app_1" },
+        update: expect.objectContaining({ status: "PAID" }),
+      }),
+    );
     expect(mockPrisma.paymentTransaction.create).not.toHaveBeenCalled();
   });
 

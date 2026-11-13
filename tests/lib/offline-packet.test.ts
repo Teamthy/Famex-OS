@@ -1,9 +1,16 @@
+import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  attemptRequiresPacketReview,
   classifyOfflineTiming,
   fingerprintQuestions,
+  isAuthenticatedPacket,
   offlineTimingProblem,
   lateSittingMessage,
+  packetMatchesStoredSnapshot,
+  readOfflineManualReview,
+  readOfflinePacketSnapshot,
+  readOfflineReplayAnswers,
   reconcileAnswers,
   signPacket,
   verifyPacket,
@@ -11,10 +18,58 @@ import {
 } from "@/lib/offline-packet";
 
 const QUESTIONS = [
-  { id: "q1", type: "MCQ", marks: 2, sortOrder: 1 },
-  { id: "q2", type: "MCQ", marks: 2, sortOrder: 2 },
-  { id: "q3", type: "ESSAY", marks: 6, sortOrder: 3 },
+  {
+    id: "q1",
+    type: "MCQ",
+    marks: 2,
+    sortOrder: 1,
+    questionText: "Which option is correct?",
+    options: [
+      { key: "A", text: "First" },
+      { key: "B", text: "Second" },
+    ],
+    correctKey: "A",
+    correctText: null,
+  },
+  {
+    id: "q2",
+    type: "MCQ",
+    marks: 2,
+    sortOrder: 2,
+    questionText: "What is two plus two?",
+    options: [
+      { key: "A", text: "4" },
+      { key: "B", text: "5" },
+    ],
+    correctKey: "A",
+    correctText: null,
+  },
+  {
+    id: "q3",
+    type: "ESSAY",
+    marks: 6,
+    sortOrder: 3,
+    questionText: "Explain your answer.",
+    correctKey: null,
+    correctText: null,
+    options: null,
+  },
 ];
+
+function legacyFingerprint(questions: typeof QUESTIONS): string {
+  const canonical = [...questions]
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.id.localeCompare(b.id))
+    .map((question) => `${question.id}:${question.type}:${question.marks}`)
+    .join("|");
+  let first = 0x811c9dc5;
+  let second = 0x01000193;
+  for (let index = 0; index < canonical.length; index += 1) {
+    const code = canonical.charCodeAt(index);
+    first = Math.imul((first ^ code) >>> 0, 16777619) >>> 0;
+    second = Math.imul((second + code * (index + 1)) >>> 0, 2246822519) >>> 0;
+  }
+  return `${first.toString(16).padStart(8, "0")}${second.toString(16).padStart(8, "0")}`;
+}
 
 function manifest(overrides: Partial<OfflinePacketManifest> = {}): OfflinePacketManifest {
   return {
@@ -30,6 +85,69 @@ function manifest(overrides: Partial<OfflinePacketManifest> = {}): OfflinePacket
     ...overrides,
   };
 }
+
+describe("attemptRequiresPacketReview", () => {
+  it("recognizes only an explicit review hold", () => {
+    expect(attemptRequiresPacketReview({ requiresManualReview: true })).toBe(true);
+    expect(attemptRequiresPacketReview({ requiresManualReview: false })).toBe(false);
+    expect(attemptRequiresPacketReview(null)).toBe(false);
+    expect(attemptRequiresPacketReview(["requiresManualReview"])).toBe(false);
+  });
+});
+
+describe("stored offline attempt snapshot metadata", () => {
+  it("reads a complete question snapshot and replayed answers", () => {
+    const paper = manifest();
+    const metadata = {
+      offlineQuestionSnapshot: { manifest: paper, signature: "signed", questions: QUESTIONS },
+      offlineReplayAnswers: [{ questionId: "q1", response: "A" }],
+      offlineManualReview: {
+        reviewedAt: "2026-11-01T10:00:00.000Z",
+        reviewedByUserId: "teacher_1",
+        reason: "Reviewed against the original paper.",
+        marks: [{ questionId: "q1", awardedMarks: 2 }],
+        score: 2,
+      },
+    };
+    expect(readOfflinePacketSnapshot(metadata)).toMatchObject({
+      manifest: paper,
+      signature: "signed",
+      questions: QUESTIONS,
+    });
+    expect(readOfflineReplayAnswers(metadata)).toEqual([{ questionId: "q1", response: "A" }]);
+    expect(readOfflineManualReview(metadata)).toMatchObject({
+      score: 2,
+      reason: "Reviewed against the original paper.",
+    });
+  });
+
+  it("binds a replay to the signed packet assigned to that attempt", () => {
+    const paper = manifest();
+    const snapshot = { manifest: paper, signature: "server-signature", questions: QUESTIONS };
+    expect(packetMatchesStoredSnapshot(paper, "server-signature", snapshot)).toBe(true);
+    expect(
+      packetMatchesStoredSnapshot(
+        { ...paper, downloadedAt: "2026-12-01T08:00:00.000Z" },
+        "server-signature",
+        snapshot,
+      ),
+    ).toBe(false);
+    expect(packetMatchesStoredSnapshot(paper, "other-signature", snapshot)).toBe(false);
+  });
+
+  it("rejects incomplete snapshots whose totals do not match the paper", () => {
+    const paper = manifest({ totalMarks: 100 });
+    expect(
+      readOfflinePacketSnapshot({
+        offlineQuestionSnapshot: { manifest: paper, signature: "signed", questions: QUESTIONS },
+      }),
+    ).toBeNull();
+    expect(readOfflinePacketSnapshot({ offlineQuestionSnapshot: {} })).toBeNull();
+    expect(
+      readOfflineReplayAnswers({ offlineReplayAnswers: [{ questionId: 2, response: "bad" }] }),
+    ).toEqual([]);
+  });
+});
 
 describe("fingerprintQuestions", () => {
   it("is stable for the same paper", () => {
@@ -61,8 +179,19 @@ describe("fingerprintQuestions", () => {
     expect(fingerprintQuestions(QUESTIONS.slice(0, 2))).not.toBe(fingerprintQuestions(QUESTIONS));
   });
 
-  it("produces a 16-character hex tag", () => {
-    expect(fingerprintQuestions(QUESTIONS)).toMatch(/^[0-9a-f]{16}$/);
+  it("produces a SHA-256 hex tag", () => {
+    expect(fingerprintQuestions(QUESTIONS)).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it.each([
+    ["question wording", { questionText: "An edited stem" }],
+    ["answer options", { options: [{ key: "A", text: "Edited option" }] }],
+    ["answer key", { correctKey: "B" }],
+  ])("changes when %s changes", (_label, change) => {
+    const altered = QUESTIONS.map((question) =>
+      question.id === "q1" ? { ...question, ...change } : question,
+    );
+    expect(fingerprintQuestions(altered)).not.toBe(fingerprintQuestions(QUESTIONS));
   });
 
   it("handles an empty paper without throwing", () => {
@@ -131,6 +260,14 @@ describe("verifyPacket", () => {
     });
   });
 
+  it("authenticates a legacy packet but holds it for review because its digest omitted content", () => {
+    const paper = manifest({ fingerprint: legacyFingerprint(QUESTIONS) });
+    const { signature } = signPacket(paper);
+    const result = verifyPacket({ manifest: paper, signature, currentQuestions: QUESTIONS });
+    expect(result).toMatchObject({ ok: false, reason: "FINGERPRINT_MISMATCH" });
+    expect(isAuthenticatedPacket(result)).toBe(true);
+  });
+
   it("rejects a missing signature", () => {
     const result = verifyPacket({
       manifest: manifest(),
@@ -154,6 +291,53 @@ describe("verifyPacket", () => {
     const tampered = manifest({ totalMarks: 100 });
     const result = verifyPacket({ manifest: tampered, signature, currentQuestions: QUESTIONS });
     expect(result).toMatchObject({ ok: false, reason: "BAD_SIGNATURE" });
+  });
+
+  it("binds the download timestamp to the packet signature", () => {
+    const paper = manifest();
+    const { signature } = signPacket(paper);
+    const tampered = manifest({ downloadedAt: "2026-09-01T00:00:00.000Z" });
+
+    expect(
+      verifyPacket({ manifest: tampered, signature, currentQuestions: QUESTIONS }),
+    ).toMatchObject({
+      ok: false,
+      reason: "BAD_SIGNATURE",
+    });
+  });
+
+  it("still recognizes already-downloaded v1 packets during rollout", () => {
+    const paper = manifest();
+    const legacyPayload = [
+      paper.examId,
+      paper.fingerprint,
+      paper.questionCount,
+      paper.totalMarks,
+      paper.durationMinutes,
+      paper.sessionLabel,
+      paper.termIndex,
+    ].join(".");
+    const signature = createHmac("sha256", process.env.AUTH_SECRET!)
+      .update(legacyPayload)
+      .digest("base64url");
+
+    expect(verifyPacket({ manifest: paper, signature, currentQuestions: QUESTIONS })).toEqual({
+      ok: true,
+    });
+  });
+
+  it("distinguishes an authenticated paper edit from an unauthenticated packet", () => {
+    const paper = manifest();
+    const { signature } = signPacket(paper);
+    const edited = [...QUESTIONS, { id: "q4", type: "MCQ", marks: 2, sortOrder: 4 }];
+
+    expect(
+      isAuthenticatedPacket(verifyPacket({ manifest: paper, signature, currentQuestions: edited })),
+    ).toBe(true);
+    expect(isAuthenticatedPacket({ ok: false, reason: "BAD_SIGNATURE", detail: "forged" })).toBe(
+      false,
+    );
+    expect(isAuthenticatedPacket(null)).toBe(false);
   });
 
   it("reports a fingerprint mismatch when the paper changed underneath", () => {

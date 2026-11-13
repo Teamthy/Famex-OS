@@ -284,10 +284,16 @@ for (const file of routeFiles) {
   // makes a security check worthless.
   // requireModule()/requireAnyModule() are the Rule-13 guard (auth → role →
   // module entitlement) and call requireRole internally, so they count.
+  // The exam routes use these two specific wrappers, which also enforce the
+  // exam module before resolving a profile. They must be listed explicitly:
+  // otherwise an authenticated route can look public to this static audit.
   const guarded =
     /requireRole|requireModule|requireAnyModule|getSession|checkRole|requireSuperAdmin|verifyWebhook/.test(
       text,
-    ) || /\bget[A-Z][A-Za-z]*(Context|Profile|Admin|User)\s*\(/.test(text);
+    ) ||
+    /\b(?:get[A-Z][A-Za-z]*(?:Context|Profile|Admin|User)|requireExamTeacherContext|requireStudentExamContext)\s*\(/.test(
+      text,
+    );
   if (!guarded) unguarded.push(endpoint);
 }
 if (unguarded.length) {

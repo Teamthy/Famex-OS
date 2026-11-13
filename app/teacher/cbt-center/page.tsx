@@ -43,6 +43,17 @@ type ExamsResponse = {
   exams: ExamRow[];
 };
 
+type OfflineReviewQuestion = {
+  id: string;
+  type: string;
+  questionText: string;
+  options: unknown;
+  correctKey: string | null;
+  correctText: string | null;
+  marks: number;
+  sortOrder: number;
+};
+
 type ResultsResponse = {
   exam: {
     id: string;
@@ -58,10 +69,24 @@ type ResultsResponse = {
     student: { id: string; studentId: string; displayName: string };
     attemptNumber: number;
     status: string;
+    packetMismatch: string | null;
+    requiresManualReview: boolean;
+    offlineReview: {
+      questions: OfflineReviewQuestion[];
+      answers: Array<{ questionId: string; response: string | null }>;
+      manualReview: {
+        reviewedAt: string;
+        reviewedByUserId: string;
+        reason: string;
+        marks: Array<{ questionId: string; awardedMarks: number }>;
+        score: number;
+      } | null;
+    } | null;
     submittedAt: string | null;
     autoScore: number;
     essayScore: number;
     totalScore: number;
+    maxMarks: number;
     tabSwitches: number;
     passed: boolean;
     pendingEssays: number;
@@ -92,6 +117,18 @@ Q: Explain photosynthesis in your own words.
 ESSAY
 Marks: 5`;
 
+function isPacketChoice(value: unknown): value is { key: string; text: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    "key" in value &&
+    typeof value.key === "string" &&
+    "text" in value &&
+    typeof value.text === "string"
+  );
+}
+
 export default function TeacherCbtCenterPage() {
   const { toast } = useToast();
   const [data, setData] = useState<ExamsResponse | null>(null);
@@ -101,6 +138,9 @@ export default function TeacherCbtCenterPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [results, setResults] = useState<ResultsResponse | null>(null);
   const [resultsLoading, setResultsLoading] = useState(false);
+  const [offlineReviewDrafts, setOfflineReviewDrafts] = useState<
+    Record<string, { reason: string; marks: Record<string, string> }>
+  >({});
 
   const [form, setForm] = useState({
     assignmentId: "",
@@ -132,8 +172,32 @@ export default function TeacherCbtCenterPage() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    async function loadInitial() {
+      try {
+        const response = await fetch("/api/teacher/exams", { cache: "no-store" });
+        const body = (await response.json()) as ExamsResponse & { error?: string };
+        if (!response.ok) throw new Error(body.error || "Unable to load exams.");
+        if (!cancelled) {
+          setData(body);
+          setForm((previous) => ({
+            ...previous,
+            assignmentId: previous.assignmentId || body.assignments[0]?.id || "",
+          }));
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : "Unable to load exams.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void loadInitial();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function createExam() {
     if (!form.assignmentId || form.title.trim().length < 3) {
@@ -195,6 +259,20 @@ export default function TeacherCbtCenterPage() {
       const body = (await response.json()) as ResultsResponse & { error?: string };
       if (!response.ok) throw new Error(body.error || "Unable to load results.");
       setResults(body);
+      setOfflineReviewDrafts((previous) => {
+        const next = { ...previous };
+        for (const attempt of body.attempts) {
+          if (attempt.requiresManualReview && attempt.offlineReview && !next[attempt.id]) {
+            next[attempt.id] = {
+              reason: "",
+              marks: Object.fromEntries(
+                attempt.offlineReview.questions.map((question) => [question.id, ""]),
+              ),
+            };
+          }
+        }
+        return next;
+      });
     } catch (resultsError) {
       toast(
         resultsError instanceof Error ? resultsError.message : "Unable to load results.",
@@ -219,6 +297,54 @@ export default function TeacherCbtCenterPage() {
       await openResults(examId);
     } catch (gradeError) {
       toast(gradeError instanceof Error ? gradeError.message : "Unable to save score.", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitOfflineReview(examId: string, attempt: ResultsResponse["attempts"][number]) {
+    const draft = offlineReviewDrafts[attempt.id];
+    const questions = attempt.offlineReview?.questions ?? [];
+    if (!draft || draft.reason.trim().length < 4) {
+      toast("Enter a review reason of at least four characters.", "warning");
+      return;
+    }
+    const marks = questions.map((question) => ({
+      questionId: question.id,
+      awardedMarks: Number(draft.marks[question.id]),
+    }));
+    if (
+      !questions.length ||
+      marks.some(
+        (mark, index) =>
+          (draft.marks[questions[index].id] ?? "").trim() === "" ||
+          !Number.isInteger(mark.awardedMarks) ||
+          mark.awardedMarks < 0 ||
+          mark.awardedMarks > questions[index].marks,
+      )
+    ) {
+      toast("Enter a valid mark for every question in the signed paper.", "warning");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/teacher/exams/${examId}/offline-review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attemptId: attempt.id, reason: draft.reason.trim(), marks }),
+      });
+      const body = (await response.json()) as { message?: string; error?: string };
+      if (!response.ok) throw new Error(body.error || "Unable to resolve the offline attempt.");
+      toast(body.message || "Offline attempt reviewed.", "success");
+      await openResults(examId);
+    } catch (reviewError) {
+      toast(
+        reviewError instanceof Error
+          ? reviewError.message
+          : "Unable to resolve the offline attempt.",
+        "error",
+      );
     } finally {
       setBusy(false);
     }
@@ -522,7 +648,7 @@ export default function TeacherCbtCenterPage() {
                                 <span
                                   className={`font-display text-2xl ${attempt.passed ? "text-brand-green" : "text-red-500"}`}
                                 >
-                                  {attempt.totalScore}/{results.exam.totalMarks}
+                                  {attempt.totalScore}/{attempt.maxMarks}
                                 </span>
                                 <button
                                   onClick={() =>
@@ -537,7 +663,165 @@ export default function TeacherCbtCenterPage() {
                                 </button>
                               </div>
                             </div>
-                            {attempt.essayAnswers.length ? (
+                            {attempt.offlineReview ? (
+                              <div className="mt-4 space-y-4 rounded-xl border border-brand-orange/30 bg-brand-orange/5 p-4">
+                                <div>
+                                  <div className="text-xs font-bold uppercase tracking-wider text-brand-orange">
+                                    {attempt.requiresManualReview
+                                      ? "Changed paper — review required"
+                                      : "Changed paper — manually reviewed"}
+                                  </div>
+                                  <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                                    The signed original paper and device answers are preserved. This
+                                    attempt is not automatically graded against the edited exam.
+                                  </p>
+                                  {attempt.packetMismatch ? (
+                                    <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                                      Mismatch: {attempt.packetMismatch}
+                                    </p>
+                                  ) : null}
+                                </div>
+                                {attempt.offlineReview.questions.map((question) => {
+                                  const answer = attempt.offlineReview?.answers.find(
+                                    (entry) => entry.questionId === question.id,
+                                  );
+                                  const priorMark = attempt.offlineReview?.manualReview?.marks.find(
+                                    (entry) => entry.questionId === question.id,
+                                  );
+                                  const choices = Array.isArray(question.options)
+                                    ? question.options.filter(isPacketChoice)
+                                    : [];
+                                  return (
+                                    <div
+                                      key={question.id}
+                                      className="rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-card)] p-4"
+                                    >
+                                      <div className="text-sm font-semibold text-[var(--text-primary)]">
+                                        {question.sortOrder}. {question.questionText}{" "}
+                                        <span className="text-[var(--text-muted)]">
+                                          ({question.marks} marks · {question.type})
+                                        </span>
+                                      </div>
+                                      {choices.length ? (
+                                        <ul className="mt-2 space-y-1 text-xs text-[var(--text-secondary)]">
+                                          {choices.map((choice) => (
+                                            <li
+                                              key={choice.key}
+                                              className={
+                                                choice.key === question.correctKey
+                                                  ? "font-bold text-brand-green"
+                                                  : ""
+                                              }
+                                            >
+                                              {choice.key}. {choice.text}
+                                              {choice.key === question.correctKey
+                                                ? " · signed answer key"
+                                                : ""}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      ) : null}
+                                      {question.correctText ? (
+                                        <p className="mt-2 text-xs text-brand-green">
+                                          Signed expected answer: {question.correctText}
+                                        </p>
+                                      ) : null}
+                                      <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--text-secondary)]">
+                                        Student response: {answer?.response || "No response"}
+                                      </p>
+                                      {attempt.requiresManualReview ? (
+                                        <label className="mt-3 flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)]">
+                                          Teacher-awarded marks
+                                          <input
+                                            type="number"
+                                            min={0}
+                                            max={question.marks}
+                                            value={
+                                              offlineReviewDrafts[attempt.id]?.marks[question.id] ??
+                                              ""
+                                            }
+                                            onChange={(event) =>
+                                              setOfflineReviewDrafts((previous) => ({
+                                                ...previous,
+                                                [attempt.id]: {
+                                                  reason: previous[attempt.id]?.reason ?? "",
+                                                  marks: {
+                                                    ...previous[attempt.id]?.marks,
+                                                    [question.id]: event.target.value,
+                                                  },
+                                                },
+                                              }))
+                                            }
+                                            className="w-24 rounded-lg border border-[var(--input-border)] bg-[var(--input-bg)] px-3 py-2 text-center text-sm text-[var(--input-text)]"
+                                          />
+                                        </label>
+                                      ) : (
+                                        <p className="mt-2 text-xs font-bold text-brand-green">
+                                          Awarded: {priorMark?.awardedMarks ?? 0}/{question.marks}
+                                        </p>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                                {attempt.requiresManualReview &&
+                                !attempt.offlineReview.questions.length ? (
+                                  <p className="text-xs text-red-700">
+                                    The signed question snapshot is not available for this legacy
+                                    attempt. Answers are preserved, but this screen cannot score it
+                                    safely; escalate for the approved result-correction process.
+                                  </p>
+                                ) : null}
+                                {attempt.requiresManualReview &&
+                                attempt.offlineReview.questions.length ? (
+                                  <div className="space-y-3">
+                                    <label className="block text-xs font-semibold text-[var(--text-primary)]">
+                                      Review reason
+                                      <textarea
+                                        rows={2}
+                                        maxLength={500}
+                                        value={offlineReviewDrafts[attempt.id]?.reason ?? ""}
+                                        onChange={(event) =>
+                                          setOfflineReviewDrafts((previous) => ({
+                                            ...previous,
+                                            [attempt.id]: {
+                                              reason: event.target.value,
+                                              marks: previous[attempt.id]?.marks ?? {},
+                                            },
+                                          }))
+                                        }
+                                        className="mt-1 w-full rounded-lg border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-sm text-[var(--input-text)]"
+                                        placeholder="Explain the basis for this manual decision."
+                                      />
+                                    </label>
+                                    {results.exam.resultsReleased ? (
+                                      <p className="text-xs text-red-600">
+                                        Results are already released. Use the approved correction
+                                        workflow instead.
+                                      </p>
+                                    ) : (
+                                      <button
+                                        onClick={() =>
+                                          void submitOfflineReview(results.exam.id, attempt)
+                                        }
+                                        disabled={busy || resultsLoading}
+                                        className="rounded-full bg-brand-orange px-4 py-2 text-xs font-bold uppercase tracking-wider text-brand-navy disabled:cursor-not-allowed disabled:opacity-50"
+                                      >
+                                        {busy ? "Saving review…" : "Save reviewed marks"}
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : attempt.offlineReview.manualReview ? (
+                                  <p className="text-xs text-[var(--text-muted)]">
+                                    Reviewed{" "}
+                                    {new Date(
+                                      attempt.offlineReview.manualReview.reviewedAt,
+                                    ).toLocaleString()}{" "}
+                                    · {attempt.offlineReview.manualReview.reason}
+                                  </p>
+                                ) : null}
+                              </div>
+                            ) : null}
+                            {attempt.essayAnswers.length && !attempt.offlineReview ? (
                               <div className="mt-4 space-y-3 border-t border-[var(--border-subtle)] pt-4">
                                 {attempt.essayAnswers.map((essay) => (
                                   <div

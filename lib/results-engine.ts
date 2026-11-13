@@ -182,6 +182,31 @@ export function cumulativeAverage(termTotals: Array<{ total: number; subjects: n
   return Math.round(total / subjects);
 }
 
+/** Rebuild each running figure using only the term rows supplied by the caller. */
+export function releasedCumulativeByTerm(
+  terms: Array<{ termIndex: number; totalScore: number; subjectCount: number }>,
+  bands: GradeBand[] = DEFAULT_PERCENTAGE_BANDS,
+): Array<{
+  termIndex: number;
+  cumulativeAverage: number;
+  cumulativeGrade: string;
+  termsCounted: number;
+}> {
+  const ordered = [...terms].sort((left, right) => left.termIndex - right.termIndex);
+  return ordered.map((term, index) => {
+    const included = ordered.slice(0, index + 1);
+    const average = cumulativeAverage(
+      included.map((entry) => ({ total: entry.totalScore, subjects: entry.subjectCount })),
+    );
+    return {
+      termIndex: term.termIndex,
+      cumulativeAverage: average,
+      cumulativeGrade: gradeFor(average, bands),
+      termsCounted: included.filter((entry) => entry.subjectCount > 0).length,
+    };
+  });
+}
+
 /** A candidate for ranking: a total and a stable identity. */
 export type Rankable<T> = { id: string; total: number; data: T };
 

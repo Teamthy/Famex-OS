@@ -1,11 +1,11 @@
 import { ExamAttemptStatus, ExamStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { finalizeAttempt, getStudentExamContext } from "@/lib/exams";
+import { finalizeAttempt, requireStudentExamContext } from "@/lib/exams";
 import { getStudentFeeLock } from "@/lib/fee-lock";
 import { prisma } from "@/lib/prisma";
 import { examMinutes } from "@/lib/exams";
-import { attemptDeadline, startWindowRefusal } from "@/lib/subjects";
+import { attemptDeadline, startWindowRefusal, studentSubjectIds } from "@/lib/subjects";
 
 export const dynamic = "force-dynamic";
 
@@ -26,12 +26,17 @@ function shuffled<T>(items: T[], seed: string): T[] {
 
 /** POST — start (or resume) an attempt. */
 export async function POST(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const studentContext = await getStudentExamContext();
-  if (!studentContext) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireStudentExamContext();
+  if (!guard.ok) return guard.response;
+  const studentContext = guard.context;
 
   const { id } = await context.params;
   const exam = await prisma.exam.findFirst({
-    where: { id, classId: studentContext.studentProfile.currentClassId },
+    where: {
+      id,
+      schoolId: studentContext.user.schoolId,
+      classId: studentContext.studentProfile.currentClassId,
+    },
     include: { questions: { orderBy: { sortOrder: "asc" } } },
   });
   if (!exam) return NextResponse.json({ error: "Exam not found for your class." }, { status: 404 });
@@ -40,6 +45,20 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
     where: { examId: exam.id, studentProfileId: studentContext.studentProfile.id },
     orderBy: { attemptNumber: "desc" },
   });
+
+  // A stale URL must not expose a subject paper to another student in the same
+  // class. Preserve an already-open sitting so an enrolment correction cannot
+  // strand a student halfway through a timed exam.
+  if (
+    exam.subjectId &&
+    existing?.status !== ExamAttemptStatus.IN_PROGRESS &&
+    !(await studentSubjectIds(studentContext.studentProfile.id)).includes(exam.subjectId)
+  ) {
+    return NextResponse.json(
+      { error: "You are not enrolled in this subject.", code: "NOT_ENROLLED" },
+      { status: 403 },
+    );
+  }
 
   let attempt = existing;
 
@@ -139,6 +158,7 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
               deadlineAt: attemptDeadline({
                 durationMinutes: examMinutes(exam),
                 availableUntil: exam.availableUntil,
+                hasRetake: Boolean(retakeGrant && !retakeGrant.used),
               }),
             },
           });
@@ -224,8 +244,9 @@ const saveSchema = z.object({
 
 /** PATCH — autosave answers, record tab switches, or submit. */
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const studentContext = await getStudentExamContext();
-  if (!studentContext) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireStudentExamContext();
+  if (!guard.ok) return guard.response;
+  const studentContext = guard.context;
 
   const { id } = await context.params;
   let payload: z.infer<typeof saveSchema>;
@@ -257,6 +278,18 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       });
     }
     return NextResponse.json({ error: "This attempt is already submitted." }, { status: 409 });
+  }
+
+  // The deadline is enforced before accepting answer mutations. A late client
+  // must not extend the sitting by sending new answers alongside SUBMIT.
+  if (attempt.deadlineAt.getTime() <= Date.now()) {
+    const finalized = await finalizeAttempt(attempt.id);
+    return NextResponse.json({
+      ok: true,
+      submitted: true,
+      message: "Time elapsed — your saved answers were submitted automatically.",
+      status: finalized?.status,
+    });
   }
 
   if (payload.action === "TAB_SWITCH") {
@@ -317,15 +350,12 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     );
   }
 
-  const expired = attempt.deadlineAt.getTime() < Date.now();
-  if (payload.action === "SUBMIT" || expired) {
+  if (payload.action === "SUBMIT") {
     const finalized = await finalizeAttempt(attempt.id);
     return NextResponse.json({
       ok: true,
       submitted: true,
-      message: expired
-        ? "Time elapsed — your answers were submitted automatically."
-        : "Exam submitted successfully.",
+      message: "Exam submitted successfully.",
       status: finalized?.status,
     });
   }

@@ -191,6 +191,7 @@ describe("finalizeAttempt", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPrisma.examAnswer.update.mockResolvedValue({});
+    mockPrisma.examAttempt.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.examAttempt.update.mockImplementation(({ data }: any) =>
       Promise.resolve({ id: "att_1", ...data }),
     );
@@ -199,9 +200,10 @@ describe("finalizeAttempt", () => {
   function attempt(answers: any[], essayScore = 0) {
     return {
       id: "att_1",
+      status: "IN_PROGRESS",
       essayScore,
       answers,
-      exam: { id: "exam_1" },
+      exam: { id: "exam_1", questions: [] },
     };
   }
 
@@ -210,6 +212,30 @@ describe("finalizeAttempt", () => {
     const { finalizeAttempt } = await import("@/lib/exams");
 
     expect(await finalizeAttempt("missing")).toBeNull();
+  });
+
+  it("refuses to re-grade an attempt that has already left IN_PROGRESS", async () => {
+    mockPrisma.examAttempt.findUnique.mockResolvedValue({
+      ...attempt([]),
+      status: "GRADED",
+    });
+
+    const { finalizeAttempt } = await import("@/lib/exams");
+    expect(await finalizeAttempt("att_1")).toBeNull();
+    expect(mockPrisma.examAnswer.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.examAttempt.update).not.toHaveBeenCalled();
+  });
+
+  it("returns the winner's stored result without grading again", async () => {
+    mockPrisma.examAttempt.findUnique
+      .mockResolvedValueOnce(attempt([]))
+      .mockResolvedValueOnce({ id: "att_1", status: "GRADED", totalScore: 4 });
+    mockPrisma.examAttempt.updateMany.mockResolvedValue({ count: 0 });
+
+    const { finalizeAttempt } = await import("@/lib/exams");
+    expect(await finalizeAttempt("att_1")).toMatchObject({ status: "GRADED", totalScore: 4 });
+    expect(mockPrisma.examAnswer.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.examAttempt.update).not.toHaveBeenCalled();
   });
 
   it("sums objective marks and marks the attempt GRADED", async () => {
@@ -265,6 +291,40 @@ describe("finalizeAttempt", () => {
     const data = mockPrisma.examAttempt.update.mock.calls[0][0].data;
     expect(data.status).toBe("SUBMITTED");
     expect(data.autoScore).toBe(5); // essay excluded from auto score
+  });
+
+  it("keeps an omitted essay in SUBMITTED and creates its blank answer row", async () => {
+    mockPrisma.examAttempt.findUnique.mockResolvedValue({
+      ...attempt([]),
+      exam: {
+        id: "exam_1",
+        questions: [
+          {
+            id: "essay_q1",
+            type: "ESSAY",
+            correctKey: null,
+            correctText: null,
+            marks: 10,
+          },
+        ],
+      },
+    });
+
+    const { finalizeAttempt } = await import("@/lib/exams");
+    await finalizeAttempt("att_1");
+
+    expect(mockPrisma.examAttempt.update.mock.calls[0][0].data.status).toBe("SUBMITTED");
+    expect(mockPrisma.examAnswer.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          attemptId: "att_1",
+          questionId: "essay_q1",
+          response: null,
+          isCorrect: null,
+          awardedMarks: null,
+        },
+      ],
+    });
   });
 
   it("adds an existing essayScore into the total", async () => {
