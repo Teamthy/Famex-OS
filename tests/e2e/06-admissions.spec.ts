@@ -37,7 +37,7 @@ test.describe("admissions (public, no account)", () => {
     expect(response!.status()).toBeLessThan(400);
     expect(page.url()).not.toContain("/login");
     // The Application ID field is the whole point of the page.
-    await expect(page.locator("#applicationId")).toBeVisible();
+    await expect(page.locator('[data-testid="application-status-id"]:visible')).toBeVisible();
   });
 
   test("a malformed Application ID is rejected, not looked up", async ({ request }) => {

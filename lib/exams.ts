@@ -160,23 +160,17 @@ export async function finalizeAttempt(attemptId: string) {
   let hasEssay = examQuestions.some((question) => question.type === ExamQuestionType.ESSAY);
   const existingQuestionIds = new Set(attempt.answers.map((answer) => answer.questionId));
   const missingAnswers = examQuestions
-    .filter((question) => !existingQuestionIds.has(question.id))
-    .map((question) => {
-      const graded = gradeObjectiveAnswer({
-        type: question.type,
-        correctKey: question.correctKey,
-        correctText: question.correctText,
-        marks: question.marks,
-        response: null,
-      });
-      return {
-        attemptId: attempt.id,
-        questionId: question.id,
-        response: null,
-        isCorrect: graded.isCorrect,
-        awardedMarks: graded.awardedMarks,
-      };
-    });
+    .filter(
+      (question) =>
+        question.type === ExamQuestionType.ESSAY && !existingQuestionIds.has(question.id),
+    )
+    .map((question) => ({
+      attemptId: attempt.id,
+      questionId: question.id,
+      response: null,
+      isCorrect: null,
+      awardedMarks: null,
+    }));
 
   /**
    * Grading used to issue one UPDATE per answer, awaited in sequence. A

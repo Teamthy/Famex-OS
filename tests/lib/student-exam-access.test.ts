@@ -152,6 +152,54 @@ describe("student exam access is assignment- and fee-lock-aware", () => {
     expect(mockPrisma.examAttempt.create).not.toHaveBeenCalled();
   });
 
+  it("reuses the server attempt created with the offline package on replay", async () => {
+    const liveAttempt = {
+      id: "attempt_started_by_package",
+      examId: "exam_1",
+      studentProfileId: "student_1",
+      attemptNumber: 1,
+      status: "IN_PROGRESS",
+      clientAttemptId: null,
+      metadata: null,
+      offlineStartedAt: new Date(),
+      offlineEndedAt: null,
+    };
+    mockPrisma.examAttempt.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce(liveAttempt);
+    mockPrisma.examAttempt.findMany.mockResolvedValue([]);
+    mockPrisma.examAttempt.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.examAnswer.findMany.mockResolvedValue([]);
+
+    const payload = {
+      clientAttemptId: "client_attempt_123",
+      startedAt: new Date().toISOString(),
+      durationMinutes: 40,
+      answers: [],
+      finalize: false,
+    };
+    const { POST } = await import("@/app/api/student/exams/[id]/attempt/offline-replay/route");
+    const response = await POST(
+      new Request("https://example.test/api/student/exams/exam_1/attempt/offline-replay", {
+        method: "POST",
+        body: JSON.stringify(payload),
+        headers: { "content-type": "application/json" },
+      }) as never,
+      routeContext,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.attemptId).toBe("attempt_started_by_package");
+    expect(mockPrisma.examAttempt.create).not.toHaveBeenCalled();
+    expect(mockPrisma.examAttempt.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: "attempt_started_by_package",
+        status: "IN_PROGRESS",
+        clientAttemptId: null,
+      },
+      data: { clientAttemptId: "client_attempt_123" },
+    });
+  });
+
   it("does not let an unsigned finalize flag bypass a closed-exam gate", async () => {
     mockPrisma.exam.findFirst.mockResolvedValue({
       ...examForPackage,

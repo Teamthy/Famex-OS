@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useId, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AlertCircle, ArrowRight, CheckCircle2, Clock3, Search, ShieldCheck } from "lucide-react";
 import { formatApplicationId } from "@/lib/admissions";
@@ -25,6 +25,7 @@ const tones = {
 };
 
 export default function ApplicationStatusLookup() {
+  const applicationIdInputId = useId();
   const searchParams = useSearchParams();
   const [applicationId, setApplicationId] = useState("");
   const [result, setResult] = useState<StatusResult | null>(null);
@@ -75,7 +76,7 @@ export default function ApplicationStatusLookup() {
       <div className="rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 shadow-[var(--card-shadow)] md:p-9">
         <form onSubmit={onSubmit} noValidate>
           <label
-            htmlFor="applicationId"
+            htmlFor={applicationIdInputId}
             className="mb-2 block text-xs font-bold uppercase tracking-[0.15em] text-[var(--input-label)]"
           >
             Application ID
@@ -87,7 +88,8 @@ export default function ApplicationStatusLookup() {
                 className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
               />
               <input
-                id="applicationId"
+                id={applicationIdInputId}
+                data-testid="application-status-id"
                 value={applicationId}
                 onChange={(event) => setApplicationId(formatApplicationId(event.target.value))}
                 placeholder="YKCAPP2026ABC123"

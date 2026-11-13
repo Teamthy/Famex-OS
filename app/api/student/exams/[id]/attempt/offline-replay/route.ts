@@ -282,7 +282,50 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       orderBy: { attemptNumber: "desc" },
     });
 
-    if (latest && latest.status !== ExamAttemptStatus.IN_PROGRESS) {
+    if (latest?.status === ExamAttemptStatus.IN_PROGRESS) {
+      // The offline-package endpoint already creates and snapshots the server
+      // attempt before handing the paper to the device. Reuse that active row
+      // on replay rather than creating a second sitting; claim its idempotency
+      // key so subsequent sync retries find it directly.
+      if (latest.clientAttemptId && latest.clientAttemptId !== body.clientAttemptId) {
+        return NextResponse.json(
+          {
+            error: "Another sitting is already in progress for this paper.",
+            code: "ATTEMPT_IN_PROGRESS",
+          },
+          { status: 409 },
+        );
+      }
+      if (latest.clientAttemptId === body.clientAttemptId) {
+        serverAttempt = latest;
+      } else {
+        const claimed = await prisma.examAttempt.updateMany({
+          where: {
+            id: latest.id,
+            status: ExamAttemptStatus.IN_PROGRESS,
+            clientAttemptId: null,
+          },
+          data: { clientAttemptId: body.clientAttemptId },
+        });
+        if (claimed.count === 1) {
+          serverAttempt = { ...latest, clientAttemptId: body.clientAttemptId };
+        } else {
+          const raced = await prisma.examAttempt.findUnique({ where: { id: latest.id } });
+          if (!raced || raced.clientAttemptId !== body.clientAttemptId) {
+            return NextResponse.json(
+              {
+                error: "Another sitting is already in progress for this paper.",
+                code: "ATTEMPT_IN_PROGRESS",
+              },
+              { status: 409 },
+            );
+          }
+          serverAttempt = raced;
+        }
+      }
+    }
+
+    if (!serverAttempt && latest && latest.status !== ExamAttemptStatus.IN_PROGRESS) {
       // A finished attempt exists and this is a DIFFERENT sitting. It is only
       // allowed if the teacher granted a retake — otherwise a device replaying
       // twice would create a free second sitting.
@@ -305,68 +348,70 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       }
     }
 
-    const deadlineAt = new Date(startedMs + examMinutes(exam) * 60_000);
-    try {
-      serverAttempt = await prisma.$transaction(async (tx) => {
-        if (latest && latest.status !== ExamAttemptStatus.IN_PROGRESS) {
-          const grant = await tx.examRetake.findUnique({
-            where: {
-              examId_studentProfileId: {
-                examId,
-                studentProfileId: studentContext.studentProfile.id,
+    if (!serverAttempt) {
+      const deadlineAt = new Date(startedMs + examMinutes(exam) * 60_000);
+      try {
+        serverAttempt = await prisma.$transaction(async (tx) => {
+          if (latest && latest.status !== ExamAttemptStatus.IN_PROGRESS) {
+            const grant = await tx.examRetake.findUnique({
+              where: {
+                examId_studentProfileId: {
+                  examId,
+                  studentProfileId: studentContext.studentProfile.id,
+                },
               },
+            });
+            if (!grant || grant.used) throw new Error("RETAKE_REQUIRED");
+            await tx.examRetake.update({ where: { id: grant.id }, data: { used: true } });
+          }
+          return tx.examAttempt.create({
+            data: {
+              examId,
+              studentProfileId: studentContext.studentProfile.id,
+              attemptNumber: (latest?.attemptNumber || 0) + 1,
+              // Never earlier than the moment the student handed in: clock skew
+              // on a device must not produce a deadline in the past for a sitting
+              // that has already been completed.
+              deadlineAt: submittedMs
+                ? new Date(Math.max(deadlineAt.getTime(), submittedMs))
+                : deadlineAt,
+              status: ExamAttemptStatus.IN_PROGRESS,
+              clientAttemptId: body.clientAttemptId,
+              deliveryMode: "SYNCED",
+              offlineStartedAt: new Date(startedMs),
+              offlineEndedAt: submittedMs ? new Date(submittedMs) : null,
+              metadata,
             },
           });
-          if (!grant || grant.used) throw new Error("RETAKE_REQUIRED");
-          await tx.examRetake.update({ where: { id: grant.id }, data: { used: true } });
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message === "RETAKE_REQUIRED") {
+          return NextResponse.json(
+            {
+              error: "You have already taken this exam. Ask your teacher to enable a retake.",
+              code: "RETAKE_REQUIRED",
+            },
+            { status: 409 },
+          );
         }
-        return tx.examAttempt.create({
-          data: {
-            examId,
-            studentProfileId: studentContext.studentProfile.id,
-            attemptNumber: (latest?.attemptNumber || 0) + 1,
-            // Never earlier than the moment the student handed in: clock skew
-            // on a device must not produce a deadline in the past for a sitting
-            // that has already been completed.
-            deadlineAt: submittedMs
-              ? new Date(Math.max(deadlineAt.getTime(), submittedMs))
-              : deadlineAt,
-            status: ExamAttemptStatus.IN_PROGRESS,
-            clientAttemptId: body.clientAttemptId,
-            deliveryMode: "SYNCED",
-            offlineStartedAt: new Date(startedMs),
-            offlineEndedAt: submittedMs ? new Date(submittedMs) : null,
-            metadata,
-          },
-        });
-      });
-    } catch (error) {
-      if (error instanceof Error && error.message === "RETAKE_REQUIRED") {
-        return NextResponse.json(
-          {
-            error: "You have already taken this exam. Ask your teacher to enable a retake.",
-            code: "RETAKE_REQUIRED",
-          },
-          { status: 409 },
-        );
-      }
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        (error as { code?: unknown }).code === "P2002"
-      ) {
-        // A concurrent retry won; serve its attempt.
-        const raced = await prisma.examAttempt.findFirst({
-          where: {
-            examId,
-            studentProfileId: studentContext.studentProfile.id,
-            clientAttemptId: body.clientAttemptId,
-          },
-        });
-        if (raced) serverAttempt = raced;
-        else throw error;
-      } else {
-        throw error;
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          (error as { code?: unknown }).code === "P2002"
+        ) {
+          // A concurrent retry won; serve its attempt.
+          const raced = await prisma.examAttempt.findFirst({
+            where: {
+              examId,
+              studentProfileId: studentContext.studentProfile.id,
+              clientAttemptId: body.clientAttemptId,
+            },
+          });
+          if (raced) serverAttempt = raced;
+          else throw error;
+        } else {
+          throw error;
+        }
       }
     }
   }
