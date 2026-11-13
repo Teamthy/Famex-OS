@@ -2,12 +2,14 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ReportCardStatus, UserRole } from "@prisma/client";
+import { GRADEBOOK_ADMIN_ROLES } from "@/lib/gradebook";
 import ReportCardSheet from "@/components/ReportCardSheet";
 import PrintToolbar from "@/components/PrintToolbar";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { letterheadFromSchool, sheetFromStoredCard } from "@/lib/report-card-sheet";
 import { roleMatches } from "@/lib/roles";
+import { teacherMayViewReportCard } from "@/lib/report-card-access";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +25,8 @@ export const dynamic = "force-dynamic";
  * Access is the same as the detail it prints:
  *   • the student it belongs to,
  *   • a parent linked to that student,
- *   • staff who may see results (admin, director, coordinator, the form
- *     teacher of the class, or the class/subject teacher on the card),
+ *   • staff who may see results (admin, director, coordinator, or the form
+ *     teacher assigned to the class; a subject teacher is not shown the full card),
  *   • never a RELEASED card to anyone who is not one of those, and never a
  *     DRAFT except to staff.
  *
@@ -52,6 +54,7 @@ export default async function PrintableReportCardPage({
         select: {
           id: true,
           userId: true,
+          currentClassId: true,
           studentId: true,
           displayName: true,
           currentClass: { select: { displayName: true } },
@@ -63,11 +66,7 @@ export default async function PrintableReportCardPage({
   // A missing card and a card for another school are the same answer: nothing.
   if (!card) notFound();
 
-  const isStaff = roleMatches(session.role, [
-    UserRole.ADMIN,
-    UserRole.DIRECTOR,
-    UserRole.COORDINATOR,
-  ]);
+  const isStaff = roleMatches(session.role, GRADEBOOK_ADMIN_ROLES);
 
   const isStudent = session.role === UserRole.STUDENT && card.studentProfile.userId === session.id;
 
@@ -81,12 +80,25 @@ export default async function PrintableReportCardPage({
       select: { id: true },
     })) !== null;
 
-  const isTeacher =
+  let isTeacher = false;
+  if (
     (session.role === UserRole.TEACHER || session.role === UserRole.HOD) &&
-    (await prisma.teacherProfile.findFirst({
+    card.studentProfile.currentClassId
+  ) {
+    const teacher = await prisma.teacherProfile.findFirst({
       where: { schoolId: session.schoolId, userId: session.id, isActive: true },
-      select: { id: true },
-    })) !== null;
+      select: {
+        classAssignments: {
+          where: { classId: card.studentProfile.currentClassId, isActive: true },
+          select: { classId: true, role: true },
+        },
+      },
+    });
+    isTeacher = teacherMayViewReportCard({
+      classId: card.studentProfile.currentClassId,
+      assignments: teacher?.classAssignments ?? [],
+    });
+  }
 
   if (!isStaff && !isStudent && !isParent && !isTeacher) notFound();
   // Only staff may print an unreleased card: to everyone else it does not exist.
@@ -113,12 +125,20 @@ export default async function PrintableReportCardPage({
       ? `${origin}/verify/report/${encodeURIComponent(card.verificationCode)}`
       : null;
 
+  const backHref = isStaff
+    ? "/admin/report-cards"
+    : session.role === UserRole.PARENT
+      ? "/parent/report-cards"
+      : session.role === UserRole.TEACHER || session.role === UserRole.HOD
+        ? "/teacher/class/report-cards"
+        : "/student/report-cards";
+
   const sheet = sheetFromStoredCard(
     card,
     {
       displayName: card.studentProfile.displayName,
       studentId: card.studentProfile.studentId,
-      className: card.studentProfile.currentClass?.displayName ?? card.classNameSnapshot,
+      className: card.classNameSnapshot || card.studentProfile.currentClass?.displayName || "",
     },
     letterheadFromSchool(school, branding),
     { verifyUrl },
@@ -128,7 +148,7 @@ export default async function PrintableReportCardPage({
     <main className="bg-neutral-100 min-h-screen py-8 print:bg-white print:py-0">
       <PrintToolbar
         title={`${card.studentProfile.displayName} · ${card.termLabel} ${card.sessionLabel}`}
-        backHref={isStaff ? "/admin/report-cards" : "/student/report-cards"}
+        backHref={backHref}
       />
       <ReportCardSheet data={sheet} />
       <p className="no-print mx-auto mt-6 max-w-[210mm] px-4 text-center text-xs text-neutral-500">

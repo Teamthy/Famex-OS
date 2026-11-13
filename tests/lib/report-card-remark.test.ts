@@ -25,6 +25,9 @@ const formTeacher = {
 const getTeacherContext = vi.fn(async () => formTeacher as never);
 vi.mock("@/lib/teacher-context", () => ({ getTeacherContext }));
 vi.mock("@/lib/requests", () => ({ getClientIp: vi.fn(() => "127.0.0.1") }));
+vi.mock("@/lib/module-guard", () => ({
+  requireModule: vi.fn(async () => ({ ok: true, user: formTeacher.user, enabled: new Set() })),
+}));
 
 function request(body: unknown) {
   return { json: async () => body } as never;
@@ -35,17 +38,72 @@ const valid = { reportCardId: "rc_1", remark: "A hardworking term. Well done." }
 function card(overrides: Record<string, unknown> = {}) {
   return {
     id: "rc_1",
+    status: "DRAFT",
     releasedAt: null,
     studentProfile: { displayName: "Ada" },
     ...overrides,
   };
 }
 
+describe("GET /api/teacher/class/report-cards", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getTeacherContext.mockResolvedValue(formTeacher as never);
+    mockPrisma.reportCard.findMany.mockResolvedValue([
+      {
+        id: "rc_1",
+        verificationCode: "verify_1",
+        sessionLabel: "2025/2026",
+        termLabel: "First Term",
+        classNameSnapshot: "JSS 1A",
+        status: "RELEASED",
+        overallAverage: 75,
+        overallGrade: "A1",
+        classTeacherRemark: "Excellent effort.",
+        attendancePresent: 48,
+        attendanceTotal: 50,
+        studentProfile: { studentId: "STU1", displayName: "Ada" },
+      },
+    ]);
+  });
+
+  it("reads stored report cards only for the form teacher's current class", async () => {
+    const { GET } = await import("@/app/api/teacher/class/report-cards/route");
+    const response = await GET();
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.reports[0]).toMatchObject({
+      classNameSnapshot: "JSS 1A",
+      status: "RELEASED",
+      overallAverage: 75,
+      studentName: "Ada",
+    });
+    expect(mockPrisma.reportCard.findMany.mock.calls[0][0].where).toMatchObject({
+      schoolId: "school_1",
+      studentProfile: { currentClassId: "cls_1" },
+    });
+  });
+
+  it("refuses a teacher without a form-class assignment", async () => {
+    getTeacherContext.mockResolvedValue({
+      ...formTeacher,
+      formClassId: null,
+      formClassName: null,
+      isFormTeacher: false,
+    } as never);
+    const { GET } = await import("@/app/api/teacher/class/report-cards/route");
+
+    expect((await GET()).status).toBe(403);
+    expect(mockPrisma.reportCard.findMany).not.toHaveBeenCalled();
+  });
+});
+
 describe("PATCH /api/teacher/class/report-cards", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getTeacherContext.mockResolvedValue(formTeacher as never);
-    mockPrisma.reportCard.update.mockResolvedValue({ id: "rc_1" });
+    mockPrisma.reportCard.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.auditLog.create.mockResolvedValue({ id: "al" });
   });
 
@@ -56,7 +114,7 @@ describe("PATCH /api/teacher/class/report-cards", () => {
     const response = await PATCH(request(valid));
 
     expect(response.status).toBe(200);
-    expect(mockPrisma.reportCard.update.mock.calls[0][0].data.classTeacherRemark).toBe(
+    expect(mockPrisma.reportCard.updateMany.mock.calls[0][0].data.classTeacherRemark).toBe(
       valid.remark,
     );
   });
@@ -79,7 +137,7 @@ describe("PATCH /api/teacher/class/report-cards", () => {
     const response = await PATCH(request(valid));
 
     expect(response.status).toBe(404);
-    expect(mockPrisma.reportCard.update).not.toHaveBeenCalled();
+    expect(mockPrisma.reportCard.updateMany).not.toHaveBeenCalled();
   });
 
   /**
@@ -97,7 +155,7 @@ describe("PATCH /api/teacher/class/report-cards", () => {
     const response = await PATCH(request(valid));
 
     expect(response.status).toBe(403);
-    expect(mockPrisma.reportCard.update).not.toHaveBeenCalled();
+    expect(mockPrisma.reportCard.updateMany).not.toHaveBeenCalled();
   });
 
   /**
@@ -113,7 +171,20 @@ describe("PATCH /api/teacher/class/report-cards", () => {
 
     expect(response.status).toBe(409);
     expect(body.code).toBe("ALREADY_RELEASED");
-    expect(mockPrisma.reportCard.update).not.toHaveBeenCalled();
+    expect(mockPrisma.reportCard.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("refuses the save if the release wins the compare-and-set race", async () => {
+    mockPrisma.reportCard.findFirst.mockResolvedValue(card());
+    mockPrisma.reportCard.updateMany.mockResolvedValue({ count: 0 });
+
+    const { PATCH } = await import("@/app/api/teacher/class/report-cards/route");
+    const response = await PATCH(request(valid));
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.code).toBe("ALREADY_RELEASED");
+    expect(mockPrisma.auditLog.create).not.toHaveBeenCalled();
   });
 
   it("rejects an empty remark", async () => {

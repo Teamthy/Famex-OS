@@ -2,9 +2,9 @@ import { ClassResultStatus, UserRole } from "@prisma/client";
 import { NextResponse, type NextRequest } from "next/server";
 import { resolveCurrentLabels } from "@/lib/academic-session";
 import { prisma } from "@/lib/prisma";
-import { getStudentSessionCumulative } from "@/lib/results";
-import { cumulativeTermsFor, isFinalTerm } from "@/lib/results-engine";
-import { requireRole } from "@/lib/session";
+import { getStudentSessionCumulative, gradeBandsForClass } from "@/lib/results";
+import { cumulativeTermsFor, isFinalTerm, releasedCumulativeByTerm } from "@/lib/results-engine";
+import { requireModule } from "@/lib/module-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -31,8 +31,9 @@ export const dynamic = "force-dynamic";
  * "year average" composed of one term is a claim the school cannot stand behind.
  */
 export async function GET(request: NextRequest) {
-  const user = await requireRole([UserRole.STUDENT]);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("report_cards", [UserRole.STUDENT]);
+  if (!guard.ok) return guard.response;
+  const { user } = guard;
 
   const student = await prisma.studentProfile.findFirst({
     where: { schoolId: user.schoolId, userId: user.id, isActive: true },
@@ -48,7 +49,20 @@ export async function GET(request: NextRequest) {
 
   const url = new URL(request.url);
   const requestedSession = url.searchParams.get("sessionLabel");
-  const sessionLabel = requestedSession ?? (await resolveCurrentLabels(user.schoolId)).sessionLabel;
+  let sessionLabel = requestedSession;
+  if (!sessionLabel) {
+    try {
+      sessionLabel = (await resolveCurrentLabels(user.schoolId)).sessionLabel;
+    } catch {
+      return NextResponse.json(
+        {
+          error: "No academic session is currently set for this school.",
+          code: "NO_CURRENT_SESSION",
+        },
+        { status: 409 },
+      );
+    }
+  }
 
   // Which terms of this session has the school compiled at all? A term the
   // school has not even compiled is not "pending for you" — it simply has not
@@ -77,48 +91,65 @@ export async function GET(request: NextRequest) {
     orderBy: { termIndex: "asc" },
     include: { subjects: { orderBy: { sortOrder: "asc" } } },
   });
-
-  const terms = rows.map((row) => ({
-    id: row.id,
-    termIndex: row.termIndex,
-    termLabel: row.termLabel,
-    className: row.classNameSnapshot,
-    totalScore: row.totalScore,
-    subjectCount: row.subjectCount,
-    average: row.average,
-    grade: row.grade,
-    position: row.position,
-    positionNumber: row.positionNumber,
-    cumulativeAverage: row.cumulativeAverage,
-    cumulativeGrade: row.cumulativeGrade,
-    termsCounted: row.termsCounted,
-    attendancePresent: row.attendancePresent,
-    attendanceTotal: row.attendanceTotal,
-    feeBalance: row.feeBalance,
-    classTeacherRemark: row.classTeacherRemark,
-    directorRemark: row.directorRemark,
-    nextResumption: row.nextResumption,
-    releasedAt:
-      classResults.find((cr) => cr.termIndex === row.termIndex)?.releasedAt?.toISOString() ?? null,
-    subjects: row.subjects
-      .filter((subject) => subject.status !== "EXCLUDED")
-      .map((subject) => ({
-        subjectName: subject.subjectName,
-        ca1: subject.ca1,
-        ca2: subject.ca2,
-        midterm: subject.midterm,
-        assignment: subject.assignment,
-        exam: subject.exam,
-        total: subject.total,
-        grade: subject.grade,
-        position: subject.positionNumber,
-        classAverage: subject.classAverage,
-        comment: subject.comment,
-        // Deliberately not exposed: which paper an exam mark came from, and the
-        // raw CBT totals. That is exams-office detail and invites disputes the
-        // student cannot resolve from here.
+  const gradeBands = student.currentClassId
+    ? await gradeBandsForClass(user.schoolId, student.currentClassId)
+    : undefined;
+  const runningByTerm = new Map(
+    releasedCumulativeByTerm(
+      rows.map((row) => ({
+        termIndex: row.termIndex,
+        totalScore: row.totalScore,
+        subjectCount: row.subjectCount,
       })),
-  }));
+      gradeBands,
+    ).map((entry) => [entry.termIndex, entry]),
+  );
+
+  const terms = rows.map((row) => {
+    const cumulative = runningByTerm.get(row.termIndex);
+    return {
+      id: row.id,
+      termIndex: row.termIndex,
+      termLabel: row.termLabel,
+      className: row.classNameSnapshot,
+      totalScore: row.totalScore,
+      subjectCount: row.subjectCount,
+      average: row.average,
+      grade: row.grade,
+      position: row.position,
+      positionNumber: row.positionNumber,
+      cumulativeAverage: cumulative?.cumulativeAverage ?? 0,
+      cumulativeGrade: cumulative?.cumulativeGrade ?? "F9",
+      termsCounted: cumulative?.termsCounted ?? 0,
+      attendancePresent: row.attendancePresent,
+      attendanceTotal: row.attendanceTotal,
+      feeBalance: row.feeBalance,
+      classTeacherRemark: row.classTeacherRemark,
+      directorRemark: row.directorRemark,
+      nextResumption: row.nextResumption,
+      releasedAt:
+        classResults.find((cr) => cr.termIndex === row.termIndex)?.releasedAt?.toISOString() ??
+        null,
+      subjects: row.subjects
+        .filter((subject) => subject.status !== "EXCLUDED")
+        .map((subject) => ({
+          subjectName: subject.subjectName,
+          ca1: subject.ca1,
+          ca2: subject.ca2,
+          midterm: subject.midterm,
+          assignment: subject.assignment,
+          exam: subject.exam,
+          total: subject.total,
+          grade: subject.grade,
+          position: subject.positionNumber,
+          classAverage: subject.classAverage,
+          comment: subject.comment,
+          // Deliberately not exposed: which paper an exam mark came from, and the
+          // raw CBT totals. That is exams-office detail and invites disputes the
+          // student cannot resolve from here.
+        })),
+    };
+  });
 
   const pending = classResults
     .filter(
@@ -144,6 +175,8 @@ export async function GET(request: NextRequest) {
         schoolId: user.schoolId,
         studentProfileId: student.id,
         sessionLabel,
+        classId: student.currentClassId,
+        releasedTermIndexes: [...releasedTerms],
       })
     : null;
 

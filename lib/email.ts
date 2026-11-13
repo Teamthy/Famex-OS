@@ -87,12 +87,14 @@ export async function sendStaffInviteEmail(input: {
   const base = (resolveSiteUrl() || "http://localhost:3000").replace(/\/$/, "");
   const url = `${base}/staff/activate?token=${encodeURIComponent(input.token)}&email=${encodeURIComponent(input.email)}`;
   const roleLabel = input.role.replaceAll("_", " ");
-  await client().emails.send({
+  const result = await client().emails.send({
     from: from(),
     to: input.to,
     subject: `You're invited to join the Famex International Schools portal (${roleLabel})`,
     html: `<p>Hello ${input.name},</p><p>You've been invited to join the Famex International Schools portal as <strong>${roleLabel}</strong>.</p><p>Activate your account and set a password using the link below. The invitation expires in 7 days.</p><p><a href="${url}">Activate my account</a></p><p>If you weren't expecting this invitation, you can safely ignore this email.</p>`,
   });
+  if (result.error)
+    throw new Error(`Staff invitation email was not accepted: ${result.error.message}`);
 }
 
 const ESCAPES: Record<string, string> = {

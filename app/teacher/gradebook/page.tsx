@@ -1,6 +1,8 @@
 "use client";
 
-import { cacheGet, cacheSet } from "@/lib/offline/db";
+import { cacheGet, cacheSet, getQueuedWrites, queueWrite } from "@/lib/offline/db";
+import { onQueueWriteResult, onSyncChange } from "@/lib/offline/sync";
+import { canSubmitGradebook, shouldQueueGradebookMutation } from "@/lib/offline/gradebook";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import PortalTopbar from "@/components/PortalTopbar";
@@ -32,6 +34,14 @@ type EntryRow = {
   exam: number;
   total: number;
   grade: string;
+};
+
+type GradebookSavePayload = {
+  assignmentId: string;
+  action: "SAVE" | "SUBMIT";
+  scores: Array<
+    Pick<EntryRow, "studentProfileId" | "ca1" | "ca2" | "midterm" | "assignment" | "exam">
+  >;
 };
 
 type GradebookResponse = {
@@ -74,6 +84,16 @@ function waecGrade(total: number) {
   return "F9";
 }
 
+function isQueuedGradebookSaveFor(
+  write: { url: string; method: string; body: unknown },
+  assignmentId: string,
+) {
+  if (write.url !== "/api/teacher/gradebook" || write.method !== "POST") return false;
+  if (!write.body || typeof write.body !== "object") return false;
+  const body = write.body as { assignmentId?: unknown; action?: unknown };
+  return body.assignmentId === assignmentId && body.action === "SAVE";
+}
+
 export default function TeacherGradebookPage() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
@@ -82,6 +102,8 @@ export default function TeacherGradebookPage() {
   const [selectedAssignmentId, setSelectedAssignmentId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [pendingSync, setPendingSync] = useState(0);
+  const [syncIssue, setSyncIssue] = useState("");
   const [error, setError] = useState("");
   const [, setIsStale] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -91,7 +113,7 @@ export default function TeacherGradebookPage() {
     const query = assignmentId ? `?assignmentId=${encodeURIComponent(assignmentId)}` : "";
     const url = `/api/teacher/gradebook${query}`;
     // Offline: show cached data instantly
-    const cached = await cacheGet<any>(url);
+    const cached = await cacheGet<GradebookResponse>(url);
     if (cached) {
       const body = cached.data;
       setData(body);
@@ -113,6 +135,10 @@ export default function TeacherGradebookPage() {
       setDirty(false);
       setIsStale(false);
       await cacheSet(url, body);
+      if (body.selectedAssignmentId) {
+        const canonicalUrl = `/api/teacher/gradebook?assignmentId=${encodeURIComponent(body.selectedAssignmentId)}`;
+        await cacheSet(canonicalUrl, body);
+      }
     } catch (loadError) {
       if (!cached)
         setError(loadError instanceof Error ? loadError.message : "Unable to load the gradebook.");
@@ -126,6 +152,43 @@ export default function TeacherGradebookPage() {
     void loadGradebook(fromUrl, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadGradebook]);
+
+  useEffect(() => {
+    let active = true;
+    const refreshPendingSync = () => {
+      void getQueuedWrites().then((writes) => {
+        if (active) {
+          setPendingSync(
+            writes.filter((write) => isQueuedGradebookSaveFor(write, selectedAssignmentId)).length,
+          );
+        }
+      });
+    };
+    refreshPendingSync();
+    const unsubscribe = onSyncChange(refreshPendingSync);
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [selectedAssignmentId]);
+
+  useEffect(
+    () =>
+      onQueueWriteResult(({ write, success, willRetry }) => {
+        if (!isQueuedGradebookSaveFor(write, selectedAssignmentId)) return;
+        if (success) {
+          setSyncIssue("");
+          toast("Saved marks synced to the school gradebook.", "success");
+          return;
+        }
+        const message = willRetry
+          ? "Gradebook sync is temporarily unavailable. Your device copy is still queued and will retry."
+          : "A gradebook save could not be synced. Its cached device copy remains available; reconnect and review the marks before saving again.";
+        setSyncIssue(message);
+        toast(message, "error");
+      }),
+    [selectedAssignmentId, toast],
+  );
 
   const limits = data?.scoreLimits || { ca1: 10, ca2: 10, midterm: 10, assignment: 10, exam: 60 };
   const isEditable = Boolean(data?.gradebook?.isEditable);
@@ -160,29 +223,94 @@ export default function TeacherGradebookPage() {
   async function persist(action: "SAVE" | "SUBMIT") {
     if (!selectedAssignmentId) return;
     setSaving(true);
+    const payload: GradebookSavePayload = {
+      assignmentId: selectedAssignmentId,
+      action,
+      scores: rows.map((row) => ({
+        studentProfileId: row.studentProfileId,
+        ca1: row.ca1,
+        ca2: row.ca2,
+        midterm: row.midterm,
+        assignment: row.assignment,
+        exam: row.exam,
+      })),
+    };
+
+    const queueSaveLocally = async (message: string) => {
+      await queueWrite({ url: "/api/teacher/gradebook", method: "POST", body: payload });
+      const cacheUrls = [
+        "/api/teacher/gradebook",
+        `/api/teacher/gradebook?assignmentId=${encodeURIComponent(selectedAssignmentId)}`,
+      ];
+      for (const cacheUrl of cacheUrls) {
+        const cached = await cacheGet<GradebookResponse>(cacheUrl);
+        if (cached?.data.gradebook) {
+          await cacheSet(cacheUrl, {
+            ...cached.data,
+            gradebook: { ...cached.data.gradebook, entries: rows },
+          });
+        }
+      }
+      setDirty(false);
+      setSyncIssue("");
+      setPendingSync(
+        (await getQueuedWrites()).filter((write) =>
+          isQueuedGradebookSaveFor(write, selectedAssignmentId),
+        ).length,
+      );
+      toast(message, "success");
+    };
+
     try {
+      const online = typeof navigator === "undefined" || navigator.onLine;
+      const queuedWrites = await getQueuedWrites();
+      const hasPendingSave = queuedWrites.some((write) =>
+        isQueuedGradebookSaveFor(write, selectedAssignmentId),
+      );
+
+      if (action === "SUBMIT" && !canSubmitGradebook({ online, hasPendingSave })) {
+        throw new Error(
+          !online
+            ? "Submitting final scores requires a connection. Your saved marks remain on this device."
+            : "A saved gradebook update is still waiting to sync. Wait for it to sync before submitting final scores.",
+        );
+      }
+
+      if (shouldQueueGradebookMutation({ action, online, hasPendingSave })) {
+        await queueSaveLocally(
+          hasPendingSave
+            ? "Marks added to the offline sync queue. Newer saves will sync after earlier saves."
+            : "Marks saved on this device and will sync when you are back online.",
+        );
+        return;
+      }
+
       const response = await fetch("/api/teacher/gradebook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          assignmentId: selectedAssignmentId,
-          action,
-          scores: rows.map((row) => ({
-            studentProfileId: row.studentProfileId,
-            ca1: row.ca1,
-            ca2: row.ca2,
-            midterm: row.midterm,
-            assignment: row.assignment,
-            exam: row.exam,
-          })),
-        }),
+        body: JSON.stringify(payload),
       });
       const body = (await response.json()) as { ok?: boolean; message?: string; error?: string };
       if (!response.ok) throw new Error(body.error || "Unable to save scores.");
+      setDirty(false);
+      setSyncIssue("");
       toast(body.message || "Scores saved.", "success");
       await loadGradebook(selectedAssignmentId);
     } catch (saveError) {
-      toast(saveError instanceof Error ? saveError.message : "Unable to save scores.", "error");
+      if (action === "SAVE" && saveError instanceof TypeError) {
+        try {
+          await queueSaveLocally(
+            "Connection lost. Marks saved on this device and will sync automatically.",
+          );
+        } catch {
+          toast(
+            "Connection lost, and this device could not store the marks. Keep this page open and try again.",
+            "error",
+          );
+        }
+      } else {
+        toast(saveError instanceof Error ? saveError.message : "Unable to save scores.", "error");
+      }
     } finally {
       setSaving(false);
       setConfirmSubmit(false);
@@ -307,6 +435,28 @@ export default function TeacherGradebookPage() {
                           ? "Scores submitted and awaiting administrative lock. Ask an administrator to reopen the gradebook if corrections are needed."
                           : "This gradebook has been locked by the administration and is read-only."}
                       </p>
+                    </div>
+                  ) : null}
+
+                  {pendingSync > 0 ? (
+                    <div
+                      role="status"
+                      className="flex items-center gap-3 rounded-2xl border border-brand-orange/25 bg-brand-orange/10 px-5 py-4"
+                    >
+                      <Clock size={18} className="shrink-0 text-brand-orange" />
+                      <p className="text-sm font-medium text-brand-orange">
+                        {pendingSync} gradebook save{pendingSync === 1 ? "" : "s"} waiting to sync.
+                        Keep this account signed in and online to send marks to the school record.
+                        Final submission stays online-only.
+                      </p>
+                    </div>
+                  ) : null}
+                  {syncIssue ? (
+                    <div
+                      role="alert"
+                      className="rounded-2xl border border-red-500/25 bg-red-500/10 px-5 py-4 text-sm font-medium text-red-600"
+                    >
+                      {syncIssue}
                     </div>
                   ) : null}
 

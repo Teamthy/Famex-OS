@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireRole, type SessionUser } from "@/lib/session";
+import { requireModule } from "@/lib/module-guard";
+import type { SessionUser } from "@/lib/session";
 import { getClientIp } from "@/lib/requests";
 
 export const dynamic = "force-dynamic";
@@ -46,13 +47,14 @@ async function resolveExamAndTeacher(user: SessionUser, examId: string) {
 
 /** GET /api/teacher/exams/[id]/retake — exam + its class students + who already has a retake. */
 export async function GET(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const user = await requireRole([
+  const guard = await requireModule("exams", [
     UserRole.TEACHER,
     UserRole.HOD,
     UserRole.ADMIN,
     UserRole.DIRECTOR,
   ]);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!guard.ok) return guard.response;
+  const user = guard.user;
   const { id } = await context.params;
   const ctx = await resolveExamAndTeacher(user, id);
   if (!ctx) return NextResponse.json({ error: "Exam not found." }, { status: 404 });
@@ -93,13 +95,14 @@ const grantSchema = z.object({
 
 /** POST /api/teacher/exams/[id]/retake — grant a retake to one or many students (idempotent upsert). */
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const user = await requireRole([
+  const guard = await requireModule("exams", [
     UserRole.TEACHER,
     UserRole.HOD,
     UserRole.ADMIN,
     UserRole.DIRECTOR,
   ]);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!guard.ok) return guard.response;
+  const user = guard.user;
   const { id } = await context.params;
   const ctx = await resolveExamAndTeacher(user, id);
   if (!ctx) return NextResponse.json({ error: "Exam not found." }, { status: 404 });

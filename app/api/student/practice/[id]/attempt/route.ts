@@ -1,8 +1,9 @@
 import { ExamAttemptStatus, ExamStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { finalizeAttempt, getStudentExamContext } from "@/lib/exams";
+import { examMinutes, finalizeAttempt, requireStudentExamContext } from "@/lib/exams";
 import { prisma } from "@/lib/prisma";
+import { studentSubjectIds } from "@/lib/subjects";
 
 export const dynamic = "force-dynamic";
 
@@ -44,8 +45,9 @@ async function loadPracticeExam(examId: string, schoolId: string, classId: strin
  *   • unlimited attempts — no ExamRetake grant needed.
  */
 export async function POST(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const studentContext = await getStudentExamContext();
-  if (!studentContext) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireStudentExamContext();
+  if (!guard.ok) return guard.response;
+  const studentContext = guard.context;
 
   const { id } = await context.params;
   const exam = await loadPracticeExam(
@@ -59,11 +61,23 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
   if (!exam.questions.length) {
     return NextResponse.json({ error: "This practice set has no questions yet." }, { status: 409 });
   }
+  const durationMinutes = examMinutes(exam);
 
   const existing = await prisma.examAttempt.findFirst({
     where: { examId: exam.id, studentProfileId: studentContext.studentProfile.id },
     orderBy: { attemptNumber: "desc" },
   });
+
+  if (
+    exam.subjectId &&
+    existing?.status !== ExamAttemptStatus.IN_PROGRESS &&
+    !(await studentSubjectIds(studentContext.studentProfile.id)).includes(exam.subjectId)
+  ) {
+    return NextResponse.json(
+      { error: "You are not enrolled in this subject.", code: "NOT_ENROLLED" },
+      { status: 403 },
+    );
+  }
 
   let attempt = existing;
 
@@ -87,7 +101,7 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
         examId: exam.id,
         studentProfileId: studentContext.studentProfile.id,
         attemptNumber: (existing?.attemptNumber || 0) + 1,
-        deadlineAt: new Date(Date.now() + exam.durationMinutes * 60_000),
+        deadlineAt: new Date(Date.now() + durationMinutes * 60_000),
       },
     });
   }
@@ -118,7 +132,7 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
       title: exam.title,
       subjectName: exam.subjectName,
       instructions: exam.instructions,
-      durationMinutes: exam.durationMinutes,
+      durationMinutes,
       totalMarks: exam.questions.reduce((sum, question) => sum + question.marks, 0),
     },
     questions: ordered.map((question) => ({
@@ -153,8 +167,9 @@ const saveSchema = z.object({
  * point of practice.
  */
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const studentContext = await getStudentExamContext();
-  if (!studentContext) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireStudentExamContext();
+  if (!guard.ok) return guard.response;
+  const studentContext = guard.context;
 
   const { id } = await context.params;
 

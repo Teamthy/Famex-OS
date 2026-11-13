@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PortalTopbar from "@/components/PortalTopbar";
 import TeacherSidebar from "@/components/TeacherSidebar";
+import { useToast } from "@/components/Toast";
 import { AlertTriangle, Check, LoaderCircle, Lock, Pencil, RotateCcw, X } from "lucide-react";
 
 type SubjectLine = {
@@ -85,6 +86,7 @@ const LIMITS = { ca1: 10, ca2: 10, midterm: 10, assignment: 10, exam: 60 };
  * markup and PATCHes Physics still gets a 403.
  */
 export default function TeacherResultsPage() {
+  const { toast } = useToast();
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -135,19 +137,24 @@ export default function TeacherResultsPage() {
         });
         const payload = (await response.json()) as { error?: string; message?: string };
         if (!response.ok) throw new Error(payload.error || "Could not save that change.");
-        setNotice(payload.message || "Saved.");
+        const successMessage = payload.message || "Saved.";
+        setNotice(successMessage);
+        toast(successMessage, "success");
         setEditing(null);
         setRemarkFor(null);
         await load(termIndex ?? undefined);
         return true;
       } catch (saveError) {
-        setError(saveError instanceof Error ? saveError.message : "Could not save that change.");
+        const errorMessage =
+          saveError instanceof Error ? saveError.message : "Could not save that change.";
+        setError(errorMessage);
+        toast(errorMessage, "error");
         return false;
       } finally {
         setSaving(false);
       }
     },
-    [load, termIndex],
+    [load, termIndex, toast],
   );
 
   const subjectCount = useMemo(

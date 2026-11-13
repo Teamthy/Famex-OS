@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { cacheGet, cacheSet } from "@/lib/offline/db";
+import { formatKobo } from "@/lib/money";
 import Link from "next/link";
 import PortalTopbar from "@/components/PortalTopbar";
 import PortalSidebar from "@/components/PortalSidebar";
@@ -48,6 +49,7 @@ type DashboardResponse = {
   schoolContact: { address: string; phone: string; email: string } | null;
   stats: {
     attendanceRate: number | null;
+    attendanceSampleSize: number;
     averageScore: number | null;
     overallGrade: string | null;
     feeBalance: number;
@@ -84,7 +86,7 @@ export default function StudentDashboardPage() {
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [, setIsStale] = useState(false);
+  const [isStale, setIsStale] = useState(false);
 
   useEffect(() => {
     const url = "/api/student/dashboard";
@@ -95,7 +97,13 @@ export default function StudentDashboardPage() {
         setIsStale(true);
         setLoading(false);
       }
-      if (typeof navigator !== "undefined" && !navigator.onLine) return;
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        if (!cached) {
+          setError("Connect to the internet to load your dashboard for the first time.");
+          setLoading(false);
+        }
+        return;
+      }
       setLoading(!cached);
       try {
         const response = await fetch(url, { cache: "no-store" });
@@ -127,11 +135,14 @@ export default function StudentDashboardPage() {
 
   const heroStats = [
     {
-      label: "Attendance",
+      label: "Recent Attendance",
       value:
         data?.stats.attendanceRate !== null && data?.stats.attendanceRate !== undefined
           ? `${data.stats.attendanceRate}%`
           : "—",
+      detail: data?.stats.attendanceSampleSize
+        ? `last ${data.stats.attendanceSampleSize} marks`
+        : "no marks recorded",
       color: "text-brand-green",
     },
     {
@@ -145,11 +156,7 @@ export default function StudentDashboardPage() {
     { label: "Grade", value: data?.stats.overallGrade || "—", color: "text-brand-green" },
     {
       label: "Fee Balance",
-      value: data
-        ? data.stats.feeBalance > 0
-          ? `₦${(data.stats.feeBalance / 1000).toFixed(0)}k`
-          : "Paid"
-        : "—",
+      value: data ? (data.stats.feeBalance > 0 ? formatKobo(data.stats.feeBalance) : "Paid") : "—",
       color: data && data.stats.feeBalance > 0 ? "text-brand-orange" : "text-brand-green",
     },
   ];
@@ -179,6 +186,9 @@ export default function StudentDashboardPage() {
                     <div className="text-[9px] text-white/85 uppercase tracking-widest">
                       {stat.label}
                     </div>
+                    {"detail" in stat ? (
+                      <div className="mt-1 text-[8px] text-white/65">{stat.detail}</div>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -210,6 +220,15 @@ export default function StudentDashboardPage() {
               {error ? (
                 <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-500">
                   {error}
+                </div>
+              ) : null}
+              {isStale && data ? (
+                <div
+                  role="status"
+                  className="rounded-2xl border border-amber-500/30 bg-amber-50 p-4 text-sm text-amber-950"
+                >
+                  Showing your last saved dashboard. Attendance, fees, grades, and activity may have
+                  changed since your last sync; reconnect to refresh.
                 </div>
               ) : null}
 
@@ -293,7 +312,6 @@ export default function StudentDashboardPage() {
                         href={card.href}
                         className="group relative isolate min-h-[210px] overflow-hidden rounded-[2rem] shadow-[var(--card-shadow)] transition-all hover:-translate-y-1 hover:shadow-[var(--card-shadow-hover)]"
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={card.image}
                           alt=""

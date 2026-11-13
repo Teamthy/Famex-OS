@@ -78,6 +78,7 @@ type ExamCard = {
     id: string;
     status: string;
     totalScore: number;
+    maxMarks: number;
     submittedAt: string | null;
     scoreVisible: boolean;
     percent: number | null;
@@ -332,8 +333,8 @@ export default function StudentExamsPage() {
                               <Clock size={11} /> {exam.durationMinutes} min
                             </span>
                             <span>
-                              {exam.questionCount} questions · {exam.totalMarks} marks · pass{" "}
-                              {exam.passMark}%
+                              Current paper: {exam.questionCount} questions · {exam.totalMarks}{" "}
+                              marks · pass {exam.passMark}%
                             </span>
                             <span className="inline-flex items-center gap-1">
                               <Shield size={11} /> Auto-save · Auto-submit
@@ -371,7 +372,7 @@ export default function StudentExamsPage() {
                                 {exam.attempt.percent}%
                               </div>
                               <div className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
-                                {exam.attempt.totalScore}/{exam.totalMarks} marks
+                                {exam.attempt.totalScore}/{exam.attempt.maxMarks} marks
                               </div>
                             </div>
                           ) : exam.attempt && exam.attempt.status !== "IN_PROGRESS" ? (

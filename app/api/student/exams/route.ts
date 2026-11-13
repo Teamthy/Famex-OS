@@ -1,15 +1,17 @@
 import { ExamAttemptStatus, ExamStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { getStudentExamContext } from "@/lib/exams";
+import { requireStudentExamContext } from "@/lib/exams";
 import { getStudentFeeLock } from "@/lib/fee-lock";
+import { readOfflinePacketSnapshot } from "@/lib/offline-packet";
 import { prisma } from "@/lib/prisma";
 import { availabilityLabel, examAvailability, studentSubjectIds } from "@/lib/subjects";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const context = await getStudentExamContext();
-  if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireStudentExamContext();
+  if (!guard.ok) return guard.response;
+  const context = guard.context;
 
   const [feeLock, mySubjectIds] = await Promise.all([
     getStudentFeeLock(context.user.schoolId, context.studentProfile.id),
@@ -27,7 +29,7 @@ export async function GET() {
       status: { in: [ExamStatus.PUBLISHED, ExamStatus.CLOSED] },
       ...(mySubjectIds.length
         ? { OR: [{ subjectId: null }, { subjectId: { in: mySubjectIds } }] }
-        : {}),
+        : { subjectId: null }),
     },
     // Soonest first: a student wants to know what is next, not what was
     // created most recently.
@@ -53,6 +55,9 @@ export async function GET() {
       const latestAttempt = exam.attempts[0] || null;
       const retake = exam.retakes[0] || null;
       const totalMarks = exam.questions.reduce((sum, question) => sum + question.marks, 0);
+      const attemptMaxMarks = latestAttempt
+        ? (readOfflinePacketSnapshot(latestAttempt.metadata)?.manifest.totalMarks ?? totalMarks)
+        : totalMarks;
       const hasUnusedRetake = Boolean(retake && !retake.used);
       const hasSubmitted = Boolean(
         latestAttempt && latestAttempt.status !== ExamAttemptStatus.IN_PROGRESS,
@@ -109,13 +114,15 @@ export async function GET() {
         status: exam.status,
         instructions: exam.instructions,
         canStart: feeLock ? false : canStart,
-        canResume: feeLock ? false : canResume,
+        // Fee locks prevent starting a new sitting, not resuming one already in progress.
+        canResume,
         feeLocked: Boolean(feeLock),
         attempt: latestAttempt
           ? {
               id: latestAttempt.id,
               status: latestAttempt.status,
               totalScore: latestAttempt.totalScore,
+              maxMarks: attemptMaxMarks,
               submittedAt: latestAttempt.submittedAt?.toISOString() || null,
               deliveryMode: latestAttempt.deliveryMode,
               offlineStartedAt: latestAttempt.offlineStartedAt?.toISOString() ?? null,
@@ -124,8 +131,8 @@ export async function GET() {
               percent:
                 exam.resultsReleased &&
                 latestAttempt.status === ExamAttemptStatus.GRADED &&
-                totalMarks
-                  ? Math.round((latestAttempt.totalScore / totalMarks) * 100)
+                attemptMaxMarks
+                  ? Math.round((latestAttempt.totalScore / attemptMaxMarks) * 100)
                   : null,
             }
           : null,

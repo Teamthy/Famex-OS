@@ -31,7 +31,10 @@ const teacherContext = {
 
 vi.mock("@/lib/exams", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/exams")>();
-  return { ...actual, getExamTeacherContext: vi.fn(async () => teacherContext) };
+  return {
+    ...actual,
+    requireExamTeacherContext: vi.fn(async () => ({ ok: true, context: teacherContext })),
+  };
 });
 
 vi.mock("@/lib/requests", () => ({ getClientIp: vi.fn(() => "127.0.0.1") }));
@@ -177,10 +180,13 @@ describe("POST /api/teacher/send-results", () => {
   });
 
   it("rejects a teacher with no class assignments", async () => {
-    const { getExamTeacherContext } = await import("@/lib/exams");
-    vi.mocked(getExamTeacherContext).mockResolvedValueOnce({
-      ...teacherContext,
-      teacherProfile: { ...teacherContext.teacherProfile, subjectAssignments: [] },
+    const { requireExamTeacherContext } = await import("@/lib/exams");
+    vi.mocked(requireExamTeacherContext).mockResolvedValueOnce({
+      ok: true,
+      context: {
+        ...teacherContext,
+        teacherProfile: { ...teacherContext.teacherProfile, subjectAssignments: [] },
+      },
     } as never);
 
     const { POST } = await import("@/app/api/teacher/send-results/route");

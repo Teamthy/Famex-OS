@@ -283,6 +283,7 @@ const mockPrisma = {
     groupBy: vi.fn(),
     count: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
   },
   feePaymentAttempt: {
     findUnique: vi.fn(),
@@ -323,9 +324,11 @@ const mockPrisma = {
     count: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
   },
   examAnswer: {
     findMany: vi.fn(),
+    createMany: vi.fn(),
     update: vi.fn(),
     updateMany: vi.fn(),
     upsert: vi.fn(),
@@ -452,10 +455,12 @@ const mockPrisma = {
     findUnique: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
   },
   paymentTransaction: {
     create: vi.fn(),
     update: vi.fn(),
+    upsert: vi.fn(),
     updateMany: vi.fn(),
   },
   parentStudentLink: {

@@ -3,17 +3,17 @@ import {
   AlertDeliveryStatus,
   NotificationKind,
   ReportCardStatus,
-  UserRole,
 } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { GRADEBOOK_ADMIN_ROLES } from "@/lib/gradebook";
 import { getClientIp } from "@/lib/requests";
 import { requireModule } from "@/lib/module-guard";
 
 export const dynamic = "force-dynamic";
 
-const allowedRoles = [UserRole.ADMIN, UserRole.DIRECTOR, UserRole.COORDINATOR];
+const allowedRoles = GRADEBOOK_ADMIN_ROLES;
 const schema = z.object({ classId: z.string().trim().min(1).optional() });
 
 /**

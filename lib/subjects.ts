@@ -272,16 +272,24 @@ export function startWindowRefusal(params: {
  *
  * Bounded by BOTH the exam duration and the close of the window — without the
  * clamp, starting one minute before close would hand out the full duration and
- * the closing time would mean nothing.
+ * the closing time would mean nothing. A granted retake that starts after the
+ * close is the explicit exception; it receives the full duration.
  */
 export function attemptDeadline(params: {
   durationMinutes: number;
   availableUntil: Date | null;
+  /** A teacher-granted retake is allowed to start after the ordinary close. */
+  hasRetake?: boolean;
   startedAt?: Date;
 }): Date {
   const startedAt = params.startedAt ?? new Date();
   const byDuration = startedAt.getTime() + params.durationMinutes * 60_000;
-  if (!params.availableUntil) return new Date(byDuration);
+  if (
+    !params.availableUntil ||
+    (params.hasRetake && params.availableUntil.getTime() <= startedAt.getTime())
+  ) {
+    return new Date(byDuration);
+  }
   return new Date(Math.min(byDuration, params.availableUntil.getTime()));
 }
 

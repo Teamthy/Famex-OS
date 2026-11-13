@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireCurrentLabels } from "@/lib/academic-session";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
+import { requireModule } from "@/lib/module-guard";
 import {
   classResultLockState,
   compileClassTermResults,
@@ -11,7 +12,6 @@ import {
   listClassResults,
   recomputeSubjectRanking,
 } from "@/lib/results";
-import { requireRole } from "@/lib/session";
 import { roleMatches } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +49,16 @@ const ADMIN_ROLES: UserRole[] = [
   UserRole.ADMIN,
   UserRole.DIRECTOR,
   UserRole.COORDINATOR,
+  UserRole.PRINCIPAL,
+  UserRole.VICE_PRINCIPAL,
+];
+
+const TEACHER_RESULT_ROLES: UserRole[] = [
+  UserRole.TEACHER,
+  UserRole.HOD,
+  UserRole.COORDINATOR,
+  UserRole.ADMIN,
+  UserRole.DIRECTOR,
   UserRole.PRINCIPAL,
   UserRole.VICE_PRINCIPAL,
 ];
@@ -141,16 +151,9 @@ async function resolveTeacherScopes(user: { id: string; schoolId: string; role: 
 
 /** GET — the compiled grid for a class + term, plus teacher scopes. */
 export async function GET(request: NextRequest) {
-  const user = await requireRole([
-    UserRole.TEACHER,
-    UserRole.HOD,
-    UserRole.COORDINATOR,
-    UserRole.ADMIN,
-    UserRole.DIRECTOR,
-    UserRole.PRINCIPAL,
-    UserRole.VICE_PRINCIPAL,
-  ]);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("report_cards", TEACHER_RESULT_ROLES);
+  if (!guard.ok) return guard.response;
+  const { user } = guard;
 
   const { oversight, profile, byClass } = await resolveTeacherScopes(user);
   if (!profile && !oversight) {
@@ -272,16 +275,9 @@ export async function GET(request: NextRequest) {
 
 /** PATCH — correct a compiled mark, or write the class teacher's remark. */
 export async function PATCH(request: NextRequest) {
-  const user = await requireRole([
-    UserRole.TEACHER,
-    UserRole.HOD,
-    UserRole.COORDINATOR,
-    UserRole.ADMIN,
-    UserRole.DIRECTOR,
-    UserRole.PRINCIPAL,
-    UserRole.VICE_PRINCIPAL,
-  ]);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("report_cards", TEACHER_RESULT_ROLES);
+  if (!guard.ok) return guard.response;
+  const { user } = guard;
 
   let payload: z.infer<typeof patchSchema>;
   try {
@@ -537,8 +533,9 @@ export async function PATCH(request: NextRequest) {
 
 /** POST — compile this class's results for a term (oversight only). */
 export async function POST(request: NextRequest) {
-  const user = await requireRole(ADMIN_ROLES);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await requireModule("report_cards", ADMIN_ROLES);
+  if (!guard.ok) return guard.response;
+  const { user } = guard;
 
   const body = await request.json().catch(() => null);
   const parsed = z

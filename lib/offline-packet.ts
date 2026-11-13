@@ -18,7 +18,7 @@
  *
  * Pure functions only: no database, no session. The route does the I/O.
  */
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHash, createHmac, timingSafeEqual } from "crypto";
 
 /** What the device stores alongside the questions. */
 export type OfflinePacketManifest = {
@@ -36,35 +36,66 @@ export type OfflinePacketManifest = {
   downloadedAt: string;
 };
 
-type Fingerprintable = { id: string; type: string; marks: number; sortOrder?: number };
+export type OfflinePacketQuestionSnapshot = {
+  id: string;
+  type: string;
+  questionText: string;
+  options: unknown;
+  correctKey: string | null;
+  correctText: string | null;
+  marks: number;
+  sortOrder: number;
+};
+
+export type StoredOfflinePacketSnapshot = {
+  manifest: OfflinePacketManifest;
+  signature: string;
+  questions: OfflinePacketQuestionSnapshot[];
+};
+
+type Fingerprintable = {
+  id: string;
+  type: string;
+  marks: number;
+  sortOrder?: number;
+  questionText?: string;
+  options?: unknown;
+  correctKey?: string | null;
+  correctText?: string | null;
+};
+
+function canonicalValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, nested]) => [key, canonicalValue(nested)]),
+    );
+  }
+  return value;
+}
 
 /**
- * Fingerprint a paper.
- *
- * Question ids alone are not enough: a teacher can change a question's marks
- * without touching its text, and that changes every score on the paper. The
- * fingerprint covers id, type, marks and sort order — everything that changes
- * how an answer is graded.
- *
- * Unkeyed (not an HMAC): it identifies a version, it does not authenticate it.
- * Authentication is the signature below, which covers this value.
+ * Fingerprint the complete delivered paper and grading key. A change to a stem,
+ * option, answer key, marks, type, or order must make an offline packet stale;
+ * otherwise replay could silently grade answers against a paper the student
+ * never received. The HMAC authenticates this SHA-256 version tag.
  */
 export function fingerprintQuestions(questions: Fingerprintable[]): string {
   const canonical = [...questions]
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.id.localeCompare(b.id))
-    .map((question) => `${question.id}:${question.type}:${question.marks}`)
-    .join("|");
-  // Short hash, deliberately: this is a version tag, not a security boundary.
-  let h1 = 0x811c9dc5;
-  let h2 = 0x01000193;
-  for (let i = 0; i < canonical.length; i += 1) {
-    const code = canonical.charCodeAt(i);
-    h1 = (h1 ^ code) >>> 0;
-    h1 = Math.imul(h1, 16777619) >>> 0;
-    h2 = (h2 + code * (i + 1)) >>> 0;
-    h2 = Math.imul(h2, 2246822519) >>> 0;
-  }
-  return `${h1.toString(16).padStart(8, "0")}${h2.toString(16).padStart(8, "0")}`;
+    .map((question) => ({
+      id: question.id,
+      type: question.type,
+      marks: question.marks,
+      sortOrder: question.sortOrder ?? 0,
+      questionText: question.questionText ?? null,
+      options: canonicalValue(question.options ?? null),
+      correctKey: question.correctKey ?? null,
+      correctText: question.correctText ?? null,
+    }));
+  return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
 }
 
 function secret(): string {
@@ -78,8 +109,11 @@ function secret(): string {
 }
 
 /** The string the signature covers. Order matters and is fixed here. */
-function signingPayload(manifest: Omit<OfflinePacketManifest, "packetId">): string {
-  return [
+function signingPayload(
+  manifest: Omit<OfflinePacketManifest, "packetId">,
+  includeDownloadedAt = true,
+): string {
+  const fields = [
     manifest.examId,
     manifest.fingerprint,
     manifest.questionCount,
@@ -87,7 +121,9 @@ function signingPayload(manifest: Omit<OfflinePacketManifest, "packetId">): stri
     manifest.durationMinutes,
     manifest.sessionLabel ?? "",
     manifest.termIndex ?? "",
-  ].join(".");
+  ];
+  if (includeDownloadedAt) fields.push(manifest.downloadedAt);
+  return fields.join(".");
 }
 
 export function signPacket(manifest: Omit<OfflinePacketManifest, "packetId">): {
@@ -111,6 +147,180 @@ export type PacketVerification =
       detail: string;
     };
 
+/** A paper edit can invalidate the fingerprint without invalidating its HMAC. */
+export function isAuthenticatedPacket(verification: PacketVerification | null): boolean {
+  return verification?.ok === true || verification?.reason === "FINGERPRINT_MISMATCH";
+}
+
+/** True when a signed offline sitting was retained but deliberately not scored. */
+export function attemptRequiresPacketReview(metadata: unknown): boolean {
+  return (
+    typeof metadata === "object" &&
+    metadata !== null &&
+    !Array.isArray(metadata) &&
+    "requiresManualReview" in metadata &&
+    metadata.requiresManualReview === true
+  );
+}
+
+/** Read a structurally valid, server-persisted packet snapshot from attempt metadata. */
+export type OfflineManualReviewRecord = {
+  reviewedAt: string;
+  reviewedByUserId: string;
+  reason: string;
+  marks: Array<{ questionId: string; awardedMarks: number }>;
+  score: number;
+};
+
+export function readOfflineManualReview(metadata: unknown): OfflineManualReviewRecord | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, unknown>).offlineManualReview;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const review = value as Record<string, unknown>;
+  if (
+    typeof review.reviewedAt !== "string" ||
+    typeof review.reviewedByUserId !== "string" ||
+    typeof review.reason !== "string" ||
+    typeof review.score !== "number" ||
+    !Array.isArray(review.marks)
+  ) {
+    return null;
+  }
+  const marks: OfflineManualReviewRecord["marks"] = [];
+  for (const raw of review.marks) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    const mark = raw as Record<string, unknown>;
+    if (typeof mark.questionId !== "string" || typeof mark.awardedMarks !== "number") return null;
+    marks.push({ questionId: mark.questionId, awardedMarks: mark.awardedMarks });
+  }
+  return {
+    reviewedAt: review.reviewedAt,
+    reviewedByUserId: review.reviewedByUserId,
+    reason: review.reason,
+    marks,
+    score: review.score,
+  };
+}
+
+export function readOfflineReplayAnswers(
+  metadata: unknown,
+): Array<{ questionId: string; response: string | null }> {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return [];
+  const value = (metadata as Record<string, unknown>).offlineReplayAnswers;
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((raw) => {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return [];
+    const answer = raw as Record<string, unknown>;
+    if (
+      typeof answer.questionId !== "string" ||
+      !(typeof answer.response === "string" || answer.response === null)
+    ) {
+      return [];
+    }
+    return [{ questionId: answer.questionId, response: answer.response }];
+  });
+}
+
+export function packetMatchesStoredSnapshot(
+  submitted: OfflinePacketManifest | null | undefined,
+  signature: string | null | undefined,
+  stored: StoredOfflinePacketSnapshot | null,
+): boolean {
+  if (!submitted || !signature || !stored || signature !== stored.signature) return false;
+  const original = stored.manifest;
+  return (
+    submitted.examId === original.examId &&
+    submitted.packetId === original.packetId &&
+    submitted.fingerprint === original.fingerprint &&
+    submitted.questionCount === original.questionCount &&
+    submitted.totalMarks === original.totalMarks &&
+    submitted.durationMinutes === original.durationMinutes &&
+    submitted.sessionLabel === original.sessionLabel &&
+    submitted.termIndex === original.termIndex &&
+    submitted.downloadedAt === original.downloadedAt
+  );
+}
+
+export function readOfflinePacketSnapshot(metadata: unknown): StoredOfflinePacketSnapshot | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const stored = (metadata as Record<string, unknown>).offlineQuestionSnapshot;
+  if (!stored || typeof stored !== "object" || Array.isArray(stored)) return null;
+  const record = stored as Record<string, unknown>;
+  const rawManifest = record.manifest;
+  if (!rawManifest || typeof rawManifest !== "object" || Array.isArray(rawManifest)) return null;
+  const value = rawManifest as Record<string, unknown>;
+  if (
+    typeof record.signature !== "string" ||
+    typeof value.examId !== "string" ||
+    typeof value.packetId !== "string" ||
+    typeof value.fingerprint !== "string" ||
+    typeof value.questionCount !== "number" ||
+    !Number.isInteger(value.questionCount) ||
+    typeof value.totalMarks !== "number" ||
+    !Number.isInteger(value.totalMarks) ||
+    typeof value.durationMinutes !== "number" ||
+    !Number.isInteger(value.durationMinutes) ||
+    Number(value.questionCount) < 0 ||
+    Number(value.totalMarks) < 0 ||
+    Number(value.durationMinutes) <= 0 ||
+    !(typeof value.sessionLabel === "string" || value.sessionLabel === null) ||
+    !(typeof value.termIndex === "number" || value.termIndex === null) ||
+    typeof value.downloadedAt !== "string" ||
+    !Array.isArray(record.questions)
+  ) {
+    return null;
+  }
+
+  const questions: OfflinePacketQuestionSnapshot[] = [];
+  for (const raw of record.questions) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    const question = raw as Record<string, unknown>;
+    if (
+      typeof question.id !== "string" ||
+      typeof question.type !== "string" ||
+      typeof question.questionText !== "string" ||
+      typeof question.marks !== "number" ||
+      !Number.isInteger(question.marks) ||
+      question.marks < 0 ||
+      typeof question.sortOrder !== "number" ||
+      !Number.isInteger(question.sortOrder) ||
+      !(typeof question.correctKey === "string" || question.correctKey === null) ||
+      !(typeof question.correctText === "string" || question.correctText === null)
+    ) {
+      return null;
+    }
+    questions.push({
+      id: question.id,
+      type: question.type,
+      questionText: question.questionText,
+      options: question.options,
+      correctKey: question.correctKey,
+      correctText: question.correctText,
+      marks: question.marks,
+      sortOrder: question.sortOrder,
+    });
+  }
+
+  const manifest: OfflinePacketManifest = {
+    examId: value.examId,
+    packetId: value.packetId,
+    fingerprint: value.fingerprint,
+    questionCount: value.questionCount,
+    totalMarks: value.totalMarks,
+    durationMinutes: value.durationMinutes,
+    sessionLabel: value.sessionLabel,
+    termIndex: value.termIndex,
+    downloadedAt: value.downloadedAt,
+  };
+  if (
+    manifest.questionCount !== questions.length ||
+    manifest.totalMarks !== questions.reduce((sum, question) => sum + question.marks, 0)
+  ) {
+    return null;
+  }
+  return { manifest, signature: record.signature, questions };
+}
+
 /**
  * Verify a replayed packet against the paper as it stands NOW.
  *
@@ -133,18 +343,29 @@ export function verifyPacket(params: {
     };
   }
 
-  let expected: string;
+  let signatureMatches = false;
   try {
-    expected = signPacket({
-      examId: params.manifest.examId,
-      fingerprint: params.manifest.fingerprint,
-      questionCount: params.manifest.questionCount,
-      totalMarks: params.manifest.totalMarks,
-      durationMinutes: params.manifest.durationMinutes,
-      sessionLabel: params.manifest.sessionLabel,
-      termIndex: params.manifest.termIndex,
-      downloadedAt: params.manifest.downloadedAt,
-    }).signature;
+    const given = Buffer.from(params.signature);
+    const currentPayload = signingPayload(params.manifest);
+    const currentSignature = createHmac("sha256", secret())
+      .update(currentPayload)
+      .digest("base64url");
+    const currentExpected = Buffer.from(currentSignature);
+    signatureMatches =
+      given.length === currentExpected.length && timingSafeEqual(given, currentExpected);
+
+    if (!signatureMatches) {
+      // Accept already-downloaded v1 papers through the offline window. Their
+      // signature predates downloadedAt binding; all newly issued packets use
+      // the current payload. Device timestamps remain advisory, not proof.
+      const legacyPayload = signingPayload(params.manifest, false);
+      const legacySignature = createHmac("sha256", secret())
+        .update(legacyPayload)
+        .digest("base64url");
+      const legacyExpected = Buffer.from(legacySignature);
+      signatureMatches =
+        given.length === legacyExpected.length && timingSafeEqual(given, legacyExpected);
+    }
   } catch {
     return {
       ok: false,
@@ -152,10 +373,6 @@ export function verifyPacket(params: {
       detail: "The server cannot verify packets — check AUTH_SECRET.",
     };
   }
-
-  const given = Buffer.from(params.signature);
-  const want = Buffer.from(expected);
-  const signatureMatches = given.length === want.length && timingSafeEqual(given, want);
 
   if (!signatureMatches) {
     return {
@@ -165,6 +382,9 @@ export function verifyPacket(params: {
     };
   }
 
+  // Legacy 16-character fingerprints do not authenticate stems/options/keys.
+  // They intentionally mismatch the new digest and remain accepted only as
+  // review-required sittings, never as silently verified graded papers.
   if (fingerprintQuestions(params.currentQuestions) !== params.manifest.fingerprint) {
     return {
       ok: false,

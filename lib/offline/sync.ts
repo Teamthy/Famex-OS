@@ -1,6 +1,12 @@
 "use client";
 
-import { getQueuedWrites, removeQueuedWrite, incrementRetry, getQueueCount } from "./db";
+import {
+  getQueuedWrites,
+  removeQueuedWrite,
+  incrementRetry,
+  getQueueCount,
+  type QueuedWrite,
+} from "./db";
 import {
   listPendingSubmissions,
   patchSubmission,
@@ -26,6 +32,29 @@ const listeners = new Set<(_status: SyncStatus, _pending: number) => void>();
 let currentStatus: SyncStatus =
   typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "idle";
 let currentPending = 0;
+
+export type QueueWriteResult = {
+  write: QueuedWrite;
+  success: boolean;
+  statusCode: number | null;
+  willRetry: boolean;
+};
+const queueWriteResultListeners = new Set<(_result: QueueWriteResult) => void>();
+
+export function onQueueWriteResult(listener: (_result: QueueWriteResult) => void): () => void {
+  queueWriteResultListeners.add(listener);
+  return () => queueWriteResultListeners.delete(listener);
+}
+
+function reportQueueWriteResult(result: QueueWriteResult) {
+  queueWriteResultListeners.forEach((listener) => {
+    try {
+      listener(result);
+    } catch {
+      // A screen-level notification must not interrupt durable queue replay.
+    }
+  });
+}
 
 export function getSyncStatus(): { status: SyncStatus; pending: number } {
   return { status: currentStatus, pending: currentPending };
@@ -69,18 +98,32 @@ export async function flushQueue(): Promise<{ succeeded: number; failed: number 
       if (res.ok) {
         await removeQueuedWrite(write.id);
         succeeded++;
+        reportQueueWriteResult({ write, success: true, statusCode: res.status, willRetry: false });
       } else if (res.status >= 400 && res.status < 500) {
         // Client error — don't retry (bad data), remove from queue
         await removeQueuedWrite(write.id);
         failed++;
+        reportQueueWriteResult({ write, success: false, statusCode: res.status, willRetry: false });
       } else {
         // Server error — retry
         if (write.retries >= 5) {
           await removeQueuedWrite(write.id);
           failed++;
+          reportQueueWriteResult({
+            write,
+            success: false,
+            statusCode: res.status,
+            willRetry: false,
+          });
         } else {
           await incrementRetry(write.id);
           failed++;
+          reportQueueWriteResult({
+            write,
+            success: false,
+            statusCode: res.status,
+            willRetry: true,
+          });
           break; // Stop processing — likely server is down
         }
       }
@@ -89,8 +132,10 @@ export async function flushQueue(): Promise<{ succeeded: number; failed: number 
       if (write.retries >= 5) {
         await removeQueuedWrite(write.id);
         failed++;
+        reportQueueWriteResult({ write, success: false, statusCode: null, willRetry: false });
       } else {
         await incrementRetry(write.id);
+        reportQueueWriteResult({ write, success: false, statusCode: null, willRetry: true });
       }
       break;
     }

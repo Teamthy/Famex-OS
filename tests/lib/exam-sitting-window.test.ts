@@ -29,7 +29,7 @@ vi.mock("@/lib/exams", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/exams")>();
   return {
     ...actual,
-    getStudentExamContext: vi.fn(async () => studentContext),
+    requireStudentExamContext: vi.fn(async () => ({ ok: true, context: studentContext })),
     finalizeAttempt: vi.fn(async () => ({ id: "att_1", status: "GRADED" })),
   };
 });
@@ -189,6 +189,68 @@ describe("POST /api/student/exams/[id]/attempt — sitting window", () => {
     const created = mockPrisma.examAttempt.create.mock.calls[0][0].data;
     // 40-minute exam, so the deadline is duration-bound, not window-bound.
     expect(created.deadlineAt.getTime()).toBeLessThan(closesAt.getTime());
+  });
+
+  it("gives a granted retake its full duration after the ordinary window closes", async () => {
+    const closesAt = new Date(Date.now() - HOUR);
+    mockPrisma.exam.findFirst.mockResolvedValue(scheduledExam({ availableUntil: closesAt }));
+    mockPrisma.examAttempt.findFirst.mockResolvedValue({
+      id: "att_previous",
+      status: "GRADED",
+      attemptNumber: 1,
+    });
+    mockPrisma.examRetake.findUnique.mockResolvedValue({ id: "retake_1", used: false });
+
+    const { POST } = await import("@/app/api/student/exams/[id]/attempt/route");
+    const response = await POST({} as never, params);
+
+    expect(response.status).toBe(200);
+    const created = mockPrisma.examAttempt.create.mock.calls[0][0].data;
+    expect(created.deadlineAt.getTime()).toBeGreaterThan(Date.now() + 39 * 60_000);
+    expect(created.deadlineAt.getTime()).toBeLessThan(Date.now() + 41 * 60_000);
+  });
+
+  it("still clamps a granted retake started before the ordinary close", async () => {
+    const closesAt = new Date(Date.now() + 5 * 60_000);
+    mockPrisma.exam.findFirst.mockResolvedValue(scheduledExam({ availableUntil: closesAt }));
+    mockPrisma.examAttempt.findFirst.mockResolvedValue({
+      id: "att_previous",
+      status: "GRADED",
+      attemptNumber: 1,
+    });
+    mockPrisma.examRetake.findUnique.mockResolvedValue({ id: "retake_1", used: false });
+
+    const { POST } = await import("@/app/api/student/exams/[id]/attempt/route");
+    const response = await POST({} as never, params);
+
+    expect(response.status).toBe(200);
+    const created = mockPrisma.examAttempt.create.mock.calls[0][0].data;
+    expect(created.deadlineAt.getTime()).toBe(closesAt.getTime());
+  });
+
+  it("does not persist answers sent after the server deadline", async () => {
+    mockPrisma.examAttempt.findFirst.mockResolvedValue({
+      id: "att_expired",
+      status: "IN_PROGRESS",
+      deadlineAt: new Date(Date.now() - 1),
+      exam: { questions: [{ id: "q1" }] },
+    });
+    const { PATCH } = await import("@/app/api/student/exams/[id]/attempt/route");
+    const { finalizeAttempt } = await import("@/lib/exams");
+    const request = {
+      json: async () => ({
+        attemptId: "att_expired",
+        action: "SUBMIT",
+        answers: [{ questionId: "q1", response: "late answer" }],
+      }),
+    } as never;
+
+    const response = await PATCH(request, params);
+
+    expect(response.status).toBe(200);
+    expect(finalizeAttempt).toHaveBeenCalledWith("att_expired");
+    expect(mockPrisma.examAnswer.findMany).not.toHaveBeenCalled();
+    expect(mockPrisma.examAnswer.upsert).not.toHaveBeenCalled();
   });
 });
 

@@ -1,10 +1,14 @@
+import { UserRole } from "@prisma/client";
+import { requireModule } from "@/lib/module-guard";
 import { jsonNoStore } from "@/lib/requests";
 import { getStudentReportCardContext, mapReportCardCard } from "@/lib/report-cards";
 
 export const runtime = "nodejs";
 
 export async function GET() {
-  const context = await getStudentReportCardContext();
+  const guard = await requireModule("report_cards", [UserRole.STUDENT]);
+  if (!guard.ok) return guard.response;
+  const context = await getStudentReportCardContext(guard.user);
   if (!context) {
     return jsonNoStore(
       { error: "No live student report-card profile is linked to this account yet." },

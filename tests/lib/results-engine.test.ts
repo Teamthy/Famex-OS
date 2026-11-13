@@ -17,6 +17,7 @@ import {
   promotionVerdict,
   rankByTotal,
   rankSubjectAcrossClass,
+  releasedCumulativeByTerm,
   remarkFor,
   shouldUseCbt,
   termIndexForLabel,
@@ -190,6 +191,18 @@ describe("cumulative average", () => {
         { total: 0, subjects: 0 },
       ]),
     ).toBe(75);
+  });
+
+  it("rebuilds each running average only from the term rows supplied", () => {
+    const values = releasedCumulativeByTerm([
+      { termIndex: 1, totalScore: 560, subjectCount: 8 },
+      { termIndex: 3, totalScore: 720, subjectCount: 9 },
+    ]);
+
+    expect(values).toEqual([
+      { termIndex: 1, cumulativeAverage: 70, cumulativeGrade: "B2", termsCounted: 1 },
+      { termIndex: 3, cumulativeAverage: 75, cumulativeGrade: "A1", termsCounted: 2 },
+    ]);
   });
 });
 

@@ -99,9 +99,47 @@ describe("each path that creates a student must onboard them", () => {
     expect(page).toMatch(/No subjects were assigned/);
     expect(page).toMatch(/subject.* assigned\./s);
   });
+
+  it("admin student enrollment locks duplicate submits and reuses the same intent key on retry", () => {
+    const page = code(read("app/admin/students/page.tsx"));
+    expect(page).toMatch(/useRef<\{ body: string; key: string \} \| null>/);
+    expect(page).toMatch(/if \(submittingRef\.current\) return/);
+    expect(page).toMatch(/enrollmentIntent\.current\.body !== body/);
+    expect(page).toMatch(/"Idempotency-Key": enrollmentIntent\.current\.key/);
+    expect(page).toMatch(/disabled=\{submitting\}/);
+    expect(page).toMatch(/toast\(/);
+    expect(page).toMatch(
+      /No parent login account was created because no guardian email was provided/,
+    );
+    expect(page).toMatch(/one-time password is not available in this retry/);
+  });
+
+  it("form-teacher student enrollment also locks duplicates and retains retry idempotency", () => {
+    const page = code(read("app/teacher/students/page.tsx"));
+    expect(page).toMatch(/useRef<\{ body: string; key: string \} \| null>/);
+    expect(page).toMatch(/if \(submittingRef\.current\) return/);
+    expect(page).toMatch(/enrollmentIntent\.current\.body !== serialized/);
+    expect(page).toMatch(/"Idempotency-Key": enrollmentIntent\.current\.key/);
+    expect(page).toMatch(/disabled=\{submitting\}/);
+    expect(page).toMatch(/crypto\.getRandomValues/);
+    expect(page).not.toMatch(/as any/);
+    expect(page).toMatch(/toast\(/);
+  });
 });
 
 describe("staff onboarding is a complete round trip", () => {
+  it("the staff admin page guards privileged actions with busy states and contextual feedback", () => {
+    const page = code(read("app/admin/staff/page.tsx"));
+    expect(page).toMatch(/if \(submittingRef\.current\) return/);
+    expect(page).toMatch(/if \(busyInviteRef\.current\) return/);
+    expect(page).toMatch(/disabled=\{submitting\}/);
+    expect(page).toMatch(/disabled=\{busyInvite !== null\}/);
+    expect(page).toMatch(/j\.emailSent \? "success" : "warning"/);
+    expect(page).toMatch(/Copy the one-time password from the notice/);
+    expect(page).toMatch(/toast\(/);
+    expect(page).toMatch(/account may already exist/);
+  });
+
   it("the invite email points at a page that exists", () => {
     const email = read("lib/email.ts");
     const match = email.match(/\/staff\/activate\?token=/);

@@ -82,7 +82,7 @@ export default function StudentReportCardsPage() {
   const [data, setData] = useState<Response | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [, setIsStale] = useState(false);
+  const [isStale, setIsStale] = useState(false);
   const [selectedReportId, setSelectedReportId] = useState("");
 
   useEffect(() => {
@@ -97,7 +97,15 @@ export default function StudentReportCardsPage() {
         setIsStale(true);
         setLoading(false);
       }
-      if (typeof navigator !== "undefined" && !navigator.onLine) return;
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        if (!cached) {
+          setError(
+            "Connect to the internet to load your released report cards for the first time.",
+          );
+          setLoading(false);
+        }
+        return;
+      }
       setLoading(!cached);
       setError("");
       try {
@@ -170,7 +178,8 @@ export default function StudentReportCardsPage() {
               MY <span className="text-brand-green">REPORT CARD</span>
             </h1>
             <p className="mt-3 max-w-2xl text-base text-white/85">
-              View, review, and print your live term report cards.
+              View and print your released term report cards. Offline copies are marked when they
+              may be out of date.
             </p>
           </div>
         </section>
@@ -196,6 +205,16 @@ export default function StudentReportCardsPage() {
 
               {!loading && data ? (
                 <>
+                  {isStale ? (
+                    <div
+                      role="status"
+                      className="rounded-2xl border border-amber-500/30 bg-amber-50 p-4 text-sm text-amber-950"
+                    >
+                      Showing a saved copy from your last sync. The school may have changed or
+                      withdrawn a release since then; reconnect to confirm the current report-card
+                      status.
+                    </div>
+                  ) : null}
                   <div className="no-print rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-8 shadow-[var(--card-shadow)]">
                     <div className="mb-6 flex items-center justify-between gap-4">
                       <div>

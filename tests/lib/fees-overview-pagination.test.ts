@@ -169,6 +169,46 @@ describe("GET /api/admin/report-cards/overview", () => {
     expect(body.summary.averageScore).toBe(63); // rounded from 63.4
   });
 
+  it("labels a historical card with its stored class snapshot, not current enrolment", async () => {
+    mockPrisma.reportCard.findMany.mockResolvedValue([
+      {
+        id: "rc_1",
+        reportNumber: "RC/2025/T1/STU1",
+        verificationCode: "verify_1",
+        sessionLabel: "2025/2026",
+        termLabel: "First Term",
+        classNameSnapshot: "JSS 1A",
+        status: "RELEASED",
+        overallTotal: 720,
+        overallAverage: 72,
+        overallGrade: "A1",
+        classPosition: "1st",
+        attendancePresent: 48,
+        attendanceTotal: 50,
+        classTeacherRemark: "Well done",
+        directorRemark: "Excellent",
+        nextResumption: "Next term",
+        feeBalance: 0,
+        generatedAt: new Date("2025-12-01T00:00:00.000Z"),
+        releasedAt: new Date("2025-12-02T00:00:00.000Z"),
+        studentProfile: {
+          studentId: "STU1",
+          displayName: "Ada",
+          currentClass: { displayName: "JSS 2A" },
+        },
+        subjects: [],
+      },
+    ] as never);
+
+    const { GET } = await import("@/app/api/admin/report-cards/overview/route");
+    const body = await (
+      await GET(request("http://localhost/api/admin/report-cards/overview"))
+    ).json();
+
+    expect(body.reports[0].classNameSnapshot).toBe("JSS 1A");
+    expect(body.reports[0].student.className).toBe("JSS 1A");
+  });
+
   it("reports a zero average without dividing by zero", async () => {
     mockPrisma.reportCard.aggregate.mockResolvedValue({ _avg: { overallAverage: null } });
     mockPrisma.reportCard.count.mockResolvedValue(0);

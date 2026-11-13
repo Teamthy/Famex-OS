@@ -32,12 +32,14 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { indexFeeBalances, tallyAttendance } from "@/lib/report-cards";
+import { readOfflinePacketSnapshot } from "@/lib/offline-packet";
 import {
   DEFAULT_PERCENTAGE_BANDS,
   buildSubjectLine,
   compileTerm,
   cumulativeAverage as weightedCumulative,
   gradeFor,
+  releasedCumulativeByTerm,
   normaliseScores,
   rankByTotal,
   rankSubjectAcrossClass,
@@ -117,24 +119,33 @@ export async function cbtContributionsForClass(params: {
       questions: { select: { marks: true } },
       attempts: {
         where: { status: ExamAttemptStatus.GRADED },
-        select: { id: true, studentProfileId: true, totalScore: true },
+        select: { id: true, studentProfileId: true, totalScore: true, metadata: true },
       },
     },
   });
 
   const out = new Map<string, CbtContribution>();
   for (const exam of exams) {
-    const maxMarks = exam.questions.reduce((sum, question) => sum + question.marks, 0);
-    if (maxMarks <= 0) continue;
+    const examMaxMarks = exam.questions.reduce((sum, question) => sum + question.marks, 0);
 
     // Best sitting per student, merged across the (usually single) papers for
-    // that subject in the term.
-    const bestByStudent = new Map<string, { score: number; attemptId: string }>();
+    // that subject in the term. Offline attempts use their immutable issued
+    // packet maximum, not today's authored question rows.
+    const bestByStudent = new Map<
+      string,
+      { score: number; maxMarks: number; ratio: number; attemptId: string }
+    >();
     for (const attempt of exam.attempts) {
+      const maxMarks =
+        readOfflinePacketSnapshot(attempt.metadata)?.manifest.totalMarks ?? examMaxMarks;
+      if (maxMarks <= 0) continue;
+      const ratio = attempt.totalScore / maxMarks;
       const current = bestByStudent.get(attempt.studentProfileId);
-      if (!current || attempt.totalScore > current.score) {
+      if (!current || ratio > current.ratio) {
         bestByStudent.set(attempt.studentProfileId, {
           score: attempt.totalScore,
+          maxMarks,
+          ratio,
           attemptId: attempt.id,
         });
       }
@@ -145,7 +156,7 @@ export async function cbtContributionsForClass(params: {
       const existing = out.get(key);
       out.set(key, {
         score: (existing?.score ?? 0) + best.score,
-        maxMarks: (existing?.maxMarks ?? 0) + maxMarks,
+        maxMarks: (existing?.maxMarks ?? 0) + best.maxMarks,
         attempts: (existing?.attempts ?? 0) + 1,
         attemptId: best.attemptId,
       });
@@ -650,17 +661,30 @@ export async function getStudentSessionCumulative(params: {
   schoolId: string;
   studentProfileId: string;
   sessionLabel: string;
+  classId: string;
+  releasedTermIndexes: number[];
 }) {
   const rows = await prisma.termResult.findMany({
     where: {
       schoolId: params.schoolId,
       studentProfileId: params.studentProfileId,
       sessionLabel: params.sessionLabel,
+      termIndex: { in: params.releasedTermIndexes },
       status: ResultLineStatus.INCLUDED,
     },
     orderBy: { termIndex: "asc" },
     include: { subjects: { orderBy: { sortOrder: "asc" } } },
   });
+  const runningByTerm = new Map(
+    releasedCumulativeByTerm(
+      rows.map((row) => ({
+        termIndex: row.termIndex,
+        totalScore: row.totalScore,
+        subjectCount: row.subjectCount,
+      })),
+      await gradeBandsForClass(params.schoolId, params.classId),
+    ).map((entry) => [entry.termIndex, entry]),
+  );
 
   const terms = rows.map((row) => ({
     termIndex: row.termIndex,
@@ -670,8 +694,9 @@ export async function getStudentSessionCumulative(params: {
     average: row.average,
     grade: row.grade,
     position: row.position,
-    cumulativeAverage: row.cumulativeAverage,
-    cumulativeGrade: row.cumulativeGrade,
+    cumulativeAverage: runningByTerm.get(row.termIndex)?.cumulativeAverage ?? 0,
+    cumulativeGrade: runningByTerm.get(row.termIndex)?.cumulativeGrade ?? "F9",
+    termsCounted: runningByTerm.get(row.termIndex)?.termsCounted ?? 0,
     compiledAt: row.compiledAt?.toISOString() ?? null,
     subjects: row.subjects.map((subject) => ({
       subjectName: subject.subjectName,

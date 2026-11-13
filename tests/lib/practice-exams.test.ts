@@ -23,11 +23,16 @@ const studentContext = {
   },
 };
 
+vi.mock("@/lib/subjects", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/subjects")>();
+  return { ...actual, studentSubjectIds: vi.fn(async () => []) };
+});
+
 vi.mock("@/lib/exams", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/exams")>();
   return {
     ...actual,
-    getStudentExamContext: vi.fn(async () => studentContext),
+    requireStudentExamContext: vi.fn(async () => ({ ok: true, context: studentContext })),
     finalizeAttempt: vi.fn(async () => ({ id: "att_1", totalScore: 1 })),
   };
 });
@@ -38,6 +43,7 @@ function practiceExam(overrides: Record<string, unknown> = {}) {
     title: "WAEC Maths Practice",
     subjectName: "Mathematics",
     durationMinutes: 30,
+    theoryMinutes: 0,
     passMark: 50,
     instructions: null,
     status: "PUBLISHED",
@@ -219,6 +225,28 @@ describe("POST /api/student/practice/[id]/attempt — starting", () => {
     expect(body.attempt.attemptNumber).toBe(2);
     // The graded runner would have looked for a retake grant. Practice must not.
     expect(mockPrisma.examRetake?.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("derives practice duration and the attempt deadline from objective plus theory time", async () => {
+    mockPrisma.exam.findFirst.mockResolvedValue(practiceExam({ theoryMinutes: 20 }));
+    mockPrisma.examAttempt.findFirst.mockResolvedValue(null);
+    const startedAt = Date.now();
+    mockPrisma.examAttempt.create.mockResolvedValue({
+      id: "att_new",
+      attemptNumber: 1,
+      deadlineAt: new Date(startedAt + 50 * 60_000),
+    });
+    mockPrisma.examAnswer.findMany.mockResolvedValue([]);
+
+    const { POST } = await import("@/app/api/student/practice/[id]/attempt/route");
+    const response = await POST({} as never, params);
+    const body = await response.json();
+    const createData = mockPrisma.examAttempt.create.mock.calls[0][0].data;
+    const deadlineMinutes = (createData.deadlineAt.getTime() - startedAt) / 60_000;
+
+    expect(response.status).toBe(200);
+    expect(body.exam.durationMinutes).toBe(50);
+    expect(deadlineMinutes).toBeCloseTo(50, 1);
   });
 
   it("never applies a fee lock to practice", async () => {

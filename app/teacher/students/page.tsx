@@ -1,11 +1,12 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cacheGet, cacheSet } from "@/lib/offline/db";
 import { BookOpen, LoaderCircle, Search, UserPlus, Users, X } from "lucide-react";
 import TeacherSidebar from "@/components/TeacherSidebar";
 import PortalTopbar from "@/components/PortalTopbar";
 import { GRADE_LABELS, gradeStudentCompleteness } from "@/lib/student-completeness";
+import { useToast } from "@/components/Toast";
 
 type Assignment = {
   id: string;
@@ -58,13 +59,34 @@ type Suggestion = {
   recommendedClassId: string | null;
 };
 
+type TeacherStudentsPayload = {
+  assignments: Assignment[];
+  students: Student[];
+  suggestions: Suggestion[];
+  teacher: { displayName: string; isFormTeacher: boolean; isSubjectTeacher: boolean };
+  teachableSubjects: TeachableClass[];
+  student?: { displayName: string; studentId: string; className: string };
+  parentAccount?: {
+    temporaryPassword: string | null;
+    mustChangePassword: boolean;
+  } | null;
+  subjects?: { assigned: number; warnings: string[] };
+  error?: string;
+};
+
 function idemp() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto)
-    return crypto.randomUUID().replaceAll("-", "");
-  return `${Date.now()}${Math.random().toString(16).slice(2)}`;
+  if (typeof crypto === "undefined" || typeof crypto.getRandomValues !== "function") {
+    throw new Error("Secure request keys are unavailable in this browser. Reload using HTTPS.");
+  }
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 export default function TeacherStudentsPage() {
+  const { toast } = useToast();
+  const enrollmentIntent = useRef<{ body: string; key: string } | null>(null);
+  const submittingRef = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -88,9 +110,9 @@ export default function TeacherStudentsPage() {
   const load = useCallback(async () => {
     const url = "/api/teacher/students";
     // Offline: show cached data instantly
-    const cached = await cacheGet(url);
+    const cached = await cacheGet<TeacherStudentsPayload>(url);
     if (cached) {
-      const j = cached.data as any;
+      const j = cached.data;
       setAssignments(j.assignments || []);
       setStudents(j.students || []);
       setSuggestions(j.suggestions || []);
@@ -104,7 +126,7 @@ export default function TeacherStudentsPage() {
     setError("");
     try {
       const r = await fetch(url, { cache: "no-store" });
-      const j = await r.json();
+      const j = (await r.json()) as TeacherStudentsPayload;
       if (!r.ok) throw new Error(j.error || "Unable to load students.");
       setAssignments(j.assignments || []);
       setStudents(j.students || []);
@@ -121,8 +143,53 @@ export default function TeacherStudentsPage() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    async function loadInitial() {
+      let hasCachedData = false;
+      const url = "/api/teacher/students";
+      try {
+        const cached = await cacheGet<TeacherStudentsPayload>(url);
+        hasCachedData = Boolean(cached);
+        if (cancelled) return;
+        if (cached) {
+          const body = cached.data;
+          setAssignments(body.assignments || []);
+          setStudents(body.students || []);
+          setSuggestions(body.suggestions || []);
+          setTeacher(
+            body.teacher || { displayName: "", isFormTeacher: false, isSubjectTeacher: false },
+          );
+          setTeachable(body.teachableSubjects || []);
+          setIsStale(true);
+          setLoading(false);
+        }
+        if (typeof navigator !== "undefined" && !navigator.onLine) return;
+        const response = await fetch(url, { cache: "no-store" });
+        const body = (await response.json()) as TeacherStudentsPayload;
+        if (!response.ok) throw new Error(body.error || "Unable to load students.");
+        if (cancelled) return;
+        setAssignments(body.assignments || []);
+        setStudents(body.students || []);
+        setSuggestions(body.suggestions || []);
+        setTeacher(
+          body.teacher || { displayName: "", isFormTeacher: false, isSubjectTeacher: false },
+        );
+        setTeachable(body.teachableSubjects || []);
+        setIsStale(false);
+        await cacheSet(url, body);
+      } catch (loadError) {
+        if (!cancelled && !hasCachedData) {
+          setError(loadError instanceof Error ? loadError.message : "Unable to load students.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void loadInitial();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const formClasses = useMemo(
     () => assignments.filter((a) => a.role === "FORM_TEACHER"),
@@ -167,38 +234,65 @@ export default function TeacherStudentsPage() {
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
     setError("");
     setNotice("");
-    const fd = new FormData(e.currentTarget);
-    const body: Record<string, unknown> = Object.fromEntries(fd.entries());
-    // Checkboxes arrive as repeated "subjectId" entries. getAll, not get:
-    // FormData.get would keep only the first ticked subject.
-    body.subjectIds = fd.getAll("subjectId").filter((v): v is string => typeof v === "string");
-    const r = await fetch("/api/teacher/students", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Idempotency-Key": idemp(),
-      },
-      body: JSON.stringify(body),
-    });
-    const j = await r.json();
-    if (!r.ok) {
-      setError(j.error || "Unable to enrol student.");
-      return;
+    try {
+      const fd = new FormData(e.currentTarget);
+      const body: Record<string, unknown> = Object.fromEntries(fd.entries());
+      // Checkboxes arrive as repeated "subjectId" entries. getAll, not get:
+      // FormData.get would keep only the first ticked subject.
+      body.subjectIds = fd.getAll("subjectId").filter((v): v is string => typeof v === "string");
+      const serialized = JSON.stringify(body);
+      if (!enrollmentIntent.current || enrollmentIntent.current.body !== serialized) {
+        enrollmentIntent.current = { body: serialized, key: idemp() };
+      }
+      const response = await fetch("/api/teacher/students", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": enrollmentIntent.current.key,
+        },
+        body: serialized,
+      });
+      const result = (await response.json()) as TeacherStudentsPayload;
+      if (!response.ok) throw new Error(result.error || "Unable to enrol student.");
+      if (!result.student)
+        throw new Error("Enrollment response was incomplete; retry the same details.");
+      enrollmentIntent.current = null;
+      setOpen(false);
+      const subjectCount = result.subjects?.assigned ?? 0;
+      const warnings = result.subjects?.warnings ?? [];
+      const parentLine = !result.parentAccount
+        ? " No parent login account was created because no guardian email was provided."
+        : result.parentAccount.temporaryPassword
+          ? ` Parent temp password (copy now): ${result.parentAccount.temporaryPassword}`
+          : result.parentAccount.mustChangePassword
+            ? " The parent account was created, but its one-time password is not available in this retry; use the reviewed account-recovery process if it was not saved."
+            : " Parent account is already linked; no new password was created.";
+      setNotice(
+        `Enrolled ${result.student.displayName} (${result.student.studentId}) into ${result.student.className}. ` +
+          `${subjectCount > 0 ? `${subjectCount} subject${subjectCount === 1 ? "" : "s"} assigned.` : "No subjects were assigned."}` +
+          `${warnings.length ? ` ${warnings.join(" ")}` : ""}${parentLine}`,
+      );
+      toast(
+        warnings.length || subjectCount === 0
+          ? `${result.student.displayName} was enrolled with subject-assignment warnings.`
+          : `${result.student.displayName} enrolled into ${result.student.className}.`,
+        warnings.length || subjectCount === 0 ? "warning" : "success",
+      );
+      await load();
+    } catch (submitError) {
+      const message =
+        submitError instanceof Error ? submitError.message : "Unable to enrol student.";
+      setError(message);
+      toast(message, "error");
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
     }
-    setOpen(false);
-    const temp = j.parentAccount?.temporaryPassword
-      ? ` Parent temp password (copy now): ${j.parentAccount.temporaryPassword}`
-      : "";
-    const subjectCount: number = j.subjects?.assigned ?? 0;
-    const warnings: string[] = j.subjects?.warnings ?? [];
-    setNotice(
-      `Enrolled ${j.student.displayName} (${j.student.studentId}) into ${j.student.className}. ` +
-        `${subjectCount > 0 ? `${subjectCount} subject${subjectCount === 1 ? "" : "s"} assigned.` : "No subjects were assigned."}` +
-        `${warnings.length ? ` ${warnings.join(" ")}` : ""}${temp}`,
-    );
-    await load();
   }
 
   return (
@@ -451,11 +545,16 @@ export default function TeacherStudentsPage() {
                 </p>
                 <h2 className="font-display text-3xl tracking-widest">NEW STUDENT</h2>
               </div>
-              <button type="button" onClick={() => setOpen(false)} aria-label="Close">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                disabled={submitting}
+                aria-label="Close"
+              >
                 <X />
               </button>
             </div>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <fieldset disabled={submitting} className="mt-6 grid gap-4 sm:grid-cols-2">
               {(
                 [
                   ["firstName", "First name", true],
@@ -505,7 +604,7 @@ export default function TeacherStudentsPage() {
                   ))}
                 </select>
               </label>
-            </div>
+            </fieldset>
 
             {/* ── Subject checklist ────────────────────────────────────────
                 Ticking nothing is what left earlier students with no exams,
@@ -513,14 +612,20 @@ export default function TeacherStudentsPage() {
                 as soon as a class is chosen and the teacher's own subjects
                 arrive pre-ticked. */}
             {enrolClassId ? (
-              <SubjectChecklist entry={teachable.find((t) => t.classId === enrolClassId)} />
+              <SubjectChecklist
+                entry={teachable.find((t) => t.classId === enrolClassId)}
+                disabled={submitting}
+              />
             ) : null}
             <p className="mt-5 text-xs text-[var(--text-muted)]">
               Requests are idempotent. A new parent account receives a one-time temporary password
               shown once.
             </p>
-            <button className="mt-6 w-full rounded-full bg-famex-lime py-3 text-xs font-bold uppercase tracking-widest text-brand-navy">
-              Create student in my class
+            <button
+              disabled={submitting}
+              className="mt-6 w-full rounded-full bg-famex-lime py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {submitting ? "Enrolling…" : "Create student in my class"}
             </button>
           </form>
         </div>
@@ -538,7 +643,13 @@ export default function TeacherStudentsPage() {
  * subjects are added server-side regardless, so unticking one is not a way to
  * drop Mathematics.
  */
-function SubjectChecklist({ entry }: { entry?: TeachableClass }) {
+function SubjectChecklist({
+  entry,
+  disabled = false,
+}: {
+  entry?: TeachableClass;
+  disabled?: boolean;
+}) {
   if (!entry)
     return (
       <p className="mt-5 rounded-xl border border-[var(--border-subtle)] p-4 text-xs text-[var(--text-muted)]">
@@ -555,7 +666,10 @@ function SubjectChecklist({ entry }: { entry?: TeachableClass }) {
     );
 
   return (
-    <fieldset className="mt-5 rounded-2xl border border-[var(--border-subtle)] p-4">
+    <fieldset
+      disabled={disabled}
+      className="mt-5 rounded-2xl border border-[var(--border-subtle)] p-4"
+    >
       <legend className="px-2 text-xs font-bold uppercase tracking-widest">
         Subjects for this student
       </legend>
