@@ -13,13 +13,11 @@ import { resolveSiteUrl } from "@/lib/site-url";
  *                   constant, not a per-school token. It never changes between
  *                   schools.
  *
- *   school tokens — the individual school running this install. On a
- *                   single-school Famex deployment these come from env
- *                   (SCHOOL_NAME, NEXT_PUBLIC_SITE_URL, …) and are overridden
- *                   per request by the resolved School + TenantBranding row
- *                   (see app/layout.tsx and lib/branding.ts). The defaults here
- *                   are deliberately NEUTRAL — never another product's name —
- *                   so an unconfigured boot cannot leak a stale brand.
+ *   school tokens — the individual school running this install. The public
+ *                   display name comes from DEFAULT_BRANDING; deployment URL
+ *                   and contact details remain environment/config driven. The
+ *                   default display name is set centrally, never repeated in
+ *                   UI components.
  *
  * `npm run audit:brand` enforces the ratchet: components must not introduce new
  * hard-coded school names, colours or logo paths; they read from here (or from
@@ -34,7 +32,7 @@ const NEUTRAL_SCHOOL_NAME = "the school";
 const NEUTRAL_SITE_URL = "http://localhost:3000";
 
 export interface SchoolBrandTokens {
-  /** School display name from config (env SCHOOL_NAME), else a neutral phrase. */
+  /** Public school display name from the shared branding default or env config. */
   schoolName: string;
   /** Canonical site URL from NEXT_PUBLIC_SITE_URL, else localhost. */
   siteUrl: string;
@@ -54,7 +52,8 @@ export interface SchoolBrandTokens {
  * variables the root layout injects.
  */
 export function getSchoolBrandTokens(): SchoolBrandTokens {
-  const schoolName = process.env.SCHOOL_NAME?.trim() || NEUTRAL_SCHOOL_NAME;
+  const schoolName =
+    DEFAULT_BRANDING.displayName || process.env.SCHOOL_NAME?.trim() || NEUTRAL_SCHOOL_NAME;
   const siteUrl = resolveSiteUrl() || NEUTRAL_SITE_URL;
   return {
     schoolName,

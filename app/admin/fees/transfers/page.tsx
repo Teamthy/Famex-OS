@@ -146,7 +146,7 @@ export default function TransferReviewPage() {
               FEES · BURSAR
             </p>
             <h1 className="mt-2 font-display text-4xl tracking-widest">PAYMENT REVIEW</h1>
-            <p className="mt-2 text-sm text-white/60">
+            <p className="mt-2 text-sm text-white/85">
               Parents submit bank-transfer evidence; here you verify against the bank statement and
               approve (issues a receipt, settles the invoice) or reject (flags the parent). Cash
               entered while the network was down queues below — completing a queued entry settles

@@ -39,16 +39,16 @@ export default function PortalSidebar({ portalName, portalType, items }: PortalS
             Active workspace
           </span>
           <div className="mt-1 font-display text-sm tracking-[1px] text-white">{portalName}</div>
-          <div className="mt-1 text-[10px] uppercase tracking-widest text-white/50">
+          <div className="mt-1 text-[10px] uppercase tracking-widest text-white/85">
             {portalType}
           </div>
         </div>
 
         {user && (
           <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-            <div className="text-[10px] uppercase tracking-widest text-white/60">Signed in</div>
+            <div className="text-[10px] uppercase tracking-widest text-white/85">Signed in</div>
             <div className="truncate text-sm font-bold text-white">{user.name}</div>
-            <div className="text-[10px] uppercase tracking-wider text-white/60">
+            <div className="text-[10px] uppercase tracking-wider text-white/85">
               {user.role?.replaceAll("_", " ")}
             </div>
           </div>
@@ -82,7 +82,7 @@ export default function PortalSidebar({ portalName, portalType, items }: PortalS
         <div className="space-y-1 border-t border-[var(--border-subtle)] pt-3">
           <button
             onClick={handleLogout}
-            className="flex min-h-11 w-full items-center gap-2 rounded-xl px-4 py-2 text-xs text-white/70 transition hover:bg-red-500/15 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-lime)]"
+            className="flex min-h-11 w-full items-center gap-2 rounded-xl px-4 py-2 text-xs text-white/85 transition hover:bg-red-500/15 hover:text-red-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--famex-lime)]"
           >
             <LogOut size={14} />
             <span>Sign out</span>

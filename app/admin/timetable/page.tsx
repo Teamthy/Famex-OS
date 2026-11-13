@@ -151,7 +151,7 @@ export default function AdminTimetablePage() {
             <h1 className="font-display text-[42px] tracking-[3px] text-white md:text-[56px]">
               CLASS <span className="text-brand-green">TIMETABLE</span>
             </h1>
-            <p className="mt-3 max-w-2xl text-base text-white/60">
+            <p className="mt-3 max-w-2xl text-base text-white/85">
               Set the weekly schedule for each class. Slots appear immediately for students on the
               mobile app.
             </p>

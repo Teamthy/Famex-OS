@@ -101,7 +101,7 @@ export default function AdminBudgetsPage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               BUDGET <span className="text-brand-green">TRACKER</span>
             </h1>
-            <p className="mt-3 text-sm text-white/65">
+            <p className="mt-3 text-sm text-white/85">
               {labelSource === "CALENDAR"
                 ? "No academic term is set — the period below is guessed from today's date. Set one in Sessions & Terms before saving budgets."
                 : null}{" "}

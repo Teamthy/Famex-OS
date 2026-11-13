@@ -108,7 +108,7 @@ function ComposeInner() {
             <h1 className="mt-4 font-display text-4xl tracking-widest text-white md:text-6xl">
               MESSAGE <span className="text-brand-green">PARENT</span>
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               Goes to the parents linked to this student. They can reply from the parent portal or
               the app.
             </p>

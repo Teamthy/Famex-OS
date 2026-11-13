@@ -67,7 +67,7 @@ export default function TestimonialsPage() {
                 </span>{" "}
                 <AnimatedText heavy stagger={0.034} text="SAY" delay={0.3} />
               </h1>
-              <p className="text-white/60 mt-6 max-w-2xl mx-auto">
+              <p className="text-white/85 mt-6 max-w-2xl mx-auto">
                 Hear from parents, students, and alumni about their Famex International Schools
                 experience.
               </p>

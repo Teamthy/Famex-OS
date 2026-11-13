@@ -161,7 +161,7 @@ export default function StudentAttendancePage() {
                   <h1 className="font-display text-[36px] tracking-[3px] text-white md:text-[56px]">
                     MY <span className="text-brand-green">ATTENDANCE</span>
                   </h1>
-                  <p className="text-sm text-white/60">
+                  <p className="text-sm text-white/85">
                     {data
                       ? `${data.student.displayName} · ${data.student.className}`
                       : "Live attendance calendar"}
@@ -169,7 +169,7 @@ export default function StudentAttendancePage() {
                 </div>
               </div>
               <div className="rounded-2xl bg-white/5 px-4 py-3">
-                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-white/85">
                   Month
                 </label>
                 <input

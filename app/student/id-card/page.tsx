@@ -85,7 +85,7 @@ export default function IDCardPage() {
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
               STUDENT <span className="text-brand-green">ID CARD</span>
             </h1>
-            <p className="text-white/60 text-sm">Your digital school identity card.</p>
+            <p className="text-white/85 text-sm">Your digital school identity card.</p>
           </div>
         </section>
 
@@ -111,7 +111,7 @@ export default function IDCardPage() {
                         </div>
                       </div>
                     </div>
-                    {address ? <div className="text-[9px] text-white/60">{address}</div> : null}
+                    {address ? <div className="text-[9px] text-white/85">{address}</div> : null}
                   </div>
 
                   <div className="bg-white p-6 text-center">

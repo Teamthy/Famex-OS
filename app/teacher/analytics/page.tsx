@@ -65,7 +65,7 @@ export default function TeacherAnalyticsPage() {
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
               MY <span className="text-brand-green">ANALYTICS</span>
             </h1>
-            <p className="text-white/60 text-sm">
+            <p className="text-white/85 text-sm">
               Track student performance, identify trends, and optimize teaching strategies.
             </p>
           </div>
@@ -335,7 +335,7 @@ export default function TeacherAnalyticsPage() {
                   </div>
                   <div>
                     <h3 className="font-display text-lg">AI-Powered Insights</h3>
-                    <p className="text-xs text-white/60">
+                    <p className="text-xs text-white/85">
                       Based on your teaching patterns and student data
                     </p>
                   </div>

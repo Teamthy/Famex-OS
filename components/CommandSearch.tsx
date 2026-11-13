@@ -111,11 +111,11 @@ export default function CommandSearch() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search pages, portals, features..."
-                className="flex-1 bg-transparent outline-none text-white placeholder:text-white/50 text-base"
+                className="flex-1 bg-transparent outline-none text-white placeholder:text-white/85 text-base"
               />
               <button
                 onClick={() => setOpen(false)}
-                className="text-white/60 hover:text-white transition-colors"
+                className="text-white/85 hover:text-white transition-colors"
               >
                 <X size={18} />
               </button>
@@ -134,27 +134,27 @@ export default function CommandSearch() {
                       <div className="text-sm font-bold text-white group-hover:text-brand-green transition-colors">
                         {item.title}
                       </div>
-                      <div className="text-xs text-white/60 mt-0.5">{item.desc}</div>
+                      <div className="text-xs text-white/85 mt-0.5">{item.desc}</div>
                     </div>
-                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-white/10 text-white/60 uppercase tracking-wider font-bold shrink-0">
+                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-white/10 text-white/85 uppercase tracking-wider font-bold shrink-0">
                       {item.type}
                     </span>
                   </button>
                 ))
               ) : (
-                <div className="p-8 text-center text-white/60">
+                <div className="p-8 text-center text-white/85">
                   No results found for &ldquo;{query}&rdquo;
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div className="p-3 border-t border-white/10 text-[10px] text-white/60 flex justify-between items-center bg-brand-navy">
+            <div className="p-3 border-t border-white/10 text-[10px] text-white/85 flex justify-between items-center bg-brand-navy">
               <span>Search anything on {school.name || PRODUCT_NAME}</span>
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white/60 font-mono">⌘</kbd>
+                <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white/85 font-mono">⌘</kbd>
                 <span>+</span>
-                <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white/60 font-mono">K</kbd>
+                <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white/85 font-mono">K</kbd>
                 <span className="ml-1">to open</span>
               </span>
             </div>

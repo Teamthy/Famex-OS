@@ -53,7 +53,7 @@ export default function TestResultsPage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               TEST <span className="text-brand-green">RESULTS</span>
             </h1>
-            <p className="mt-3 max-w-2xl text-sm text-white/65">
+            <p className="mt-3 max-w-2xl text-sm text-white/85">
               Released exam results and submission counts across your classes.
             </p>
           </div>

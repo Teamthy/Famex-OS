@@ -142,7 +142,7 @@ export default function StaffPage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               STAFF <span className="text-brand-green">ACCOUNTS</span>
             </h1>
-            <p className="mt-3 text-sm text-white/65">
+            <p className="mt-3 text-sm text-white/85">
               Staff accounts are created only by school administration. There is no staff
               self-registration. Use an invitation link or create an account with a one-time
               temporary password.

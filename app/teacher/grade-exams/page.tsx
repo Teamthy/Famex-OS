@@ -58,7 +58,7 @@ export default function GradeExamsPage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               GRADE <span className="text-brand-green">EXAMS</span>
             </h1>
-            <p className="mt-3 max-w-2xl text-sm text-white/65">
+            <p className="mt-3 max-w-2xl text-sm text-white/85">
               Exams with submitted attempts awaiting your review. Open an exam to grade essays /
               fill-ins and release objective scores.
             </p>

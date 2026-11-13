@@ -84,12 +84,9 @@ export default function NotificationCenter({
                   <div className="flex items-center justify-between mt-2">
                     <span className="font-body text-[10px] text-[var(--text-muted)]">{n.time}</span>
                     {n.action && (
-                      <a
-                        href="#"
-                        className="font-body text-[10px] font-bold text-brand-green hover:text-famex-forest-mid uppercase tracking-wide"
-                      >
+                      <span className="font-body text-[10px] font-bold text-brand-green uppercase tracking-wide">
                         {n.action}
-                      </a>
+                      </span>
                     )}
                   </div>
                 </div>

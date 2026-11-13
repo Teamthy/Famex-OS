@@ -1,100 +1,70 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { Reveal } from "@/components/Reveal";
+import GalleryGrid, { type GalleryImage } from "@/components/GalleryGrid";
 
-import { AnimatedText } from "@/components/AnimatedText";
+const IMAGES: GalleryImage[] = [
+  {
+    src: "/home/college-classroom.jpg",
+    alt: "Students learning together in a classroom",
+    caption: "Learning together",
+    category: "Academics",
+  },
+  {
+    src: "/home/leadership.jpg",
+    alt: "Students working together on a school activity",
+    caption: "Student leadership",
+    category: "Community",
+  },
+  {
+    src: "/home/college-assembly.jpg",
+    alt: "Students gathered for a school assembly",
+    caption: "School assembly",
+    category: "School life",
+  },
+  {
+    src: "/home/college-sports.jpg",
+    alt: "Students taking part in sport on the school field",
+    caption: "On the field",
+    category: "Sport",
+  },
+  {
+    src: "/home/arts.jpg",
+    alt: "Students taking part in a creative arts activity",
+    caption: "Creative learning",
+    category: "Arts",
+  },
+  {
+    src: "/home/college-itlab.jpg",
+    alt: "Students learning with computers in the ICT lab",
+    caption: "Digital discovery",
+    category: "Technology",
+  },
+];
+
 export default function GalleryPage() {
-  const images = [
-    {
-      src: "/home/students-class.jpg",
-      caption: "Classroom Learning",
-      category: "Academics",
-    },
-    {
-      src: "/home/leadership.jpg",
-      caption: "Student Collaboration",
-      category: "Campus Life",
-    },
-    {
-      src: "/home/students-class.jpg",
-      caption: "Modern Facilities",
-      category: "Campus",
-    },
-    {
-      src: "/home/sports.jpg",
-      caption: "Sports Day",
-      category: "Sports",
-    },
-    {
-      src: "/home/arts.jpg",
-      caption: "Arts & Music",
-      category: "Arts",
-    },
-    {
-      src: "/it-hub-classroom.jpg",
-      caption: "STEM Club",
-      category: "Academics",
-    },
-  ];
-
   return (
     <>
       <Header />
-      <main className="bg-[var(--bg-primary)] min-h-screen theme-transition">
-        {/* Hero */}
-        <Reveal>
-          <section className="relative w-full bg-[var(--bg-primary)] pt-32 pb-12 md:pt-40 md:pb-16">
-            <div className="mx-auto max-w-7xl px-6">
-              <p className="font-body text-xs font-bold tracking-[0.25em] uppercase text-[var(--accent-primary)] mb-4">
-                GALLERY
-              </p>
-              <AnimatedText
-                as="h1"
-                heavy
-                stagger={0.034}
-                className="font-display text-[clamp(3rem,11vw,9.5rem)] leading-[0.82] tracking-[-0.01em] text-[var(--text-primary)] mb-4"
-                text="CAMPUS GALLERY"
-              />
-              <p className="font-body text-base md:text-lg text-[var(--text-secondary)] max-w-xl">
-                A visual journey through our facilities, events, and student life at Famex
-                International Schools.
-              </p>
-            </div>
-          </section>
-        </Reveal>
-
-        {/* Gallery grid */}
-        <Reveal>
-          <section className="w-full bg-[var(--bg-primary)] pb-20 md:pb-32">
-            <div className="mx-auto max-w-7xl px-6">
-              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-                {images.map((img, i) => (
-                  <a
-                    key={i}
-                    href="#"
-                    className="group relative block rounded-[2rem] overflow-hidden aspect-[4/3] shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)] transition-shadow duration-300"
-                  >
-                    <img
-                      src={img.src}
-                      alt={img.caption}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
-                    {/* Always dark overlay for readability of caption */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-brand-navy-dark/80 via-brand-navy-dark/20 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                      <span className="font-body text-[10px] font-bold tracking-[0.2em] uppercase text-brand-green mb-2 block">
-                        {img.category}
-                      </span>
-                      <h3 className="font-display text-xl md:text-2xl tracking-[2px] text-white">
-                        {img.caption}
-                      </h3>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </div>
-          </section>
-        </Reveal>
+      <main className="min-h-screen bg-[var(--bg-primary)]">
+        <section className="px-5 pb-10 pt-16 sm:px-8 sm:pb-14 sm:pt-20 lg:px-12">
+          <div className="mx-auto max-w-[1320px]">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[.22em] text-[#1d4a45]">
+              Moments at Famex
+            </p>
+            <h1 className="max-w-4xl font-display text-[clamp(3rem,9vw,7rem)] uppercase leading-[.9] tracking-[-.02em] text-[#123a35]">
+              A day in <span className="text-[#1d4a45]">school.</span>
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-[#52645f]">
+              Take a closer look at learning, creativity, sport and the everyday moments that make
+              up school life. Select a photograph to view it larger.
+            </p>
+          </div>
+        </section>
+        <section className="px-5 pb-20 sm:px-8 sm:pb-24 lg:px-12">
+          <div className="mx-auto max-w-[1320px]">
+            <GalleryGrid images={IMAGES} />
+          </div>
+        </section>
       </main>
       <Footer />
     </>

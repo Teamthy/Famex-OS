@@ -137,7 +137,7 @@ export default function AdminDashboardPage() {
               ADMIN <span className="text-brand-green">DASHBOARD</span>
             </h1>
             {data ? (
-              <p className="mt-3 text-sm text-white/60">
+              <p className="mt-3 text-sm text-white/85">
                 Signed in as {data.admin.name} · {data.admin.role}
                 {data.stats.attendanceRateToday !== null
                   ? ` — Today's attendance: ${data.stats.attendanceRateToday}% present (${data.stats.presentToday}/${data.stats.attendanceMarkedToday} marked)`

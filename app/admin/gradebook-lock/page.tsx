@@ -163,7 +163,7 @@ export default function AdminGradebookLockPage() {
                 <ShieldCheck size={11} /> Results governance
               </span>
               {generation ? (
-                <span className="text-xs text-white/45">
+                <span className="text-xs text-white/85">
                   {generation.sessionLabel} · {generation.termLabel}
                 </span>
               ) : null}
@@ -176,7 +176,7 @@ export default function AdminGradebookLockPage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
               GRADEBOOK <span className="text-brand-green">LOCK & RESULTS</span>
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               Lock submitted gradebooks to freeze scores, then generate draft report cards per class
               once every subject is locked.
             </p>

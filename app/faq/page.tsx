@@ -115,7 +115,7 @@ export default function FAQPage() {
                   <AnimatedText heavy stagger={0.034} text="ASKED" delay={0.25} />
                 </span>
               </h1>
-              <p className="text-white/60 mt-6 max-w-2xl mx-auto">
+              <p className="text-white/85 mt-6 max-w-2xl mx-auto">
                 Quick answers to the most common questions about Famex International Schools —
                 admissions, fees, academics, and our EduPortal.
               </p>

@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Menu, X, Sun, Moon, ChevronDown } from "lucide-react";
-import { useTheme } from "./ThemeProvider";
+import { Menu, X, ChevronDown } from "lucide-react";
 import { useSchoolProfile } from "./SchoolProfileContext";
 import LiveClock from "./LiveClock";
 import dynamic from "next/dynamic";
@@ -61,7 +60,6 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const { resolvedTheme, toggleTheme } = useTheme();
   // F0-21: the school name in the chrome is a brand token, never a literal.
   const schoolName = useSchoolProfile().name || "School";
 
@@ -73,9 +71,9 @@ export default function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled ? "bg-[var(--nav-bg-scrolled)] backdrop-blur-md border-b border-[var(--nav-border)] shadow-sm" : "bg-[var(--nav-bg)] border-b border-transparent"}`}
+      className={`sticky top-0 z-50 w-full bg-[var(--bg-primary)] transition-all duration-300 ${scrolled ? "py-1.5" : "py-2.5"}`}
     >
-      <nav className="mx-auto flex w-full items-center justify-between gap-4 px-6 py-3 md:px-10">
+      <nav className="mx-auto flex w-[calc(100%-1.5rem)] max-w-[1480px] items-center justify-between gap-4 rounded-full bg-[#f6f4ea] px-4 py-2.5 shadow-[0_12px_35px_rgba(4,27,18,.10)] md:w-[calc(100%-2.5rem)] md:px-6">
         <Link href="/" className="shrink-0 flex items-center gap-3">
           <Image
             src="/logo.png"
@@ -92,7 +90,7 @@ export default function Header() {
           </div>
         </Link>
 
-        <ul className="hidden lg:flex items-center gap-4 xl:gap-5">
+        <ul className="hidden 2xl:flex items-center gap-4 xl:gap-5">
           {navLinks.map((link) => (
             <li
               key={link.href}
@@ -115,14 +113,14 @@ export default function Header() {
                       style={{ zIndex: 60 }}
                     >
                       <div
-                        className="w-56 rounded-2xl overflow-hidden shadow-2xl border border-white/10"
+                        className="w-56 rounded-2xl overflow-hidden shadow-2xl"
                         style={{ backgroundColor: "#0C1824" }}
                       >
                         {link.dropdown.map((item) => (
                           <Link
                             key={item.href}
                             href={item.href}
-                            className="block px-5 py-3 font-body text-sm text-white hover:bg-famex-lime/10 hover:text-brand-green transition-colors"
+                            className="block px-5 py-3 font-body text-sm text-white transition-colors hover:bg-white/10 hover:text-[#c9ff45]"
                           >
                             {item.label}
                           </Link>
@@ -150,24 +148,16 @@ export default function Header() {
           <CommandSearch />
           <NotificationBell />
 
-          <button
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
-            className="p-2 rounded-full text-[var(--nav-text)] hover:bg-[var(--surface-card-hover)] hover:text-[var(--nav-text-active)] transition-all"
-          >
-            {resolvedTheme === "light" ? <Moon size={18} /> : <Sun size={18} />}
-          </button>
-
           <Link
             href="/admissions"
-            className="hidden md:inline-flex items-center justify-center rounded-full px-4 py-2 font-body text-[10px] font-bold tracking-[0.15em] uppercase transition-all hover:scale-[1.03] bg-[var(--btn-secondary-bg)] text-[var(--btn-secondary-text)] hover:bg-[var(--btn-secondary-bg-hover)] shadow-[var(--btn-secondary-shadow)] whitespace-nowrap"
+            className="hidden md:inline-flex items-center justify-center rounded-full bg-[#b6e618] px-4 py-2 font-body text-[10px] font-bold tracking-[0.15em] uppercase text-[#123a35] shadow-sm transition-all hover:scale-[1.03] hover:bg-[#c8ee53] whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123a35]"
           >
             Apply Now
           </Link>
 
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden p-2 text-[var(--nav-text)]"
+            className="2xl:hidden p-2 text-[var(--nav-text)]"
             aria-label="Menu"
           >
             {mobileOpen ? <X size={24} /> : <Menu size={24} />}
@@ -176,8 +166,8 @@ export default function Header() {
       </nav>
 
       {mobileOpen && (
-        <div className="anim-slide-down lg:hidden overflow-hidden bg-[var(--nav-mobile-bg)] border-t border-[var(--nav-border)]">
-          <div className="flex flex-col px-6 py-6 gap-3">
+        <div className="anim-slide-down 2xl:hidden mx-auto mt-2 w-[calc(100%-1.5rem)] max-w-[1480px] overflow-hidden rounded-[22px] bg-[#f6f4ea] shadow-[0_16px_40px_rgba(4,27,18,.15)]">
+          <div className="flex flex-col gap-1 p-3 sm:p-4">
             {navLinks.map((link) => (
               <div key={link.href}>
                 <Link
@@ -194,7 +184,7 @@ export default function Header() {
                         key={item.href}
                         href={item.href}
                         onClick={() => setMobileOpen(false)}
-                        className="font-body text-sm text-[var(--text-muted)] hover:text-[var(--accent-primary)] py-1 block"
+                        className="font-body text-sm text-[#52645f] hover:text-[#123a35] py-1 block"
                       >
                         — {item.label}
                       </Link>
@@ -206,7 +196,7 @@ export default function Header() {
             <Link
               href="/admissions"
               onClick={() => setMobileOpen(false)}
-              className="mt-4 inline-flex items-center justify-center rounded-full px-6 py-3 font-body text-sm font-bold tracking-widest uppercase bg-[var(--btn-secondary-bg)] text-[var(--btn-secondary-text)] shadow-[var(--btn-secondary-shadow)]"
+              className="mt-4 inline-flex items-center justify-center rounded-full bg-[#b6e618] px-6 py-3 font-body text-sm font-bold tracking-widest uppercase text-[#123a35] shadow-sm transition hover:bg-[#c8ee53] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123a35]"
             >
               Apply Now
             </Link>

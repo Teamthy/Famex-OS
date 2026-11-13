@@ -143,7 +143,7 @@ export default function AdminReportCardsPage() {
             <h1 className="font-display text-[42px] md:text-[72px] text-white">
               REPORT <span className="text-brand-green">CARDS</span>
             </h1>
-            <p className="mt-4 font-body text-white/50">
+            <p className="mt-4 font-body text-white/85">
               Live report-card registry, release workflow, and preview.
             </p>
           </div>

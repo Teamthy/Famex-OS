@@ -1120,7 +1120,7 @@ function PaymentStep({
             <p className="font-display text-4xl tracking-[0.05em]">
               {currency(APPLICATION_FEE_NAIRA)}
             </p>
-            <p className="mt-2 text-sm leading-6 text-white/70">
+            <p className="mt-2 text-sm leading-6 text-white/85">
               A non-refundable fee that covers application processing.
             </p>
           </div>

@@ -82,7 +82,7 @@ export default function DownloadForOffline({ role }: { role: string }) {
   return (
     <button
       onClick={downloadAll}
-      className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs font-bold hover:bg-white/10 transition-colors"
+      className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/85 text-xs font-bold hover:bg-white/10 transition-colors"
     >
       <CloudOff size={14} /> Download for offline
     </button>

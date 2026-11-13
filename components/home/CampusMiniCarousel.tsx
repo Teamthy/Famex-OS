@@ -27,9 +27,7 @@ export default function CampusMiniCarousel({
               decoding="async"
               className="h-32 w-full object-cover transition duration-500 hover:scale-[1.04]"
             />
-            <figcaption className="mt-1.5 text-[11px] text-[var(--famex-page-bg)]/70">
-              {photo.caption}
-            </figcaption>
+            <figcaption className="mt-1.5 text-[11px] text-white/85">{photo.caption}</figcaption>
           </figure>
         ))}
       </div>
@@ -38,7 +36,7 @@ export default function CampusMiniCarousel({
           type="button"
           onClick={() => setStart((s) => (s - 1 + photos.length) % photos.length)}
           aria-label="Previous campus photographs"
-          className="grid h-8 w-8 place-items-center rounded-full border border-[var(--famex-page-bg)]/25 text-[var(--famex-page-bg)] transition hover:bg-[var(--famex-page-bg)] hover:text-[var(--famex-primary)]"
+          className="grid h-8 w-8 place-items-center rounded-full border border-white/25 text-white transition hover:border-[var(--home-lime)] hover:bg-[var(--home-lime)] hover:text-[var(--home-dark)]"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </button>
@@ -46,7 +44,7 @@ export default function CampusMiniCarousel({
           type="button"
           onClick={() => setStart((s) => (s + 1) % photos.length)}
           aria-label="Next campus photographs"
-          className="grid h-8 w-8 place-items-center rounded-full border border-[var(--famex-page-bg)]/25 text-[var(--famex-page-bg)] transition hover:bg-[var(--famex-page-bg)] hover:text-[var(--famex-primary)]"
+          className="grid h-8 w-8 place-items-center rounded-full border border-white/25 text-white transition hover:border-[var(--home-lime)] hover:bg-[var(--home-lime)] hover:text-[var(--home-dark)]"
         >
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </button>

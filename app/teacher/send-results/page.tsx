@@ -197,7 +197,7 @@ export default function SendResultsPage() {
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
               SEND RESULTS <span className="text-brand-green">TO PARENTS</span>
             </h1>
-            <p className="text-white/60 text-sm">
+            <p className="text-white/85 text-sm">
               Broadcast student results via SMS, WhatsApp, or Email with delivery tracking.
             </p>
           </div>
@@ -558,7 +558,7 @@ export default function SendResultsPage() {
                           <Eye size={12} /> Preview (for {selectedRecipients[0].studentName})
                         </label>
                         <div className="p-4 rounded-xl bg-gradient-to-br from-brand-navy to-brand-navy-light text-white">
-                          <div className="flex items-center gap-2 text-[10px] text-white/60 mb-3 uppercase tracking-widest">
+                          <div className="flex items-center gap-2 text-[10px] text-white/85 mb-3 uppercase tracking-widest">
                             <MessageCircle size={11} /> WhatsApp Preview
                           </div>
                           <p className="text-sm leading-relaxed">

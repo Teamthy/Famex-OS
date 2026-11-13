@@ -77,7 +77,7 @@ export default function AdminInventoryPage() {
               OPERATIONS · MODULE M
             </p>
             <h1 className="mt-2 font-display text-4xl tracking-widest">INVENTORY &amp; ASSETS</h1>
-            <p className="mt-2 text-sm text-white/60">
+            <p className="mt-2 text-sm text-white/85">
               Track school property, assignment and condition.
             </p>
           </div>

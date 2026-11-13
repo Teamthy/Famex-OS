@@ -233,7 +233,7 @@ export default function PromotionPage() {
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
               STUDENT <span className="text-brand-orange">PROMOTION</span>
             </h1>
-            <p className="text-white/60 text-sm">
+            <p className="text-white/85 text-sm">
               Review every student before committing. This cannot be undone.
             </p>
           </div>

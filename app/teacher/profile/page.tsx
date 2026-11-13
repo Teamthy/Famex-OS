@@ -71,7 +71,7 @@ export default function TeacherProfilePage() {
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
               MY PROFILE
             </h1>
-            <p className="text-white/60 text-sm">
+            <p className="text-white/85 text-sm">
               Manage your personal information and account settings.
             </p>
           </div>

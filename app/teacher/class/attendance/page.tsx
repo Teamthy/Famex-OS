@@ -325,13 +325,13 @@ export default function ClassAttendancePage() {
                 <Calendar size={11} /> Teacher attendance workflow
               </span>
               {register?.selectedClass ? (
-                <span className="text-xs text-white/45">{register.selectedClass.displayName}</span>
+                <span className="text-xs text-white/85">{register.selectedClass.displayName}</span>
               ) : null}
             </div>
             <h1 className="font-display text-4xl tracking-widest text-white md:text-5xl">
               ATTENDANCE <span className="text-brand-orange">REGISTER</span>
             </h1>
-            <p className="mt-2 max-w-3xl text-sm text-white/65">
+            <p className="mt-2 max-w-3xl text-sm text-white/85">
               Live class attendance register backed by the database. Save progress while marking or
               submit to lock the register and queue parent attendance alerts.
             </p>

@@ -1,120 +1,88 @@
-﻿import Header from "@/components/Header";
+import Link from "next/link";
+import { ArrowRight, BookOpen, HeartHandshake, UsersRound } from "lucide-react";
+import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { Reveal } from "@/components/Reveal";
-import { Briefcase, MapPin, Clock, Mail } from "lucide-react";
+import { getSchoolBrandTokens } from "@/lib/brand";
 
-import { AnimatedText } from "@/components/AnimatedText";
-const OPENINGS = [
+const VALUES = [
   {
-    title: "Mathematics Teacher",
-    type: "Full-time",
-    location: "On campus",
-    posted: "5 days ago",
-    desc: "Teaching JSS/SS Mathematics. B.Ed or equivalent required. 3+ years experience preferred.",
+    icon: BookOpen,
+    title: "Learning first",
+    copy: "Help learners build knowledge, confidence and the habits to keep growing.",
   },
   {
-    title: "Chemistry Teacher",
-    type: "Full-time",
-    location: "On campus",
-    posted: "1 week ago",
-    desc: "Teaching SS Chemistry. Must be able to conduct lab practicals. WAEC/NECO examiner experience is a plus.",
+    icon: HeartHandshake,
+    title: "Care with purpose",
+    copy: "Contribute to a respectful, supportive environment for children and families.",
   },
   {
-    title: "IT Support Officer",
-    type: "Full-time",
-    location: "On campus",
-    posted: "3 days ago",
-    desc: "Manage school IT infrastructure, EduPortal support, and computer lab operations. Diploma/Degree in IT.",
-  },
-  {
-    title: "School Nurse",
-    type: "Part-time",
-    location: "On campus",
-    posted: "2 weeks ago",
-    desc: "Certified nurse to manage sick bay, health records, and first-aid. Registered with the Nursing Council of Nigeria.",
+    icon: UsersRound,
+    title: "One school community",
+    copy: "Work alongside educators and school teams who make each day possible.",
   },
 ];
 
 export default function CareersPage() {
+  const { schoolName } = getSchoolBrandTokens();
+
   return (
     <>
       <Header />
-      <main className="bg-[var(--bg-primary)] min-h-screen theme-transition">
-        <Reveal>
-          <section className="pt-32 pb-16 bg-brand-navy px-6">
-            <div className="mx-auto max-w-4xl text-center">
-              <span className="text-brand-green text-xs font-bold tracking-widest uppercase mb-4 block">
-                Join Our Team
-              </span>
-              <h1 className="font-display text-white leading-[0.82] text-[clamp(3rem,11vw,9.5rem)]">
-                <AnimatedText heavy stagger={0.034} text="CAREERS" delay={0.0} />
-                <span className="text-brand-green">
-                  <AnimatedText heavy stagger={0.034} text="AT FIS" delay={0.175} />
-                </span>
-              </h1>
-              <p className="text-white/60 mt-6 max-w-2xl mx-auto">
-                Build your career at one of Nigeria's most innovative schools. We hire passionate
-                educators and support staff who share our vision.
-              </p>
+      <main className="min-h-screen bg-[var(--bg-primary)]">
+        <section className="px-5 pb-12 pt-16 sm:px-8 sm:pb-16 sm:pt-20 lg:px-12">
+          <div className="mx-auto max-w-[1320px]">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[.22em] text-[#1d4a45]">
+              Work with purpose
+            </p>
+            <h1 className="max-w-5xl font-display text-[clamp(3rem,9vw,7rem)] uppercase leading-[.9] tracking-[-.02em] text-[#123a35]">
+              Careers at <span className="text-[#1d4a45]">{schoolName}.</span>
+            </h1>
+            <p className="mt-6 max-w-2xl text-base leading-7 text-[#52645f]">
+              A school is built by people who care about learning and the young people in their
+              care. If that sounds like you, get in touch with our school office to ask about
+              current opportunities.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href="/contact"
+                className="inline-flex items-center gap-2 rounded-full bg-[#123a35] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#1d4a45] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123a35]"
+              >
+                Ask about opportunities <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+              <Link
+                href="/staff-directory"
+                className="inline-flex items-center gap-2 rounded-full bg-[#e9eee3] px-6 py-3.5 text-sm font-bold text-[#123a35] transition hover:bg-[#dce7d5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123a35]"
+              >
+                Meet the school team <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
             </div>
-          </section>
-        </Reveal>
+          </div>
+        </section>
 
-        <Reveal>
-          <section className="py-20 px-6">
-            <div className="mx-auto max-w-4xl space-y-4">
-              <h2 className="font-display text-2xl text-brand-green tracking-widest mb-6">
-                <AnimatedText text={`Current Openings (${OPENINGS.length})`} />
-              </h2>
-              {OPENINGS.map((job, i) => (
-                <div
-                  key={i}
-                  className="p-8 rounded-[2rem] bg-[var(--surface-card)] border border-[var(--border-subtle)] shadow-[var(--card-shadow)] hover:border-brand-green/30 transition-all"
+        <section className="px-5 pb-20 sm:px-8 sm:pb-24 lg:px-12">
+          <div className="mx-auto max-w-[1320px]">
+            <div className="grid gap-4 md:grid-cols-3">
+              {VALUES.map(({ icon: Icon, title, copy }) => (
+                <article
+                  key={title}
+                  className="rounded-[24px] bg-white p-7 shadow-[var(--card-shadow)] sm:p-8"
                 >
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div>
-                      <h3 className="font-display text-2xl text-[var(--text-primary)] mb-2">
-                        {job.title}
-                      </h3>
-                      <div className="flex flex-wrap gap-4 text-xs text-[var(--text-muted)]">
-                        <span className="flex items-center gap-1">
-                          <Briefcase size={12} /> {job.type}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin size={12} /> {job.location}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock size={12} /> {job.posted}
-                        </span>
-                      </div>
-                    </div>
-                    <a
-                      href={`mailto:careers@ykaycollege.com?subject=Application: ${job.title}`}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-famex-lime text-brand-navy text-sm font-bold uppercase tracking-widest hover:bg-famex-lime-soft transition-all shadow-lg shrink-0"
-                    >
-                      Apply
-                    </a>
+                  <div className="mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-[#e9eee3] text-[#123a35]">
+                    <Icon className="h-5 w-5" aria-hidden="true" />
                   </div>
-                  <p className="text-sm text-[var(--text-secondary)]">{job.desc}</p>
-                </div>
+                  <h2 className="font-display text-2xl uppercase leading-none text-[#123a35]">
+                    {title}
+                  </h2>
+                  <p className="mt-3 text-sm leading-6 text-[#52645f]">{copy}</p>
+                </article>
               ))}
-
-              <div className="mt-12 p-8 rounded-[2rem] bg-gradient-to-br from-brand-navy to-brand-navy-light text-white text-center">
-                <Mail className="mx-auto text-brand-green mb-4" size={32} />
-                <h3 className="font-display text-2xl mb-2">Don't see your role?</h3>
-                <p className="text-white/60 text-sm mb-6">
-                  We're always interested in exceptional talent. Send us your CV.
-                </p>
-                <a
-                  href="mailto:careers@ykaycollege.com"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-brand-orange text-brand-navy font-bold text-sm hover:bg-brand-orange-dark transition-all"
-                >
-                  careers@ykaycollege.com
-                </a>
-              </div>
             </div>
-          </section>
-        </Reveal>
+            <p className="mt-6 rounded-2xl bg-[#e9eee3] p-5 text-sm leading-6 text-[#123a35]">
+              To keep this page accurate, vacancies are shared by the school office rather than
+              shown as unverified listings. Please use the contact form for current information.
+            </p>
+          </div>
+        </section>
       </main>
       <Footer />
     </>

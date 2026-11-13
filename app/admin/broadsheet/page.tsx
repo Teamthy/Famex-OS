@@ -75,7 +75,7 @@ export default function AdminBroadsheetPage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
               CLASS <span className="text-brand-green">BROADSHEET</span>
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               One-page academic summary per class — every student, every subject, ranked by average.
               Print or save as PDF for records and NEMIS submissions.
             </p>
@@ -148,24 +148,24 @@ export default function AdminBroadsheetPage() {
                       <table className="w-full text-xs">
                         <thead className="bg-brand-navy">
                           <tr>
-                            <th className="px-3 py-3 text-left font-display text-[9px] uppercase tracking-wider text-white/70">
+                            <th className="px-3 py-3 text-left font-display text-[9px] uppercase tracking-wider text-white/85">
                               #
                             </th>
-                            <th className="px-3 py-3 text-left font-display text-[9px] uppercase tracking-wider text-white/70">
+                            <th className="px-3 py-3 text-left font-display text-[9px] uppercase tracking-wider text-white/85">
                               Student
                             </th>
                             {sheet.subjectNames.map((subject) => (
                               <th
                                 key={subject}
-                                className="px-2 py-3 text-center font-display text-[9px] uppercase tracking-wider text-white/70"
+                                className="px-2 py-3 text-center font-display text-[9px] uppercase tracking-wider text-white/85"
                               >
                                 {subject.length > 12 ? `${subject.slice(0, 11)}…` : subject}
                               </th>
                             ))}
-                            <th className="px-3 py-3 text-center font-display text-[9px] uppercase tracking-wider text-white/70">
+                            <th className="px-3 py-3 text-center font-display text-[9px] uppercase tracking-wider text-white/85">
                               Avg
                             </th>
-                            <th className="px-3 py-3 text-center font-display text-[9px] uppercase tracking-wider text-white/70">
+                            <th className="px-3 py-3 text-center font-display text-[9px] uppercase tracking-wider text-white/85">
                               Grade
                             </th>
                           </tr>

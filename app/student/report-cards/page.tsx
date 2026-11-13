@@ -169,7 +169,7 @@ export default function StudentReportCardsPage() {
             <h1 className="font-display text-[42px] tracking-[3px] text-white md:text-[64px]">
               MY <span className="text-brand-green">REPORT CARD</span>
             </h1>
-            <p className="mt-3 max-w-2xl text-base text-white/60">
+            <p className="mt-3 max-w-2xl text-base text-white/85">
               View, review, and print your live term report cards.
             </p>
           </div>

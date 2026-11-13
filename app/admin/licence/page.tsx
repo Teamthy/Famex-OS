@@ -168,7 +168,7 @@ export default function LicencePage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
               LICENCE <span className="text-brand-green">& USAGE</span>
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               One licence for one school. See which modules this school uses and how much of its
               allowance it has consumed — no vendor call needed to know what you are paying for.
             </p>

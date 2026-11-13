@@ -107,7 +107,7 @@ export default function CompletenessPage() {
               Student records
             </p>
             <h1 className="mt-1 font-display text-4xl tracking-widest">PROFILE COMPLETENESS</h1>
-            <p className="mt-3 max-w-2xl text-sm text-white/70">
+            <p className="mt-3 max-w-2xl text-sm text-white/85">
               Which student records are missing what the portal needs. A record that scores well can
               still be unusable if a <strong>critical</strong> field is missing — no guardian phone
               means nobody is told when the child is absent.
@@ -116,7 +116,7 @@ export default function CompletenessPage() {
               <div className="mt-6 flex flex-wrap items-center gap-6">
                 <div>
                   <p className="font-display text-5xl leading-none">{data.schoolScore}%</p>
-                  <p className="mt-1 text-[10px] uppercase tracking-widest text-white/60">
+                  <p className="mt-1 text-[10px] uppercase tracking-widest text-white/85">
                     School average
                   </p>
                 </div>

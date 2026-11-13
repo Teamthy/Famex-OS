@@ -146,7 +146,7 @@ export default function TeacherDashboard() {
                 ? "LOADING…"
                 : `HI, ${(data?.teacher.displayName || "TEACHER").split(" ")[0].toUpperCase()}`}
             </h1>
-            <p className="mt-3 max-w-2xl text-sm text-white/65">
+            <p className="mt-3 max-w-2xl text-sm text-white/85">
               {data?.teacher.isFormTeacher && data?.teacher.isSubjectTeacher
                 ? "You teach subjects and own a form class — tools for both are below."
                 : data?.teacher.isFormTeacher

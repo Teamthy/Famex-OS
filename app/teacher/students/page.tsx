@@ -214,7 +214,7 @@ export default function TeacherStudentsPage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               MY <span className="text-brand-green">STUDENTS</span>
             </h1>
-            <p className="mt-3 max-w-2xl text-sm text-white/65">
+            <p className="mt-3 max-w-2xl text-sm text-white/85">
               {teacher.isFormTeacher
                 ? "Form teachers can enrol learners into their class and see entrance-pass suggestions."
                 : "Subject teachers see every learner across assigned classes. Enrolment is limited to form teachers and admins."}

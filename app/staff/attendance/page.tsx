@@ -95,7 +95,7 @@ export default function StaffSelfAttendancePage() {
           <h1 className="mt-2 font-display text-4xl tracking-widest">
             MY <span className="text-brand-green">ATTENDANCE</span>
           </h1>
-          <p className="mt-3 text-sm text-white/65">
+          <p className="mt-3 text-sm text-white/85">
             Check in / out here, or present your badge QR at the admin scanner. Late after{" "}
             {data?.lateCutoff || "08:00"}.
           </p>

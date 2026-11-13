@@ -181,7 +181,7 @@ export default function ParentReportCardsPage() {
             <h1 className="font-display text-[42px] tracking-[3px] text-white md:text-[64px]">
               REPORT <span className="text-brand-green">CARDS</span>
             </h1>
-            <p className="mt-3 max-w-2xl text-base text-white/60">
+            <p className="mt-3 max-w-2xl text-base text-white/85">
               Live access to your child&apos;s released term report cards.
             </p>
           </div>

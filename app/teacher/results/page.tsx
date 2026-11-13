@@ -168,7 +168,7 @@ export default function TeacherResultsPage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               TERM <span className="text-brand-green">RESULTS</span>
             </h1>
-            <p className="mt-3 max-w-2xl text-sm text-white/65">
+            <p className="mt-3 max-w-2xl text-sm text-white/85">
               Correct the marks you are responsible for, and see each student&apos;s total, position
               and year average update straight away. Marks are locked once the school releases the
               term.

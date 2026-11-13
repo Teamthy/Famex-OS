@@ -131,7 +131,7 @@ export default function NotificationSettingsPage() {
             <h1 className="mt-3 font-display text-4xl tracking-widest text-white md:text-6xl">
               NOTIFICATION <span className="text-brand-green">SETTINGS</span>
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               Choose what Famex International Schools may contact you about. These settings apply to
               both push notifications on the mobile app and email.
             </p>

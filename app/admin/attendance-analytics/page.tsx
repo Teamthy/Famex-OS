@@ -175,7 +175,7 @@ export default function AdminAttendanceAnalyticsPage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-5xl">
               ATTENDANCE <span className="text-brand-green">ANALYTICS</span>
             </h1>
-            <p className="mt-2 max-w-3xl text-sm text-white/65">
+            <p className="mt-2 max-w-3xl text-sm text-white/85">
               School-wide attendance intelligence for leadership: live session coverage, class
               performance, alert queue pressure, and correction oversight.
             </p>

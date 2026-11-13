@@ -255,21 +255,21 @@ export default function StudentExamsPage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
               MY <span className="text-brand-green">EXAMS</span>
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               Sit a published paper for your class, submit, and get your score. Search by subject or
               title. Your answers save automatically, and the timer submits when time runs out.
             </p>
             <label className="relative mt-6 block max-w-md">
               <Search
                 size={14}
-                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/85"
               />
               <input
                 type="search"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search by subject or paper title…"
-                className="w-full rounded-full border border-white/15 bg-white/10 py-3 pl-10 pr-4 text-sm text-white outline-none placeholder:text-white/40 focus:border-brand-green"
+                className="w-full rounded-full border border-white/15 bg-white/10 py-3 pl-10 pr-4 text-sm text-white outline-none placeholder:text-white/85 focus:border-brand-green"
               />
             </label>
           </div>

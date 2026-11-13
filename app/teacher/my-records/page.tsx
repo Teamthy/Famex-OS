@@ -104,7 +104,7 @@ export default function MyRecordsPage() {
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
               MY <span className="text-brand-green">RECORDS</span>
             </h1>
-            <p className="text-white/60 text-sm">
+            <p className="text-white/85 text-sm">
               Complete history of your actions and submissions.
             </p>
           </div>

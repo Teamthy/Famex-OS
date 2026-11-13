@@ -73,12 +73,12 @@ export default function LiveReportCardPreview({
             <h2 className="mt-3 font-display text-4xl tracking-[0.12em]">
               FAMEX INTERNATIONAL SCHOOLS
             </h2>
-            <p className="mt-2 text-sm text-white/60">
+            <p className="mt-2 text-sm text-white/85">
               {sessionLabel} · {termLabel} · {reportNumber}
             </p>
           </div>
           <div className="text-right">
-            <div className="text-[10px] uppercase tracking-[0.18em] text-white/50">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-white/85">
               Overall Performance
             </div>
             <div className="mt-2 font-display text-5xl text-brand-green">{overallAverage}%</div>

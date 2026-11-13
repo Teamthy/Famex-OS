@@ -99,7 +99,7 @@ export default function AdminLibraryPage() {
               OPERATIONS · MODULE M
             </p>
             <h1 className="mt-2 font-display text-4xl tracking-widest">LIBRARY CATALOGUE</h1>
-            <p className="mt-2 text-sm text-white/60">Books, copies, loans and overdue tracking.</p>
+            <p className="mt-2 text-sm text-white/85">Books, copies, loans and overdue tracking.</p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-4">

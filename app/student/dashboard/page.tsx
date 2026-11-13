@@ -167,7 +167,7 @@ export default function StudentDashboardPage() {
                 <h1 className="font-display text-4xl md:text-5xl text-white tracking-widest">
                   {greeting}
                 </h1>
-                <p className="text-white/60 text-sm mt-2">Welcome back to your dashboard</p>
+                <p className="text-white/85 text-sm mt-2">Welcome back to your dashboard</p>
               </div>
               <div className="flex gap-3">
                 {heroStats.map((stat) => (
@@ -176,7 +176,7 @@ export default function StudentDashboardPage() {
                     className="p-3 rounded-xl bg-white/5 border border-white/10 text-center min-w-[80px]"
                   >
                     <div className={`font-display text-sm ${stat.color} mb-0.5`}>{stat.value}</div>
-                    <div className="text-[9px] text-white/60 uppercase tracking-widest">
+                    <div className="text-[9px] text-white/85 uppercase tracking-widest">
                       {stat.label}
                     </div>
                   </div>
@@ -193,7 +193,7 @@ export default function StudentDashboardPage() {
                   <div className="font-bold text-white text-lg">
                     {data.student.displayName.toUpperCase()}
                   </div>
-                  <div className="text-xs text-white/60">
+                  <div className="text-xs text-white/85">
                     {data.student.studentId} · {data.student.className}
                   </div>
                 </div>

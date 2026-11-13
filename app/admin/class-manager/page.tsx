@@ -306,7 +306,7 @@ export default function AdminClassManagerPage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
               TEACHER &amp; CLASS <span className="text-brand-green">MANAGER</span>
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               Class list with live rosters — change form teachers, move students between arms, and
               archive or restore student records.
             </p>

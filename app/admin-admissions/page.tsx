@@ -196,7 +196,7 @@ export default function AdminAdmissionsPage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               ADMISSIONS <span className="text-brand-green">QUEUE</span>
             </h1>
-            <p className="mt-3 max-w-3xl text-sm text-white/65">
+            <p className="mt-3 max-w-3xl text-sm text-white/85">
               Review paid applications, record entrance results, and place successful applicants
               into the class they applied for — with one-time parent credentials.
             </p>

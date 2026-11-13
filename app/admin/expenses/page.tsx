@@ -174,7 +174,7 @@ export default function AdminExpensesPage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               EXPENSE <span className="text-brand-green">LEDGER</span>
             </h1>
-            <p className="mt-3 text-sm text-white/65">
+            <p className="mt-3 text-sm text-white/85">
               Record school spending with categories for budget tracking and net-position reporting.
               Spending of ₦100,000 or more waits for a second approver — the person who recorded it
               cannot approve it — and only posts to the ledger on approval.

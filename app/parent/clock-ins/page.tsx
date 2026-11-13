@@ -96,7 +96,7 @@ export default function ParentClockInsPage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
               ARRIVAL &amp; <span className="text-brand-green">DEPARTURE</span>
             </h1>
-            <p className="mt-3 max-w-2xl text-sm text-white/60">
+            <p className="mt-3 max-w-2xl text-sm text-white/85">
               Every GPS clock-in is logged with time, distance from the school centre, and accuracy.
               See when your child arrived and left, and where they were when they tapped in.
             </p>

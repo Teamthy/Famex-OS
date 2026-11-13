@@ -84,7 +84,7 @@ export default function AdminClinicPage() {
               OPERATIONS · MODULE M
             </p>
             <h1 className="mt-2 font-display text-4xl tracking-widest">CLINIC &amp; HEALTH</h1>
-            <p className="mt-2 text-sm text-white/60">
+            <p className="mt-2 text-sm text-white/85">
               Restricted student health records, first-aid visits and medical alerts. Access is
               audited.
             </p>

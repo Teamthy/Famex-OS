@@ -201,7 +201,7 @@ export default function PerformanceRecordsPage() {
                 <BarChart3 size={11} /> Scores
               </span>
               {data ? (
-                <span className="text-xs text-white/45">
+                <span className="text-xs text-white/85">
                   {data.sessionLabel} · {data.termLabel} · {subjectCount} subject
                   {subjectCount === 1 ? "" : "s"}
                 </span>
@@ -210,7 +210,7 @@ export default function PerformanceRecordsPage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
               PERFORMANCE <span className="text-brand-green">RECORDS</span>
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               Every subject you teach this term, in one place. Edit scores in the grid and save each
               subject when you are done.
             </p>

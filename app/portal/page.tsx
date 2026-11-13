@@ -67,7 +67,7 @@ export default function PortalPage() {
                   <AnimatedText heavy stagger={0.034} text="PORTAL" delay={0.1} />
                 </span>
               </h1>
-              <p className="text-white/60 font-body max-w-2xl mx-auto mt-6 text-base md:text-lg">
+              <p className="text-white/85 font-body max-w-2xl mx-auto mt-6 text-base md:text-lg">
                 One digital ecosystem for the whole school community. Choose your portal below and
                 sign in with the credentials issued by your school.
               </p>
@@ -123,12 +123,12 @@ export default function PortalPage() {
               {/* Help strip */}
               <div className="mt-16 p-10 rounded-[2rem] bg-gradient-to-br from-brand-navy to-brand-navy-light border border-white/5 text-center">
                 <h3 className="font-display text-2xl text-white mb-4">Need help signing in?</h3>
-                <p className="font-body text-white/60 max-w-2xl mx-auto mb-6">
+                <p className="font-body text-white/85 max-w-2xl mx-auto mb-6">
                   Staff, student, and parent credentials are issued by the school administration —
                   there is no public sign-up. If you have lost access to your account, use the
                   password reset option or contact the school office.
                 </p>
-                <p className="font-body text-white/60 max-w-2xl mx-auto mb-6">
+                <p className="font-body text-white/85 max-w-2xl mx-auto mb-6">
                   Not yet part of {schoolName}?{" "}
                   <Link href="/admissions" className="font-bold text-brand-orange hover:underline">
                     Apply for admission online

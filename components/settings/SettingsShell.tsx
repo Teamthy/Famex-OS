@@ -40,7 +40,7 @@ export function SettingsShell({
               {title.toUpperCase()}{" "}
               {accent ? <span className="text-brand-green">{accent}</span> : null}
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">{description}</p>
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">{description}</p>
 
             {tabs && tabs.length > 0 && (
               <nav className="mt-6 flex flex-wrap gap-2" aria-label="Settings sections">
@@ -52,7 +52,7 @@ export function SettingsShell({
                     className={`rounded-full border px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest transition-colors ${
                       tab.active
                         ? "border-brand-green bg-famex-lime/20 text-brand-green"
-                        : "border-white/15 text-white/60 hover:border-brand-green/40 hover:text-white"
+                        : "border-white/15 text-white/85 hover:border-brand-green/40 hover:text-white"
                     }`}
                   >
                     {tab.label}

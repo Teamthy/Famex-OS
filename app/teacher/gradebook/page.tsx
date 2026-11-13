@@ -200,7 +200,7 @@ export default function TeacherGradebookPage() {
                 <BookOpen size={11} /> Live gradebook
               </span>
               {data?.gradebook ? (
-                <span className="text-xs text-white/45">
+                <span className="text-xs text-white/85">
                   {data.gradebook.sessionLabel} · {data.gradebook.termLabel}
                 </span>
               ) : null}
@@ -208,7 +208,7 @@ export default function TeacherGradebookPage() {
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
               GRADEBOOK <span className="text-brand-green">& CA SCORES</span>
             </h1>
-            <p className="mt-3 max-w-2xl font-body text-sm text-white/60">
+            <p className="mt-3 max-w-2xl font-body text-sm text-white/85">
               Enter continuous assessment and exam scores. Save while working, then submit for
               administrative lock when the term&apos;s scores are final.
             </p>
@@ -348,22 +348,22 @@ export default function TeacherGradebookPage() {
                       <table className="w-full text-sm">
                         <thead className="bg-brand-navy">
                           <tr>
-                            <th className="px-4 py-3 text-left font-display text-[10px] uppercase tracking-wider text-white/70">
+                            <th className="px-4 py-3 text-left font-display text-[10px] uppercase tracking-wider text-white/85">
                               Student
                             </th>
                             {SCORE_FIELDS.map((field) => (
                               <th
                                 key={field.key}
-                                className="px-4 py-3 text-center font-display text-[10px] uppercase tracking-wider text-white/70"
+                                className="px-4 py-3 text-center font-display text-[10px] uppercase tracking-wider text-white/85"
                               >
                                 {field.label}{" "}
-                                <span className="text-white/40">/{limits[field.key]}</span>
+                                <span className="text-white/85">/{limits[field.key]}</span>
                               </th>
                             ))}
-                            <th className="px-4 py-3 text-center font-display text-[10px] uppercase tracking-wider text-white/70">
+                            <th className="px-4 py-3 text-center font-display text-[10px] uppercase tracking-wider text-white/85">
                               Total
                             </th>
-                            <th className="px-4 py-3 text-center font-display text-[10px] uppercase tracking-wider text-white/70">
+                            <th className="px-4 py-3 text-center font-display text-[10px] uppercase tracking-wider text-white/85">
                               Grade
                             </th>
                           </tr>

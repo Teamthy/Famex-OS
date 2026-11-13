@@ -174,7 +174,7 @@ export default function AdminFeesPage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               FEE <span className="text-brand-green">MANAGEMENT</span>
             </h1>
-            <p className="mt-3 text-sm text-white/65">
+            <p className="mt-3 text-sm text-white/85">
               Live invoices, cash recording, bank-transfer review, and parent fee reminders.
             </p>
           </div>

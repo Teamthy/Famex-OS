@@ -1,7 +1,6 @@
 import localFont from "next/font/local";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { ThemeProvider } from "@/components/ThemeProvider";
 import { ToastProvider } from "@/components/Toast";
 import { SchoolProfileProvider } from "@/components/SchoolProfileContext";
 import { confirmedSchoolAddress } from "@/lib/school-address";
@@ -210,23 +209,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <link rel="icon" href={faviconUrl} type="image/png" />
         <link rel="apple-touch-icon" href={faviconUrl} />
-        {/* ANTI-FLASH: honor saved preference; otherwise use the botanical light default. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-          (function() {
-            try {
-              var saved = localStorage.getItem('famex-theme');
-              // Famex defaults to its clean botanical light workspace; retain an explicit choice.
-              var resolved = (saved === 'dark') ? 'dark' : 'light';
-              document.documentElement.setAttribute('data-theme', resolved);
-            } catch (e) {
-              document.documentElement.setAttribute('data-theme', 'light');
-            }
-          })();
-        `,
-          }}
-        />
         {/* Structured data — tells Google this is a real school (rich results). */}
         <script
           type="application/ld+json"
@@ -258,35 +240,33 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body className="min-h-screen antialiased bg-[var(--bg-primary)] text-[var(--text-primary)] theme-transition">
-        <ThemeProvider>
-          <AuthProvider>
-            <ToastProvider>
-              <AmbientBackdrop />
-              <MotionProvider>
-                <SchoolProfileProvider
-                  value={{
-                    name: schoolName,
-                    address: publicAddress,
-                    phone: school?.phone ?? null,
-                    email: school?.email ?? null,
-                  }}
-                >
-                  <div className="relative z-10">
-                    {databaseDegraded ? <SetupIncompleteBanner /> : null}
-                    {children}
-                  </div>
-                </SchoolProfileProvider>
-              </MotionProvider>
-              <CookieConsent />
-              <WhatsAppFloat />
-              <DemoIndicator />
-              <OfflineIndicator />
-              <InstallPrompt />
-              <RegisterSW />
-              <Analytics />
-            </ToastProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <AmbientBackdrop />
+            <MotionProvider>
+              <SchoolProfileProvider
+                value={{
+                  name: schoolName,
+                  address: publicAddress,
+                  phone: school?.phone ?? null,
+                  email: school?.email ?? null,
+                }}
+              >
+                <div className="relative z-10">
+                  {databaseDegraded ? <SetupIncompleteBanner /> : null}
+                  {children}
+                </div>
+              </SchoolProfileProvider>
+            </MotionProvider>
+            <CookieConsent />
+            <WhatsAppFloat />
+            <DemoIndicator />
+            <OfflineIndicator />
+            <InstallPrompt />
+            <RegisterSW />
+            <Analytics />
+          </ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -218,7 +218,7 @@ export default function AdminStaffAttendancePage() {
             <h1 className="mt-2 font-display text-4xl tracking-widest">
               STAFF <span className="text-brand-green">QR ATTENDANCE</span>
             </h1>
-            <p className="mt-3 max-w-3xl text-sm text-white/65">
+            <p className="mt-3 max-w-3xl text-sm text-white/85">
               Scan staff badges for check-in and check-out. Arrivals after{" "}
               {data?.lateCutoff || "08:00"} (Africa/Lagos) are marked late automatically.
             </p>
@@ -470,7 +470,7 @@ export default function AdminStaffAttendancePage() {
                       <div className="mt-3 font-display text-2xl tracking-wide">
                         {b.displayName}
                       </div>
-                      <div className="mt-1 text-xs text-white/60">
+                      <div className="mt-1 text-xs text-white/85">
                         {b.role.replaceAll("_", " ")} · {b.email}
                       </div>
                       <div className="mt-4 flex items-end justify-between gap-3">

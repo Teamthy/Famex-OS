@@ -66,7 +66,7 @@ export default function ContactPage() {
                   <AnimatedText heavy stagger={0.034} text="US" delay={0.175} />
                 </span>
               </h1>
-              <p className="text-white/50 max-w-md mx-auto mt-4">
+              <p className="text-white/85 max-w-md mx-auto mt-4">
                 We are here to answer your questions and welcome you to our campus.
               </p>
             </div>

@@ -97,7 +97,7 @@ export default function TeachersDirectoryPage() {
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
               MY <span className="text-brand-green">TEACHERS</span>
             </h1>
-            <p className="text-white/60 text-sm">
+            <p className="text-white/85 text-sm">
               Faculty teaching your class{data?.className ? ` (${data.className})` : ""}.
             </p>
           </div>

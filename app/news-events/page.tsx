@@ -49,7 +49,7 @@ export default async function NewsPage() {
                   <AnimatedText heavy stagger={0.034} text="EVENTS" delay={0.15} />
                 </span>
               </h1>
-              <p className="mt-3 max-w-2xl text-sm text-white/65">
+              <p className="mt-3 max-w-2xl text-sm text-white/85">
                 Official updates from Famex International Schools — published by the school
                 communications team.
               </p>

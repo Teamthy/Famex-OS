@@ -134,7 +134,7 @@ export default function StudentProfilePage() {
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
               MY <span className="text-brand-green">PROFILE</span>
             </h1>
-            <p className="text-white/60 text-sm">
+            <p className="text-white/85 text-sm">
               View your information and manage your profile photo.
             </p>
           </div>

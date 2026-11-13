@@ -165,7 +165,7 @@ function Inner() {
               SUBJECT <span className="text-brand-green">SELECTION</span>
             </h1>
             {data ? (
-              <p className="mt-3 font-body text-sm text-white/60">
+              <p className="mt-3 font-body text-sm text-white/85">
                 {data.student.displayName} · {data.student.studentId} · {data.student.className}
               </p>
             ) : null}

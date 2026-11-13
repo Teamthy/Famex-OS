@@ -125,7 +125,7 @@ export default function ExamPracticePage() {
             <h1 className="font-display text-4xl md:text-5xl tracking-widest text-white mb-2">
               EXAM <span className="text-brand-orange">PRACTICE</span>
             </h1>
-            <p className="text-white/60 text-sm">
+            <p className="text-white/85 text-sm">
               Practice sets published by your teachers. Retake them as often as you like — scores
               here never affect your report card.
             </p>
@@ -325,7 +325,7 @@ export default function ExamPracticePage() {
                           <div className="font-display text-3xl text-brand-orange">
                             {summary.testsTaken}
                           </div>
-                          <div className="text-[10px] uppercase tracking-widest text-white/60">
+                          <div className="text-[10px] uppercase tracking-widest text-white/85">
                             Tests taken
                           </div>
                         </div>
@@ -333,7 +333,7 @@ export default function ExamPracticePage() {
                           <div className="font-display text-3xl text-brand-green">
                             {summary.averagePercent === null ? "—" : `${summary.averagePercent}%`}
                           </div>
-                          <div className="text-[10px] uppercase tracking-widest text-white/60">
+                          <div className="text-[10px] uppercase tracking-widest text-white/85">
                             Avg score
                           </div>
                         </div>
@@ -341,7 +341,7 @@ export default function ExamPracticePage() {
                           <div className="font-display text-3xl text-white">
                             {summary.questionsAnswered}
                           </div>
-                          <div className="text-[10px] uppercase tracking-widest text-white/60">
+                          <div className="text-[10px] uppercase tracking-widest text-white/85">
                             Qs answered
                           </div>
                         </div>
@@ -349,7 +349,7 @@ export default function ExamPracticePage() {
                           <div className="font-display text-3xl text-brand-green">
                             {summary.bestPercent === null ? "—" : `${summary.bestPercent}%`}
                           </div>
-                          <div className="text-[10px] uppercase tracking-widest text-white/60">
+                          <div className="text-[10px] uppercase tracking-widest text-white/85">
                             Best score
                           </div>
                         </div>
