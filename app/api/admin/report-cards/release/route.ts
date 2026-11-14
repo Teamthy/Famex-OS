@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { GRADEBOOK_ADMIN_ROLES } from "@/lib/gradebook";
 import { getClientIp } from "@/lib/requests";
 import { requireModule } from "@/lib/module-guard";
+import { claimDraftReportCardForRelease } from "@/lib/report-card-release";
 
 export const dynamic = "force-dynamic";
 
@@ -70,16 +71,23 @@ export async function POST(request: NextRequest) {
 
     if (!drafts.length) return { count: 0 };
 
-    const release = await tx.reportCard.updateMany({
-      where: {
+    const releasedAt = new Date();
+    const releasedDrafts: typeof drafts = [];
+    for (const draft of drafts) {
+      // Claim each card before queuing notifications. A concurrent batch may
+      // have released one of the rows after the initial read; only the request
+      // that wins this conditional transition may notify its recipients.
+      const claimed = await claimDraftReportCardForRelease(tx, {
         schoolId: user.schoolId,
-        id: { in: drafts.map((d) => d.id) },
-        status: ReportCardStatus.DRAFT,
-      },
-      data: { status: ReportCardStatus.RELEASED, releasedAt: new Date() },
-    });
+        reportCardId: draft.id,
+        releasedAt,
+      });
+      if (claimed) releasedDrafts.push(draft);
+    }
 
-    for (const d of drafts) {
+    if (!releasedDrafts.length) return { count: 0 };
+
+    for (const d of releasedDrafts) {
       const msg = `The ${d.termLabel} (${d.sessionLabel}) report card for ${
         d.studentProfile.displayName || "your child"
       } has been released. Overall: ${d.overallAverage}% (${d.overallGrade}).`;
@@ -144,11 +152,11 @@ export async function POST(request: NextRequest) {
         entityType: "ReportCard",
         entityId: payload.classId || "all",
         ipAddress,
-        metadata: { count: release.count, classId: payload.classId || null } as never,
+        metadata: { count: releasedDrafts.length, classId: payload.classId || null } as never,
       },
     });
 
-    return { count: release.count };
+    return { count: releasedDrafts.length };
   });
 
   if (!result.count) {

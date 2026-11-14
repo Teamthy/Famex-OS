@@ -168,7 +168,18 @@ export async function flushQueue(): Promise<{ succeeded: number; failed: number 
 */
 export type ExamSyncResult = { sent: number; pending: number; failed: number };
 
-export async function flushExamSubmissions(): Promise<ExamSyncResult> {
+let examFlushInFlight: Promise<ExamSyncResult> | null = null;
+
+export function flushExamSubmissions(): Promise<ExamSyncResult> {
+  if (examFlushInFlight) return examFlushInFlight;
+
+  examFlushInFlight = flushPendingExamSubmissions().finally(() => {
+    examFlushInFlight = null;
+  });
+  return examFlushInFlight;
+}
+
+async function flushPendingExamSubmissions(): Promise<ExamSyncResult> {
   const queue = await listPendingSubmissions();
   if (!queue.length) return { sent: 0, pending: 0, failed: 0 };
 

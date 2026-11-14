@@ -622,6 +622,18 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       );
     }
+    if (message === "RESULTS_RELEASED" || message === "RESULT_STATE_CHANGED") {
+      return NextResponse.json(
+        {
+          error:
+            message === "RESULTS_RELEASED"
+              ? "Results are released. Unrelease them before recompiling."
+              : "The result state changed while compiling. Refresh and retry.",
+          code: message,
+        },
+        { status: 409 },
+      );
+    }
     if (message === "NOTHING_TO_COMPILE") {
       return NextResponse.json(
         {

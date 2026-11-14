@@ -8,6 +8,7 @@ import {
 } from "@/lib/academic-session";
 import { GRADEBOOK_ADMIN_ROLES, waecGrade } from "@/lib/gradebook";
 import { indexFeeBalances, tallyAttendance } from "@/lib/report-cards";
+import { replaceDraftReportCardSnapshot } from "@/lib/report-card-generation";
 import { prisma } from "@/lib/prisma";
 import { newVerificationCode } from "@/lib/verification";
 import { getClientIp } from "@/lib/requests";
@@ -279,6 +280,7 @@ export async function POST(request: NextRequest) {
   const termYearSuffix = sessionLabel.replace("/", "-");
   const nextResumption = payload.nextResumption || "See school calendar";
   let generated = 0;
+  let skippedReleased = 0;
 
   const studentIds = students.map((student) => student.id);
 
@@ -384,7 +386,7 @@ export async function POST(request: NextRequest) {
           }))
       : aggregate.subjects;
 
-    await prisma.$transaction(async (tx) => {
+    const written = await prisma.$transaction(async (tx) => {
       // Match on the card's real identity — this student, this session, this
       // term — not on the generated number.
       //
@@ -401,17 +403,16 @@ export async function POST(request: NextRequest) {
         },
         select: { id: true, status: true, reportNumber: true },
       });
-      if (existing?.status === ReportCardStatus.RELEASED) return;
+      if (existing?.status === ReportCardStatus.RELEASED) return false;
 
       if (existing) {
-        await tx.reportCardSubject.deleteMany({ where: { reportCardId: existing.id } });
-        await tx.reportCard.update({
-          where: { id: existing.id },
-          data: {
-            // Deliberately NOT rewriting reportNumber. A released card may be
-            // printed and publicly verifiable at /verify/report/<number>;
-            // renaming it would break that link. Drafts keep their number too,
-            // so the value an admin already saw stays stable.
+        // Deliberately NOT rewriting reportNumber. A released card may be
+        // printed and publicly verifiable at /verify/report/<number>;
+        // renaming it would break that link. Drafts keep their number too,
+        // so the value an admin already saw stays stable.
+        return replaceDraftReportCardSnapshot(tx, {
+          reportCardId: existing.id,
+          fields: {
             classNameSnapshot: schoolClass.displayName,
             overallTotal,
             overallAverage,
@@ -424,8 +425,8 @@ export async function POST(request: NextRequest) {
             nextResumption: nextResumptionValue,
             feeBalance,
             generatedAt: new Date(),
-            subjects: { createMany: { data: subjectRows } },
           },
+          subjects: subjectRows,
         });
       } else {
         await tx.reportCard.create({
@@ -456,9 +457,11 @@ export async function POST(request: NextRequest) {
           },
         });
       }
+      return true;
     });
 
-    generated += 1;
+    if (written) generated += 1;
+    else skippedReleased += 1;
   }
 
   await prisma.auditLog.create({
@@ -473,6 +476,7 @@ export async function POST(request: NextRequest) {
         sessionLabel,
         termLabel,
         generated,
+        skippedReleased,
         source: useCompiled ? "COMPILED_RESULTS" : "GRADEBOOKS",
         classResultStatus: classResult?.status ?? null,
       },
@@ -485,8 +489,9 @@ export async function POST(request: NextRequest) {
     generated,
     source: useCompiled ? "COMPILED_RESULTS" : "GRADEBOOKS",
     classResultStatus: classResult?.status ?? null,
-    skippedReleased: ranked.filter((row) => row.compiled && row.compiled.status === "EXCLUDED")
-      .length,
-    message: `${generated} draft report card(s) generated for ${schoolClass.displayName}. Review and release them from the Report Cards page.`,
+    skippedReleased,
+    message: `${generated} draft report card(s) generated for ${schoolClass.displayName}.${
+      skippedReleased ? ` ${skippedReleased} already-released card(s) were left unchanged.` : ""
+    } Review and release them from the Report Cards page.`,
   });
 }

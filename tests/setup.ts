@@ -143,6 +143,15 @@ const mockPrisma = {
     update: vi.fn(),
     updateMany: vi.fn(),
   },
+  attendanceEntry: {
+    findMany: vi.fn(),
+    findFirst: vi.fn(),
+    create: vi.fn(),
+    createMany: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    deleteMany: vi.fn(),
+  },
   studentEnrolment: {
     findFirst: vi.fn(),
     findMany: vi.fn(),
@@ -283,6 +292,12 @@ const mockPrisma = {
     groupBy: vi.fn(),
     count: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
+  },
+  reportCardSubject: {
+    createMany: vi.fn(),
+    deleteMany: vi.fn(),
+    findMany: vi.fn(),
     updateMany: vi.fn(),
   },
   feePaymentAttempt: {
@@ -481,9 +496,26 @@ const mockPrisma = {
     deleteMany: vi.fn(),
   },
   attendanceSession: {
+    findUnique: vi.fn(),
     findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    upsert: vi.fn(),
     count: vi.fn(),
   },
+  attendanceAlertJob: {
+    createMany: vi.fn(),
+    deleteMany: vi.fn(),
+    findMany: vi.fn(),
+  },
+  attendanceCorrectionRequest: {
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+  },
+
   subjectGradebook: {
     findMany: vi.fn(),
     findUnique: vi.fn(),

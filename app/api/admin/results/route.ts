@@ -277,11 +277,15 @@ export async function POST(request: NextRequest) {
           ? "UNLOCKED_GRADEBOOKS"
           : message === "ALREADY_COMPILED"
             ? "ALREADY_COMPILED"
-            : message === "NOTHING_TO_COMPILE"
-              ? "NOTHING_TO_COMPILE"
-              : message === "NO_STUDENTS"
-                ? "NO_STUDENTS"
-                : "FAILED";
+            : message === "RESULTS_RELEASED"
+              ? "RESULTS_RELEASED"
+              : message === "RESULT_STATE_CHANGED"
+                ? "RESULT_STATE_CHANGED"
+                : message === "NOTHING_TO_COMPILE"
+                  ? "NOTHING_TO_COMPILE"
+                  : message === "NO_STUDENTS"
+                    ? "NO_STUDENTS"
+                    : "FAILED";
         // One class failing must not stop the rest: a school compiling twelve
         // classes should not have to hunt for the one with an unlocked
         // gradebook by re-running the whole batch twelve times.
@@ -293,11 +297,15 @@ export async function POST(request: NextRequest) {
               ? `Gradebooks not locked: ${message.split(":")[1] ?? ""}`.trim()
               : code === "ALREADY_COMPILED"
                 ? "Already compiled — pass recompile to rebuild it."
-                : code === "NOTHING_TO_COMPILE"
-                  ? "No marked subjects or graded CBT papers."
-                  : code === "NO_STUDENTS"
-                    ? "No active students."
-                    : message,
+                : code === "RESULTS_RELEASED"
+                  ? "Results are released. Unrelease them before recompiling."
+                  : code === "RESULT_STATE_CHANGED"
+                    ? "The result state changed while compiling. Refresh and retry."
+                    : code === "NOTHING_TO_COMPILE"
+                      ? "No marked subjects or graded CBT papers."
+                      : code === "NO_STUDENTS"
+                        ? "No active students."
+                        : message,
           code,
         });
       }

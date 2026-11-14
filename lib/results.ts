@@ -241,12 +241,13 @@ export async function compileClassTermResults(
     },
     select: { status: true },
   });
-  if (
-    classResult &&
-    (classResult.status === ClassResultStatus.COMPILED ||
-      classResult.status === ClassResultStatus.RELEASED) &&
-    !input.recompile
-  ) {
+  if (classResult?.status === ClassResultStatus.RELEASED) {
+    // Released rows are student-visible source-of-truth. A recompile must only
+    // happen after the explicit unrelease workflow has changed this state back
+    // to COMPILED; otherwise term rows could diverge from already-released cards.
+    throw new Error("RESULTS_RELEASED");
+  }
+  if (classResult?.status === ClassResultStatus.COMPILED && !input.recompile) {
     throw new Error("ALREADY_COMPILED");
   }
 
@@ -438,6 +439,34 @@ export async function compileClassTermResults(
   let cbtLines = 0;
 
   await prisma.$transaction(async (tx) => {
+    const classResultKey = {
+      classId_sessionLabel_termIndex: {
+        classId: schoolClass.id,
+        sessionLabel: input.sessionLabel,
+        termIndex: input.termIndex,
+      },
+    };
+    const currentClassResult = await tx.classTermResult.findUnique({
+      where: classResultKey,
+      select: { status: true },
+    });
+    if (currentClassResult?.status === ClassResultStatus.RELEASED) {
+      throw new Error("RESULTS_RELEASED");
+    }
+    if (currentClassResult) {
+      // Compare-and-set the observed state before touching any TermResult rows.
+      // If release wins concurrently, the predicate no longer matches and the
+      // transaction aborts instead of replacing released source-of-truth data.
+      const guarded = await tx.classTermResult.updateMany({
+        where: {
+          ...classResultKey.classId_sessionLabel_termIndex,
+          status: currentClassResult.status,
+        },
+        data: { status: currentClassResult.status },
+      });
+      if (guarded.count !== 1) throw new Error("RESULT_STATE_CHANGED");
+    }
+
     for (const [studentId, lines] of perStudent) {
       const compilation = totalsByStudent.get(studentId)!;
       const rank = positionByStudent.get(studentId);
