@@ -16,6 +16,7 @@ import {
   LoaderCircle,
   MapPin,
   MessageCircle,
+  Megaphone,
 } from "lucide-react";
 
 const SIDEBAR_ITEMS = [
@@ -26,6 +27,7 @@ const SIDEBAR_ITEMS = [
   { label: "Report Cards", href: "/parent/report-cards", icon: FileText },
   { label: "Messages", href: "/parent/messages", icon: MessageCircle },
   { label: "Events", href: "/parent/events", icon: Calendar },
+  { label: "Publications", href: "/parent/publications", icon: Megaphone },
 ];
 
 type ParentDashboardResponse = {

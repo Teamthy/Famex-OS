@@ -16,6 +16,7 @@ import {
   FileText,
   CalendarDays,
   MessageSquare,
+  Megaphone,
 } from "lucide-react";
 import type { ReceiptData } from "@/lib/receipt";
 
@@ -64,6 +65,7 @@ const NAV = [
   { label: "Report Cards", href: "/parent/report-cards", icon: FileText },
   { label: "Events", href: "/parent/events", icon: CalendarDays },
   { label: "Messages", href: "/parent/messages", icon: MessageSquare },
+  { label: "Publications", href: "/parent/publications", icon: Megaphone },
 ];
 
 function formatMethod(method: string) {

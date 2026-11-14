@@ -21,8 +21,11 @@ export interface ChannelAdapter {
     recipientName: string | null;
     recipientEmail: string | null;
     recipientPhone: string | null;
+    recipientUserId?: string | null;
     subject: string;
     body: string;
+    templateKey?: string | null;
+    metadata?: Prisma.JsonValue | null;
   }): Promise<DeliveryResult>;
 }
 
@@ -126,11 +129,10 @@ const smsAdapter: ChannelAdapter = {
 /**
  * WhatsApp adapter — the official Cloud API via lib/whatsapp.ts.
  *
- * Sends free-form text, which Meta only accepts inside the 24-hour
- * customer-service window (i.e. after the parent has messaged the school).
- * Business-initiated cold sends need a Meta-approved template whose name is
- * mapped from the governed template key — that mapping is deployment
- * configuration (Meta template approval), recorded as a HANDOFF follow-up.
+ * Generic jobs send free-form text, which Meta only accepts inside the
+ * 24-hour customer-service window. Parent publication broadcasts use the
+ * configured, Meta-approved template mapping instead. Other business-initiated
+ * notification kinds still need governed template mappings before cold sends.
  * The SMS fallback inside sendWhatsapp is disabled here: a job queued as
  * WHATSAPP must never be reported sent because an SMS went out instead —
  * channel accounting and delivery receipts would both lie.
@@ -144,11 +146,41 @@ const whatsappAdapter: ChannelAdapter = {
     if (!job.recipientPhone) {
       return { ok: false, error: "No recipient phone on job.", permanent: true };
     }
-    const result = await sendWhatsapp({
-      to: job.recipientPhone,
-      text: job.body,
-      allowSmsFallback: false,
-    });
+
+    let result: Awaited<ReturnType<typeof sendWhatsapp>>;
+    if (job.templateKey === "meta:parent_publication") {
+      const templateName = process.env.WHATSAPP_PARENT_PUBLICATION_TEMPLATE_NAME;
+      const metadata = job.metadata;
+      const templateParams =
+        metadata &&
+        typeof metadata === "object" &&
+        !Array.isArray(metadata) &&
+        "templateParams" in metadata &&
+        Array.isArray(metadata.templateParams) &&
+        metadata.templateParams.every((value) => typeof value === "string")
+          ? metadata.templateParams
+          : null;
+      if (!templateName || !templateParams || templateParams.length !== 2) {
+        return {
+          ok: false,
+          error: "Approved Meta parent-publication template is not configured correctly.",
+          permanent: true,
+        };
+      }
+      result = await sendWhatsapp({
+        to: job.recipientPhone,
+        templateName,
+        templateLang: process.env.WHATSAPP_PARENT_PUBLICATION_TEMPLATE_LANG || "en",
+        templateParams,
+        allowSmsFallback: false,
+      });
+    } else {
+      result = await sendWhatsapp({
+        to: job.recipientPhone,
+        text: job.body,
+        allowSmsFallback: false,
+      });
+    }
     if (result.channel === "whatsapp") return { ok: true, providerId: result.messageId };
     return { ok: false, error: result.error ?? "WhatsApp send failed.", permanent: false };
   },
@@ -250,6 +282,7 @@ export async function queueNotificationJob(input: QueueJobInput) {
       recipientName: input.recipientName || null,
       recipientEmail: input.recipientEmail || null,
       recipientPhone: input.recipientPhone || null,
+      recipientUserId: input.recipientUserId || null,
       dedupeKey: input.dedupeKey || null,
       templateKey: input.templateKey || null,
       metadata: input.metadata,
@@ -407,12 +440,42 @@ export async function dispatchDueNotifications(limit = 25) {
       continue;
     }
 
+    if (job.recipientUserId) {
+      const [{ userAllowsDelivery }, { hasCommunicationConsent }] = await Promise.all([
+        import("@/lib/notification-prefs"),
+        import("@/lib/communication-consent"),
+      ]);
+      const [preferenceAllows, consentAllows] = await Promise.all([
+        userAllowsDelivery(job.recipientUserId, job.kind),
+        hasCommunicationConsent({
+          userId: job.recipientUserId,
+          channel: job.channel,
+          kind: job.kind,
+        }),
+      ]);
+      if (!preferenceAllows || !consentAllows) {
+        await prisma.notificationJob.update({
+          where: { id: job.id },
+          data: {
+            status: AlertDeliveryStatus.SKIPPED,
+            lastError: "Recipient preference or channel consent no longer allows delivery.",
+            attempts: { increment: 1 },
+          },
+        });
+        skipped += 1;
+        continue;
+      }
+    }
+
     const result = await adapter.send({
       recipientName: job.recipientName,
       recipientEmail: job.recipientEmail,
       recipientPhone: job.recipientPhone,
+      recipientUserId: job.recipientUserId,
       subject: job.subject,
       body: job.body,
+      templateKey: job.templateKey,
+      metadata: job.metadata,
     });
 
     if (result.ok) {

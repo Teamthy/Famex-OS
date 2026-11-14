@@ -38,6 +38,7 @@ export async function GET() {
     where: {
       schoolId: resolved.school.id,
       isPublished: true,
+      audience: "PUBLIC",
       publishedAt: {
         gte: terms[0]?.startsOn ?? new Date(Date.now() - 30 * 86400_000),
         lte: terms[terms.length - 1]?.endsOn ?? new Date(Date.now() + 365 * 86400_000),

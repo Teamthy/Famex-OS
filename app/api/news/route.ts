@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
   if (slug) {
     const post = await prisma.newsPost.findFirst({
-      where: { schoolId: school.id, slug, isPublished: true },
+      where: { schoolId: school.id, slug, isPublished: true, audience: "PUBLIC" },
       select: {
         id: true,
         title: true,
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   }
 
   const posts = await prisma.newsPost.findMany({
-    where: { schoolId: school.id, isPublished: true },
+    where: { schoolId: school.id, isPublished: true, audience: "PUBLIC" },
     orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
     take: 40,
     select: {
