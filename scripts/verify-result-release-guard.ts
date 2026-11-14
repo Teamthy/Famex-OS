@@ -1,10 +1,10 @@
 /**
- * Verify released-result recompilation protection against real Postgres.
+ * Verify result and report-card release guards against real Postgres.
  *
- * The first assertion checks the released-state refusal through the production
- * compiler. The second deliberately holds a row lock while compilation reaches
- * its status compare-and-set, then releases the result and confirms the waiting
- * writer loses without changing any TermResult rows.
+ * The verifier checks released-result refusal and a result compiler/release
+ * race, then covers both report-card snapshot regeneration and batch release
+ * waiting behind a row lock held by a competing release. Losing writers must
+ * not change the released snapshot or claim the card a second time.
  *
  * Run only against a disposable database:
  *   DATABASE_URL=postgresql://…/scratch npx tsx scripts/verify-result-release-guard.ts
@@ -12,6 +12,7 @@
 import { ClassResultStatus, PrismaClient } from "@prisma/client";
 import { compileClassTermResults } from "../lib/results";
 import { replaceDraftReportCardSnapshot } from "../lib/report-card-generation";
+import { claimDraftReportCardForRelease } from "../lib/report-card-release";
 import { logger } from "@/lib/logger";
 
 const prisma = new PrismaClient();
@@ -398,6 +399,91 @@ async function main() {
       finalReportCard.subjects.length === 1 && finalReportCard.subjects[0]?.total === 91,
       "released report-card subject rows remain unchanged",
     );
+
+    console.log("\nCase 4 — concurrent batch releases have a single winner per draft card");
+    const competingCard = await prisma.reportCard.create({
+      data: {
+        schoolId: school.id,
+        studentProfileId: student.id,
+        reportNumber: `RC/${stamp}/release-race/${student.studentId}`,
+        sessionLabel,
+        termLabel,
+        classNameSnapshot: classroom.displayName,
+        overallTotal: 91,
+        overallAverage: 91,
+        overallGrade: "A1",
+        classPosition: "1st of 1",
+        attendancePresent: 9,
+        attendanceTotal: 10,
+        classTeacherRemark: "Original draft.",
+        directorRemark: "Approved.",
+        nextResumption: "Next term",
+      },
+    });
+    let releaseBatchLock!: () => void;
+    let signalBatchLocked!: () => void;
+    const waitForBatchRelease = new Promise<void>((resolve) => {
+      releaseBatchLock = resolve;
+    });
+    const batchRowLocked = new Promise<void>((resolve) => {
+      signalBatchLocked = resolve;
+    });
+    const winningBatch = lockClient.$transaction(async (tx) => {
+      await tx.$queryRaw`
+        SELECT "id"
+        FROM "ReportCard"
+        WHERE "id" = ${competingCard.id}
+        FOR UPDATE
+      `;
+      signalBatchLocked();
+      await waitForBatchRelease;
+      await tx.reportCard.update({
+        where: { id: competingCard.id },
+        data: { status: "RELEASED", releasedAt: new Date() },
+      });
+    });
+    await batchRowLocked;
+
+    const losingBatch = prisma
+      .$transaction((tx) =>
+        claimDraftReportCardForRelease(tx, {
+          schoolId: school.id,
+          reportCardId: competingCard.id,
+          releasedAt: new Date(),
+        }),
+      )
+      .then(
+        (released) => ({ released, error: null as unknown }),
+        (error: unknown) => ({ released: false, error }),
+      );
+
+    let batchWriterBlocked = false;
+    let batchWaitError: unknown;
+    try {
+      batchWriterBlocked = await Promise.race([
+        waitUntilConditionalUpdateIsBlocked("ReportCard").then(() => true),
+        losingBatch.then(() => false),
+      ]);
+    } catch (error) {
+      batchWaitError = error;
+    } finally {
+      releaseBatchLock();
+    }
+
+    await winningBatch;
+    const losingOutcome = await losingBatch;
+    if (batchWaitError) throw batchWaitError;
+    assert(batchWriterBlocked, "second batch reached and blocked at the conditional release");
+    assert(losingOutcome.error === null, "losing batch release returned without an error");
+    assert(
+      losingOutcome.released === false,
+      "second batch did not claim the already released card",
+    );
+    const finalCompetingCard = await prisma.reportCard.findUniqueOrThrow({
+      where: { id: competingCard.id },
+      select: { status: true },
+    });
+    assert(finalCompetingCard.status === "RELEASED", "winning batch release remains in force");
   } finally {
     await prisma.school.delete({ where: { id: school.id } });
   }
