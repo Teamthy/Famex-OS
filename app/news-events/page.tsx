@@ -13,7 +13,7 @@ async function loadPosts() {
     const school = await prisma.school.findFirst({ orderBy: { createdAt: "asc" } });
     if (!school) return [];
     return prisma.newsPost.findMany({
-      where: { schoolId: school.id, isPublished: true },
+      where: { schoolId: school.id, isPublished: true, audience: "PUBLIC" },
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       take: 40,
       select: {

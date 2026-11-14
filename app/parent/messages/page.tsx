@@ -9,6 +9,7 @@ import {
   CreditCard,
   FileText,
   MessageCircle,
+  Megaphone,
   Calendar,
 } from "lucide-react";
 
@@ -19,6 +20,7 @@ const SIDEBAR_ITEMS = [
   { label: "Report Cards", href: "/parent/report-cards", icon: FileText },
   { label: "Messages", href: "/parent/messages", icon: MessageCircle },
   { label: "Events", href: "/parent/events", icon: Calendar },
+  { label: "Publications", href: "/parent/publications", icon: Megaphone },
 ];
 
 /**

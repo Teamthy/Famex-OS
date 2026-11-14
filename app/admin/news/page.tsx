@@ -5,7 +5,18 @@ import PortalTopbar from "@/components/PortalTopbar";
 import AdminSidebar from "@/components/AdminSidebar";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
-import { Eye, EyeOff, LoaderCircle, Megaphone, PlusCircle, Send, Trash2 } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  LoaderCircle,
+  Megaphone,
+  PlusCircle,
+  Search,
+  Send,
+  Trash2,
+  X,
+} from "lucide-react";
+import { NewsAudience } from "@prisma/client";
 
 type Post = {
   id: string;
@@ -18,7 +29,19 @@ type Post = {
   publishedAt: string | null;
   authorName: string;
   createdAt: string;
+  audience: NewsAudience;
+  audienceLabel: string;
+  targetClassName: string | null;
+  recipientCount: number;
 };
+
+type AudienceParent = {
+  id: string;
+  displayName: string;
+  students: { displayName: string; className: string }[];
+};
+
+type AudienceClass = { id: string; displayName: string };
 
 const CATEGORIES = [
   "News",
@@ -38,6 +61,13 @@ export default function AdminNewsPage() {
   const [showForm, setShowForm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Post | null>(null);
   const [form, setForm] = useState({ title: "", category: "News", excerpt: "", content: "" });
+  const [audience, setAudience] = useState<NewsAudience>(NewsAudience.PUBLIC);
+  const [targetClassId, setTargetClassId] = useState("");
+  const [parentQuery, setParentQuery] = useState("");
+  const [classes, setClasses] = useState<AudienceClass[]>([]);
+  const [parentResults, setParentResults] = useState<AudienceParent[]>([]);
+  const [selectedParents, setSelectedParents] = useState<Map<string, AudienceParent>>(new Map());
+  const [audienceLoading, setAudienceLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,18 +88,79 @@ export default function AdminNewsPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (audience === NewsAudience.PUBLIC) return;
+    const controller = new AbortController();
+    const timer = setTimeout(
+      async () => {
+        setAudienceLoading(true);
+        try {
+          const params = new URLSearchParams();
+          if (parentQuery.trim().length >= 2) params.set("q", parentQuery.trim());
+          const response = await fetch(`/api/admin/news/audiences?${params.toString()}`, {
+            cache: "no-store",
+            signal: controller.signal,
+          });
+          const body = (await response.json()) as {
+            classes: AudienceClass[];
+            parents: AudienceParent[];
+            error?: string;
+          };
+          if (!response.ok) throw new Error(body.error || "Could not load publication recipients.");
+          setClasses(body.classes);
+          setParentResults(body.parents);
+        } catch (audienceError) {
+          if (!controller.signal.aborted) {
+            toast(
+              audienceError instanceof Error ? audienceError.message : "Could not load recipients.",
+              "error",
+            );
+          }
+        } finally {
+          if (!controller.signal.aborted) setAudienceLoading(false);
+        }
+      },
+      parentQuery.trim().length >= 2 ? 250 : 0,
+    );
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [audience, parentQuery, toast]);
+
   async function createPost(publish: boolean) {
     setBusy(true);
     try {
       const response = await fetch("/api/admin/news", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, publish }),
+        body: JSON.stringify({
+          ...form,
+          publish,
+          audience,
+          targetClassId: audience === NewsAudience.CLASS_PARENTS ? targetClassId : null,
+          parentProfileIds: Array.from(selectedParents.keys()),
+        }),
       });
-      const body = (await response.json()) as { message?: string; error?: string };
+      const body = (await response.json()) as {
+        message?: string;
+        error?: string;
+        recipientCount?: number;
+        whatsappQueued?: number;
+        whatsappTemplateConfigured?: boolean;
+      };
       if (!response.ok) throw new Error(body.error || "Unable to save post.");
-      toast(body.message || "Saved.", "success");
+      const resultMessage =
+        publish && audience !== NewsAudience.PUBLIC
+          ? `${body.message || "Published."} Portal access: ${body.recipientCount ?? 0} parent(s). WhatsApp queued: ${body.whatsappQueued ?? 0}${body.whatsappTemplateConfigured ? "." : "; configure the approved Meta publication template to enable WhatsApp."}`
+          : body.message || "Saved.";
+      toast(resultMessage, "success");
       setForm({ title: "", category: "News", excerpt: "", content: "" });
+      setAudience(NewsAudience.PUBLIC);
+      setTargetClassId("");
+      setParentQuery("");
+      setParentResults([]);
+      setSelectedParents(new Map());
       setShowForm(false);
       await load();
     } catch (createError) {
@@ -87,9 +178,19 @@ export default function AdminNewsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ postId: post.id, action }),
       });
-      const body = (await response.json()) as { message?: string; error?: string };
+      const body = (await response.json()) as {
+        message?: string;
+        error?: string;
+        recipientCount?: number;
+        whatsappQueued?: number;
+        whatsappTemplateConfigured?: boolean;
+      };
       if (!response.ok) throw new Error(body.error || "Action failed.");
-      toast(body.message || "Done.", "success");
+      const deliverySummary =
+        action === "PUBLISH" && post.audience !== NewsAudience.PUBLIC
+          ? ` Portal access: ${body.recipientCount ?? 0} parent(s). WhatsApp queued: ${body.whatsappQueued ?? 0}${body.whatsappTemplateConfigured ? "." : "; configure the approved Meta publication template to enable WhatsApp."}`
+          : "";
+      toast(`${body.message || "Done."}${deliverySummary}`, "success");
       await load();
     } catch (actError) {
       toast(actError instanceof Error ? actError.message : "Action failed.", "error");
@@ -160,6 +261,150 @@ export default function AdminNewsPage() {
                       </select>
                     </label>
                   </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                      Audience
+                      <select
+                        value={audience}
+                        onChange={(event) => setAudience(event.target.value as NewsAudience)}
+                        className="mt-2 w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-4 py-3 text-sm normal-case tracking-normal text-[var(--input-text)]"
+                      >
+                        <option value={NewsAudience.PUBLIC}>Public website</option>
+                        <option value={NewsAudience.ALL_PARENTS}>All parents</option>
+                        <option value={NewsAudience.CLASS_PARENTS}>Parents of one class</option>
+                        <option value={NewsAudience.SELECTED_PARENTS}>Selected parents</option>
+                      </select>
+                    </label>
+                    {audience === NewsAudience.CLASS_PARENTS ? (
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                        Class
+                        <select
+                          value={targetClassId}
+                          onChange={(event) => setTargetClassId(event.target.value)}
+                          className="mt-2 w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-4 py-3 text-sm normal-case tracking-normal text-[var(--input-text)]"
+                        >
+                          <option value="">Choose a class…</option>
+                          {classes.map((classroom) => (
+                            <option key={classroom.id} value={classroom.id}>
+                              {classroom.displayName}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : null}
+                  </div>
+
+                  {audience === NewsAudience.SELECTED_PARENTS ? (
+                    <div className="space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-4">
+                      <label
+                        className="block text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]"
+                        htmlFor="publication-parent-search"
+                      >
+                        Find parents by name
+                        <span className="relative mt-2 block">
+                          <Search
+                            size={15}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+                          />
+                          <input
+                            id="publication-parent-search"
+                            value={parentQuery}
+                            onChange={(event) => setParentQuery(event.target.value)}
+                            placeholder="Type at least two characters"
+                            className="w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] py-3 pl-10 pr-4 text-sm normal-case tracking-normal text-[var(--input-text)]"
+                          />
+                        </span>
+                      </label>
+                      <p className="text-xs text-[var(--text-muted)]">
+                        {selectedParents.size} parent(s) selected. Choose only families this notice
+                        is intended for.
+                      </p>
+                      {audienceLoading ? (
+                        <p className="text-xs text-[var(--text-muted)]">Searching parents…</p>
+                      ) : null}
+                      {parentQuery.trim().length >= 2 && !audienceLoading ? (
+                        <div className="max-h-56 space-y-1 overflow-y-auto">
+                          {parentResults.map((parent) => {
+                            const checked = selectedParents.has(parent.id);
+                            const children = parent.students
+                              .map((student) => `${student.displayName} · ${student.className}`)
+                              .join(", ");
+                            return (
+                              <label
+                                key={parent.id}
+                                className="flex cursor-pointer items-start gap-3 rounded-xl p-3 text-sm hover:bg-[var(--surface-card)]"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => {
+                                    setSelectedParents((current) => {
+                                      const next = new Map(current);
+                                      if (checked) next.delete(parent.id);
+                                      else next.set(parent.id, parent);
+                                      return next;
+                                    });
+                                  }}
+                                  className="mt-1 accent-[var(--famex-lime)]"
+                                />
+                                <span className="min-w-0">
+                                  <span className="block font-semibold text-[var(--text-primary)]">
+                                    {parent.displayName}
+                                  </span>
+                                  {children ? (
+                                    <span className="block text-xs text-[var(--text-muted)]">
+                                      {children}
+                                    </span>
+                                  ) : null}
+                                </span>
+                              </label>
+                            );
+                          })}
+                          {parentResults.length === 0 ? (
+                            <p className="p-3 text-xs text-[var(--text-muted)]">
+                              No matching active parent profiles.
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      {selectedParents.size ? (
+                        <ul className="flex flex-wrap gap-2" aria-label="Selected parents">
+                          {Array.from(selectedParents.values()).map((parent) => (
+                            <li
+                              key={parent.id}
+                              className="inline-flex items-center gap-1 rounded-full bg-famex-lime/15 px-3 py-1 text-xs text-[var(--text-primary)]"
+                            >
+                              {parent.displayName}
+                              <button
+                                type="button"
+                                aria-label={`Remove ${parent.displayName}`}
+                                onClick={() =>
+                                  setSelectedParents((current) => {
+                                    const next = new Map(current);
+                                    next.delete(parent.id);
+                                    return next;
+                                  })
+                                }
+                                className="rounded-full p-1 hover:bg-red-500/10"
+                              >
+                                <X size={12} />
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {audience !== NewsAudience.PUBLIC ? (
+                    <p className="rounded-xl bg-brand-orange/10 p-3 text-xs leading-5 text-[var(--text-secondary)]">
+                      Targeted posts are private to the selected parent accounts. WhatsApp delivery
+                      is queued only for parents with explicit broadcast consent and an approved
+                      Meta publication template; portal access is retained even if WhatsApp is not
+                      configured.
+                    </p>
+                  ) : null}
+
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
                     Excerpt (shown on the news list)
                     <textarea
@@ -226,6 +471,14 @@ export default function AdminNewsPage() {
                             </h3>
                             <span className="rounded-full bg-famex-lime/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-brand-green">
                               {post.category}
+                            </span>
+                            <span className="rounded-full bg-[var(--bg-primary)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+                              {post.audienceLabel}
+                              {post.targetClassName
+                                ? ` · ${post.targetClassName}`
+                                : post.audience !== NewsAudience.PUBLIC
+                                  ? ` · ${post.recipientCount} recipients`
+                                  : ""}
                             </span>
                             <span
                               className={`rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest ${post.isPublished ? "bg-famex-lime/10 text-brand-green" : "bg-brand-orange/10 text-brand-orange"}`}

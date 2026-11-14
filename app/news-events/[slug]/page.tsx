@@ -13,7 +13,7 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
   if (!school) notFound();
 
   const post = await prisma.newsPost.findFirst({
-    where: { schoolId: school.id, slug, isPublished: true },
+    where: { schoolId: school.id, slug, isPublished: true, audience: "PUBLIC" },
   });
   if (!post) notFound();
 
