@@ -11,6 +11,7 @@
  */
 import { ClassResultStatus, PrismaClient } from "@prisma/client";
 import { compileClassTermResults } from "../lib/results";
+import { replaceDraftReportCardSnapshot } from "../lib/report-card-generation";
 import { logger } from "@/lib/logger";
 
 const prisma = new PrismaClient();
@@ -25,9 +26,10 @@ const sessionLabel = "Verify Session";
 const termLabel = "First Term";
 const termIndex = 1;
 
-async function waitUntilCompilerIsBlocked(): Promise<void> {
+async function waitUntilConditionalUpdateIsBlocked(tableName: string): Promise<void> {
   const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {
+    const queryPattern = `%UPDATE%${tableName}%`;
     const rows = await prisma.$queryRaw<Array<{ blocked: boolean }>>`
       SELECT EXISTS (
         SELECT 1
@@ -35,13 +37,13 @@ async function waitUntilCompilerIsBlocked(): Promise<void> {
         WHERE datname = current_database()
           AND pid <> pg_backend_pid()
           AND wait_event_type = 'Lock'
-          AND query ILIKE '%UPDATE%ClassTermResult%'
+          AND query ILIKE ${queryPattern}
       ) AS blocked
     `;
     if (rows[0]?.blocked) return;
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
-  throw new Error("Timed out waiting for the compiler's conditional update to block.");
+  throw new Error(`Timed out waiting for the ${tableName} conditional update to block.`);
 }
 
 async function main() {
@@ -149,6 +151,41 @@ async function main() {
         classNameSnapshot: classroom.displayName,
       },
     });
+    const reportCard = await prisma.reportCard.create({
+      data: {
+        schoolId: school.id,
+        studentProfileId: student.id,
+        reportNumber: `RC/${stamp}/T1/${student.studentId}`,
+        sessionLabel,
+        termLabel,
+        classNameSnapshot: classroom.displayName,
+        overallTotal: 91,
+        overallAverage: 91,
+        overallGrade: "A1",
+        classPosition: "1st of 1",
+        attendancePresent: 9,
+        attendanceTotal: 10,
+        classTeacherRemark: "Original report snapshot.",
+        directorRemark: "Approved.",
+        nextResumption: "Next term",
+        subjects: {
+          create: [
+            {
+              subject: "Biology",
+              ca1: 10,
+              ca2: 10,
+              midterm: 10,
+              assignment: 10,
+              exam: 51,
+              total: 91,
+              grade: "A1",
+              sortOrder: 1,
+            },
+          ],
+        },
+      },
+      include: { subjects: true },
+    });
 
     console.log("\nCase 1 — an already released result cannot be recompiled");
     let refusal: unknown;
@@ -227,7 +264,7 @@ async function main() {
     let waitError: unknown;
     try {
       compilerBlocked = await Promise.race([
-        waitUntilCompilerIsBlocked().then(() => true),
+        waitUntilConditionalUpdateIsBlocked("ClassTermResult").then(() => true),
         compilerOutcome.then(() => false),
       ]);
     } catch (error) {
@@ -257,11 +294,117 @@ async function main() {
       "concurrent release remains in force",
     );
     assert(finalTermResult.totalScore === 91, "losing compile wrote no replacement TermResult");
+
+    console.log("\nCase 3 — report-card regeneration cannot overwrite a concurrent release");
+    let releaseCardLock!: () => void;
+    let signalCardLocked!: () => void;
+    const waitForCardRelease = new Promise<void>((resolve) => {
+      releaseCardLock = resolve;
+    });
+    const cardRowLocked = new Promise<void>((resolve) => {
+      signalCardLocked = resolve;
+    });
+    const cardReleaseTransaction = lockClient.$transaction(async (tx) => {
+      await tx.$queryRaw`
+        SELECT "id"
+        FROM "ReportCard"
+        WHERE "id" = ${reportCard.id}
+        FOR UPDATE
+      `;
+      signalCardLocked();
+      await waitForCardRelease;
+      await tx.reportCard.update({
+        where: { id: reportCard.id },
+        data: { status: "RELEASED", releasedAt: new Date() },
+      });
+    });
+    await cardRowLocked;
+
+    const snapshotWriter = prisma
+      .$transaction((tx) =>
+        replaceDraftReportCardSnapshot(tx, {
+          reportCardId: reportCard.id,
+          fields: {
+            classNameSnapshot: classroom.displayName,
+            overallTotal: 45,
+            overallAverage: 45,
+            overallGrade: "F9",
+            classPosition: "1st of 1",
+            attendancePresent: 8,
+            attendanceTotal: 10,
+            classTeacherRemark: "Regenerated snapshot.",
+            directorRemark: "Updated.",
+            nextResumption: "Later",
+            feeBalance: 0,
+            generatedAt: new Date(),
+          },
+          subjects: [
+            {
+              subject: "Biology",
+              ca1: 5,
+              ca2: 5,
+              midterm: 5,
+              assignment: 5,
+              exam: 25,
+              total: 45,
+              grade: "F9",
+              sortOrder: 1,
+            },
+          ],
+        }),
+      )
+      .then(
+        (written) => ({ written, error: null as unknown }),
+        (error: unknown) => ({ written: false, error }),
+      );
+
+    let cardWriterBlocked = false;
+    let cardWaitError: unknown;
+    try {
+      cardWriterBlocked = await Promise.race([
+        waitUntilConditionalUpdateIsBlocked("ReportCard").then(() => true),
+        snapshotWriter.then(() => false),
+      ]);
+    } catch (error) {
+      cardWaitError = error;
+    } finally {
+      releaseCardLock();
+    }
+
+    await cardReleaseTransaction;
+    const snapshotOutcome = await snapshotWriter;
+    if (cardWaitError) throw cardWaitError;
+    assert(cardWriterBlocked, "regenerator reached and blocked at the draft-status claim");
+    assert(
+      snapshotOutcome.error === null,
+      "losing report-card regeneration returned without an error",
+    );
+    assert(snapshotOutcome.written === false, "released report-card snapshot was not claimed");
+
+    const finalReportCard = await prisma.reportCard.findUniqueOrThrow({
+      where: { id: reportCard.id },
+      include: { subjects: { orderBy: { sortOrder: "asc" } } },
+    });
+    assert(
+      finalReportCard.status === "RELEASED",
+      "concurrent report-card release remains in force",
+    );
+    assert(finalReportCard.overallTotal === 91, "released report-card totals remain unchanged");
+    assert(
+      finalReportCard.classTeacherRemark === "Original report snapshot.",
+      "released report-card remarks remain unchanged",
+    );
+    assert(
+      finalReportCard.subjects.length === 1 && finalReportCard.subjects[0]?.total === 91,
+      "released report-card subject rows remain unchanged",
+    );
   } finally {
     await prisma.school.delete({ where: { id: school.id } });
   }
 
-  console.log("\nAll released-result guard assertions passed against real Postgres.");
+  console.log(
+    "\nAll result and report-card release-guard assertions passed against real Postgres.",
+  );
 }
 
 main()

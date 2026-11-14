@@ -143,6 +143,13 @@ const mockPrisma = {
     update: vi.fn(),
     updateMany: vi.fn(),
   },
+  attendanceEntry: {
+    findMany: vi.fn(),
+    findFirst: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+  },
   studentEnrolment: {
     findFirst: vi.fn(),
     findMany: vi.fn(),
@@ -283,6 +290,12 @@ const mockPrisma = {
     groupBy: vi.fn(),
     count: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
+  },
+  reportCardSubject: {
+    createMany: vi.fn(),
+    deleteMany: vi.fn(),
+    findMany: vi.fn(),
     updateMany: vi.fn(),
   },
   feePaymentAttempt: {
