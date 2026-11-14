@@ -2,6 +2,7 @@ import { AlertChannel, AttendanceCorrectionStatus, AttendanceStatus } from "@pri
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { acquireAttendanceSessionWriteLock } from "@/lib/attendance-write-lock";
 import { getClientIp, jsonNoStore } from "@/lib/requests";
 import {
   attendanceDateKey,
@@ -300,6 +301,16 @@ export async function POST(request: NextRequest) {
     let createdAlertJobs = 0;
 
     const savedSession = await prisma.$transaction(async (tx) => {
+      // Protect the full logical register key, including the no-row-yet case.
+      // Without this, a draft save can pass the `isLocked` check concurrently
+      // with finalization and then replace entries/unlock the submitted register.
+      await acquireAttendanceSessionWriteLock(tx, {
+        schoolId: context.user.schoolId,
+        classId: payload.classId,
+        sessionDate,
+        periodKey: payload.periodKey,
+      });
+
       const existingSession = await tx.attendanceSession.findUnique({
         where: {
           classId_sessionDate_periodKey: {

@@ -66,6 +66,7 @@
     "verify:super-admin": "tsx scripts/verify-super-admin-bootstrap.ts",
     "verify:grading": "tsx scripts/verify-exam-grading.ts",
     "verify:result-release": "tsx scripts/verify-result-release-guard.ts",
+    "verify:attendance-lock": "tsx scripts/verify-attendance-write-lock.ts",
     "verify:docx": "tsx scripts/verify-docx-import.ts",
     "db:backup": "tsx scripts/backup-db.ts",
     "db:restore-drill": "tsx scripts/restore-drill.ts",

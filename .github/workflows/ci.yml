@@ -271,6 +271,13 @@ jobs:
         env:
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
 
+      - name: Verify attendance session write lock
+        # Confirm a draft save cannot pass a stale unlocked read and overwrite
+        # a concurrently finalized attendance register.
+        run: npm run verify:attendance-lock
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
       - name: Verify Super Admin bootstrap and MFA persistence
         # Exercises the out-of-band CLI against migrated Postgres, including
         # the appended enum value, encrypted TOTP seed, one-time recovery-code

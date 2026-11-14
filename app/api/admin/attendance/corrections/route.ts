@@ -2,6 +2,7 @@ import { AttendanceCorrectionStatus, UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { acquireAttendanceSessionWriteLock } from "@/lib/attendance-write-lock";
 import { getClientIp } from "@/lib/requests";
 import { requireModule } from "@/lib/module-guard";
 
@@ -79,6 +80,9 @@ export async function PATCH(request: NextRequest) {
         id: true,
         status: true,
         attendanceSessionId: true,
+        attendanceSession: {
+          select: { schoolId: true, classId: true, sessionDate: true, periodKey: true },
+        },
       },
     });
 
@@ -90,6 +94,15 @@ export async function PATCH(request: NextRequest) {
     const ipAddress = getClientIp(request);
 
     const updated = await prisma.$transaction(async (tx) => {
+      // Share the register lock with teacher draft/finalize writes so an
+      // approved correction cannot race with a save based on a stale lock state.
+      await acquireAttendanceSessionWriteLock(tx, {
+        schoolId: existing.attendanceSession.schoolId,
+        classId: existing.attendanceSession.classId,
+        sessionDate: existing.attendanceSession.sessionDate,
+        periodKey: existing.attendanceSession.periodKey,
+      });
+
       const correctionRequest = await tx.attendanceCorrectionRequest.update({
         where: { id: existing.id },
         data: {
