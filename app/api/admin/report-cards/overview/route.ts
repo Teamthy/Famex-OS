@@ -113,11 +113,27 @@ export async function PATCH(request: NextRequest) {
     const updated = await prisma.$transaction(async (tx) => {
       const owned = await tx.reportCard.findFirst({
         where: { id: payload.reportCardId, schoolId: user.schoolId },
-        select: { id: true },
+        select: { id: true, status: true },
       });
       if (!owned) {
         throw new Error("REPORT_CARD_NOT_FOUND_FOR_SCHOOL");
       }
+      if (owned.status === payload.status) {
+        throw new Error("REPORT_CARD_ALREADY_IN_STATUS");
+      }
+
+      const claimed = await tx.reportCard.updateMany({
+        where: {
+          id: owned.id,
+          schoolId: user.schoolId,
+          status: owned.status,
+        },
+        data: {
+          status: payload.status,
+          releasedAt: payload.status === ReportCardStatus.RELEASED ? new Date() : null,
+        },
+      });
+      if (claimed.count !== 1) throw new Error("REPORT_CARD_STATE_CHANGED");
 
       const report = await tx.reportCard.update({
         where: { id: owned.id },
@@ -245,9 +261,21 @@ export async function PATCH(request: NextRequest) {
         error:
           message === "REPORT_CARD_NOT_FOUND_FOR_SCHOOL"
             ? "Report card not found."
-            : "Unable to update report card status.",
+            : message === "REPORT_CARD_ALREADY_IN_STATUS"
+              ? "Report card is already in the requested status."
+              : message === "REPORT_CARD_STATE_CHANGED"
+                ? "Report card status changed while saving. Refresh and retry."
+                : "Unable to update report card status.",
+        code: message || undefined,
       },
-      { status: message === "REPORT_CARD_NOT_FOUND_FOR_SCHOOL" ? 404 : 400 },
+      {
+        status:
+          message === "REPORT_CARD_NOT_FOUND_FOR_SCHOOL"
+            ? 404
+            : message === "REPORT_CARD_ALREADY_IN_STATUS" || message === "REPORT_CARD_STATE_CHANGED"
+              ? 409
+              : 400,
+      },
     );
   }
 }
