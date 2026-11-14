@@ -264,6 +264,13 @@ jobs:
         env:
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
 
+      - name: Verify released-result recompile guard
+        # Exercise the production result compiler against migrated Postgres,
+        # including the race where a release wins while its CAS update waits.
+        run: npm run verify:result-release
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
       - name: Verify Super Admin bootstrap and MFA persistence
         # Exercises the out-of-band CLI against migrated Postgres, including
         # the appended enum value, encrypted TOTP seed, one-time recovery-code
