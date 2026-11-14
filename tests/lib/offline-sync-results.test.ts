@@ -5,17 +5,16 @@ const mocks = vi.hoisted(() => ({
   removeQueuedWrite: vi.fn(),
   incrementRetry: vi.fn(),
   getQueueCount: vi.fn(),
-}));
-
-vi.mock("@/lib/offline/db", () => mocks);
-vi.mock("@/lib/offline/exam-store", () => ({
   listPendingSubmissions: vi.fn(),
   patchSubmission: vi.fn(),
   pendingSubmissionCount: vi.fn(),
   removeSubmission: vi.fn(),
 }));
 
-import { flushQueue, onQueueWriteResult } from "@/lib/offline/sync";
+vi.mock("@/lib/offline/db", () => mocks);
+vi.mock("@/lib/offline/exam-store", () => mocks);
+
+import { flushExamSubmissions, flushQueue, onQueueWriteResult } from "@/lib/offline/sync";
 import type { QueuedWrite } from "@/lib/offline/db";
 
 const write: QueuedWrite = {
@@ -34,6 +33,10 @@ describe("offline queue write feedback", () => {
     mocks.getQueueCount.mockResolvedValue(0);
     mocks.removeQueuedWrite.mockResolvedValue(undefined);
     mocks.incrementRetry.mockResolvedValue(undefined);
+    mocks.listPendingSubmissions.mockResolvedValue([]);
+    mocks.patchSubmission.mockResolvedValue(undefined);
+    mocks.pendingSubmissionCount.mockResolvedValue(0);
+    mocks.removeSubmission.mockResolvedValue(undefined);
     vi.stubGlobal("fetch", vi.fn());
   });
 
@@ -68,5 +71,57 @@ describe("offline queue write feedback", () => {
     });
     expect(mocks.removeQueuedWrite).toHaveBeenCalledWith(write.id);
     unsubscribe();
+  });
+
+  it("shares one in-flight exam replay across simultaneous reconnect triggers", async () => {
+    const submission = {
+      id: "attempt-client-id",
+      examId: "exam_1",
+      title: "Paper",
+      subjectName: "Mathematics",
+      clientAttemptId: "attempt-client-id",
+      answers: [{ questionId: "question_1", response: "A" }],
+      startedAt: new Date(0).toISOString(),
+      submittedAt: new Date(60_000).toISOString(),
+      durationMinutes: 10,
+      manifest: {
+        examId: "exam_1",
+        packetId: "packet_1",
+        fingerprint: "fingerprint",
+        questionCount: 1,
+        totalMarks: 1,
+        durationMinutes: 10,
+        sessionLabel: null,
+        termIndex: null,
+        downloadedAt: new Date(0).toISOString(),
+      },
+      signature: "signature",
+      serverAttemptId: "server-attempt-1",
+      status: "PENDING" as const,
+      lastError: null,
+      attempts: 0,
+      queuedAt: new Date(60_000).toISOString(),
+    };
+    mocks.listPendingSubmissions.mockResolvedValue([submission]);
+    let resolveResponse: ((response: Response) => void) | undefined;
+    vi.mocked(fetch).mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveResponse = resolve;
+        }),
+    );
+
+    const first = flushExamSubmissions();
+    const second = flushExamSubmissions();
+    await vi.waitFor(() => expect(resolveResponse).toBeTypeOf("function"));
+    resolveResponse?.(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      { sent: 1, pending: 0, failed: 0 },
+      { sent: 1, pending: 0, failed: 0 },
+    ]);
+    expect(mocks.listPendingSubmissions).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(mocks.removeSubmission).toHaveBeenCalledWith(submission.id);
   });
 });
