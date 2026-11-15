@@ -101,7 +101,11 @@ for (const file of files) {
   if (existsSync(tracePath)) {
     const trace = JSON.parse(readFileSync(tracePath, "utf8"));
     const events = Array.isArray(trace) ? trace : (trace.traceEvents ?? []);
-    lcpCandidates = events.filter((event) => event.name === "largest-contentful-paint::Candidate");
+    lcpCandidates = events.filter(
+      (event) =>
+        typeof event.name === "string" &&
+        event.name.replace(/[-_]/g, "").toLowerCase() === "largestcontentfulpaint::candidate",
+    );
     navStartTs = events.find((event) => event.name === "navigationStart")?.ts;
   }
 
