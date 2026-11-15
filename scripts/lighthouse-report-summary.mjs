@@ -96,9 +96,12 @@ for (const file of files) {
   // beside the report under the same timestamp prefix. LCP candidate events
   // in there are the only ground truth about WHICH element became the LCP.
   let lcpCandidates = [];
+  let lcpTraceFound = false;
+  let lcpTraceEventNames = [];
   let navStartTs;
   const tracePath = join(DIR, file.replace(/^lhr-/, "trace-"));
   if (existsSync(tracePath)) {
+    lcpTraceFound = true;
     const trace = JSON.parse(readFileSync(tracePath, "utf8"));
     const events = Array.isArray(trace) ? trace : (trace.traceEvents ?? []);
     lcpCandidates = events.filter(
@@ -106,6 +109,13 @@ for (const file of files) {
         typeof event.name === "string" &&
         event.name.replace(/[-_]/g, "").toLowerCase() === "largestcontentfulpaint::candidate",
     );
+    lcpTraceEventNames = [
+      ...new Set(
+        events
+          .map((event) => event.name)
+          .filter((name) => typeof name === "string" && /largest|contentful|candidate/i.test(name)),
+      ),
+    ].slice(0, 20);
     navStartTs = events.find((event) => event.name === "navigationStart")?.ts;
   }
 
@@ -119,6 +129,8 @@ for (const file of files) {
     cls: numeric("cumulative-layout-shift"),
     lcpElementAudit: report.audits?.["largest-contentful-paint-element"],
     lcpCandidates,
+    lcpTraceFound,
+    lcpTraceEventNames,
     navStartTs,
   });
 }
@@ -194,6 +206,12 @@ for (const [url, reports] of [...reportsByUrl.entries()].sort(([a], [b]) => a.lo
   // assumptions involved.
   const candidates = report.lcpCandidates ?? [];
   const final = candidates[candidates.length - 1];
+  if (!final?.args?.data) {
+    emit(
+      "notice",
+      `${url} LCP trace diagnostic: trace=${report.lcpTraceFound ? "present" : "missing"}, candidateEvents=${candidates.length}, relatedEvents=${JSON.stringify(report.lcpTraceEventNames ?? []).slice(0, 300)}, final=${JSON.stringify(final ?? {}).slice(0, 180)}`,
+    );
+  }
   if (final?.args?.data) {
     const data = final.args.data;
     const startTs = report.navStartTs;
