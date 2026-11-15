@@ -1,8 +1,15 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
-import AdmissionApplicationForm from "@/components/admissions/AdmissionApplicationForm";
+import dynamic from "next/dynamic";
+import { afterLoad } from "@/lib/after-lcp";
 import { CheckCircle2, Clock3, FileText, ShieldCheck } from "lucide-react";
+
+// The long application form is below the fold. Keep its server-rendered HTML
+// available, but defer its sizeable client bundle until the hero has painted.
+const AdmissionApplicationForm = dynamic(
+  afterLoad(() => import("@/components/admissions/AdmissionApplicationForm")),
+);
 
 import { AnimatedText } from "@/components/AnimatedText";
 const assurances = [

@@ -1,12 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { SERIF } from "./theme";
 
 export type HeroSlide = { src: string; alt: string; avif?: string };
-const ROTATE_MS = 6500;
-
 /** Split editorial campus hero with a quiet paper canvas and a vivid photo panel. */
 export default function HeroCarousel({
   slides,
@@ -18,46 +16,18 @@ export default function HeroCarousel({
   schoolName: string;
 }) {
   const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
   const [restMounted, setRestMounted] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setRestMounted(true), 6000);
-    return () => clearTimeout(timer);
-  }, []);
-
   const go = useCallback(
-    (next: number) => setIndex((next + slides.length) % slides.length),
+    (next: number) => {
+      setRestMounted(true);
+      setIndex((next + slides.length) % slides.length);
+    },
     [slides.length],
   );
 
-  useEffect(() => {
-    if (
-      paused ||
-      slides.length < 2 ||
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    )
-      return;
-    const timer = setInterval(() => setIndex((i) => (i + 1) % slides.length), ROTATE_MS);
-    return () => clearInterval(timer);
-  }, [paused, slides.length]);
-
   return (
-    <section
-      id="top"
-      aria-label="Campus highlights"
-      className="px-3 pb-4 sm:px-5 sm:pb-5"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={(event) => {
-        if (!event.currentTarget.contains(document.activeElement)) setPaused(false);
-      }}
-      onFocusCapture={() => setPaused(true)}
-      onBlurCapture={(event) => {
-        const nextTarget = event.relatedTarget;
-        if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget))
-          setPaused(false);
-      }}
-    >
+    <section id="top" aria-label="Campus highlights" className="px-3 pb-4 sm:px-5 sm:pb-5">
       <div className="mx-auto max-w-[1480px] overflow-hidden rounded-[28px] bg-[var(--home-paper)] shadow-[0_26px_75px_rgba(8,45,32,.12)] sm:rounded-[34px]">
         <div className="grid lg:grid-cols-[.96fr_1.04fr]">
           <div className="flex flex-col justify-between px-6 pb-8 pt-8 sm:px-10 sm:pb-10 sm:pt-10 lg:px-12 lg:py-12 xl:px-16">
