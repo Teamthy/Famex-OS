@@ -109,7 +109,7 @@ describe("staff attendance write integration", () => {
       source: "ADMIN_QR",
     });
     mockPrisma.auditLog.create.mockResolvedValue({});
-    const { notifyDirectorsOfStaffClockEvent } = await import("@/lib/director-notifications");
+    mockPrisma.user.findMany.mockResolvedValue([{ id: "director-1" }]);
     const { recordStaffScan } = await import("@/lib/staff-attendance");
 
     await recordStaffScan({
@@ -120,13 +120,13 @@ describe("staff attendance write integration", () => {
       source: "ADMIN_QR",
     });
 
-    expect(notifyDirectorsOfStaffClockEvent).toHaveBeenCalledWith({
+    expect(createInAppNotification).toHaveBeenCalledWith({
       schoolId: "school-1",
-      staffName: "Staff Member",
-      eventType: StaffAttendanceEventType.CHECK_IN,
-      isLate: true,
-      lateMinutes: 12,
-      scannedAt,
+      userId: "director-1",
+      kind: NotificationKind.CLOCK_IN_LATE,
+      title: "Late staff arrival",
+      body: expect.stringMatching(/^Staff Member checked in at .*?, 12 minutes late\.$/),
+      link: "/admin/staff-attendance",
     });
   });
 });
