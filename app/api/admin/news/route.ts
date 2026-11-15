@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/requests";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { requireModule } from "@/lib/module-guard";
+import { notifyDirectorsOfPublishedSchoolEvent } from "@/lib/director-notifications";
 import {
   getEligiblePublicationWhatsAppRecipients,
   isPublicationWhatsAppConfigured,
@@ -278,6 +279,14 @@ export async function POST(request: NextRequest) {
       return { postId: post.id, ...delivery };
     });
 
+    if (payload.publish && payload.category.toLowerCase() === "events") {
+      await notifyDirectorsOfPublishedSchoolEvent({
+        schoolId: user.schoolId,
+        title: payload.title,
+        actorUserId: user.id,
+      });
+    }
+
     const templateConfigured = isPublicationWhatsAppConfigured();
     return NextResponse.json({
       ok: true,
@@ -312,6 +321,7 @@ export async function PATCH(request: NextRequest) {
       schoolId: true,
       title: true,
       excerpt: true,
+      category: true,
       audience: true,
       targetClassId: true,
       isPublished: true,
@@ -409,6 +419,14 @@ export async function PATCH(request: NextRequest) {
       });
       return delivery;
     });
+
+    if (post.category.toLowerCase() === "events") {
+      await notifyDirectorsOfPublishedSchoolEvent({
+        schoolId: user.schoolId,
+        title: post.title,
+        actorUserId: user.id,
+      });
+    }
 
     return NextResponse.json({
       ok: true,

@@ -12,6 +12,7 @@ import {
   type Geofence,
 } from "@/lib/geofence";
 import { sendSms } from "@/lib/sms";
+import { notifyDirectorsOfStaffClockEvent } from "@/lib/director-notifications";
 
 export const STAFF_ATTENDANCE_ADMIN_ROLES = [
   UserRole.ADMIN,
@@ -207,6 +208,15 @@ export async function recordStaffScan(input: {
     },
   });
 
+  await notifyDirectorsOfStaffClockEvent({
+    schoolId: input.schoolId,
+    staffName: teacher.displayName,
+    eventType: event.eventType,
+    isLate: event.isLate,
+    lateMinutes: event.lateMinutes,
+    scannedAt: event.scannedAt,
+  });
+
   return {
     event: {
       id: event.id,
@@ -353,6 +363,15 @@ export async function recordStaffGpsClock(input: StaffGpsClockInput) {
         workDate: workDateKey(now),
       },
     },
+  });
+
+  await notifyDirectorsOfStaffClockEvent({
+    schoolId: input.schoolId,
+    staffName: teacher.displayName,
+    eventType: event.eventType,
+    isLate: event.isLate,
+    lateMinutes: event.lateMinutes,
+    scannedAt: event.scannedAt,
   });
 
   const result = {
