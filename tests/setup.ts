@@ -49,6 +49,16 @@ const mockPrisma = {
   },
   teacherProfile: {
     findFirst: vi.fn(),
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    update: vi.fn(),
+  },
+  staffAttendanceEvent: {
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
   },
   studentProfile: {
     findFirst: vi.fn(),

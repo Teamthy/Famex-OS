@@ -3,11 +3,16 @@ import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockPrisma } from "../setup";
 
+const { notifyDirectorsOfPublishedSchoolEvent } = vi.hoisted(() => ({
+  notifyDirectorsOfPublishedSchoolEvent: vi.fn(),
+}));
+vi.mock("@/lib/director-notifications", () => ({ notifyDirectorsOfPublishedSchoolEvent }));
 vi.mock("@/lib/module-guard", () => ({ requireModule: vi.fn() }));
 vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: vi.fn() }));
 
 beforeEach(async () => {
   vi.clearAllMocks();
+  notifyDirectorsOfPublishedSchoolEvent.mockResolvedValue(1);
   const { requireModule } = await import("@/lib/module-guard");
   const { enforceRateLimit } = await import("@/lib/rate-limit");
   vi.mocked(requireModule).mockResolvedValue({
@@ -75,5 +80,29 @@ describe("admin publication snapshots", () => {
     });
     const payload = await response.json();
     expect(payload).toMatchObject({ ok: true, recipientCount: 1, whatsappQueued: 0 });
+  });
+
+  it("notifies other active directors when an Events publication is published", async () => {
+    const { POST } = await import("@/app/api/admin/news/route");
+    const request = new NextRequest("https://school.example.test/api/admin/news", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        title: "Founders Day",
+        category: "Events",
+        excerpt: "The school will celebrate Founders Day together.",
+        content: "Join us for the annual Founders Day celebration at school.",
+        audience: NewsAudience.PUBLIC,
+        publish: true,
+      }),
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(200);
+    expect(notifyDirectorsOfPublishedSchoolEvent).toHaveBeenCalledWith({
+      schoolId: "school-1",
+      title: "Founders Day",
+      actorUserId: "admin-1",
+    });
   });
 });
