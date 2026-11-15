@@ -5,7 +5,14 @@ import AdminSidebar from "@/components/AdminSidebar";
 import PortalTopbar from "@/components/PortalTopbar";
 import { Search, UserPlus, X } from "lucide-react";
 import { useToast } from "@/components/Toast";
-type Class = { id: string; displayName: string; capacity: number | null };
+type Class = { id: string; displayName: string; capacity: number | null; level: string };
+type OfferedSubject = {
+  id: string;
+  name: string;
+  code: string | null;
+  level: string;
+  category: "COMPULSORY" | "ELECTIVE";
+};
 type Student = {
   id: string;
   studentId: string;
@@ -25,6 +32,9 @@ export default function StudentsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [students, setStudents] = useState<Student[]>([]),
     [classes, setClasses] = useState<Class[]>([]),
+    [subjects, setSubjects] = useState<OfferedSubject[]>([]),
+    [selectedClassId, setSelectedClassId] = useState(""),
+    [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]),
     [open, setOpen] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
@@ -37,6 +47,7 @@ export default function StudentsPage() {
     if (r.ok) {
       setStudents(j.students);
       setClasses(j.classes);
+      setSubjects(j.subjects ?? []);
     } else setError(j.error || "Could not load students.");
   }, []);
   useEffect(() => {
@@ -49,6 +60,7 @@ export default function StudentsPage() {
         if (!cancelled) {
           setStudents(body.students);
           setClasses(body.classes);
+          setSubjects(body.subjects ?? []);
         }
       } catch (loadError) {
         if (!cancelled) {
@@ -69,7 +81,10 @@ export default function StudentsPage() {
     setError("");
     setNotice("");
     const form = new FormData(e.currentTarget);
-    const body = JSON.stringify(Object.fromEntries(form));
+    const body = JSON.stringify({
+      ...Object.fromEntries(form),
+      subjectIds: selectedSubjectIds,
+    });
     if (!enrollmentIntent.current || enrollmentIntent.current.body !== body) {
       enrollmentIntent.current = { body, key: crypto.randomUUID() + crypto.randomUUID() };
     }
@@ -102,14 +117,18 @@ export default function StudentsPage() {
           : j.parentAccount.mustChangePassword
             ? "The parent account was created, but its one-time password is not available in this retry; use the reviewed account-recovery process if it was not saved."
             : "Parent account is already linked; no new password was created.";
+      const studentLoginLine = j.studentAccount?.temporaryPassword
+        ? `Student login ${j.studentAccount.email}; temporary password (copy now): ${j.studentAccount.temporaryPassword}. The account is active and requires a password change at first sign-in.`
+        : `Student login ${j.studentAccount?.email ?? "created"} is active. Its one-time password is unavailable on this retry; use the student profile's reset process.`;
       setNotice(
-        `${j.student.displayName} enrolled in ${j.student.className}. ${subjectLine} ${parentLine}${warnings.length ? ` — ${warnings.join(" ")}` : ""}`,
+        `${j.student.displayName} enrolled in ${j.student.className}. ${subjectLine} ${studentLoginLine} ${parentLine}${warnings.length ? ` — ${warnings.join(" ")}` : ""}`,
       );
+      const enrollmentWarning = warnings.length > 0 || assigned === 0;
       toast(
-        warnings.length || assigned === 0
+        enrollmentWarning
           ? `${j.student.displayName} was enrolled with subject-assignment warnings.`
-          : `${j.student.displayName} enrolled in ${j.student.className}.`,
-        warnings.length || assigned === 0 ? "warning" : "success",
+          : `${j.student.displayName} enrolled with an active student account and a parent account.`,
+        enrollmentWarning ? "warning" : "success",
       );
       try {
         await load();
@@ -152,13 +171,20 @@ export default function StudentsPage() {
               STUDENT <span className="text-brand-green">RECORDS</span>
             </h1>
             <p className="mt-3 max-w-2xl text-sm text-white/85">
-              Create verified student profiles, link a parent, and place each learner into an active
-              class.
+              Create active student and parent accounts, choose offered subjects, and place each
+              learner into an active class.
             </p>
           </div>
           {notice && (
-            <div className="mt-5 rounded-2xl border border-brand-green/30 bg-famex-lime/10 p-4 text-sm text-[var(--text-primary)]">
-              {notice}
+            <div className="mt-5 flex items-start justify-between gap-3 rounded-2xl border border-brand-green/30 bg-famex-lime/10 p-4 text-sm text-[var(--text-primary)]">
+              <span>{notice}</span>
+              <button
+                type="button"
+                onClick={() => setNotice("")}
+                aria-label="Hide enrollment credentials"
+              >
+                <X size={16} />
+              </button>
             </div>
           )}
           {error && (
@@ -209,7 +235,11 @@ export default function StudentsPage() {
             </span>
 
             <button
-              onClick={() => setOpen(true)}
+              onClick={() => {
+                setSelectedClassId("");
+                setSelectedSubjectIds([]);
+                setOpen(true);
+              }}
               className="inline-flex items-center gap-2 rounded-full bg-famex-lime px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-navy"
             >
               <UserPlus size={15} /> Enrol student
@@ -298,7 +328,7 @@ export default function StudentsPage() {
                 ["lastName", "Last name", true],
                 ["guardianName", "Parent / guardian name", true],
                 ["guardianPhone", "Guardian phone", true],
-                ["guardianEmail", "Guardian email (optional)", false],
+                ["guardianEmail", "Guardian email (parent login)", true],
               ].map(([n, l, required]) => (
                 <label key={String(n)} className="text-xs font-bold uppercase tracking-wider">
                   {l}
@@ -325,7 +355,13 @@ export default function StudentsPage() {
                 <select
                   name="classId"
                   required
-                  className="mt-2 w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-sm normal-case"
+                  value={selectedClassId}
+                  onChange={(event) => {
+                    const nextClassId = event.target.value;
+                    setSelectedClassId(nextClassId);
+                    setSelectedSubjectIds([]);
+                  }}
+                  className="mt-2 w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-sm text-[var(--input-text)] normal-case outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
                 >
                   <option value="">Select a class</option>
                   {classes.map((c) => (
@@ -337,9 +373,71 @@ export default function StudentsPage() {
                 </select>
               </label>
             </fieldset>
+            {selectedClassId && (
+              <fieldset
+                disabled={submitting}
+                className="mt-5 rounded-2xl border border-[var(--border-subtle)] p-4"
+              >
+                <legend className="px-2 text-xs font-bold uppercase tracking-wider">
+                  Subjects offered to this class
+                </legend>
+                <p className="mb-3 text-xs text-[var(--text-muted)]">
+                  Compulsory subjects are selected automatically. Choose the electives this student
+                  will take.
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {subjects
+                    .filter(
+                      (subject) =>
+                        subject.level ===
+                        classes.find((item) => item.id === selectedClassId)?.level,
+                    )
+                    .map((subject) => {
+                      const compulsory = subject.category === "COMPULSORY";
+                      const checked = compulsory || selectedSubjectIds.includes(subject.id);
+                      return (
+                        <label
+                          key={subject.id}
+                          className="flex cursor-pointer items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-3 text-sm transition-colors hover:border-brand-green/50 hover:bg-famex-lime/5"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={compulsory}
+                            className="size-4 shrink-0 accent-brand-green focus:ring-2 focus:ring-brand-green/40"
+                            onChange={(event) =>
+                              setSelectedSubjectIds((current) =>
+                                event.target.checked
+                                  ? [...current, subject.id]
+                                  : current.filter((id) => id !== subject.id),
+                              )
+                            }
+                          />
+                          <span>
+                            {subject.name}
+                            {subject.code ? ` (${subject.code})` : ""}
+                          </span>
+                          <span className="ml-auto text-[10px] text-[var(--text-muted)]">
+                            {compulsory ? "Compulsory" : "Elective"}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  {!subjects.some(
+                    (subject) =>
+                      subject.level === classes.find((item) => item.id === selectedClassId)?.level,
+                  ) && (
+                    <p className="text-sm text-brand-orange">
+                      No active subjects are configured for this class level.
+                    </p>
+                  )}
+                </div>
+              </fieldset>
+            )}
             <p className="mt-5 text-xs text-[var(--text-muted)]">
-              A new parent account receives a one-time temporary password. Existing parent accounts
-              are linked without exposing or changing their password.
+              New student and parent accounts activate immediately. New accounts receive a one-time
+              password and must change it at first sign-in. Existing parent accounts are linked
+              without changing their password.
             </p>
             <button
               disabled={submitting}

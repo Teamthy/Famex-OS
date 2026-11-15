@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { AlertDeliveryStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { processWhatsAppFeeMessage } from "@/lib/whatsapp-fee-chat";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,10 +11,11 @@ export const dynamic = "force-dynamic";
  * WhatsApp Cloud API webhook (L, W4 delivery receipts).
  *
  * GET  — Meta's verification handshake (WHATSAPP_VERIFY_TOKEN).
- * POST — message status callbacks. A job is SENT when Meta accepts it;
- *        only this webhook may promote it to DELIVERED (handset confirmed)
- *        or demote it to FAILED (provider-side delivery failure). Matching
- *        is by the provider message id recorded at dispatch time.
+ * POST — delivery-status callbacks plus signed, configured-number inbound
+ *        text messages. A job is SENT when Meta accepts it; only this webhook
+ *        may promote it to DELIVERED (handset confirmed) or demote it to FAILED.
+ *        Inbound fee chat is session-only and creates pending Paystack attempts;
+ *        settlement remains exclusively on the Paystack webhook path.
  *
  * Signatures: when WHATSAPP_APP_SECRET is set, every POST must carry a
  * valid `x-hub-signature-256`. In production an unset secret fails closed —
@@ -55,7 +57,19 @@ type MetaStatus = {
 
 type MetaWebhookPayload = {
   entry?: {
-    changes?: { value?: { statuses?: MetaStatus[] } }[];
+    changes?: {
+      value?: {
+        metadata?: { phone_number_id?: string };
+        statuses?: MetaStatus[];
+        messages?: {
+          id?: string;
+          from?: string;
+          timestamp?: string;
+          type?: string;
+          text?: { body?: string };
+        }[];
+      };
+    }[];
   }[];
 };
 
@@ -109,16 +123,49 @@ export async function POST(request: NextRequest) {
 
   let processed = 0;
   let updated = 0;
+  let inbound = 0;
+  let inboundFailed = false;
+  const expectedPhoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   for (const entry of payload.entry ?? []) {
     for (const change of entry.changes ?? []) {
-      for (const status of change.value?.statuses ?? []) {
+      const value = change.value;
+      for (const status of value?.statuses ?? []) {
         processed += 1;
         if (await applyWhatsappStatus(status)) updated += 1;
+      }
+      // Only accept inbound chat for this configured school number. A signed
+      // status callback remains usable if Meta omits metadata on that variant.
+      if (!expectedPhoneId || value?.metadata?.phone_number_id !== expectedPhoneId) continue;
+      for (const message of value?.messages ?? []) {
+        if (message.type !== "text" || !message.id || !message.from || !message.timestamp) continue;
+        const text = message.text?.body?.trim();
+        if (!text || text.length > 1000) continue;
+        inbound += 1;
+        try {
+          await processWhatsAppFeeMessage({
+            id: message.id,
+            from: message.from,
+            timestamp: message.timestamp,
+            text,
+          });
+        } catch (error) {
+          // Return a retryable failure to Meta. The receipt claim/recovery
+          // protocol makes redelivery safe, and keeping this non-2xx avoids
+          // acknowledging work that failed before its reply was accepted.
+          inboundFailed = true;
+          console.error("WhatsApp inbound fee chat processing failed", {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
     }
   }
 
-  // Always 200 for well-formed callbacks, including unknown message ids —
-  // Meta retries non-200s and a receipt for a purged job is not an error.
-  return NextResponse.json({ ok: true, processed, updated });
+  // Unknown and already-completed receipts are acknowledged. A processing
+  // exception returns a retryable response; duplicate ids can reclaim FAILED
+  // receipts and stale PROCESSING leases without repeating successful replies.
+  return NextResponse.json(
+    { ok: !inboundFailed, processed, updated, inbound },
+    { status: inboundFailed ? 503 : 200 },
+  );
 }

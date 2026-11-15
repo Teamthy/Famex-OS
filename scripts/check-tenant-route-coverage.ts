@@ -69,7 +69,7 @@ function delegateName(model: string): string {
  */
 const GLOBAL_ROUTE_EXCEPTIONS: Record<string, string> = {
   "app/api/webhooks/whatsapp/route.ts":
-    "Meta delivery callbacks carry no tenant context; matching is by providerMessageId (a globally unique wamid) under x-hub-signature-256 HMAC verification, so a callback can only touch the single job Meta issued that id for.",
+    "Meta callbacks carry no tenant context: delivery receipts match a globally unique providerMessageId under x-hub-signature-256 HMAC; inbound fee chat is accepted only for the configured phone_number_id, resolves the one configured school, then requires an exact active-parent phone match and invoice ownership before creating a pending attempt.",
 };
 
 const models = tenantModels();

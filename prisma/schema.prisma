@@ -78,6 +78,25 @@ enum AlertChannel {
   EMAIL
 }
 
+enum WhatsAppInboundStatus {
+  RECEIVED
+  PROCESSING
+  PROCESSED
+  IGNORED
+  FAILED
+}
+
+enum StudentActivationChannel {
+  EMAIL
+  SMS
+}
+
+enum StudentActivationDeliveryStatus {
+  PENDING
+  ACCEPTED
+  FAILED
+}
+
 enum AlertDeliveryStatus {
   PENDING
   SENT
@@ -428,6 +447,9 @@ model School {
   documentSequences       DocumentSequence[]
   staffAttendanceEvents   StaffAttendanceEvent[]
   studentClockEvents      StudentClockEvent[]
+  whatsappInboundMessages        WhatsAppInboundMessage[]
+  studentActivationTokens        StudentActivationToken[]
+  guardianContactVerifications   GuardianContactVerificationToken[]
   branding                TenantBranding?
   messageThreads          MessageThread[]
   messages                Message[]
@@ -475,6 +497,8 @@ model User {
   auditLogs                   AuditLog[]
   teacherProfile              TeacherProfile?
   studentProfile              StudentProfile?
+  studentActivationTokens        StudentActivationToken[]
+  guardianContactVerifications   GuardianContactVerificationToken[]
   parentProfile               ParentProfile?
   requestedCorrectionRequests AttendanceCorrectionRequest[] @relation("CorrectionRequester")
   reviewedCorrectionRequests  AttendanceCorrectionRequest[] @relation("CorrectionReviewer")
@@ -547,6 +571,7 @@ model ParentProfile {
   feePaymentAttempts FeePaymentAttempt[]
   newsPostRecipients NewsPostRecipient[]
   reportCards        ReportCard[]
+  whatsappInboundMessages WhatsAppInboundMessage[]
 
   @@index([schoolId, displayName])
 }
@@ -618,7 +643,9 @@ model StudentProfile {
   user                 User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
   attendanceEntries    AttendanceEntry[]
   clockEvents          StudentClockEvent[]
-  parentLinks          ParentStudentLink[]
+  parentLinks                  ParentStudentLink[]
+  activationTokens             StudentActivationToken[]
+  guardianContactVerifications GuardianContactVerificationToken[]
   attendanceJobs       AttendanceAlertJob[]
   feeInvoices          FeeInvoice[]
   feePayments          FeePayment[]
@@ -1968,6 +1995,57 @@ model PaymentTransaction {
   application AdmissionApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 }
 
+model StudentActivationToken {
+  id               String                          @id @default(cuid())
+  schoolId         String
+  studentProfileId String
+  userId           String
+  tokenHash        String                          @unique
+  channel          StudentActivationChannel
+  deliveryStatus   StudentActivationDeliveryStatus @default(PENDING)
+  expiresAt        DateTime
+  acceptedAt       DateTime?
+  usedAt           DateTime?
+  revokedAt        DateTime?
+  createdAt        DateTime                        @default(now())
+  updatedAt        DateTime                        @updatedAt
+
+  school         School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentProfile StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Restrict)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([schoolId, userId, expiresAt])
+  @@index([studentProfileId, createdAt])
+}
+
+/// One-time proof that the guardian controls the enrollment-supplied contact.
+/// Redemption is separate from student-account activation and can only mint an
+/// activation link after provider acceptance and contact-snapshot revalidation.
+model GuardianContactVerificationToken {
+  id               String                          @id @default(cuid())
+  schoolId         String
+  studentProfileId String
+  userId           String
+  contactHash      String
+  tokenHash        String                          @unique
+  channel          StudentActivationChannel
+  deliveryStatus   StudentActivationDeliveryStatus @default(PENDING)
+  expiresAt        DateTime
+  acceptedAt       DateTime?
+  verifiedAt       DateTime?
+  usedAt           DateTime?
+  revokedAt        DateTime?
+  createdAt        DateTime                        @default(now())
+  updatedAt        DateTime                        @updatedAt
+
+  school         School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentProfile StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Restrict)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([schoolId, userId, expiresAt])
+  @@index([studentProfileId, channel, contactHash, verifiedAt])
+}
+
 model PasswordResetToken {
   id        String    @id @default(cuid())
   userId    String
@@ -2827,6 +2905,29 @@ model CommunicationConsent {
 
   @@unique([userId, channel, kind])
   @@index([schoolId, channel, kind])
+}
+
+/// Minimal receipt/idempotency record for inbound WhatsApp chat commands.
+/// Never persist inbound text or raw phone numbers; outbound text is ephemeral.
+model WhatsAppInboundMessage {
+  id                String                @id @default(cuid())
+  schoolId          String
+  parentProfileId   String?
+  providerMessageId String                @unique
+  status            WhatsAppInboundStatus @default(RECEIVED)
+  /// Opaque fencing token prevents an expired worker from overwriting a newer claim.
+  processingToken   String?
+  /// Generated outbound reply retained only until Meta accepts it, so a retry can resend safely.
+  replyText         String?
+  replyAcceptedAt   DateTime?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  school        School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  parentProfile ParentProfile? @relation(fields: [parentProfileId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId, status, createdAt])
+  @@index([parentProfileId, createdAt])
 }
 
 // ── Assignments + virtual classes (E/K) ──────────────────────────────────────

@@ -8,6 +8,7 @@ import { requireRole } from "@/lib/session";
 import { onboardStudent } from "@/lib/enrolment";
 import { assignStudentSubjects, resolveTeacherSubjects } from "@/lib/enrolment-subjects";
 import { logger } from "@/lib/logger";
+import { provisionStudentAccountInTransaction } from "@/lib/student-accounts";
 import {
   completeReservedIdempotency,
   idempotencyRequestHash,
@@ -28,7 +29,7 @@ const enrollSchema = z.object({
   classId: z.string().min(1),
   guardianName: z.string().trim().min(2).max(160),
   guardianPhone: z.string().trim().min(7).max(30),
-  guardianEmail: z.string().trim().toLowerCase().email().optional(),
+  guardianEmail: z.string().trim().toLowerCase().email(),
   /**
    * The subjects the teacher ticked. The form pre-ticks the subjects this
    * teacher is assigned to teach in this class (see GET), so the common case
@@ -342,6 +343,7 @@ export async function POST(request: NextRequest) {
               name: input.guardianName,
               role: "PARENT",
               passwordHash: await passwordHash(tempPassword),
+              isActive: true,
               mustChangePassword: true,
             },
           });
@@ -372,6 +374,12 @@ export async function POST(request: NextRequest) {
           guardianPhone: input.guardianPhone,
           guardianEmail: input.guardianEmail || null,
         },
+      });
+      const studentAccount = await provisionStudentAccountInTransaction(tx, {
+        schoolId: ctx.user.schoolId,
+        studentProfileId: student.id,
+        studentId: number,
+        studentName: displayName,
       });
 
       if (parentId) {
@@ -416,6 +424,8 @@ export async function POST(request: NextRequest) {
           level: lockedClass.level,
           subjectIds: input.subjectIds,
         });
+        onboarding.subjectsAssigned += extra.assigned;
+        onboarding.electivesAssigned += extra.assigned;
         if (extra.rejected.length)
           onboarding.warnings.push(
             `${extra.rejected.length} chosen subject(s) are not offered at ${lockedClass.level} and were ignored.`,
@@ -449,6 +459,12 @@ export async function POST(request: NextRequest) {
             displayName,
             className: lockedClass.displayName,
           },
+          studentAccount: {
+            email: studentAccount.email,
+            isActive: true,
+            temporaryPassword: null,
+            mustChangePassword: true,
+          },
           parentAccount: input.guardianEmail
             ? {
                 email: input.guardianEmail,
@@ -460,7 +476,7 @@ export async function POST(request: NextRequest) {
         statusCode: 201,
       });
 
-      return { student, parentCreated, className: lockedClass.displayName };
+      return { student, parentCreated, className: lockedClass.displayName, studentAccount };
     });
 
     const response = {
@@ -470,6 +486,12 @@ export async function POST(request: NextRequest) {
         displayName,
         className: result.className,
       },
+      studentAccount: {
+        email: result.studentAccount.email,
+        isActive: true,
+        temporaryPassword: result.studentAccount.temporaryPassword,
+        mustChangePassword: true,
+      },
       parentAccount: input.guardianEmail
         ? {
             email: input.guardianEmail,
@@ -478,6 +500,30 @@ export async function POST(request: NextRequest) {
           }
         : null,
     };
+    try {
+      await prisma.idempotencyRecord.updateMany({
+        where: {
+          schoolId: ctx.user.schoolId,
+          scope: "TEACHER_STUDENT_ENROLLMENT",
+          key,
+          status: "COMPLETED",
+        },
+        data: {
+          response: {
+            ...response,
+            studentAccount: { ...response.studentAccount, temporaryPassword: null },
+            parentAccount: response.parentAccount
+              ? { ...response.parentAccount, temporaryPassword: null }
+              : null,
+          },
+        },
+      });
+    } catch (error) {
+      logger.warn("Could not refresh teacher student-enrollment replay response", {
+        studentId: result.student.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
 
     return NextResponse.json(response, { status: 201 });
   } catch (error) {

@@ -77,6 +77,49 @@ export async function sendParentWelcomeEmail(input: {
   });
 }
 
+export async function sendGuardianContactVerificationEmail(input: { to: string; token: string }) {
+  const base = resolveSiteUrl();
+  if (!base) throw new Error("Canonical site URL is not configured.");
+  const origin = new URL(base);
+  if (origin.protocol !== "https:" || origin.hostname === "localhost") {
+    throw new Error("Guardian contact verification requires the canonical HTTPS site URL.");
+  }
+  const verificationUrl = new URL("/student/verify-guardian", origin);
+  verificationUrl.searchParams.set("token", input.token);
+  const result = await client().emails.send({
+    from: from(),
+    to: input.to,
+    subject: "Verify guardian contact for a student portal account",
+    html: `<p>Hello,</p><p>The school has created a student portal account for a student in your family.</p><p>First, verify that you control this guardian email using the one-time link below. The student's separate activation link will be sent only after this verification succeeds.</p><p><a href="${verificationUrl.toString()}">Verify guardian email</a></p><p>This link expires in 48 hours. If you did not expect this message, contact the school office.</p>`,
+  });
+  if (result.error)
+    throw new Error(`Guardian verification email was not accepted: ${result.error.message}`);
+}
+
+export async function sendStudentActivationEmail(input: {
+  to: string;
+  studentLogin: string;
+  token: string;
+}) {
+  const base = resolveSiteUrl();
+  if (!base) throw new Error("Canonical site URL is not configured.");
+  const origin = new URL(base);
+  if (origin.protocol !== "https:" || origin.hostname === "localhost") {
+    throw new Error("Student activation requires the canonical HTTPS site URL.");
+  }
+  const activationUrl = new URL("/student/activate", origin);
+  activationUrl.searchParams.set("token", input.token);
+  const escape = (value: string) => value.replace(/[&<>\"']/g, (char) => ESCAPES[char] ?? char);
+  const result = await client().emails.send({
+    from: from(),
+    to: input.to,
+    subject: "Activate your student's portal account",
+    html: `<p>Hello,</p><p>A student portal account has been created, and the guardian contact has been verified.</p><p>Student login: <strong>${escape(input.studentLogin)}</strong></p><p>Use the separate, one-time link below to set the student's password. It expires in 48 hours.</p><p><a href="${activationUrl.toString()}">Activate student account</a></p><p>If you did not expect this message, contact the school office. Do not forward the link to anyone you do not trust.</p>`,
+  });
+  if (result.error)
+    throw new Error(`Student activation email was not accepted: ${result.error.message}`);
+}
+
 export async function sendStaffInviteEmail(input: {
   to: string;
   name: string;

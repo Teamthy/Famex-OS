@@ -9,6 +9,7 @@ import {
   ClipboardList,
   LoaderCircle,
   UserPlus,
+  X,
   XCircle,
 } from "lucide-react";
 import AdminSidebar from "@/components/AdminSidebar";
@@ -44,6 +45,13 @@ type SchoolClass = {
   capacity: number | null;
   studentCount?: number;
 };
+type OfferedSubject = {
+  id: string;
+  name: string;
+  code: string | null;
+  level: string;
+  category: string;
+};
 
 const statuses = [
   "PENDING_REVIEW",
@@ -64,6 +72,8 @@ export default function AdminAdmissionsPage() {
   const router = useRouter();
   const [apps, setApps] = useState<AppRow[]>([]);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
+  const [subjects, setSubjects] = useState<OfferedSubject[]>([]);
+  const [electiveSubjectIds, setElectiveSubjectIds] = useState<string[]>([]);
   const [selected, setSelected] = useState<AppRow | null>(null);
   const [note, setNote] = useState("");
   const [status, setStatus] = useState<string>("PENDING_REVIEW");
@@ -89,6 +99,7 @@ export default function AdminAdmissionsPage() {
           studentCount: c.studentCount ?? c._count?.students,
         })),
       );
+      setSubjects(sj.subjects ?? []);
     }
   }, []);
 
@@ -118,6 +129,7 @@ export default function AdminAdmissionsPage() {
       matchingClasses[0]?.id ||
       "";
     setClassId(preferred);
+    setElectiveSubjectIds([]);
   }, [selected, matchingClasses]);
 
   async function saveDecision() {
@@ -161,16 +173,20 @@ export default function AdminAdmissionsPage() {
           classId,
           entranceScore: Number(entranceScore),
           entrancePassed,
+          electiveSubjectIds,
           placementNote: note || undefined,
         }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Enrollment failed.");
-      const temp = j.parentAccount?.temporaryPassword
-        ? ` Parent temporary password (copy now): ${j.parentAccount.temporaryPassword}`
-        : "";
+      const studentPassword = j.studentAccount?.temporaryPassword
+        ? ` Student login ${j.studentAccount.email}, temporary password (copy now): ${j.studentAccount.temporaryPassword}.`
+        : ` Student login ${j.studentAccount?.email ?? "created"} is active; use the student profile reset process if its one-time password was not saved.`;
+      const parentPassword = j.parentAccount?.temporaryPassword
+        ? ` Parent login temporary password (copy now): ${j.parentAccount.temporaryPassword}. The parent must change it at first sign-in.`
+        : " Parent account linked; its existing password was not changed.";
       setMsg(
-        `Enrolled ${j.student.displayName} as ${j.student.studentId} into ${j.student.className}.${temp}`,
+        `Enrolled ${j.student.displayName} as ${j.student.studentId} into ${j.student.className}. The student account is active.${studentPassword}${parentPassword}`,
       );
       setSelected(null);
       await load();
@@ -198,7 +214,8 @@ export default function AdminAdmissionsPage() {
             </h1>
             <p className="mt-3 max-w-3xl text-sm text-white/85">
               Review paid applications, record entrance results, and place successful applicants
-              into the class they applied for — with one-time parent credentials.
+              into the class they applied for — with an active student login and linked parent
+              account.
             </p>
             <Link
               href="/admin-admissions/paper"
@@ -209,8 +226,15 @@ export default function AdminAdmissionsPage() {
           </div>
 
           {msg && (
-            <div className="mt-5 break-all rounded-2xl border border-brand-green/30 bg-famex-lime/10 p-4 text-sm">
-              {msg}
+            <div className="mt-5 flex items-start justify-between gap-3 break-all rounded-2xl border border-brand-green/30 bg-famex-lime/10 p-4 text-sm">
+              <span>{msg}</span>
+              <button
+                type="button"
+                onClick={() => setMsg("")}
+                aria-label="Hide enrollment credentials"
+              >
+                <X size={16} />
+              </button>
             </div>
           )}
           {err && (
@@ -392,8 +416,11 @@ export default function AdminAdmissionsPage() {
                   Suggested class / arm
                   <select
                     value={classId}
-                    onChange={(e) => setClassId(e.target.value)}
-                    className="mt-2 w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-sm normal-case"
+                    onChange={(e) => {
+                      setClassId(e.target.value);
+                      setElectiveSubjectIds([]);
+                    }}
+                    className="mt-2 w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-sm text-[var(--input-text)] normal-case outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
                     required
                   >
                     <option value="">Select class</option>
@@ -406,6 +433,59 @@ export default function AdminAdmissionsPage() {
                   </select>
                 </label>
               </div>
+
+              {classId && (
+                <fieldset className="mt-5 rounded-2xl border border-[var(--border-subtle)] p-4">
+                  <legend className="px-2 text-xs font-bold uppercase tracking-wider">
+                    Subjects offered to this class
+                  </legend>
+                  <p className="mb-3 text-xs text-[var(--text-muted)]">
+                    Compulsory subjects are assigned automatically. Select the electives for this
+                    student.
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {!subjects.some(
+                      (subject) =>
+                        subject.level === classes.find((item) => item.id === classId)?.level &&
+                        subject.category === "ELECTIVE",
+                    ) && (
+                      <p className="text-sm text-[var(--text-muted)]">
+                        No electives are configured for this class; compulsory subjects will still
+                        be assigned.
+                      </p>
+                    )}
+                    {subjects
+                      .filter(
+                        (subject) =>
+                          subject.level === classes.find((item) => item.id === classId)?.level &&
+                          subject.category === "ELECTIVE",
+                      )
+                      .map((subject) => (
+                        <label
+                          key={subject.id}
+                          className="flex cursor-pointer items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-3 text-sm transition-colors hover:border-brand-green/50 hover:bg-famex-lime/5"
+                        >
+                          <input
+                            type="checkbox"
+                            className="size-4 shrink-0 accent-brand-green focus:ring-2 focus:ring-brand-green/40"
+                            checked={electiveSubjectIds.includes(subject.id)}
+                            onChange={(event) =>
+                              setElectiveSubjectIds((current) =>
+                                event.target.checked
+                                  ? [...current, subject.id]
+                                  : current.filter((id) => id !== subject.id),
+                              )
+                            }
+                          />
+                          <span>
+                            {subject.name}
+                            {subject.code ? ` (${subject.code})` : ""}
+                          </span>
+                        </label>
+                      ))}
+                  </div>
+                </fieldset>
+              )}
 
               <button
                 disabled={busy || !entrancePassed}

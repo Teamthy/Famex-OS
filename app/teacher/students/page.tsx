@@ -66,6 +66,12 @@ type TeacherStudentsPayload = {
   teacher: { displayName: string; isFormTeacher: boolean; isSubjectTeacher: boolean };
   teachableSubjects: TeachableClass[];
   student?: { displayName: string; studentId: string; className: string };
+  studentAccount?: {
+    email: string;
+    isActive: boolean;
+    temporaryPassword: string | null;
+    mustChangePassword: boolean;
+  };
   parentAccount?: {
     temporaryPassword: string | null;
     mustChangePassword: boolean;
@@ -272,16 +278,20 @@ export default function TeacherStudentsPage() {
           : result.parentAccount.mustChangePassword
             ? " The parent account was created, but its one-time password is not available in this retry; use the reviewed account-recovery process if it was not saved."
             : " Parent account is already linked; no new password was created.";
+      const studentLoginLine = result.studentAccount?.temporaryPassword
+        ? ` Student login ${result.studentAccount.email}; temporary password (copy now): ${result.studentAccount.temporaryPassword}. The account is active and requires a password change at first sign-in.`
+        : ` Student login ${result.studentAccount?.email ?? "created"} is active. Its one-time password is unavailable on this retry; ask an administrator to reset it.`;
       setNotice(
         `Enrolled ${result.student.displayName} (${result.student.studentId}) into ${result.student.className}. ` +
           `${subjectCount > 0 ? `${subjectCount} subject${subjectCount === 1 ? "" : "s"} assigned.` : "No subjects were assigned."}` +
-          `${warnings.length ? ` ${warnings.join(" ")}` : ""}${parentLine}`,
+          `${warnings.length ? ` ${warnings.join(" ")}` : ""}${studentLoginLine}${parentLine}`,
       );
+      const enrollmentWarning = warnings.length > 0 || subjectCount === 0;
       toast(
-        warnings.length || subjectCount === 0
+        enrollmentWarning
           ? `${result.student.displayName} was enrolled with subject-assignment warnings.`
-          : `${result.student.displayName} enrolled into ${result.student.className}.`,
-        warnings.length || subjectCount === 0 ? "warning" : "success",
+          : `${result.student.displayName} enrolled with an active student account and a parent account.`,
+        enrollmentWarning ? "warning" : "success",
       );
       await load();
     } catch (submitError) {
@@ -316,8 +326,15 @@ export default function TeacherStudentsPage() {
           </div>
 
           {notice && (
-            <div className="break-all rounded-2xl border border-brand-green/30 bg-famex-lime/10 p-4 text-sm">
-              {notice}
+            <div className="flex items-start justify-between gap-3 break-all rounded-2xl border border-brand-green/30 bg-famex-lime/10 p-4 text-sm">
+              <span>{notice}</span>
+              <button
+                type="button"
+                onClick={() => setNotice("")}
+                aria-label="Hide enrollment credentials"
+              >
+                <X size={16} />
+              </button>
             </div>
           )}
           {error && (
@@ -562,7 +579,7 @@ export default function TeacherStudentsPage() {
                   ["lastName", "Last name", true],
                   ["guardianName", "Parent / guardian name", true],
                   ["guardianPhone", "Guardian phone", true],
-                  ["guardianEmail", "Guardian email (optional)", false],
+                  ["guardianEmail", "Guardian email (parent login)", true],
                 ] as const
               ).map(([n, l, required]) => (
                 <label key={n} className="text-xs font-bold uppercase tracking-wider">
@@ -618,8 +635,9 @@ export default function TeacherStudentsPage() {
               />
             ) : null}
             <p className="mt-5 text-xs text-[var(--text-muted)]">
-              Requests are idempotent. A new parent account receives a one-time temporary password
-              shown once.
+              New student and parent accounts are active immediately. Their one-time passwords are
+              shown once and must be changed at first sign-in. Existing parent accounts are linked
+              without changing their password.
             </p>
             <button
               disabled={submitting}
@@ -680,14 +698,14 @@ function SubjectChecklist({
         {entry.subjects.map((subject) => (
           <label
             key={subject.id}
-            className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] p-3 text-sm"
+            className="flex cursor-pointer items-center gap-2 rounded-xl border border-[var(--border-subtle)] p-3 text-sm transition-colors hover:border-brand-green/50 hover:bg-famex-lime/5"
           >
             <input
               type="checkbox"
               name="subjectId"
               value={subject.id}
               defaultChecked={subject.assignedToMe}
-              className="size-4 accent-[var(--brand-green,#7AB93F)]"
+              className="size-4 shrink-0 accent-[var(--brand-green,#7AB93F)] focus:ring-2 focus:ring-brand-green/40"
             />
             <span className="min-w-0">
               {subject.name}

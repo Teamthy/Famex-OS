@@ -250,6 +250,11 @@ const PUBLIC_ROUTES = [
   "/api/platform/signup",
   "/api/it/signup",
   "/api/staff/activate",
+  // Student account links are pre-session by design. Each endpoint requires a
+  // high-entropy, hashed, single-use, unexpired token, provider-accepted
+  // delivery state, school/profile/user binding, and distributed rate limits.
+  "/api/student/verify-guardian",
+  "/api/student/activate",
   "/api/mobile/config",
   // Public contact form (marketing site): rate-limited, writes the enquiry and
   // alerts the office afterwards. It never returns school data to the caller.

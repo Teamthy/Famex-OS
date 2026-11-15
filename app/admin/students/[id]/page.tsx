@@ -44,6 +44,12 @@ type Payload = {
     isActive: boolean;
     /** Present when this student has a login; null when they have none. */
     userId?: string | null;
+    user?: {
+      email: string;
+      role: string;
+      isActive: boolean;
+      mustChangePassword: boolean;
+    } | null;
     gender?: string | null;
     dateOfBirth?: string | null;
     currentClass: { id: string; displayName: string } | null;
@@ -93,13 +99,7 @@ export default function AdminStudentDetailPage({ params }: { params: Promise<{ i
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [loginBusy, setLoginBusy] = useState(false);
-  /**
-   * The credential, held in memory only.
-   *
-   * It is shown once, for the clerk to read to the parent or to print, and is
-   * gone on the next load. Nothing here writes it to storage — a password a
-   * school keeps is a password somebody will eventually use.
-   */
+  /** The one-time password is held in memory and shown once to authorized staff. */
   const [issuedLogin, setIssuedLogin] = useState<{
     email: string;
     temporaryPassword: string;
@@ -127,14 +127,7 @@ export default function AdminStudentDetailPage({ params }: { params: Promise<{ i
   const student = data?.student;
   const fees = data?.fees;
 
-  /**
-   * Create or reset this student's login.
-   *
-   * Audit B-05: a student could be admitted through the product and still have
-   * no way to sign in, because the only path was a script on the server. The
-   * account is created with a temporary password that must be changed at first
-   * sign-in, and the password is shown to the clerk exactly once.
-   */
+  /** Provision or reset the active student login with a one-time password. */
   const manageLogin = useCallback(
     async (mode: "create" | "reset") => {
       setLoginBusy(true);
@@ -234,12 +227,12 @@ export default function AdminStudentDetailPage({ params }: { params: Promise<{ i
                     {issuedLogin ? (
                       <div className="mt-4 rounded-xl border border-brand-orange/40 bg-brand-orange/10 p-4">
                         <p className="text-xs font-bold text-brand-orange">
-                          Read this to the parent now — it is not shown again
+                          Active student login created — copy the one-time password now
                         </p>
                         <div className="mt-3 space-y-2 text-sm">
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
-                              Email
+                              Student login
                             </span>
                             <span className="font-mono font-medium text-[var(--text-primary)]">
                               {issuedLogin.email}
@@ -255,20 +248,22 @@ export default function AdminStudentDetailPage({ params }: { params: Promise<{ i
                           </div>
                         </div>
                         <p className="mt-3 text-[11px] text-brand-orange/80">
-                          They will be asked to choose their own password before they can see
-                          anything else.
+                          The account is active now. The student must choose a new password at first
+                          sign-in. Share this credential directly with the student or guardian.
                         </p>
                         <button
                           onClick={() => setIssuedLogin(null)}
                           className="mt-3 rounded-lg border border-brand-orange/40 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-orange hover:bg-brand-orange/10"
                         >
-                          I have written it down
+                          Close
                         </button>
                       </div>
                     ) : student.userId ? (
                       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                         <p className="text-sm text-[var(--text-secondary)]">
-                          This student can sign in to the portal.
+                          {student.user?.isActive
+                            ? "This student can sign in to the portal."
+                            : "The account is inactive. Resetting the password will activate it immediately."}
                         </p>
                         <button
                           onClick={() => void manageLogin("reset")}

@@ -7,6 +7,7 @@ import { requireModule } from "@/lib/module-guard";
 import { onboardStudent } from "@/lib/enrolment";
 import { assignStudentSubjects } from "@/lib/enrolment-subjects";
 import { logger } from "@/lib/logger";
+import { provisionStudentAccountInTransaction } from "@/lib/student-accounts";
 import {
   completeReservedIdempotency,
   idempotencyRequestHash,
@@ -24,11 +25,11 @@ const schema = z.object({
   classId: z.string().min(1),
   guardianName: z.string().trim().min(2).max(160),
   guardianPhone: z.string().trim().min(7).max(30),
-  // Empty string (an untouched optional field) must be treated as "not provided".
-  // zod's .optional() only handles undefined, so "" would fail .email() and 400.
+  // Convert an untouched field to undefined, which the required email schema
+  // rejects with the same 400 as any invalid parent-login address.
   guardianEmail: z.preprocess(
     (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
-    z.string().trim().toLowerCase().email().optional(),
+    z.string().trim().toLowerCase().email(),
   ),
   /**
    * Subjects to enrol the student in, in addition to the compulsory ones their
@@ -43,7 +44,7 @@ export async function GET() {
   if (!guard.ok) return guard.response;
   // Rule 13: auth → role → module. A module this school switched off is a 403.
   const user = guard.user;
-  const [students, classes] = await Promise.all([
+  const [students, classes, subjects] = await Promise.all([
     prisma.studentProfile.findMany({
       where: { schoolId: user.schoolId, isActive: true },
       include: {
@@ -61,6 +62,11 @@ export async function GET() {
       where: { schoolId: user.schoolId, isActive: true },
       orderBy: { displayName: "asc" },
     }),
+    prisma.subject.findMany({
+      where: { schoolId: user.schoolId, isActive: true },
+      select: { id: true, name: true, code: true, level: true, category: true },
+      orderBy: [{ level: "asc" }, { category: "asc" }, { name: "asc" }],
+    }),
   ]);
   return NextResponse.json({
     students: students.map((s) => {
@@ -77,6 +83,7 @@ export async function GET() {
       };
     }),
     classes,
+    subjects,
   });
 }
 export async function POST(request: NextRequest) {
@@ -182,6 +189,7 @@ export async function POST(request: NextRequest) {
               name: input.guardianName,
               role: "PARENT",
               passwordHash: await passwordHash(tempPassword),
+              isActive: true,
               mustChangePassword: true,
             },
           });
@@ -211,6 +219,12 @@ export async function POST(request: NextRequest) {
           guardianPhone: input.guardianPhone,
           guardianEmail: input.guardianEmail || null,
         },
+      });
+      const studentAccount = await provisionStudentAccountInTransaction(tx, {
+        schoolId: user.schoolId,
+        studentProfileId: student.id,
+        studentId: number,
+        studentName: displayName,
       });
       if (parentId)
         await tx.parentStudentLink.create({
@@ -257,6 +271,8 @@ export async function POST(request: NextRequest) {
           level: lockedClass.level,
           subjectIds: input.subjectIds,
         });
+        onboarding.subjectsAssigned += extra.assigned;
+        onboarding.electivesAssigned += extra.assigned;
         if (extra.rejected.length)
           onboarding.warnings.push(
             `${extra.rejected.length} chosen subject(s) are not offered at ${lockedClass.level} and were ignored.`,
@@ -289,6 +305,12 @@ export async function POST(request: NextRequest) {
             displayName,
             className: lockedClass.displayName,
           },
+          studentAccount: {
+            email: studentAccount.email,
+            isActive: true,
+            temporaryPassword: null,
+            mustChangePassword: true,
+          },
           parentAccount: input.guardianEmail
             ? {
                 email: input.guardianEmail,
@@ -302,7 +324,13 @@ export async function POST(request: NextRequest) {
         },
         statusCode: 201,
       });
-      return { student, parentCreated, className: lockedClass.displayName, onboarding };
+      return {
+        student,
+        parentCreated,
+        className: lockedClass.displayName,
+        onboarding,
+        studentAccount,
+      };
     });
     const response = {
       student: {
@@ -310,6 +338,12 @@ export async function POST(request: NextRequest) {
         studentId: number,
         displayName,
         className: result.className,
+      },
+      studentAccount: {
+        email: result.studentAccount.email,
+        isActive: true,
+        temporaryPassword: result.studentAccount.temporaryPassword,
+        mustChangePassword: true,
       },
       parentAccount: input.guardianEmail
         ? {
@@ -329,6 +363,25 @@ export async function POST(request: NextRequest) {
         warnings: result.onboarding.warnings,
       },
     };
+    try {
+      await prisma.idempotencyRecord.updateMany({
+        where: { schoolId: user.schoolId, scope: "STUDENT_ENROLLMENT", key, status: "COMPLETED" },
+        data: {
+          response: {
+            ...response,
+            studentAccount: { ...response.studentAccount, temporaryPassword: null },
+            parentAccount: response.parentAccount
+              ? { ...response.parentAccount, temporaryPassword: null }
+              : null,
+          },
+        },
+      });
+    } catch (error) {
+      logger.warn("Could not refresh student-enrollment replay response", {
+        studentId: result.student.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
     return NextResponse.json(response, { status: 201 });
   } catch (error) {
     if (error instanceof Error && error.message === "IDEMPOTENCY_RESERVATION_LOST") {
