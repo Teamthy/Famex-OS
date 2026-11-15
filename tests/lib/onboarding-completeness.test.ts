@@ -94,6 +94,37 @@ describe("each path that creates a student must onboard them", () => {
     expect(src).toMatch(/warnings/);
   });
 
+  it("new student accounts are active and linked and parent email is required", () => {
+    const provisioning = code(read("lib/student-accounts.ts"));
+    expect(provisioning).toMatch(/isActive:\s*true/);
+    expect(provisioning).toMatch(/mustChangePassword:\s*true/);
+    for (const file of ["app/api/admin/students/route.ts", "app/api/teacher/students/route.ts"]) {
+      const src = code(read(file));
+      expect(src).toMatch(/provisionStudentAccountInTransaction\(/);
+      expect(src).toMatch(/guardianEmail:[\s\S]*email\(\)/);
+    }
+  });
+
+  it("admin and admissions enrollment modals offer class-level subjects", () => {
+    const admin = read("app/admin/students/page.tsx");
+    const admissions = read("app/admin-admissions/page.tsx");
+    expect(admin).toMatch(/Subjects offered to this class/);
+    expect(admin).toMatch(/subjectIds:\s*selectedSubjectIds/);
+    expect(admissions).toMatch(/Subjects offered to this class/);
+    expect(admissions).toMatch(/electiveSubjectIds/);
+  });
+
+  it("direct staff provisioning creates either a class teacher or subject teacher assignment", () => {
+    const route = code(read("app/api/admin/staff/direct/route.ts"));
+    const page = code(read("app/admin/staff/page.tsx"));
+    expect(route).toMatch(/FORM_TEACHER/);
+    expect(route).toMatch(/SUBJECT_TEACHER/);
+    expect(route).toMatch(/teacherClassAssignment\.upsert/);
+    expect(route).toMatch(/schoolId:\s*user\.schoolId/);
+    expect(page).toMatch(/Tutor type/);
+    expect(page).toMatch(/Subject taught/);
+  });
+
   it("the student screen says the subject count out loud", () => {
     const page = read("app/admin/students/page.tsx");
     expect(page).toMatch(/No subjects were assigned/);
@@ -108,9 +139,8 @@ describe("each path that creates a student must onboard them", () => {
     expect(page).toMatch(/"Idempotency-Key": enrollmentIntent\.current\.key/);
     expect(page).toMatch(/disabled=\{submitting\}/);
     expect(page).toMatch(/toast\(/);
-    expect(page).toMatch(
-      /No parent login account was created because no guardian email was provided/,
-    );
+    expect(page).toMatch(/guardian email \(parent login\)/i);
+    expect(page).toMatch(/Subjects offered to this class/);
     expect(page).toMatch(/one-time password is not available in this retry/);
   });
 

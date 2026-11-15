@@ -68,6 +68,16 @@ const mockPrisma = {
     count: vi.fn(),
     groupBy: vi.fn(),
   },
+  studentActivationToken: {
+    create: vi.fn(),
+    findUnique: vi.fn(),
+    updateMany: vi.fn(),
+  },
+  guardianContactVerificationToken: {
+    create: vi.fn(),
+    findUnique: vi.fn(),
+    updateMany: vi.fn(),
+  },
   parentProfile: {
     findFirst: vi.fn(),
     findMany: vi.fn(),
@@ -105,6 +115,12 @@ const mockPrisma = {
     findMany: vi.fn(),
     upsert: vi.fn(),
     groupBy: vi.fn(),
+  },
+  whatsAppInboundMessage: {
+    create: vi.fn(),
+    findUnique: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
   },
   messageTemplate: {
     findUnique: vi.fn(),

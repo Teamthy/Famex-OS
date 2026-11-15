@@ -10,14 +10,14 @@
  *
  * Two rules shape everything here:
  *
- *  1. **A password is never displayed to staff.** A clerk who can read a
- *     child's password can sign in as that child, and there is no record that
- *     they did. Staff trigger provisioning; the family receives the credential
- *     through a channel the school already uses for guardian contact.
+ *  1. **Credentials are shown once to authorized school staff.** The current
+ *     enrollment flow lets an administrator or class teacher hand the initial
+ *     login to the family directly. The raw password is returned only in the
+ *     immediate response and is removed from idempotency replay records.
  *
- *  2. **The first sign-in must change it.** A password that arrives by SMS or
- *     on paper has been seen by at least one other person. `mustChangePassword`
- *     is set on every account created here, and the login route enforces it.
+ *  2. **The first sign-in must change it.** A password handed over by staff is
+ *     not private after creation. `mustChangePassword` is set on every account
+ *     created here, and the login route enforces it.
  *
  * The functions in this module are pure so the rules can be tested without a
  * database; the store operations take a Prisma transaction client.
@@ -99,7 +99,7 @@ export const PROVISION_REFUSAL_MESSAGES: Record<ProvisionRefusal, string> = {
 /**
  * How the credential reaches the family.
  *
- * Not returned from the API — that is the point. The caller sends it through
- * the messaging channel, or shows it once to the parent standing at the desk.
+ * Returned once to the authorized enrollment caller for direct handoff; never
+ * persisted in idempotency records or durable account metadata.
  */
 export type CredentialDelivery = "SMS" | "EMAIL" | "PRINT" | "NONE";

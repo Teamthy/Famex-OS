@@ -2,7 +2,9 @@ import { UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { PEOPLE_ADMIN_ROLES, oneTimeSecret, passwordHash } from "@/lib/people";
+import { PEOPLE_ADMIN_ROLES } from "@/lib/people";
+import { provisionStudentAccountInTransaction } from "@/lib/student-accounts";
+import { oneTimeSecret, passwordHash } from "@/lib/people";
 import { requireModule } from "@/lib/module-guard";
 import { getClientIp } from "@/lib/requests";
 import {
@@ -22,22 +24,12 @@ export const dynamic = "force-dynamic";
  * In practice that meant students were handed a shared password or could not
  * sign in at all.
  *
- * ── The password is never in the response
+ * POST provisions an active student login with a strong one-time password.
+ * The password is returned once to authorized school staff for direct handoff;
+ * the student must change it at first sign-in.
  *
- * A clerk who can read a child's password can sign in as that child, and
- * nothing in the audit log would distinguish it from the child signing in.
- * This endpoint returns the ADDRESS and a one-time activation token instead;
- * the caller delivers the credential through the channel the school already
- * uses for guardian contact.
- *
- * ── POST creates, PATCH resets
- *
- * POST   → provision a login for a student who has none.
- * PATCH  → issue a new temporary password for an existing one, and revoke every
- *          session already issued by bumping tokenVersion. "Reset the password"
- *          that leaves the old sessions alive has not reset anything.
- *
- * Both force a password change at next sign-in.
+ * PATCH revokes existing sessions, rotates the password, keeps the account
+ * active, and requires a password change at next sign-in.
  */
 
 /** POST /api/admin/students/[id]/login — provision. */
@@ -86,25 +78,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     );
   }
 
-  // The credential is generated, delivered out-of-band, and never returned.
-  const temporaryPassword = oneTimeSecret();
-
-  const created = await prisma.$transaction(async (tx) => {
-    const account = await tx.user.create({
-      data: {
-        schoolId: user.schoolId,
-        email,
-        name: student.displayName,
-        role: UserRole.STUDENT,
-        passwordHash: await passwordHash(temporaryPassword),
-        // A credential that travelled by SMS or on paper has been seen by
-        // somebody else. The login route refuses to proceed until it changes.
-        mustChangePassword: true,
-      },
-    });
-    await tx.studentProfile.update({
-      where: { id: student.id },
-      data: { userId: account.id },
+  const activation = await prisma.$transaction(async (tx) => {
+    const issued = await provisionStudentAccountInTransaction(tx, {
+      schoolId: user.schoolId,
+      studentProfileId: student.id,
+      studentId: student.studentId as string,
+      studentName: student.displayName,
     });
     await tx.auditLog.create({
       data: {
@@ -114,23 +93,22 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         entityType: "StudentProfile",
         entityId: student.id,
         ipAddress: getClientIp(request),
-        metadata: { email, studentId: student.studentId },
+        metadata: {
+          email: issued.email,
+          studentId: student.studentId,
+          accountActivated: true,
+        },
       },
     });
-    return account;
+    return issued;
   });
-
   return NextResponse.json({
     ok: true,
     login: {
-      email: created.email,
-      /**
-       * Handed to the caller ONCE for delivery, never stored and never logged.
-       * The response is the only moment it exists in plain text.
-       */
-      temporaryPassword,
+      email: activation.email,
+      isActive: true,
+      temporaryPassword: activation.temporaryPassword,
       mustChangePassword: true,
-      delivery: student.guardianPhone ? "SMS" : student.guardianEmail ? "EMAIL" : "PRINT",
     },
   });
 }
@@ -162,9 +140,12 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     select: {
       id: true,
       studentId: true,
+      displayName: true,
       isActive: true,
       userId: true,
-      user: { select: { id: true, email: true } },
+      guardianEmail: true,
+      guardianPhone: true,
+      user: { select: { id: true, email: true, role: true, isSuspended: true } },
     },
   });
   if (!student) return NextResponse.json({ error: "Student not found." }, { status: 404 });
@@ -180,20 +161,40 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       { status: 400 },
     );
   }
+  if (student.user.role !== UserRole.STUDENT || student.user.isSuspended) {
+    return NextResponse.json(
+      {
+        error:
+          "This linked account cannot be reset as a student login. Contact the platform administrator.",
+      },
+      { status: 409 },
+    );
+  }
 
   const temporaryPassword = oneTimeSecret();
-
   await prisma.$transaction(async (tx) => {
-    await tx.user.update({
-      where: { id: student.user!.id },
+    const updated = await tx.user.updateMany({
+      where: {
+        id: student.user!.id,
+        schoolId: user.schoolId,
+        role: UserRole.STUDENT,
+        isSuspended: false,
+      },
       data: {
         passwordHash: await passwordHash(temporaryPassword),
+        isActive: true,
         mustChangePassword: true,
-        // Every session already issued is revoked. A reset that leaves the old
-        // sessions alive has not reset anything — whoever had the password is
-        // still signed in on their phone.
         tokenVersion: { increment: 1 },
       },
+    });
+    if (updated.count !== 1) throw new Error("STUDENT_ACCOUNT_RESET_CONFLICT");
+    await tx.studentActivationToken.updateMany({
+      where: { userId: student.user!.id, usedAt: null, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    await tx.guardianContactVerificationToken.updateMany({
+      where: { userId: student.user!.id, usedAt: null, revokedAt: null },
+      data: { revokedAt: new Date() },
     });
     await tx.auditLog.create({
       data: {
@@ -212,6 +213,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     ok: true,
     login: {
       email: student.user.email,
+      isActive: true,
       temporaryPassword,
       mustChangePassword: true,
       sessionsRevoked: true,

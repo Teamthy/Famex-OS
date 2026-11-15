@@ -8,6 +8,7 @@ import { sendParentWelcomeEmail } from "@/lib/email";
 import { onboardStudent } from "@/lib/enrolment";
 import { requireModule } from "@/lib/module-guard";
 import { logger } from "@/lib/logger";
+import { provisionStudentAccountInTransaction } from "@/lib/student-accounts";
 import {
   completeReservedIdempotency,
   idempotencyRequestHash,
@@ -171,6 +172,7 @@ export async function POST(request: NextRequest) {
               "Parent",
             role: "PARENT",
             passwordHash: await passwordHash(tempPassword),
+            isActive: true,
             mustChangePassword: true,
           },
         });
@@ -199,6 +201,12 @@ export async function POST(request: NextRequest) {
           guardianPhone: application.parentPhone,
           guardianEmail: application.parentEmail,
         },
+      });
+      const studentAccount = await provisionStudentAccountInTransaction(tx, {
+        schoolId: user.schoolId,
+        studentProfileId: student.id,
+        studentId: number,
+        studentName: displayName,
       });
       await tx.parentStudentLink.create({
         data: {
@@ -266,6 +274,12 @@ export async function POST(request: NextRequest) {
         lockedUntil: reservation.lockedUntil,
         response: {
           student: { studentId: number, displayName, className: lockedClass.displayName },
+          studentAccount: {
+            email: studentAccount.email,
+            isActive: true,
+            temporaryPassword: null,
+            mustChangePassword: true,
+          },
           parentAccount: {
             email: application.parentEmail,
             temporaryPassword: null,
@@ -281,8 +295,10 @@ export async function POST(request: NextRequest) {
         parentDisplayName: parent.displayName,
         className: lockedClass.displayName,
         onboarding,
+        studentAccount,
       };
     });
+
     // Email the parent their portal credentials.
     //
     // Fire-and-forget on purpose: the enrolment transaction has already
@@ -310,6 +326,12 @@ export async function POST(request: NextRequest) {
 
     const response = {
       student: { studentId: number, displayName, className: result.className },
+      studentAccount: {
+        email: result.studentAccount.email,
+        isActive: true,
+        temporaryPassword: result.studentAccount.temporaryPassword,
+        mustChangePassword: true,
+      },
       parentAccount: {
         email: application.parentEmail,
         temporaryPassword: result.parentCreated ? tempPassword : null,
@@ -334,7 +356,7 @@ export async function POST(request: NextRequest) {
     };
     // The transaction stored the replay response with welcomeEmailSent=false
     // (email is attempted after commit); refresh it now, best-effort.
-    if (result.parentCreated) {
+    {
       try {
         await prisma.idempotencyRecord.updateMany({
           where: {
@@ -346,12 +368,14 @@ export async function POST(request: NextRequest) {
           data: {
             response: {
               student: response.student,
+              studentAccount: { ...response.studentAccount, temporaryPassword: null },
               parentAccount: {
                 email: response.parentAccount.email,
                 temporaryPassword: null,
                 mustChangePassword: response.parentAccount.mustChangePassword,
                 welcomeEmailSent,
               },
+              onboarding: response.onboarding,
             },
           },
         });

@@ -17,6 +17,8 @@ type Staff = {
   teacherProfile: { id: string; roleLabel: string | null } | null;
 };
 type Invite = { id: string; name: string; email: string; role: string; expiresAt: string };
+type TeacherClassOption = { id: string; displayName: string; level: string };
+type TeacherSubjectOption = { id: string; name: string; code: string | null; level: string };
 
 /**
  * B-06: the provisionable roles come from the same prisma-free list the
@@ -40,6 +42,14 @@ export default function StaffPage() {
   const [mode, setMode] = useState<"invite" | "direct" | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [teacherClasses, setTeacherClasses] = useState<TeacherClassOption[]>([]);
+  const [teacherSubjects, setTeacherSubjects] = useState<TeacherSubjectOption[]>([]);
+  const [directRole, setDirectRole] = useState<string>(roles[0]);
+  const [teacherType, setTeacherType] = useState<"FORM_TEACHER" | "SUBJECT_TEACHER">(
+    "FORM_TEACHER",
+  );
+  const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState("");
 
   const load = useCallback(async () => {
     const response = await fetch("/api/admin/staff/invites", { cache: "no-store" });
@@ -47,6 +57,30 @@ export default function StaffPage() {
     if (!response.ok) throw new Error(body.error || "Could not load staff.");
     setStaff(body.staff);
     setInvites(body.invites);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTeacherChoices() {
+      try {
+        const response = await fetch("/api/admin/staff/direct", { cache: "no-store" });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Could not load classes and subjects.");
+        if (!cancelled) {
+          setTeacherClasses(body.classes ?? []);
+          setTeacherSubjects(body.subjects ?? []);
+        }
+      } catch (loadError) {
+        if (!cancelled)
+          setError(
+            loadError instanceof Error ? loadError.message : "Could not load teaching options.",
+          );
+      }
+    }
+    void loadTeacherChoices();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -209,17 +243,25 @@ export default function StaffPage() {
     setError("");
     let receivedResponse = false;
     try {
+      const form = new FormData(e.currentTarget);
       const response = await fetch("/api/admin/staff/direct", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(Object.fromEntries(new FormData(e.currentTarget))),
+        body: JSON.stringify({
+          ...Object.fromEntries(form),
+          classIds: form.getAll("classIds"),
+          subjectId: selectedSubjectId || undefined,
+        }),
       });
       const body = await response.json();
       receivedResponse = true;
       if (!response.ok) throw new Error(body.error || "Unable to create staff account.");
       setMode(null);
+      const assignment = body.assignment
+        ? ` ${body.assignment.type === "FORM_TEACHER" ? "Class teacher" : `Subject teacher (${body.assignment.subject})`} assigned to: ${body.assignment.classes.join(", ")}.`
+        : "";
       setNotice(
-        `Account created for ${body.user.email}. Temporary password (copy now): ${body.temporaryPassword}. They must change it on first login.`,
+        `Active account created for ${body.user.email}. Temporary password (copy now): ${body.temporaryPassword}. They must change it on first login.${assignment}`,
       );
       toast(
         `Staff account created for ${body.user.email}. Copy the one-time password from the notice.`,
@@ -271,7 +313,13 @@ export default function StaffPage() {
 
           <div className="mt-6 flex flex-wrap justify-end gap-3">
             <button
-              onClick={() => setMode("direct")}
+              onClick={() => {
+                setDirectRole("TEACHER");
+                setTeacherType("FORM_TEACHER");
+                setSelectedClassIds([]);
+                setSelectedSubjectId("");
+                setMode("direct");
+              }}
               className="inline-flex items-center gap-2 rounded-full border border-brand-green px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-green"
             >
               <KeyRound size={15} /> Create account + password
@@ -407,6 +455,14 @@ export default function StaffPage() {
                 Role
                 <select
                   name="role"
+                  value={mode === "direct" ? directRole : undefined}
+                  onChange={(event) => {
+                    setDirectRole(event.target.value);
+                    if (event.target.value !== "TEACHER") {
+                      setSelectedClassIds([]);
+                      setSelectedSubjectId("");
+                    }
+                  }}
                   className="mt-2 w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-sm normal-case"
                 >
                   {roles.map((x) => (
@@ -424,6 +480,92 @@ export default function StaffPage() {
                     className="mt-2 w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-sm normal-case"
                   />
                 </label>
+              )}
+              {mode === "direct" && directRole === "TEACHER" && (
+                <div className="space-y-4 rounded-2xl border border-[var(--border-subtle)] p-4">
+                  <label className="block text-xs font-bold uppercase tracking-wider">
+                    Tutor type
+                    <select
+                      name="assignmentType"
+                      value={teacherType}
+                      onChange={(event) => {
+                        setTeacherType(event.target.value as "FORM_TEACHER" | "SUBJECT_TEACHER");
+                        setSelectedClassIds([]);
+                        setSelectedSubjectId("");
+                      }}
+                      className="mt-2 w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-sm text-[var(--input-text)] normal-case outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+                    >
+                      <option value="FORM_TEACHER">Class teacher</option>
+                      <option value="SUBJECT_TEACHER">Subject teacher</option>
+                    </select>
+                  </label>
+                  {teacherType === "SUBJECT_TEACHER" && (
+                    <label className="block text-xs font-bold uppercase tracking-wider">
+                      Subject taught
+                      <select
+                        name="subjectId"
+                        value={selectedSubjectId}
+                        onChange={(event) => {
+                          setSelectedSubjectId(event.target.value);
+                          setSelectedClassIds([]);
+                        }}
+                        className="mt-2 w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-sm text-[var(--input-text)] normal-case outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+                      >
+                        <option value="">Select an offered subject</option>
+                        {!teacherSubjects.length && (
+                          <option disabled>No active subjects configured</option>
+                        )}
+                        {teacherSubjects.map((subject) => (
+                          <option key={subject.id} value={subject.id}>
+                            {subject.name} · {subject.level}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <div>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wider">
+                      Assigned class(es)
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {teacherClasses
+                        .filter(
+                          (schoolClass) =>
+                            teacherType === "FORM_TEACHER" ||
+                            (Boolean(selectedSubjectId) &&
+                              teacherSubjects.find((subject) => subject.id === selectedSubjectId)
+                                ?.level === schoolClass.level),
+                        )
+                        .map((schoolClass) => (
+                          <label
+                            key={schoolClass.id}
+                            className="flex cursor-pointer items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-3 text-sm transition-colors hover:border-brand-green/50 hover:bg-famex-lime/5"
+                          >
+                            <input
+                              type="checkbox"
+                              className="size-4 shrink-0 accent-brand-green focus:ring-2 focus:ring-brand-green/40"
+                              name="classIds"
+                              value={schoolClass.id}
+                              checked={selectedClassIds.includes(schoolClass.id)}
+                              onChange={(event) =>
+                                setSelectedClassIds((current) =>
+                                  event.target.checked
+                                    ? [...current, schoolClass.id]
+                                    : current.filter((id) => id !== schoolClass.id),
+                                )
+                              }
+                            />
+                            <span>{schoolClass.displayName}</span>
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    {teacherType === "FORM_TEACHER"
+                      ? "The class-teacher assignment is applied immediately."
+                      : "Choose a subject first; only classes at its offered level are shown."}
+                  </p>
+                </div>
               )}
             </fieldset>
             <p className="mt-4 text-xs text-[var(--text-muted)]">

@@ -17,6 +17,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
   const student = await prisma.studentProfile.findFirst({
     where: { id, schoolId: user.schoolId },
     include: {
+      user: { select: { email: true, role: true, isActive: true, mustChangePassword: true } },
       currentClass: { select: { id: true, displayName: true } },
       parentLinks: {
         include: {
@@ -154,6 +155,32 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           : {}),
       },
     });
+    if (
+      existing.userId &&
+      (input.guardianEmail !== undefined || input.guardianPhone !== undefined)
+    ) {
+      const revokedAt = new Date();
+      await tx.studentActivationToken.updateMany({
+        where: {
+          schoolId: user.schoolId,
+          studentProfileId: id,
+          userId: existing.userId,
+          usedAt: null,
+          revokedAt: null,
+        },
+        data: { revokedAt },
+      });
+      await tx.guardianContactVerificationToken.updateMany({
+        where: {
+          schoolId: user.schoolId,
+          studentProfileId: id,
+          userId: existing.userId,
+          usedAt: null,
+          revokedAt: null,
+        },
+        data: { revokedAt },
+      });
+    }
     const guardian = await syncGuardianContact({
       tx,
       schoolId: user.schoolId,

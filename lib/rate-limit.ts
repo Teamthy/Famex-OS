@@ -96,6 +96,7 @@ const limiterConfig = {
   // account does not exist yet), so the invite token is the only secret
   // protecting staff-account creation. Throttle guessing.
   staffActivate: { maxRequests: 10, windowMs: 3_600_000, prefix: "fis:staff:activate" },
+  studentActivate: { maxRequests: 10, windowMs: 3_600_000, prefix: "fis:student:activate" },
   // Bulk communications — sending results to parents, publishing news or an
   // announcement, or messaging a family. A teacher is rate-limited per account
   // so a misbehaving client (or a stuck retry loop) cannot spam every parent's
@@ -168,6 +169,11 @@ const redisLimiters: Record<string, Ratelimit | null> = redis
         limiter: Ratelimit.slidingWindow(10, "1 h"),
         prefix: "fis:staff:activate",
       }),
+      studentActivate: new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(10, "1 h"),
+        prefix: "fis:student:activate",
+      }),
       sendResults: new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(20, "1 h"),
@@ -216,6 +222,7 @@ const DISTRIBUTED_REQUIRED: ReadonlySet<RateLimitKind> = new Set<RateLimitKind>(
   "changePassword",
   "signup",
   "staffActivate",
+  "studentActivate",
   // Admissions surface (public, unauthenticated writes and reads)
   "draft",
   "upload",
