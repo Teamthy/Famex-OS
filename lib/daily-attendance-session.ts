@@ -1,16 +1,18 @@
 import type { Prisma } from "@prisma/client";
 
+type AttendanceDayLockTransaction = Pick<Prisma.TransactionClient, "$executeRaw">;
+
 export function attendanceWorkDate(dayKey: string): Date {
   return new Date(`${dayKey}T12:00:00.000Z`);
 }
 
 /** Serialize day transitions and attendance writes so close cannot race a scan. */
 export async function lockDailyAttendanceDay(
-  tx: Prisma.TransactionClient,
+  tx: AttendanceDayLockTransaction,
   schoolId: string,
   dayKey: string,
 ) {
-  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`${schoolId}:${dayKey}`}::text, 0))`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`${schoolId}:${dayKey}`}::text, 0))`;
 }
 
 export async function requireDailyAttendanceOpen(
