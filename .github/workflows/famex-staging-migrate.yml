@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
       (github.ref == 'refs/heads/main' ||
-       github.ref == 'refs/heads/arena/4770e4f7-famex-os') &&
+       github.ref == 'refs/heads/arena/ac4e08eb-famex-os') &&
       inputs.confirmation == 'APPLY-FAMEX-STAGING'
     steps:
       - name: Check out selected ref
@@ -74,7 +74,7 @@ jobs:
     environment: famex-staging
     if: >-
       (github.ref == 'refs/heads/main' ||
-       github.ref == 'refs/heads/arena/4770e4f7-famex-os') &&
+       github.ref == 'refs/heads/arena/ac4e08eb-famex-os') &&
       inputs.confirmation == 'APPLY-FAMEX-STAGING'
     steps:
       - name: Check out selected ref
@@ -109,15 +109,13 @@ jobs:
             process.exit(1);
           }
           const projectRef = 'okatwpkovcmipjdnqkys';
-          const isDirect =
-            url.hostname === `db.${projectRef}.supabase.co` &&
-            (url.port === '' || url.port === '5432');
+          const isPostgres = url.protocol === 'postgres:' || url.protocol === 'postgresql:';
           const isSessionPooler =
             url.hostname.endsWith('.pooler.supabase.com') &&
             decodeURIComponent(url.username).endsWith(`.${projectRef}`) &&
             url.port === '5432';
-          if (!isDirect && !isSessionPooler) {
-            console.error('STAGING_DATABASE_URL must target the confirmed Famex staging Supabase project using a direct or session-pooler connection (not the transaction pooler).');
+          if (!isPostgres || !isSessionPooler) {
+            console.error('STAGING_DATABASE_URL must use the confirmed Famex staging Supabase session pooler on port 5432. Direct database hosts may be IPv6-only from GitHub runners; transaction-pooler URLs are not migration-safe.');
             process.exit(1);
           }
           console.log('Migration target verified; connection details are not printed.');
