@@ -57,6 +57,7 @@ const API_OWNERS: Record<string, ModuleKey | null> = {
   "admin/class-manager": null,
   "admin/clinic": "operations",
   "admin/dashboard": null,
+  "admin/daily-attendance": "staff_attendance",
   "admin/expenses": "expenses",
   "admin/fees": "fees",
   "admin/finances": "fees",

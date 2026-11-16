@@ -447,6 +447,7 @@ model School {
   documentSequences       DocumentSequence[]
   staffAttendanceEvents   StaffAttendanceEvent[]
   studentClockEvents      StudentClockEvent[]
+  dailyAttendanceSessions DailyAttendanceSession[]
   whatsappInboundMessages        WhatsAppInboundMessage[]
   studentActivationTokens        StudentActivationToken[]
   guardianContactVerifications   GuardianContactVerificationToken[]
@@ -2044,10 +2045,7 @@ model GuardianContactVerificationToken {
 
   @@index([schoolId, userId, expiresAt])
   // PostgreSQL truncates identifiers to 63 bytes; pin the actual persisted name.
-  @@index(
-    [studentProfileId, channel, contactHash, verifiedAt],
-    map: "GuardianContactVerificationToken_studentProfileId_channel_conta"
-  )
+  @@index([studentProfileId, channel, contactHash, verifiedAt], map: "GuardianContactVerificationToken_studentProfileId_channel_conta")
 }
 
 model PasswordResetToken {
@@ -2256,6 +2254,29 @@ enum StudentClockEventType {
   CHECK_OUT
 }
 
+enum DailyAttendanceStatus {
+  OPEN
+  CLOSED
+}
+
+/// Admin-controlled school attendance gate for one local workday.
+model DailyAttendanceSession {
+  id              String                @id @default(cuid())
+  schoolId        String
+  workDate        DateTime              @db.Date
+  status          DailyAttendanceStatus @default(OPEN)
+  openedAt        DateTime              @default(now())
+  openedByUserId  String?
+  closedAt        DateTime?
+  closedByUserId  String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  school          School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, workDate])
+  @@index([schoolId, status, workDate])
+}
+
 model StudentClockEvent {
   id               String                @id @default(cuid())
   schoolId         String
@@ -2265,6 +2286,7 @@ model StudentClockEvent {
   isLate           Boolean               @default(false)
   lateMinutes      Int                   @default(0)
   source           String                @default("GPS")
+  scannerUserId    String?
   note             String?
   workDate         DateTime              @db.Date
   geoLatitude      Decimal?              @db.Decimal(9, 6)

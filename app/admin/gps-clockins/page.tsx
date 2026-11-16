@@ -22,6 +22,7 @@ type Row = {
   name: string;
   sub: string;
   eventType: "CHECK_IN" | "CHECK_OUT";
+  source: string;
   at: string;
   isLate: boolean;
   lateMinutes: number;
@@ -41,7 +42,7 @@ type Summary = {
   studentIn: number;
   studentNotIn: number;
   studentLate: number;
-  gpsEvents: number;
+  clockEvents: number;
 };
 
 type Response = {
@@ -106,14 +107,14 @@ export default function AdminGpsClockinsPage() {
         <section className="bg-brand-navy px-6 pt-28 pb-14">
           <div className="mx-auto max-w-7xl">
             <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brand-green/40 bg-famex-lime/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-green">
-              <MapPin size={11} /> GPS attendance
+              <MapPin size={11} /> Attendance activity
             </span>
             <h1 className="font-display text-4xl tracking-widest text-white md:text-6xl">
-              LIVE <span className="text-brand-green">CLOCK-INS</span>
+              LIVE <span className="text-brand-green">ATTENDANCE</span>
             </h1>
             <p className="mt-3 max-w-2xl text-sm text-white/85">
-              Real-time feed of GPS-verified check-ins by staff and students. Server-side geofencing
-              means only people physically at school appear here.
+              Daily clock-in and clock-out activity for staff and students. GPS entries are checked
+              against the school geofence; signed daily QR events are verified by the backend.
             </p>
           </div>
         </section>
@@ -201,7 +202,7 @@ export default function AdminGpsClockinsPage() {
                     <div className="flex items-center gap-2 border-b border-[var(--border-subtle)] px-6 py-4">
                       <Users size={16} className="text-brand-green" />
                       <h2 className="font-display text-lg tracking-widest">
-                        GPS ACTIVITY FEED ({data.rows.length})
+                        DAILY CLOCK EVENTS ({data.rows.length})
                       </h2>
                       {data.fence.radiusM && (
                         <span className="ml-auto text-xs text-[var(--text-muted)]">
@@ -212,7 +213,7 @@ export default function AdminGpsClockinsPage() {
                     <ul className="divide-y divide-[var(--border-subtle)]">
                       {data.rows.length === 0 && (
                         <li className="px-6 py-10 text-center text-sm text-[var(--text-muted)]">
-                          No GPS clock events yet for this date.
+                          No clock events yet for this date.
                         </li>
                       )}
                       {data.rows.map((r) => (
@@ -246,6 +247,9 @@ export default function AdminGpsClockinsPage() {
                                 }`}
                               >
                                 {r.kind}
+                              </span>
+                              <span className="rounded-full bg-[var(--surface-disabled)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                                {r.source === "DAILY_QR" ? "daily QR" : r.source}
                               </span>
                               {r.isLate && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-brand-orange/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-brand-orange">

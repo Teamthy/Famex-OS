@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page, type BrowserContext } from "@playwright/test";
 import { useSession } from "./helpers";
 
 /**
@@ -13,6 +13,21 @@ import { useSession } from "./helpers";
  * symptom was a button that did not work. A browser is the only place this is
  * observable, which is precisely the argument for these tests existing.
  */
+
+async function openTodayAttendance(page: Page, context: BrowserContext) {
+  await useSession(context, page, "admin");
+  await page.goto("/admin/staff-attendance");
+  const opened = await page.evaluate(async () => {
+    const response = await fetch("/api/admin/daily-attendance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "OPEN" }),
+    });
+    return { ok: response.ok, body: await response.json() };
+  });
+  expect(opened.ok, JSON.stringify(opened.body)).toBe(true);
+  await page.reload();
+}
 
 test.describe("staff attendance + QR camera", () => {
   test("the page sends a Permissions-Policy that ALLOWS the camera", async ({ page, context }) => {
@@ -79,8 +94,7 @@ test.describe("staff attendance + QR camera", () => {
   });
 
   test("the Use camera control is present and toggles", async ({ page, context }) => {
-    await useSession(context, page, "admin");
-    await page.goto("/admin/staff-attendance");
+    await openTodayAttendance(page, context);
 
     const toggle = page.getByRole("button", { name: /use camera/i });
     await expect(toggle).toBeVisible();
@@ -93,8 +107,7 @@ test.describe("staff attendance + QR camera", () => {
     page,
     context,
   }) => {
-    await useSession(context, page, "admin");
-    await page.goto("/admin/staff-attendance");
+    await openTodayAttendance(page, context);
 
     // The manual field must keep working — it is the fallback when a device
     // has no camera, and it is how attendance got taken while QR was broken.

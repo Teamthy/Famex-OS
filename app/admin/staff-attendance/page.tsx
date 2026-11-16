@@ -44,6 +44,12 @@ type Badge = {
 
 type Overview = {
   date: string;
+  attendance: {
+    date: string;
+    status: "OPEN" | "CLOSED";
+    openedAt: string | null;
+    closedAt: string | null;
+  };
   lateCutoff: string;
   fence: Fence;
   summary: { staffTotal: number; present: number; absent: number; late: number; stillIn: number };
@@ -71,18 +77,22 @@ export default function AdminStaffAttendancePage() {
   const [lastResult, setLastResult] = useState<string>("");
   const [cameraOn, setCameraOn] = useState(false);
   const [online, setOnline] = useState(true);
+  const [sessionAction, setSessionAction] = useState<"OPEN" | "CLOSE" | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [a, b] = await Promise.all([
+      const [a, b, c] = await Promise.all([
         fetch("/api/admin/staff-attendance", { cache: "no-store" }),
         fetch("/api/admin/staff-attendance/badges", { cache: "no-store" }),
+        fetch("/api/admin/daily-attendance", { cache: "no-store" }),
       ]);
       const aj = await a.json();
       const bj = await b.json();
+      const cj = await c.json();
       if (!a.ok) throw new Error(aj.error || "Unable to load attendance.");
-      setData(aj);
+      if (!c.ok) throw new Error(cj.error || "Unable to load daily attendance status.");
+      setData({ ...aj, attendance: cj });
       if (b.ok) setBadges(bj.badges || []);
     } catch (e) {
       toast(e instanceof Error ? e.message : "Unable to load attendance.", "error");
@@ -90,6 +100,36 @@ export default function AdminStaffAttendancePage() {
       setLoading(false);
     }
   }, [toast]);
+
+  const updateSession = useCallback(
+    async (action: "OPEN" | "CLOSE") => {
+      setSessionAction(action);
+      try {
+        const response = await fetch("/api/admin/daily-attendance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Unable to update attendance status.");
+        toast(
+          action === "OPEN"
+            ? "Daily attendance is open for staff and students."
+            : "Daily attendance is closed.",
+          "success",
+        );
+        await load();
+      } catch (error) {
+        toast(
+          error instanceof Error ? error.message : "Unable to update attendance status.",
+          "error",
+        );
+      } finally {
+        setSessionAction(null);
+      }
+    },
+    [load, toast],
+  );
 
   useEffect(() => {
     void load();
@@ -190,7 +230,8 @@ export default function AdminStaffAttendancePage() {
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Scan failed.");
-      const msg = `${j.staff.displayName} · ${j.event.eventType.replace("_", " ")}${
+      const attendeeName = j.staff?.displayName ?? j.student?.displayName ?? "Attendance";
+      const msg = `${attendeeName} · ${j.event.eventType.replace("_", " ")}${
         j.event.isLate ? ` · LATE +${j.event.lateMinutes}m` : ""
       }${j.scannerFlag === "OUTSIDE_FENCE" ? " · ⚠️ SCANNER OFF-SITE" : j.scannerFlag === "WEAK_FIX" ? " · ⚠️ weak GPS" : ""}`;
       setLastResult(msg);
@@ -216,12 +257,60 @@ export default function AdminStaffAttendancePage() {
               Gate / office scanner
             </p>
             <h1 className="mt-2 font-display text-4xl tracking-widest">
-              STAFF <span className="text-brand-green">QR ATTENDANCE</span>
+              DAILY <span className="text-brand-green">ATTENDANCE QR</span>
             </h1>
             <p className="mt-3 max-w-3xl text-sm text-white/85">
-              Scan staff badges for check-in and check-out. Arrivals after{" "}
-              {data?.lateCutoff || "08:00"} (Africa/Lagos) are marked late automatically.
+              Scan a staff or student&apos;s date-bound QR for check-in and check-out. Arrivals
+              after {data?.lateCutoff || "08:00"} (Africa/Lagos) are marked late automatically.
             </p>
+          </div>
+
+          <div className="flex flex-col gap-4 rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                Today&apos;s attendance session · {data?.attendance?.date ?? "Africa/Lagos"}
+              </p>
+              <p className="mt-1 flex items-center gap-2 font-display text-xl tracking-widest">
+                <span
+                  className={`h-2.5 w-2.5 rounded-full ${data?.attendance?.status === "OPEN" ? "bg-emerald-500" : "bg-[var(--text-muted)]"}`}
+                />
+                {data?.attendance?.status === "OPEN"
+                  ? "OPEN — scans accepted"
+                  : "CLOSED — scans blocked"}
+              </p>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                Opening enables staff and student QR/GPS check-in and check-out. Closing blocks
+                further clock events for today.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={!data || data.attendance.status === "OPEN" || sessionAction !== null}
+                onClick={() => void updateSession("OPEN")}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-famex-lime px-5 py-2 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {sessionAction === "OPEN" ? (
+                  <LoaderCircle className="animate-spin" size={15} />
+                ) : (
+                  <LogIn size={15} />
+                )}
+                Open attendance
+              </button>
+              <button
+                type="button"
+                disabled={!data || data.attendance.status !== "OPEN" || sessionAction !== null}
+                onClick={() => void updateSession("CLOSE")}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--border-subtle)] px-5 py-2 text-xs font-bold uppercase tracking-widest text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {sessionAction === "CLOSE" ? (
+                  <LoaderCircle className="animate-spin" size={15} />
+                ) : (
+                  <LogOut size={15} />
+                )}
+                Close attendance
+              </button>
+            </div>
           </div>
 
           <form
@@ -235,12 +324,14 @@ export default function AdminStaffAttendancePage() {
             <div className="mt-4 flex flex-col gap-3 lg:flex-row">
               <input
                 autoFocus
+                disabled={!data || data.attendance.status !== "OPEN"}
                 value={scanValue}
                 onChange={(e) => setScanValue(e.target.value)}
-                placeholder="Focus here and scan QR / type badge code (YKST-…)"
+                placeholder="Scan a daily staff/student QR (or type a staff badge code)"
                 className="flex-1 rounded-2xl border border-[var(--input-border)] bg-[var(--input-bg)] px-4 py-3 font-mono text-sm"
               />
               <select
+                disabled={!data || data.attendance.status !== "OPEN"}
                 value={mode}
                 onChange={(e) => setMode(e.target.value as typeof mode)}
                 className="rounded-2xl border border-[var(--input-border)] bg-[var(--input-bg)] px-4 py-3 text-sm"
@@ -250,7 +341,7 @@ export default function AdminStaffAttendancePage() {
                 <option value="CHECK_OUT">Force check-out</option>
               </select>
               <button
-                disabled={scanning || !scanValue.trim()}
+                disabled={scanning || !scanValue.trim() || data?.attendance.status !== "OPEN"}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-famex-lime px-6 py-3 text-xs font-bold uppercase tracking-widest text-brand-navy disabled:opacity-50"
               >
                 {scanning ? (
@@ -279,8 +370,9 @@ export default function AdminStaffAttendancePage() {
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
+              disabled={!data || data.attendance.status !== "OPEN"}
               onClick={() => setCameraOn((v) => !v)}
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--input-border)] px-4 py-2 text-xs font-bold uppercase tracking-widest"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--input-border)] px-4 py-2 text-xs font-bold uppercase tracking-widest disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Camera size={14} /> {cameraOn ? "Hide camera" : "Use camera"}
             </button>
@@ -291,7 +383,7 @@ export default function AdminStaffAttendancePage() {
             )}
           </div>
           <StaffQrScanner
-            active={cameraOn}
+            active={cameraOn && data?.attendance.status === "OPEN"}
             onScan={(code, meta) => void submitScan(undefined, code, meta)}
             fence={data?.fence ?? null}
           />

@@ -60,6 +60,19 @@ const mockPrisma = {
     update: vi.fn(),
     updateMany: vi.fn(),
   },
+  dailyAttendanceSession: {
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    upsert: vi.fn(),
+  },
+  studentClockEvent: {
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+  },
   studentProfile: {
     findFirst: vi.fn(),
     findMany: vi.fn(),

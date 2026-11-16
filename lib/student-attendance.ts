@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
 import { SCHOOL_TZ, workDateKey } from "@/lib/staff-attendance";
 import { queueStudentClockNotifications } from "@/lib/clock-notifications";
+import { lockDailyAttendanceDay, requireDailyAttendanceOpen } from "@/lib/daily-attendance-session";
 import {
   checkGeofence,
   clampRadiusM,
@@ -81,9 +82,12 @@ export async function getStudentPortalProfile() {
   return { user, profile };
 }
 
-export async function getTodaysStudentEvents(studentProfileId: string, schoolId: string) {
-  const now = new Date();
-  const workDate = new Date(`${workDateKey(now)}T12:00:00.000Z`);
+export async function getTodaysStudentEvents(
+  studentProfileId: string,
+  schoolId: string,
+  dayKey = workDateKey(),
+) {
+  const workDate = new Date(`${dayKey}T12:00:00.000Z`);
   const events = await prisma.studentClockEvent.findMany({
     where: { studentProfileId, schoolId, workDate },
     orderBy: { clockedAt: "asc" },
@@ -101,10 +105,169 @@ export interface StudentGpsClockInput {
   note?: string | null;
 }
 
+type StudentClockWriteInput = {
+  schoolId: string;
+  studentProfileId: string;
+  eventType: StudentClockEventType;
+  source: "GPS" | "DAILY_QR";
+  scannerUserId?: string | null;
+  note?: string | null;
+  gps?: {
+    latitude: number;
+    longitude: number;
+    accuracyM: number | null;
+    distanceM: number;
+    radiusM: number;
+  };
+};
+
+async function recordStudentClockEvent(input: StudentClockWriteInput) {
+  const now = new Date();
+  const todayKey = workDateKey(now);
+  const workDate = new Date(`${todayKey}T12:00:00.000Z`);
+
+  // Lock the student row and commit the event + audit together. This
+  // serializes scanner and GPS submissions and prevents duplicate open
+  // check-ins when a client retries or two devices race.
+  const committed = await prisma.$transaction(async (tx) => {
+    await lockDailyAttendanceDay(tx, input.schoolId, todayKey);
+    await requireDailyAttendanceOpen(tx, input.schoolId, todayKey);
+    await tx.$queryRaw`SELECT "id" FROM "StudentProfile" WHERE "id" = ${input.studentProfileId} AND "schoolId" = ${input.schoolId} FOR UPDATE`;
+    const student = await tx.studentProfile.findFirst({
+      where: { id: input.studentProfileId, schoolId: input.schoolId, isActive: true },
+      select: {
+        id: true,
+        displayName: true,
+        studentId: true,
+        currentClass: { select: { displayName: true } },
+      },
+    });
+    if (!student) throw new Error("Student profile not found.");
+
+    const todays = await tx.studentClockEvent.findMany({
+      where: { schoolId: input.schoolId, studentProfileId: student.id, workDate },
+      orderBy: { clockedAt: "asc" },
+    });
+    const last = todays[todays.length - 1] || null;
+    if (input.eventType === StudentClockEventType.CHECK_IN) {
+      if (last?.eventType === StudentClockEventType.CHECK_IN) {
+        throw new Error(`${student.displayName} is already checked in today. Check out first.`);
+      }
+    } else if (!last || last.eventType === StudentClockEventType.CHECK_OUT) {
+      throw new Error(`${student.displayName} has no open check-in to close today.`);
+    }
+
+    const late =
+      input.eventType === StudentClockEventType.CHECK_IN
+        ? computeStudentLateness(now)
+        : { isLate: false, lateMinutes: 0, cutoff: studentLateCutoffHm() };
+    const event = await tx.studentClockEvent.create({
+      data: {
+        school: { connect: { id: input.schoolId } },
+        studentProfile: { connect: { id: student.id } },
+        eventType: input.eventType,
+        clockedAt: now,
+        isLate: late.isLate,
+        lateMinutes: late.lateMinutes,
+        source: input.source,
+        scannerUserId: input.scannerUserId || null,
+        note: input.note || null,
+        workDate,
+        ...(input.gps
+          ? {
+              geoLatitude: new Prisma.Decimal(input.gps.latitude.toFixed(6)),
+              geoLongitude: new Prisma.Decimal(input.gps.longitude.toFixed(6)),
+              geoAccuracyM:
+                input.gps.accuracyM !== null
+                  ? new Prisma.Decimal(input.gps.accuracyM.toFixed(2))
+                  : null,
+              geoDistanceM: input.gps.distanceM,
+              geoWithinFence: true,
+            }
+          : {}),
+      },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        schoolId: input.schoolId,
+        actorUserId: input.scannerUserId || null,
+        action:
+          input.source === "GPS"
+            ? input.eventType === "CHECK_IN"
+              ? "STUDENT_GPS_CHECK_IN"
+              : "STUDENT_GPS_CHECK_OUT"
+            : input.eventType === "CHECK_IN"
+              ? "STUDENT_QR_CHECK_IN"
+              : "STUDENT_QR_CHECK_OUT",
+        entityType: "StudentClockEvent",
+        entityId: event.id,
+        metadata: {
+          studentProfileId: student.id,
+          displayName: student.displayName,
+          studentId: student.studentId,
+          isLate: event.isLate,
+          lateMinutes: event.lateMinutes,
+          source: input.source,
+          distanceM: input.gps?.distanceM ?? null,
+          accuracyM: input.gps?.accuracyM ?? null,
+          workDate: todayKey,
+        },
+      },
+    });
+    return { student, event, late };
+  });
+
+  // Notifications are advisory; the committed clock event remains authoritative
+  // even if queuing a parent notification fails.
+  queueStudentClockNotifications({
+    schoolId: input.schoolId,
+    studentId: committed.student.id,
+    studentName: committed.student.displayName,
+    className: committed.student.currentClass.displayName,
+    eventId: committed.event.id,
+    eventType: input.eventType,
+    isLate: committed.event.isLate,
+    lateMinutes: committed.event.lateMinutes,
+    workDate: todayKey,
+    clockedAt: now,
+  }).catch((err) => {
+    console.warn("Failed to queue student clock notifications:", err);
+  });
+
+  return {
+    event: {
+      id: committed.event.id,
+      eventType: committed.event.eventType,
+      clockedAt: committed.event.clockedAt.toISOString(),
+      isLate: committed.event.isLate,
+      lateMinutes: committed.event.lateMinutes,
+      workDate: todayKey,
+      source: input.source,
+      ...(input.gps
+        ? {
+            geo: {
+              latitude: input.gps.latitude,
+              longitude: input.gps.longitude,
+              accuracyM: input.gps.accuracyM,
+              distanceM: input.gps.distanceM,
+            },
+          }
+        : {}),
+    },
+    student: {
+      id: committed.student.id,
+      displayName: committed.student.displayName,
+      studentId: committed.student.studentId,
+    },
+    cutoff: committed.late.cutoff,
+    ...(input.gps ? { fence: { radiusM: input.gps.radiusM } } : {}),
+  };
+}
+
 export async function recordStudentGpsClock(input: StudentGpsClockInput) {
   const fence = await getStudentGeofence(input.schoolId);
   if (!fence) throw new Error("GPS clock-in is not configured for this school yet.");
-
   if (!isValidPoint({ latitude: input.latitude, longitude: input.longitude })) {
     throw new Error("Invalid GPS coordinates. Please enable location services and try again.");
   }
@@ -131,118 +294,30 @@ export async function recordStudentGpsClock(input: StudentGpsClockInput) {
     throw err;
   }
 
-  const student = await prisma.studentProfile.findFirst({
-    where: { id: input.studentProfileId, schoolId: input.schoolId, isActive: true },
-    select: {
-      id: true,
-      displayName: true,
-      studentId: true,
-      currentClass: { select: { displayName: true } },
-    },
-  });
-  if (!student) throw new Error("Student profile not found.");
-
-  const now = new Date();
-  const workDate = new Date(`${workDateKey(now)}T12:00:00.000Z`);
-
-  const todays = await prisma.studentClockEvent.findMany({
-    where: { schoolId: input.schoolId, studentProfileId: student.id, workDate },
-    orderBy: { clockedAt: "asc" },
-  });
-  const last = todays[todays.length - 1] || null;
-  if (input.eventType === StudentClockEventType.CHECK_IN) {
-    if (last?.eventType === StudentClockEventType.CHECK_IN) {
-      throw new Error(`${student.displayName} is already checked in today. Check out first.`);
-    }
-  } else if (!last || last.eventType === StudentClockEventType.CHECK_OUT) {
-    throw new Error(`${student.displayName} has no open check-in to close today.`);
-  }
-
-  const late =
-    input.eventType === StudentClockEventType.CHECK_IN
-      ? computeStudentLateness(now)
-      : { isLate: false, lateMinutes: 0, cutoff: studentLateCutoffHm() };
-
-  const event = await prisma.studentClockEvent.create({
-    data: {
-      school: { connect: { id: input.schoolId } },
-      studentProfile: { connect: { id: student.id } },
-      eventType: input.eventType,
-      clockedAt: now,
-      isLate: late.isLate,
-      lateMinutes: late.lateMinutes,
-      source: "GPS",
-      note: input.note || null,
-      workDate,
-      geoLatitude: new Prisma.Decimal(input.latitude.toFixed(6)),
-      geoLongitude: new Prisma.Decimal(input.longitude.toFixed(6)),
-      geoAccuracyM: accuracyM !== null ? new Prisma.Decimal(accuracyM.toFixed(2)) : null,
-      geoDistanceM: check.distanceM,
-      geoWithinFence: true,
-    },
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      schoolId: input.schoolId,
-      actorUserId: null,
-      action: input.eventType === "CHECK_IN" ? "STUDENT_GPS_CHECK_IN" : "STUDENT_GPS_CHECK_OUT",
-      entityType: "StudentClockEvent",
-      entityId: event.id,
-      metadata: {
-        studentProfileId: student.id,
-        displayName: student.displayName,
-        studentId: student.studentId,
-        isLate: event.isLate,
-        lateMinutes: event.lateMinutes,
-        distanceM: check.distanceM,
-        accuracyM,
-        workDate: workDateKey(now),
-      },
-    },
-  });
-
-  // Fire-and-forget parent notifications. We don't want a notification-delivery
-  // failure to prevent the student from clocking in, so we catch and log to the
-  // audit trail only.
-  queueStudentClockNotifications({
+  return recordStudentClockEvent({
     schoolId: input.schoolId,
-    studentId: student.id,
-    studentName: student.displayName,
-    className: student.currentClass.displayName,
-    eventId: event.id,
+    studentProfileId: input.studentProfileId,
     eventType: input.eventType,
-    isLate: event.isLate,
-    lateMinutes: event.lateMinutes,
-    workDate: workDateKey(now),
-    clockedAt: now,
-  }).catch((err) => {
-    // eslint-disable-next-line no-console
-    console.warn("Failed to queue student clock notifications:", err);
+    source: "GPS",
+    note: input.note,
+    gps: {
+      latitude: input.latitude,
+      longitude: input.longitude,
+      accuracyM,
+      distanceM: check.distanceM,
+      radiusM: check.radiusM,
+    },
   });
+}
 
-  return {
-    event: {
-      id: event.id,
-      eventType: event.eventType,
-      clockedAt: event.clockedAt.toISOString(),
-      isLate: event.isLate,
-      lateMinutes: event.lateMinutes,
-      workDate: workDateKey(now),
-      source: "GPS",
-      geo: {
-        latitude: input.latitude,
-        longitude: input.longitude,
-        accuracyM,
-        distanceM: check.distanceM,
-      },
-    },
-    student: {
-      id: student.id,
-      displayName: student.displayName,
-      studentId: student.studentId,
-    },
-    cutoff: late.cutoff,
-    fence: { radiusM: check.radiusM },
-  };
+export async function recordStudentDailyQrClock(input: {
+  schoolId: string;
+  studentProfileId: string;
+  eventType: StudentClockEventType;
+  scannerUserId: string;
+}) {
+  return recordStudentClockEvent({
+    ...input,
+    source: "DAILY_QR",
+  });
 }

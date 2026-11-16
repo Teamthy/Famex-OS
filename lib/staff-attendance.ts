@@ -13,6 +13,7 @@ import {
 } from "@/lib/geofence";
 import { sendSms } from "@/lib/sms";
 import { notifyDirectorsOfStaffClockEvent } from "@/lib/director-notifications";
+import { lockDailyAttendanceDay, requireDailyAttendanceOpen } from "@/lib/daily-attendance-session";
 
 export const STAFF_ATTENDANCE_ADMIN_ROLES = [
   UserRole.ADMIN,
@@ -28,6 +29,19 @@ export const STAFF_SELF_ROLES = [
   UserRole.COORDINATOR,
   UserRole.BURSAR,
 ];
+
+async function lockActiveTeacherProfile(
+  tx: Prisma.TransactionClient,
+  teacherProfileId: string,
+  schoolId: string,
+) {
+  const rows = await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT "id" FROM "TeacherProfile"
+    WHERE "id" = ${teacherProfileId} AND "schoolId" = ${schoolId} AND "isActive" = true
+    FOR UPDATE
+  `;
+  if (rows.length !== 1) throw new Error("Staff profile is no longer active.");
+}
 
 /** School reporting timezone for "today" and late cut-off. */
 export const SCHOOL_TZ = process.env.SCHOOL_TIMEZONE || "Africa/Lagos";
@@ -146,66 +160,66 @@ export async function recordStaffScan(input: {
   if (!teacher) throw new Error("Staff badge not recognized for this school.");
 
   const now = new Date();
-  const workDate = new Date(`${workDateKey(now)}T12:00:00.000Z`);
   const todayKey = workDateKey(now);
+  const workDate = new Date(`${todayKey}T12:00:00.000Z`);
 
-  const todays = await prisma.staffAttendanceEvent.findMany({
-    where: {
-      schoolId: input.schoolId,
-      teacherProfileId: teacher.id,
-      workDate,
-    },
-    orderBy: { scannedAt: "asc" },
-  });
+  // Serialize state transitions on the profile row. This prevents two scanners
+  // or a scanner + GPS request from both observing ABSENT and committing two
+  // check-ins. The event and audit trail commit or roll back together.
+  const { event, late } = await prisma.$transaction(async (tx) => {
+    await lockDailyAttendanceDay(tx, input.schoolId, todayKey);
+    await requireDailyAttendanceOpen(tx, input.schoolId, todayKey);
+    await lockActiveTeacherProfile(tx, teacher.id, input.schoolId);
+    const todays = await tx.staffAttendanceEvent.findMany({
+      where: { schoolId: input.schoolId, teacherProfileId: teacher.id, workDate },
+      orderBy: { scannedAt: "asc" },
+    });
+    const last = todays[todays.length - 1] || null;
 
-  const last = todays[todays.length - 1] || null;
-
-  if (input.eventType === StaffAttendanceEventType.CHECK_IN) {
-    if (last?.eventType === StaffAttendanceEventType.CHECK_IN && !input.force) {
-      throw new Error(`${teacher.displayName} is already checked in today. Check out first.`);
-    }
-  } else {
-    if (!last || last.eventType === StaffAttendanceEventType.CHECK_OUT) {
+    if (input.eventType === StaffAttendanceEventType.CHECK_IN) {
+      if (last?.eventType === StaffAttendanceEventType.CHECK_IN && !input.force) {
+        throw new Error(`${teacher.displayName} is already checked in today. Check out first.`);
+      }
+    } else if (!last || last.eventType === StaffAttendanceEventType.CHECK_OUT) {
       throw new Error(`${teacher.displayName} has no open check-in to close today.`);
     }
-  }
 
-  const late =
-    input.eventType === StaffAttendanceEventType.CHECK_IN
-      ? computeLateness(now)
-      : { isLate: false, lateMinutes: 0, cutoff: lateCutoffHm() };
-
-  const event = await prisma.staffAttendanceEvent.create({
-    data: {
-      schoolId: input.schoolId,
-      teacherProfileId: teacher.id,
-      eventType: input.eventType,
-      scannedAt: now,
-      isLate: late.isLate,
-      lateMinutes: late.lateMinutes,
-      source: input.source || "QR",
-      scannerUserId: input.scannerUserId || null,
-      note: input.note || null,
-      workDate,
-    },
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      schoolId: input.schoolId,
-      actorUserId: input.scannerUserId || null,
-      action: input.eventType === "CHECK_IN" ? "STAFF_CHECK_IN" : "STAFF_CHECK_OUT",
-      entityType: "StaffAttendanceEvent",
-      entityId: event.id,
-      metadata: {
+    const late =
+      input.eventType === StaffAttendanceEventType.CHECK_IN
+        ? computeLateness(now)
+        : { isLate: false, lateMinutes: 0, cutoff: lateCutoffHm() };
+    const created = await tx.staffAttendanceEvent.create({
+      data: {
+        schoolId: input.schoolId,
         teacherProfileId: teacher.id,
-        displayName: teacher.displayName,
-        isLate: event.isLate,
-        lateMinutes: event.lateMinutes,
-        workDate: todayKey,
-        source: event.source,
+        eventType: input.eventType,
+        scannedAt: now,
+        isLate: late.isLate,
+        lateMinutes: late.lateMinutes,
+        source: input.source || "QR",
+        scannerUserId: input.scannerUserId || null,
+        note: input.note || null,
+        workDate,
       },
-    },
+    });
+    await tx.auditLog.create({
+      data: {
+        schoolId: input.schoolId,
+        actorUserId: input.scannerUserId || null,
+        action: input.eventType === "CHECK_IN" ? "STAFF_CHECK_IN" : "STAFF_CHECK_OUT",
+        entityType: "StaffAttendanceEvent",
+        entityId: created.id,
+        metadata: {
+          teacherProfileId: teacher.id,
+          displayName: teacher.displayName,
+          isLate: created.isLate,
+          lateMinutes: created.lateMinutes,
+          workDate: todayKey,
+          source: created.source,
+        },
+      },
+    });
+    return { event: created, late };
   });
 
   await notifyDirectorsOfStaffClockEvent({
@@ -308,61 +322,66 @@ export async function recordStaffGpsClock(input: StaffGpsClockInput) {
   if (!teacher) throw new Error("Staff profile not found.");
 
   const now = new Date();
-  const workDate = new Date(`${workDateKey(now)}T12:00:00.000Z`);
+  const todayKey = workDateKey(now);
+  const workDate = new Date(`${todayKey}T12:00:00.000Z`);
 
-  const todays = await prisma.staffAttendanceEvent.findMany({
-    where: { schoolId: input.schoolId, teacherProfileId: teacher.id, workDate },
-    orderBy: { scannedAt: "asc" },
-  });
-  const last = todays[todays.length - 1] || null;
-  if (input.eventType === StaffAttendanceEventType.CHECK_IN) {
-    if (last?.eventType === StaffAttendanceEventType.CHECK_IN) {
-      throw new Error(`${teacher.displayName} is already checked in today. Check out first.`);
+  const { event, late } = await prisma.$transaction(async (tx) => {
+    await lockDailyAttendanceDay(tx, input.schoolId, todayKey);
+    await requireDailyAttendanceOpen(tx, input.schoolId, todayKey);
+    await lockActiveTeacherProfile(tx, teacher.id, input.schoolId);
+    const todays = await tx.staffAttendanceEvent.findMany({
+      where: { schoolId: input.schoolId, teacherProfileId: teacher.id, workDate },
+      orderBy: { scannedAt: "asc" },
+    });
+    const last = todays[todays.length - 1] || null;
+    if (input.eventType === StaffAttendanceEventType.CHECK_IN) {
+      if (last?.eventType === StaffAttendanceEventType.CHECK_IN) {
+        throw new Error(`${teacher.displayName} is already checked in today. Check out first.`);
+      }
+    } else if (!last || last.eventType === StaffAttendanceEventType.CHECK_OUT) {
+      throw new Error(`${teacher.displayName} has no open check-in to close today.`);
     }
-  } else if (!last || last.eventType === StaffAttendanceEventType.CHECK_OUT) {
-    throw new Error(`${teacher.displayName} has no open check-in to close today.`);
-  }
 
-  const late =
-    input.eventType === StaffAttendanceEventType.CHECK_IN
-      ? computeLateness(now)
-      : { isLate: false, lateMinutes: 0, cutoff: lateCutoffHm() };
-
-  const data: Prisma.StaffAttendanceEventCreateInput = {
-    school: { connect: { id: input.schoolId } },
-    teacherProfile: { connect: { id: teacher.id } },
-    eventType: input.eventType,
-    scannedAt: now,
-    isLate: late.isLate,
-    lateMinutes: late.lateMinutes,
-    source: "GPS",
-    note: input.note || null,
-    workDate,
-    geoLatitude: new Prisma.Decimal(input.latitude.toFixed(6)),
-    geoLongitude: new Prisma.Decimal(input.longitude.toFixed(6)),
-    geoAccuracyM: accuracyM !== null ? new Prisma.Decimal(accuracyM.toFixed(2)) : null,
-    geoDistanceM: check.distanceM,
-    geoWithinFence: true,
-  };
-  const event = await prisma.staffAttendanceEvent.create({ data });
-
-  await prisma.auditLog.create({
-    data: {
-      schoolId: input.schoolId,
-      actorUserId: null,
-      action: input.eventType === "CHECK_IN" ? "STAFF_GPS_CHECK_IN" : "STAFF_GPS_CHECK_OUT",
-      entityType: "StaffAttendanceEvent",
-      entityId: event.id,
-      metadata: {
-        teacherProfileId: teacher.id,
-        displayName: teacher.displayName,
-        isLate: event.isLate,
-        lateMinutes: event.lateMinutes,
-        distanceM: check.distanceM,
-        accuracyM,
-        workDate: workDateKey(now),
+    const late =
+      input.eventType === StaffAttendanceEventType.CHECK_IN
+        ? computeLateness(now)
+        : { isLate: false, lateMinutes: 0, cutoff: lateCutoffHm() };
+    const data: Prisma.StaffAttendanceEventCreateInput = {
+      school: { connect: { id: input.schoolId } },
+      teacherProfile: { connect: { id: teacher.id } },
+      eventType: input.eventType,
+      scannedAt: now,
+      isLate: late.isLate,
+      lateMinutes: late.lateMinutes,
+      source: "GPS",
+      note: input.note || null,
+      workDate,
+      geoLatitude: new Prisma.Decimal(input.latitude.toFixed(6)),
+      geoLongitude: new Prisma.Decimal(input.longitude.toFixed(6)),
+      geoAccuracyM: accuracyM !== null ? new Prisma.Decimal(accuracyM.toFixed(2)) : null,
+      geoDistanceM: check.distanceM,
+      geoWithinFence: true,
+    };
+    const created = await tx.staffAttendanceEvent.create({ data });
+    await tx.auditLog.create({
+      data: {
+        schoolId: input.schoolId,
+        actorUserId: null,
+        action: input.eventType === "CHECK_IN" ? "STAFF_GPS_CHECK_IN" : "STAFF_GPS_CHECK_OUT",
+        entityType: "StaffAttendanceEvent",
+        entityId: created.id,
+        metadata: {
+          teacherProfileId: teacher.id,
+          displayName: teacher.displayName,
+          isLate: created.isLate,
+          lateMinutes: created.lateMinutes,
+          distanceM: check.distanceM,
+          accuracyM,
+          workDate: todayKey,
+        },
       },
-    },
+    });
+    return { event: created, late };
   });
 
   await notifyDirectorsOfStaffClockEvent({

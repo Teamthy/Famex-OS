@@ -1,0 +1,134 @@
+name: Famex staging migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Confirm you intend to migrate the dedicated Supabase staging database
+        required: true
+        type: choice
+        default: DO NOT MIGRATE
+        options:
+          - DO NOT MIGRATE
+          - APPLY-FAMEX-STAGING
+
+permissions:
+  contents: read
+
+concurrency:
+  group: famex-staging-database-migrations
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate the selected branch
+    runs-on: ubuntu-latest
+    if: >-
+      (github.ref == 'refs/heads/main' ||
+       github.ref == 'refs/heads/arena/4770e4f7-famex-os') &&
+      inputs.confirmation == 'APPLY-FAMEX-STAGING'
+    steps:
+      - name: Check out selected ref
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies and generate Prisma client
+        run: npm ci
+        env:
+          # Prisma client generation needs a syntactically valid URL, but no DB
+          # connection is made during install/generate.
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+
+      - name: Check formatting
+        run: npx prettier --check .
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npx tsc --noEmit
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Run tests
+        run: npx vitest run
+
+  migrate:
+    name: Apply Prisma migrations to Famex staging
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: famex-staging
+    if: >-
+      (github.ref == 'refs/heads/main' ||
+       github.ref == 'refs/heads/arena/4770e4f7-famex-os') &&
+      inputs.confirmation == 'APPLY-FAMEX-STAGING'
+    steps:
+      - name: Check out selected ref
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+
+      - name: Verify target is the selected Supabase project and is migration-safe
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          node <<'NODE'
+          const value = process.env.DATABASE_URL;
+          if (!value) {
+            console.error('Missing famex-staging environment secret STAGING_DATABASE_URL.');
+            process.exit(1);
+          }
+          let url;
+          try {
+            url = new URL(value);
+          } catch {
+            console.error('STAGING_DATABASE_URL is not a valid PostgreSQL URL.');
+            process.exit(1);
+          }
+          const projectRef = 'okatwpkovcmipjdnqkys';
+          const isDirect =
+            url.hostname === `db.${projectRef}.supabase.co` &&
+            (url.port === '' || url.port === '5432');
+          const isSessionPooler =
+            url.hostname.endsWith('.pooler.supabase.com') &&
+            decodeURIComponent(url.username).endsWith(`.${projectRef}`) &&
+            url.port === '5432';
+          if (!isDirect && !isSessionPooler) {
+            console.error('STAGING_DATABASE_URL must target the confirmed Famex staging Supabase project using a direct or session-pooler connection (not the transaction pooler).');
+            process.exit(1);
+          }
+          console.log('Migration target verified; connection details are not printed.');
+          NODE
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+
+      - name: Verify migration status
+        run: npx prisma migrate status
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}

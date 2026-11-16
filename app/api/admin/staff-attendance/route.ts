@@ -1,4 +1,4 @@
-import { StaffAttendanceEventType } from "@prisma/client";
+import { StaffAttendanceEventType, StudentClockEventType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import {
@@ -14,12 +14,14 @@ import { getClientIp } from "@/lib/requests";
 import { requireModule } from "@/lib/module-guard";
 import { getSchoolGeofence } from "@/lib/staff-attendance";
 import { checkGeofence } from "@/lib/geofence";
+import { isDailyAttendanceQr, verifyDailyAttendanceQr } from "@/lib/attendance-daily-qr";
+import { recordStudentDailyQrClock } from "@/lib/student-attendance";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const scanSchema = z.object({
-  badgeCode: z.string().trim().min(4).max(200),
+  badgeCode: z.string().trim().min(4).max(512),
   eventType: z.enum(["CHECK_IN", "CHECK_OUT", "AUTO"]).default("AUTO"),
   note: z.string().trim().max(300).optional(),
   scannerGps: z
@@ -198,42 +200,120 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    let eventType: StaffAttendanceEventType = StaffAttendanceEventType.CHECK_IN;
-    if (input.eventType === "CHECK_OUT") eventType = StaffAttendanceEventType.CHECK_OUT;
-    if (input.eventType === "CHECK_IN") eventType = StaffAttendanceEventType.CHECK_IN;
-    if (input.eventType === "AUTO") {
-      const parsed = parseBadgeInput(input.badgeCode);
-      if (!parsed) return NextResponse.json({ error: "Invalid badge." }, { status: 400 });
-      const teacher = await prisma.teacherProfile.findFirst({
-        where: { schoolId: user.schoolId, badgeCode: parsed, isActive: true },
-        select: { id: true },
+    let result:
+      | Awaited<ReturnType<typeof recordStaffScan>>
+      | Awaited<ReturnType<typeof recordStudentDailyQrClock>>;
+    let dailyTicket = false;
+    const ticket = isDailyAttendanceQr(input.badgeCode)
+      ? verifyDailyAttendanceQr(input.badgeCode)
+      : null;
+
+    if (isDailyAttendanceQr(input.badgeCode)) {
+      if (!ticket || ticket.schoolId !== user.schoolId || ticket.workDate !== workDateKey()) {
+        return NextResponse.json(
+          {
+            error:
+              "This daily attendance QR is invalid, belongs to another school, or has expired.",
+          },
+          { status: 410 },
+        );
+      }
+      dailyTicket = true;
+      if (ticket.audience === "STAFF") {
+        const profile = await prisma.teacherProfile.findFirst({
+          where: { id: ticket.profileId, schoolId: user.schoolId, isActive: true },
+          select: { id: true, badgeCode: true },
+        });
+        if (!profile)
+          return NextResponse.json({ error: "Staff profile not found." }, { status: 404 });
+        const badge = profile.badgeCode ? profile : await ensureTeacherBadge(profile.id);
+        if (!badge?.badgeCode)
+          return NextResponse.json({ error: "Staff badge is not available." }, { status: 404 });
+        const last = await prisma.staffAttendanceEvent.findFirst({
+          where: {
+            schoolId: user.schoolId,
+            teacherProfileId: profile.id,
+            workDate: new Date(`${ticket.workDate}T12:00:00.000Z`),
+          },
+          orderBy: { scannedAt: "desc" },
+        });
+        const eventType =
+          input.eventType === "AUTO"
+            ? last?.eventType === StaffAttendanceEventType.CHECK_IN
+              ? StaffAttendanceEventType.CHECK_OUT
+              : StaffAttendanceEventType.CHECK_IN
+            : input.eventType === "CHECK_OUT"
+              ? StaffAttendanceEventType.CHECK_OUT
+              : StaffAttendanceEventType.CHECK_IN;
+        result = await recordStaffScan({
+          schoolId: user.schoolId,
+          badgeCode: badge.badgeCode,
+          eventType,
+          scannerUserId: user.id,
+          source: "DAILY_QR",
+          note: input.note || null,
+        });
+      } else {
+        const workDate = new Date(`${ticket.workDate}T12:00:00.000Z`);
+        const last = await prisma.studentClockEvent.findFirst({
+          where: {
+            schoolId: user.schoolId,
+            studentProfileId: ticket.profileId,
+            workDate,
+          },
+          orderBy: { clockedAt: "desc" },
+        });
+        const eventType =
+          input.eventType === "AUTO"
+            ? last?.eventType === StudentClockEventType.CHECK_IN
+              ? StudentClockEventType.CHECK_OUT
+              : StudentClockEventType.CHECK_IN
+            : input.eventType === "CHECK_OUT"
+              ? StudentClockEventType.CHECK_OUT
+              : StudentClockEventType.CHECK_IN;
+        result = await recordStudentDailyQrClock({
+          schoolId: user.schoolId,
+          studentProfileId: ticket.profileId,
+          eventType,
+          scannerUserId: user.id,
+        });
+      }
+    } else {
+      // Legacy printed staff badges remain supported during the transition;
+      // new account screens issue date-bound daily tickets for staff/students.
+      let eventType: StaffAttendanceEventType = StaffAttendanceEventType.CHECK_IN;
+      if (input.eventType === "CHECK_OUT") eventType = StaffAttendanceEventType.CHECK_OUT;
+      if (input.eventType === "AUTO") {
+        const parsed = parseBadgeInput(input.badgeCode);
+        if (!parsed) return NextResponse.json({ error: "Invalid badge." }, { status: 400 });
+        const teacher = await prisma.teacherProfile.findFirst({
+          where: { schoolId: user.schoolId, badgeCode: parsed, isActive: true },
+          select: { id: true },
+        });
+        if (!teacher)
+          return NextResponse.json({ error: "Staff badge not recognized." }, { status: 404 });
+        const workDate = new Date(`${workDateKey()}T12:00:00.000Z`);
+        const last = await prisma.staffAttendanceEvent.findFirst({
+          where: { schoolId: user.schoolId, teacherProfileId: teacher.id, workDate },
+          orderBy: { scannedAt: "desc" },
+        });
+        eventType =
+          last?.eventType === StaffAttendanceEventType.CHECK_IN
+            ? StaffAttendanceEventType.CHECK_OUT
+            : StaffAttendanceEventType.CHECK_IN;
+      }
+      result = await recordStaffScan({
+        schoolId: user.schoolId,
+        badgeCode: input.badgeCode,
+        eventType,
+        scannerUserId: user.id,
+        source: "ADMIN_QR",
+        note: input.note || null,
       });
-      if (!teacher)
-        return NextResponse.json({ error: "Staff badge not recognized." }, { status: 404 });
-      const workDate = new Date(`${workDateKey()}T12:00:00.000Z`);
-      const last = await prisma.staffAttendanceEvent.findFirst({
-        where: { schoolId: user.schoolId, teacherProfileId: teacher.id, workDate },
-        orderBy: { scannedAt: "desc" },
-      });
-      eventType =
-        last?.eventType === StaffAttendanceEventType.CHECK_IN
-          ? StaffAttendanceEventType.CHECK_OUT
-          : StaffAttendanceEventType.CHECK_IN;
     }
 
-    const result = await recordStaffScan({
-      schoolId: user.schoolId,
-      badgeCode: input.badgeCode,
-      eventType,
-      scannerUserId: user.id,
-      source: "ADMIN_QR",
-      note: input.note || null,
-    });
-
-    // If the scanner device supplied GPS (from StaffQrScanner or the mobile
-    // admin screen), validate it is on-site and flag anomalies. We don't
-    // mutate the staff event row — the geo* columns are reserved for the
-    // STAFF'S coordinates (self clock-in). Scanner GPS is logged for audit.
+    // Scanner-device GPS is an audit signal only; event geo* columns capture
+    // the staff/student member's own GPS reading, never the operator's phone.
     let scannerFlag: "OUTSIDE_FENCE" | "WEAK_FIX" | null = null;
     if (input.scannerGps) {
       const fence = await getSchoolGeofence(user.schoolId);
@@ -251,18 +331,21 @@ export async function POST(request: NextRequest) {
       if (input.scannerGps.accuracyM && input.scannerGps.accuracyM > 65) scannerFlag = "WEAK_FIX";
     }
 
+    const personName = "staff" in result ? result.staff.displayName : result.student.displayName;
+    const entityType = "staff" in result ? "StaffAttendanceEvent" : "StudentClockEvent";
     await prisma.auditLog
       .create({
         data: {
           schoolId: user.schoolId,
           actorUserId: user.id,
-          action: "STAFF_QR_SCAN",
-          entityType: "StaffAttendanceEvent",
+          action: dailyTicket ? "DAILY_ATTENDANCE_QR_SCAN" : "STAFF_QR_SCAN",
+          entityType,
           entityId: result.event.id,
           ipAddress: getClientIp(request),
           metadata: {
             eventType: result.event.eventType,
-            staff: result.staff.displayName,
+            personName,
+            audience: "staff" in result ? "STAFF" : "STUDENT",
             scannerFlag,
             scannerGps: input.scannerGps || null,
           },
