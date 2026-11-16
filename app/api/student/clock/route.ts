@@ -9,6 +9,8 @@ import {
   studentLateCutoffHm,
 } from "@/lib/student-attendance";
 import { workDateKey } from "@/lib/staff-attendance";
+import { createDailyAttendanceQr } from "@/lib/attendance-daily-qr";
+import { attendanceDurationMinutes } from "@/lib/attendance-duration";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,13 +19,14 @@ export async function GET() {
   const ctx = await getStudentPortalProfile();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const dayKey = workDateKey();
   const fence = await getStudentGeofence(ctx.user.schoolId);
-  const events = await getTodaysStudentEvents(ctx.profile.id, ctx.user.schoolId);
+  const events = await getTodaysStudentEvents(ctx.profile.id, ctx.user.schoolId, dayKey);
   const last = events[events.length - 1] || null;
 
   return NextResponse.json({
     supported: true,
-    date: workDateKey(),
+    date: dayKey,
     lateCutoff: studentLateCutoffHm(),
     gps: fence
       ? {
@@ -37,6 +40,12 @@ export async function GET() {
       studentId: ctx.profile.studentId,
       displayName: ctx.profile.displayName,
       className: ctx.profile.currentClass.displayName,
+      qrPayload: createDailyAttendanceQr({
+        schoolId: ctx.user.schoolId,
+        profileId: ctx.profile.id,
+        audience: "STUDENT",
+        workDate: dayKey,
+      }),
     },
     today: {
       status: !last ? "ABSENT" : last.eventType === StudentClockEventType.CHECK_IN ? "IN" : "OUT",
@@ -48,6 +57,9 @@ export async function GET() {
           ?.clockedAt.toISOString() || null,
       isLate: events.some((e) => e.eventType === "CHECK_IN" && e.isLate),
       lateMinutes: events.find((e) => e.eventType === "CHECK_IN")?.lateMinutes || 0,
+      durationMinutes: attendanceDurationMinutes(
+        events.map((event) => ({ eventType: event.eventType, occurredAt: event.clockedAt })),
+      ),
       events: events.map((e) => ({
         id: e.id,
         eventType: e.eventType,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { badgePayload, ensureTeacherBadge, getStaffAttendanceAdmin } from "@/lib/staff-attendance";
+import { ensureTeacherBadge, getStaffAttendanceAdmin, workDateKey } from "@/lib/staff-attendance";
+import { createDailyAttendanceQr } from "@/lib/attendance-daily-qr";
 import { prisma } from "@/lib/prisma";
 import { requireModule } from "@/lib/module-guard";
 
@@ -37,7 +38,12 @@ export async function GET() {
       role: t.user.role,
       roleLabel: t.roleLabel,
       badgeCode: ensured.badgeCode,
-      qrPayload: badgePayload(ensured.badgeCode, user.schoolId),
+      qrPayload: createDailyAttendanceQr({
+        schoolId: user.schoolId,
+        profileId: ensured.id,
+        audience: "STAFF",
+        workDate: workDateKey(),
+      }),
     });
   }
 

@@ -13,6 +13,8 @@ import {
 } from "@/lib/staff-attendance";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
+import { createDailyAttendanceQr } from "@/lib/attendance-daily-qr";
+import { attendanceDurationMinutes } from "@/lib/attendance-duration";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,7 +71,15 @@ export async function GET() {
       id: profile.id,
       displayName: profile.displayName,
       badgeCode: ensured?.badgeCode || null,
-      qrPayload: ensured?.badgeCode ? badgePayload(ensured.badgeCode, user.schoolId) : null,
+      qrPayload: createDailyAttendanceQr({
+        schoolId: user.schoolId,
+        profileId: profile.id,
+        audience: "STAFF",
+        workDate: dayKey,
+      }),
+      legacyBadgePayload: ensured?.badgeCode
+        ? badgePayload(ensured.badgeCode, user.schoolId)
+        : null,
     },
     today: {
       status: !last
@@ -85,6 +95,9 @@ export async function GET() {
           ?.scannedAt.toISOString() || null,
       isLate: events.some((e) => e.eventType === "CHECK_IN" && e.isLate),
       lateMinutes: events.find((e) => e.eventType === "CHECK_IN")?.lateMinutes || 0,
+      durationMinutes: attendanceDurationMinutes(
+        events.map((event) => ({ eventType: event.eventType, occurredAt: event.scannedAt })),
+      ),
       events: events.map((e) => ({
         id: e.id,
         eventType: e.eventType,

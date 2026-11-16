@@ -315,28 +315,34 @@ this branch. This is the honest state of it:
 | Next.js build | ✅ completed, all routes emitted |
 | Secrets generated and set (`AUTH_SECRET`, `JOBS_SECRET`, `CRON_SECRET`, `MFA_ENCRYPTION_KEY`) | ✅ |
 | School identity env (`SCHOOL_*`, `SCHOOL_TIMEZONE`) | ✅ |
-| **`DATABASE_URL`** | ⚠️ **placeholder only** — points at `localhost`, deliberately. No staging Postgres has been provisioned, and none should be invented. |
+| **`DATABASE_URL`** | ⚠️ Vercel's staging database is not yet verified/configured. A dedicated Supabase project has been selected, but it has not been connected to Vercel or migrated. |
 | **Runtime verified** | ❌ **Not verified.** The sandbox that prepared this has no network path to `*.vercel.app`, so no page was opened and `/api/health` was never curled. **The build passing is not the same as the app working.** |
-| Public access | ⚠️ Vercel **deployment protection** is on (`readySubstate: STAGED`), so only a signed-in team member can open the URL. That is the right default while `DATABASE_URL` is a placeholder. |
+| Public access | ⚠️ Vercel deployment protection should remain on until the staging database is configured and the runtime is verified. |
 
-### To finish it (needs a real staging database — owner action)
+### To finish it (staging Supabase project selected; owner connection step remains)
 
-1. Create a staging Postgres (Neon staging branch, or any managed Postgres) in a
-   region near the function region.
-2. In Vercel → `famex-os` → Settings → Environment Variables, **replace
-   `DATABASE_URL`** with the pooled URL (keep `connection_limit=1`).
-3. Migrate and seed from a trusted shell, never from chat:
+The selected Supabase project (`Teamthy's Project`) is active/healthy in `eu-central-1` on PostgreSQL 17. Its `public` schema currently has zero tables and no Prisma migration history. Vercel functions are configured for `iad1`, so the database and function are in different regions; validate staging latency or align regions before performance testing. This Supabase project is staging only; OCI remains the sole production writer.
 
-   ```bash
-   DATABASE_URL="$STAGING_DIRECT_URL" npx prisma migrate deploy
-   DATABASE_URL="$STAGING_DIRECT_URL" SEED_PASSWORD="…" npx tsx prisma/seed-all.ts
-   ```
-
-4. Redeploy, then open `/api/health/ready`. It must report `database: up`,
-   `migrations.pending: 0`. **`storage` will report `down` on Vercel** — that is
-   §3.1 of this document, not a misconfiguration.
-5. Sign in with a seeded account and open `/report-cards/<verificationCode>/print`
-   to confirm the new printable card renders on the deployed build.
+1. In GitHub → repository **Settings → Environments**, create `famex-staging` and add
+   an environment secret named `STAGING_DATABASE_URL`. Use the Supabase direct connection
+   URL (or session pooler if direct IPv6 connectivity is unavailable), never the
+   transaction-pooler URL for migrations. Do not copy it into chat or Git.
+2. After `.github/workflows/famex-staging-migrate.yml` has landed on `main`, open GitHub
+   **Actions → Famex staging migration → Run workflow**. Select `main` or the reviewed
+   current feature branch, and choose `APPLY-FAMEX-STAGING` in the confirmation menu. The workflow validates format,
+   lint, types and tests before checking that the secret targets this exact Supabase project
+   and applying Prisma migrations. A workflow file present only on a feature branch cannot
+   receive `workflow_dispatch` until it is on the default branch.
+3. In Vercel → `famex-os` → Settings → Environment Variables, set `DATABASE_URL` for
+   **Preview only** to Supabase's Prisma-compatible transaction-pooler URL (retain
+   `connection_limit=1`). Keep the privileged migration URL out of Vercel. Use a separate
+   runtime database role that does not bypass RLS; validate that role with the RLS verifiers.
+4. Redeploy the Preview target, then open `/api/health/ready`. It must report
+   `database: up`, `migrations.pending: 0`. **`storage` will report `down` on Vercel**
+   — that is §3.1 of this document, not a misconfiguration.
+5. Seed only synthetic staging accounts/data from a trusted runner if needed; use a temporary
+   `SEED_PASSWORD` and never use production student data. Sign in and open
+   `/report-cards/<verificationCode>/print` to verify a DB-backed route.
 
 Until step 4 passes, treat the Vercel deployment as a **build artefact**, not an
 environment.

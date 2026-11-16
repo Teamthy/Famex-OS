@@ -9,11 +9,10 @@ import { flagReading, isImpossibleTravel, type GeoReading } from "@/lib/spoof-de
 export const dynamic = "force-dynamic";
 
 /**
- * Today's GPS clock-in activity across staff & students for the admin dashboard.
+ * Today's staff and student clock activity for the admin dashboard.
  *
- * Returns summary counts plus a combined timeline of events (latest 200) that
- * admins can review to see who clocked in, how far from center they were, and
- * spot suspicious entries (large lateMinutes, high distanceM right at the edge).
+ * Returns daily attendance summaries plus the latest 200 GPS/QR events. Geofence
+ * distance and spoof analysis apply only to events that carry GPS coordinates.
  */
 export async function GET(request: NextRequest) {
   // Rule 13: auth → role → module. The GPS timeline spans staff and student
@@ -42,7 +41,7 @@ export async function GET(request: NextRequest) {
       },
     }),
     prisma.staffAttendanceEvent.findMany({
-      where: { schoolId: user.schoolId, workDate, source: "GPS" },
+      where: { schoolId: user.schoolId, workDate },
       orderBy: { scannedAt: "desc" },
       include: {
         teacherProfile: { select: { displayName: true, id: true } },
@@ -67,20 +66,32 @@ export async function GET(request: NextRequest) {
   ]);
 
   const staffLatestMap = new Map<string, StaffAttendanceEventType>();
+  const staffLateMap = new Map<string, boolean>();
   const staffChronological = [...staffEvents].sort(
     (a, b) => a.scannedAt.getTime() - b.scannedAt.getTime(),
   );
-  for (const e of staffChronological) staffLatestMap.set(e.teacherProfileId, e.eventType);
-  const staffIn = [...staffLatestMap.values()].filter((v) => v === "CHECK_IN").length;
-  const staffLate = staffEvents.filter((e) => e.eventType === "CHECK_IN" && e.isLate).length;
+  for (const event of staffChronological) {
+    staffLatestMap.set(event.teacherProfileId, event.eventType);
+    if (event.eventType === "CHECK_IN" && !staffLateMap.has(event.teacherProfileId)) {
+      staffLateMap.set(event.teacherProfileId, event.isLate);
+    }
+  }
+  const staffIn = [...staffLatestMap.values()].filter((value) => value === "CHECK_IN").length;
+  const staffLate = [...staffLateMap.values()].filter(Boolean).length;
 
   const studentLatest = new Map<string, StudentClockEventType>();
+  const studentLateMap = new Map<string, boolean>();
   const sortedStudent = [...studentEvents].sort(
     (a, b) => a.clockedAt.getTime() - b.clockedAt.getTime(),
   );
-  for (const e of sortedStudent) studentLatest.set(e.studentProfileId, e.eventType);
-  const studentIn = [...studentLatest.values()].filter((v) => v === "CHECK_IN").length;
-  const studentLate = studentEvents.filter((e) => e.eventType === "CHECK_IN" && e.isLate).length;
+  for (const event of sortedStudent) {
+    studentLatest.set(event.studentProfileId, event.eventType);
+    if (event.eventType === "CHECK_IN" && !studentLateMap.has(event.studentProfileId)) {
+      studentLateMap.set(event.studentProfileId, event.isLate);
+    }
+  }
+  const studentIn = [...studentLatest.values()].filter((value) => value === "CHECK_IN").length;
+  const studentLate = [...studentLateMap.values()].filter(Boolean).length;
 
   type Row = {
     id: string;
@@ -88,6 +99,7 @@ export async function GET(request: NextRequest) {
     name: string;
     sub: string;
     eventType: "CHECK_IN" | "CHECK_OUT";
+    source: string;
     at: string;
     isLate: boolean;
     lateMinutes: number;
@@ -104,6 +116,7 @@ export async function GET(request: NextRequest) {
       name: e.teacherProfile.displayName,
       sub: "Staff",
       eventType: e.eventType,
+      source: e.source,
       at: e.scannedAt.toISOString(),
       isLate: e.isLate,
       lateMinutes: e.lateMinutes,
@@ -118,6 +131,7 @@ export async function GET(request: NextRequest) {
       name: e.studentProfile.displayName,
       sub: `${e.studentProfile.currentClass.displayName} · ${e.studentProfile.studentId}`,
       eventType: e.eventType,
+      source: e.source,
       at: e.clockedAt.toISOString(),
       isLate: e.isLate,
       lateMinutes: e.lateMinutes,
@@ -200,7 +214,7 @@ export async function GET(request: NextRequest) {
       studentIn,
       studentNotIn: Math.max(0, studentTotal - studentIn),
       studentLate,
-      gpsEvents: rowsWithFlags.length,
+      clockEvents: rowsWithFlags.length,
       flaggedCount,
     },
     rows: rowsWithFlags.slice(0, 200),

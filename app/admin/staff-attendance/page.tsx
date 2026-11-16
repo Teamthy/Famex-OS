@@ -190,7 +190,8 @@ export default function AdminStaffAttendancePage() {
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Scan failed.");
-      const msg = `${j.staff.displayName} · ${j.event.eventType.replace("_", " ")}${
+      const attendeeName = j.staff?.displayName ?? j.student?.displayName ?? "Attendance";
+      const msg = `${attendeeName} · ${j.event.eventType.replace("_", " ")}${
         j.event.isLate ? ` · LATE +${j.event.lateMinutes}m` : ""
       }${j.scannerFlag === "OUTSIDE_FENCE" ? " · ⚠️ SCANNER OFF-SITE" : j.scannerFlag === "WEAK_FIX" ? " · ⚠️ weak GPS" : ""}`;
       setLastResult(msg);
@@ -216,11 +217,11 @@ export default function AdminStaffAttendancePage() {
               Gate / office scanner
             </p>
             <h1 className="mt-2 font-display text-4xl tracking-widest">
-              STAFF <span className="text-brand-green">QR ATTENDANCE</span>
+              DAILY <span className="text-brand-green">ATTENDANCE QR</span>
             </h1>
             <p className="mt-3 max-w-3xl text-sm text-white/85">
-              Scan staff badges for check-in and check-out. Arrivals after{" "}
-              {data?.lateCutoff || "08:00"} (Africa/Lagos) are marked late automatically.
+              Scan a staff or student&apos;s date-bound QR for check-in and check-out. Arrivals
+              after {data?.lateCutoff || "08:00"} (Africa/Lagos) are marked late automatically.
             </p>
           </div>
 
@@ -237,7 +238,7 @@ export default function AdminStaffAttendancePage() {
                 autoFocus
                 value={scanValue}
                 onChange={(e) => setScanValue(e.target.value)}
-                placeholder="Focus here and scan QR / type badge code (YKST-…)"
+                placeholder="Scan a daily staff/student QR (or type a staff badge code)"
                 className="flex-1 rounded-2xl border border-[var(--input-border)] bg-[var(--input-bg)] px-4 py-3 font-mono text-sm"
               />
               <select

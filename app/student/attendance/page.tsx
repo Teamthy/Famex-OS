@@ -5,7 +5,9 @@ import PortalTopbar from "@/components/PortalTopbar";
 import PortalSidebar from "@/components/PortalSidebar";
 import AttendanceCalendar, { type AttendanceDay } from "@/components/AttendanceCalendar";
 import GpsClockCard from "@/components/GpsClockCard";
+import QrImage from "@/components/QrImage";
 import type { Fence } from "@/lib/useGps";
+import { formatAttendanceDuration } from "@/lib/attendance-duration";
 import {
   MessageCircle,
   CalendarDays,
@@ -32,13 +34,20 @@ type ClockStatus = {
   date?: string;
   lateCutoff?: string;
   gps?: Fence;
-  student?: { id: string; displayName: string; className: string; studentId: string };
+  student?: {
+    id: string;
+    displayName: string;
+    className: string;
+    studentId: string;
+    qrPayload: string;
+  };
   today?: {
     status: "ABSENT" | "IN" | "OUT";
     checkInAt: string | null;
     checkOutAt: string | null;
     isLate: boolean;
     lateMinutes: number;
+    durationMinutes: number;
     events: Array<{
       id: string;
       eventType: string;
@@ -267,8 +276,28 @@ export default function StudentAttendancePage() {
                                       : "—"}
                                   </b>
                                 </div>
+                                <div>
+                                  Time at school:{" "}
+                                  <b>
+                                    {formatAttendanceDuration(clock.today?.durationMinutes || 0)}
+                                  </b>
+                                </div>
                               </div>
                             </div>
+                            {clock.student?.qrPayload && (
+                              <div className="rounded-2xl bg-[var(--surface-disabled)] p-3 text-center">
+                                <QrImage
+                                  value={clock.student.qrPayload}
+                                  size={128}
+                                  alt="Today's student attendance QR code"
+                                  className="mx-auto h-32 w-32 rounded-xl bg-white p-2"
+                                />
+                                <p className="mt-2 max-w-36 text-[10px] text-[var(--text-muted)]">
+                                  Show this date-bound QR to the school attendance scanner. It
+                                  refreshes each school day.
+                                </p>
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -283,7 +312,7 @@ export default function StudentAttendancePage() {
                         {(clock.today?.events?.length || 0) > 0 && (
                           <div className="rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5">
                             <h3 className="flex items-center gap-2 font-display text-lg tracking-widest">
-                              <LogIn size={16} className="text-brand-green" /> TODAY&apos;S GPS
+                              <LogIn size={16} className="text-brand-green" /> TODAY&apos;S CLOCK
                               EVENTS
                             </h3>
                             <ul className="mt-3 space-y-2">
@@ -299,6 +328,11 @@ export default function StudentAttendancePage() {
                                       <LogOut className="text-blue-500" size={14} />
                                     )}
                                     {ev.eventType.replace("_", " ")}
+                                    {ev.source === "GPS"
+                                      ? " · GPS"
+                                      : ev.source === "DAILY_QR"
+                                        ? " · daily QR"
+                                        : ""}
                                     {typeof ev.distanceM === "number" ? ` · ${ev.distanceM}m` : ""}
                                     {ev.isLate ? ` · late +${ev.lateMinutes}m` : ""}
                                   </span>

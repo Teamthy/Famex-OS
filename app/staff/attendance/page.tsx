@@ -7,6 +7,7 @@ import { useToast } from "@/components/Toast";
 import QrImage from "@/components/QrImage";
 import GpsClockCard from "@/components/GpsClockCard";
 import type { Fence } from "@/lib/useGps";
+import { formatAttendanceDuration } from "@/lib/attendance-duration";
 
 type MeResponse = {
   supported: boolean;
@@ -26,6 +27,7 @@ type MeResponse = {
     checkOutAt: string | null;
     isLate: boolean;
     lateMinutes: number;
+    durationMinutes: number;
     events: Array<{
       id: string;
       eventType: string;
@@ -96,8 +98,8 @@ export default function StaffSelfAttendancePage() {
             MY <span className="text-brand-green">ATTENDANCE</span>
           </h1>
           <p className="mt-3 text-sm text-white/85">
-            Check in / out here, or present your badge QR at the admin scanner. Late after{" "}
-            {data?.lateCutoff || "08:00"}.
+            Use today&apos;s rotating QR at the attendance scanner or check in through the school
+            geofence. Late after {data?.lateCutoff || "08:00"}.
           </p>
         </div>
 
@@ -155,6 +157,10 @@ export default function StaffSelfAttendancePage() {
                           : "—"}
                       </b>
                     </div>
+                    <div>
+                      Time at school:{" "}
+                      <b>{formatAttendanceDuration(data.today?.durationMinutes || 0)}</b>
+                    </div>
                   </div>
                 </div>
                 {data.staff?.qrPayload && (
@@ -162,11 +168,11 @@ export default function StaffSelfAttendancePage() {
                     <QrImage
                       value={data.staff.qrPayload}
                       size={200}
-                      alt="Staff badge QR"
+                      alt="Today's staff attendance QR code"
                       className="mx-auto h-40 w-40 rounded-xl border border-[var(--border-subtle)] bg-white p-2"
                     />
-                    <div className="mt-2 font-mono text-xs text-[var(--text-muted)]">
-                      {data.staff.badgeCode}
+                    <div className="mt-2 text-xs text-[var(--text-muted)]">
+                      Valid for {data.date} only
                     </div>
                   </div>
                 )}
