@@ -117,7 +117,7 @@ describe("guardian proof and student activation are separate", () => {
 
     const { POST } = await import("@/app/api/student/verify-guardian/route");
     const response = await POST(
-      request("/api/student/verify-guardian", { token: "guardian-token" }),
+      request("/api/student/verify-guardian", { token: "guardian-contact-verification-token" }),
     );
     const body = await response.json();
 
@@ -181,7 +181,7 @@ describe("guardian proof and student activation are separate", () => {
 
     const { POST } = await import("@/app/api/student/verify-guardian/route");
     const response = await POST(
-      request("/api/student/verify-guardian", { token: "guardian-token" }),
+      request("/api/student/verify-guardian", { token: "guardian-contact-verification-token" }),
     );
 
     expect(response.status).toBe(410);
