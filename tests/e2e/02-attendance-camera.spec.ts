@@ -27,6 +27,7 @@ async function openTodayAttendance(page: Page, context: BrowserContext) {
   });
   expect(opened.ok, JSON.stringify(opened.body)).toBe(true);
   await page.reload();
+  await expect(page.getByText("OPEN — scans accepted")).toBeVisible();
 }
 
 test.describe("staff attendance + QR camera", () => {
@@ -111,9 +112,11 @@ test.describe("staff attendance + QR camera", () => {
 
     // The manual field must keep working — it is the fallback when a device
     // has no camera, and it is how attendance got taken while QR was broken.
-    // Matched by placeholder: the input carries no type attribute.
-    const field = page.getByPlaceholder(/badge code/i);
+    // Scope to the visible input because the responsive page may render a
+    // second copy for another viewport breakpoint.
+    const field = page.locator('input[placeholder*="staff badge code"]:visible').first();
     await expect(field).toBeVisible();
+    await expect(field).toBeEnabled();
     await field.fill("STAFF-DOES-NOT-EXIST");
 
     // An unknown badge should be reported, not swallowed, and must not 500.
