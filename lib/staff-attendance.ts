@@ -13,6 +13,7 @@ import {
 } from "@/lib/geofence";
 import { sendSms } from "@/lib/sms";
 import { notifyDirectorsOfStaffClockEvent } from "@/lib/director-notifications";
+import { lockDailyAttendanceDay, requireDailyAttendanceOpen } from "@/lib/daily-attendance-session";
 
 export const STAFF_ATTENDANCE_ADMIN_ROLES = [
   UserRole.ADMIN,
@@ -166,6 +167,8 @@ export async function recordStaffScan(input: {
   // or a scanner + GPS request from both observing ABSENT and committing two
   // check-ins. The event and audit trail commit or roll back together.
   const event = await prisma.$transaction(async (tx) => {
+    await lockDailyAttendanceDay(tx, input.schoolId, todayKey);
+    await requireDailyAttendanceOpen(tx, input.schoolId, todayKey);
     await lockActiveTeacherProfile(tx, teacher.id, input.schoolId);
     const todays = await tx.staffAttendanceEvent.findMany({
       where: { schoolId: input.schoolId, teacherProfileId: teacher.id, workDate },

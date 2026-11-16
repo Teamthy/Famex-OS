@@ -447,6 +447,7 @@ model School {
   documentSequences       DocumentSequence[]
   staffAttendanceEvents   StaffAttendanceEvent[]
   studentClockEvents      StudentClockEvent[]
+  dailyAttendanceSessions DailyAttendanceSession[]
   whatsappInboundMessages        WhatsAppInboundMessage[]
   studentActivationTokens        StudentActivationToken[]
   guardianContactVerifications   GuardianContactVerificationToken[]
@@ -2254,6 +2255,29 @@ model StaffAttendanceEvent {
 enum StudentClockEventType {
   CHECK_IN
   CHECK_OUT
+}
+
+enum DailyAttendanceStatus {
+  OPEN
+  CLOSED
+}
+
+/// Admin-controlled school attendance gate for one local workday.
+model DailyAttendanceSession {
+  id              String                @id @default(cuid())
+  schoolId        String
+  workDate        DateTime              @db.Date
+  status          DailyAttendanceStatus @default(OPEN)
+  openedAt        DateTime              @default(now())
+  openedByUserId  String?
+  closedAt        DateTime?
+  closedByUserId  String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  school          School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, workDate])
+  @@index([schoolId, status, workDate])
 }
 
 model StudentClockEvent {

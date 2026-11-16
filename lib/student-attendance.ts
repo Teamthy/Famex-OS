@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/session";
 import { SCHOOL_TZ, workDateKey } from "@/lib/staff-attendance";
 import { queueStudentClockNotifications } from "@/lib/clock-notifications";
+import { lockDailyAttendanceDay, requireDailyAttendanceOpen } from "@/lib/daily-attendance-session";
 import {
   checkGeofence,
   clampRadiusM,
@@ -129,6 +130,8 @@ async function recordStudentClockEvent(input: StudentClockWriteInput) {
   // serializes scanner and GPS submissions and prevents duplicate open
   // check-ins when a client retries or two devices race.
   const committed = await prisma.$transaction(async (tx) => {
+    await lockDailyAttendanceDay(tx, input.schoolId, todayKey);
+    await requireDailyAttendanceOpen(tx, input.schoolId, todayKey);
     await tx.$queryRaw`SELECT "id" FROM "StudentProfile" WHERE "id" = ${input.studentProfileId} AND "schoolId" = ${input.schoolId} FOR UPDATE`;
     const student = await tx.studentProfile.findFirst({
       where: { id: input.studentProfileId, schoolId: input.schoolId, isActive: true },

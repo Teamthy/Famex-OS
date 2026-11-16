@@ -99,6 +99,7 @@ describe("staff attendance write integration", () => {
       badgeCode: "YKST-ABCDE12345",
       user: { email: "staff@example.test", role: UserRole.TEACHER },
     });
+    mockPrisma.dailyAttendanceSession.findUnique.mockResolvedValue({ status: "OPEN" });
     mockPrisma.staffAttendanceEvent.findMany.mockResolvedValue([]);
     mockPrisma.staffAttendanceEvent.create.mockResolvedValue({
       id: "staff-event-1",

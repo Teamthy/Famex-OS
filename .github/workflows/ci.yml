@@ -278,6 +278,13 @@ jobs:
         env:
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
 
+      - name: Verify daily attendance open/close serialization
+        # Ensure an admin close serializes behind a scan already in-flight and
+        # rejects later student/staff clock events through the shared guard.
+        run: npm run verify:daily-attendance
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
       - name: Verify Super Admin bootstrap and MFA persistence
         # Exercises the out-of-band CLI against migrated Postgres, including
         # the appended enum value, encrypted TOTP seed, one-time recovery-code
