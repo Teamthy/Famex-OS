@@ -2045,10 +2045,7 @@ model GuardianContactVerificationToken {
 
   @@index([schoolId, userId, expiresAt])
   // PostgreSQL truncates identifiers to 63 bytes; pin the actual persisted name.
-  @@index(
-    [studentProfileId, channel, contactHash, verifiedAt],
-    map: "GuardianContactVerificationToken_studentProfileId_channel_conta"
-  )
+  @@index([studentProfileId, channel, contactHash, verifiedAt], map: "GuardianContactVerificationToken_studentProfileId_channel_conta")
 }
 
 model PasswordResetToken {
