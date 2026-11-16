@@ -34,7 +34,7 @@ async function waitForAdvisoryLockWait(): Promise<void> {
         WHERE datname = current_database()
           AND pid <> pg_backend_pid()
           AND wait_event_type = 'Lock'
-          AND query ILIKE '%hashtextextended%'
+          AND query ILIKE '%pg_advisory_xact_lock%'
       ) AS blocked
     `;
     if (rows[0]?.blocked) return;

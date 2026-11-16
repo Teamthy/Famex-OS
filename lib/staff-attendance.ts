@@ -166,7 +166,7 @@ export async function recordStaffScan(input: {
   // Serialize state transitions on the profile row. This prevents two scanners
   // or a scanner + GPS request from both observing ABSENT and committing two
   // check-ins. The event and audit trail commit or roll back together.
-  const event = await prisma.$transaction(async (tx) => {
+  const { event, late } = await prisma.$transaction(async (tx) => {
     await lockDailyAttendanceDay(tx, input.schoolId, todayKey);
     await requireDailyAttendanceOpen(tx, input.schoolId, todayKey);
     await lockActiveTeacherProfile(tx, teacher.id, input.schoolId);
@@ -219,7 +219,7 @@ export async function recordStaffScan(input: {
         },
       },
     });
-    return created;
+    return { event: created, late };
   });
 
   await notifyDirectorsOfStaffClockEvent({
@@ -325,7 +325,9 @@ export async function recordStaffGpsClock(input: StaffGpsClockInput) {
   const todayKey = workDateKey(now);
   const workDate = new Date(`${todayKey}T12:00:00.000Z`);
 
-  const event = await prisma.$transaction(async (tx) => {
+  const { event, late } = await prisma.$transaction(async (tx) => {
+    await lockDailyAttendanceDay(tx, input.schoolId, todayKey);
+    await requireDailyAttendanceOpen(tx, input.schoolId, todayKey);
     await lockActiveTeacherProfile(tx, teacher.id, input.schoolId);
     const todays = await tx.staffAttendanceEvent.findMany({
       where: { schoolId: input.schoolId, teacherProfileId: teacher.id, workDate },
@@ -379,7 +381,7 @@ export async function recordStaffGpsClock(input: StaffGpsClockInput) {
         },
       },
     });
-    return created;
+    return { event: created, late };
   });
 
   await notifyDirectorsOfStaffClockEvent({
