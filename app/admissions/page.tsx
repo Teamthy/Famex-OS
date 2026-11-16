@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import dynamic from "next/dynamic";
 import { afterLoad } from "@/lib/after-lcp";
+import { preload } from "react-dom";
 import { CheckCircle2, Clock3, FileText, ShieldCheck } from "lucide-react";
 
 // The long application form is below the fold. Keep its server-rendered HTML
@@ -31,6 +32,15 @@ const assurances = [
 ];
 
 export default function AdmissionsPage() {
+  // Emit a responsive head preload so the page's largest hero resource is
+  // discoverable before the browser reaches this section in the body stream.
+  preload("/home/lab-750.webp", {
+    as: "image",
+    imageSrcSet: "/home/lab-750.webp 750w, /home/lab-1200.webp 1200w",
+    imageSizes: "100vw",
+    fetchPriority: "high",
+  });
+
   return (
     <>
       <Header />
@@ -39,7 +49,6 @@ export default function AdmissionsPage() {
           <div className="absolute inset-0">
             {/* The hero photograph is this page's LCP element — pre-built
                   WebP with fetchpriority=high (no on-demand conversion). */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/home/lab-750.webp"
               srcSet="/home/lab-750.webp 750w, /home/lab-1200.webp 1200w"
@@ -65,9 +74,9 @@ export default function AdmissionsPage() {
                 </span>
               </h1>
               <p className="mt-7 max-w-2xl text-base leading-7 text-white md:text-lg">
-                Apply to Famex International Schools for JSS1 through SS3. Before you begin, please
-                prepare the applicant&apos;s birth certificate, passport photograph, and most recent
-                report card.
+                Apply to FAMEX SCHOOLS for JSS1 through SS3. Before you begin, please prepare the
+                applicant&apos;s birth certificate, passport photograph, and most recent report
+                card.
               </p>
               <div className="mt-8 flex flex-wrap gap-3 text-sm text-white">
                 <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2">

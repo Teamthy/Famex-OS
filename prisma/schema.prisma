@@ -2043,7 +2043,11 @@ model GuardianContactVerificationToken {
   user           User           @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([schoolId, userId, expiresAt])
-  @@index([studentProfileId, channel, contactHash, verifiedAt])
+  // PostgreSQL truncates identifiers to 63 bytes; pin the actual persisted name.
+  @@index(
+    [studentProfileId, channel, contactHash, verifiedAt],
+    map: "GuardianContactVerificationToken_studentProfileId_channel_conta"
+  )
 }
 
 model PasswordResetToken {
