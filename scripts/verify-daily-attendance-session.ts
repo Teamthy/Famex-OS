@@ -161,9 +161,9 @@ async function main() {
 
 main()
   .catch((error) => {
-    logger.error("Daily attendance session verification failed", {
-      error: error instanceof Error ? error.message : String(error),
-    });
+    const detail = error instanceof Error ? (error.stack ?? error.message) : String(error);
+    logger.error("Daily attendance session verification failed", { error: detail });
+    console.error(`::error title=Daily attendance verifier::${detail.replace(/\r?\n/g, " ")}`);
     process.exitCode = 1;
   })
   .finally(async () => {

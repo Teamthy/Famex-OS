@@ -100,6 +100,7 @@ describe("staff attendance write integration", () => {
       user: { email: "staff@example.test", role: UserRole.TEACHER },
     });
     mockPrisma.dailyAttendanceSession.findUnique.mockResolvedValue({ status: "OPEN" });
+    mockPrisma.$queryRaw.mockResolvedValue([{ id: "teacher-1" }]);
     mockPrisma.staffAttendanceEvent.findMany.mockResolvedValue([]);
     mockPrisma.staffAttendanceEvent.create.mockResolvedValue({
       id: "staff-event-1",
