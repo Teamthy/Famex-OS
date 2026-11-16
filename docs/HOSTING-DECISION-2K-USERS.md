@@ -324,15 +324,16 @@ this branch. This is the honest state of it:
 The selected Supabase project (`Teamthy's Project`) is active/healthy in `eu-central-1` on PostgreSQL 17. Its `public` schema currently has zero tables and no Prisma migration history. Vercel functions are configured for `iad1`, so the database and function are in different regions; validate staging latency or align regions before performance testing. This Supabase project is staging only; OCI remains the sole production writer.
 
 1. In GitHub → repository **Settings → Environments**, create `famex-staging` and add
-   an environment secret named `STAGING_DATABASE_URL`. Use the Supabase direct connection
-   URL (or session pooler if direct IPv6 connectivity is unavailable), never the
-   transaction-pooler URL for migrations. Do not copy it into chat or Git.
+   an environment secret named `STAGING_DATABASE_URL`. Use Supabase's **session pooler**
+   connection URL on port `5432`, never the direct DB hostname or transaction-pooler URL
+   for this GitHub Actions migration runner. The direct hostname may resolve to IPv6, which
+   the hosted runner cannot reach. Do not copy the URL into chat or Git.
 2. After `.github/workflows/famex-staging-migrate.yml` has landed on `main`, open GitHub
    **Actions → Famex staging migration → Run workflow**. Select `main` or the reviewed
    current feature branch, and choose `APPLY-FAMEX-STAGING` in the confirmation menu. The workflow validates format,
    lint, types and tests before checking that the secret targets this exact Supabase project
-   and applying Prisma migrations. A workflow file present only on a feature branch cannot
-   receive `workflow_dispatch` until it is on the default branch.
+   through the session pooler and applying Prisma migrations. A workflow file present only
+   on a feature branch cannot receive `workflow_dispatch` until it is on the default branch.
 3. In Vercel → `famex-os` → Settings → Environment Variables, set `DATABASE_URL` for
    **Preview only** to Supabase's Prisma-compatible transaction-pooler URL (retain
    `connection_limit=1`). Keep the privileged migration URL out of Vercel. Use a separate
